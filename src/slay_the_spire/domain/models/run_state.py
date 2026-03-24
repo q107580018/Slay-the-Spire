@@ -27,6 +27,12 @@ def _require_mapping(value: object) -> Mapping[str, object]:
     return value
 
 
+def _require_schema_version(value: object) -> int:
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise TypeError("schema_version must be an int")
+    return value
+
+
 @dataclass(slots=True, kw_only=True)
 class RunState:
     schema_version: ClassVar[int] = SCHEMA_VERSION
@@ -53,7 +59,8 @@ class RunState:
     @classmethod
     def from_dict(cls, data: Mapping[str, object]) -> RunState:
         data = _require_mapping(data)
-        if data.get("schema_version") != SCHEMA_VERSION:
+        schema_version = _require_schema_version(data.get("schema_version"))
+        if schema_version != SCHEMA_VERSION:
             raise ValueError("unsupported schema_version for RunState")
         current_act_id = data.get("current_act_id")
         if current_act_id is not None and not isinstance(current_act_id, str):

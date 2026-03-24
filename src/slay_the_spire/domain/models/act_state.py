@@ -32,6 +32,12 @@ def _require_mapping_data(value: object) -> Mapping[str, object]:
     return value
 
 
+def _require_schema_version(value: object) -> int:
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise TypeError("schema_version must be an int")
+    return value
+
+
 @dataclass(slots=True, kw_only=True)
 class ActNodeState:
     schema_version: int = SCHEMA_VERSION
@@ -39,10 +45,13 @@ class ActNodeState:
     next_node_ids: list[str] = field(default_factory=list)
 
     def __post_init__(self) -> None:
+        self.schema_version = _require_schema_version(self.schema_version)
         if self.schema_version != SCHEMA_VERSION:
             raise ValueError("unsupported schema_version for ActNodeState")
         if not self.node_id:
             raise ValueError("node_id must not be empty")
+        if not isinstance(self.next_node_ids, list):
+            raise TypeError("next_node_ids must be a list")
         self.next_node_ids = list(self.next_node_ids)
         if len(set(self.next_node_ids)) != len(self.next_node_ids):
             raise ValueError("next_node_ids must be unique")
@@ -57,7 +66,8 @@ class ActNodeState:
     @classmethod
     def from_dict(cls, data: Mapping[str, object]) -> ActNodeState:
         data = _require_mapping_data(data)
-        if data.get("schema_version") != SCHEMA_VERSION:
+        schema_version = _require_schema_version(data.get("schema_version"))
+        if schema_version != SCHEMA_VERSION:
             raise ValueError("unsupported schema_version for ActNodeState")
         next_node_ids = _require_list(data.get("next_node_ids", []), "next_node_ids")
         return cls(
@@ -81,12 +91,17 @@ class ActState:
     _node_by_id: dict[str, ActNodeState] = field(init=False, repr=False, compare=False, default_factory=dict)
 
     def __post_init__(self) -> None:
+        self.schema_version = _require_schema_version(self.schema_version)
         if self.schema_version != SCHEMA_VERSION:
             raise ValueError("unsupported schema_version for ActState")
         if not self.act_id:
             raise ValueError("act_id must not be empty")
         if not self.current_node_id:
             raise ValueError("current_node_id must not be empty")
+        if not isinstance(self.nodes, list):
+            raise TypeError("nodes must be a list")
+        if not isinstance(self.visited_node_ids, list):
+            raise TypeError("visited_node_ids must be a list")
         self.visited_node_ids = list(self.visited_node_ids)
         self._refresh_node_index()
         if self.current_node_id not in self._node_by_id:
@@ -127,7 +142,8 @@ class ActState:
     @classmethod
     def from_dict(cls, data: Mapping[str, object]) -> ActState:
         data = _require_mapping_data(data)
-        if data.get("schema_version") != SCHEMA_VERSION:
+        schema_version = _require_schema_version(data.get("schema_version"))
+        if schema_version != SCHEMA_VERSION:
             raise ValueError("unsupported schema_version for ActState")
         nodes_raw = _require_list(data.get("nodes", []), "nodes")
         visited_node_ids = _require_list(data.get("visited_node_ids", []), "visited_node_ids")

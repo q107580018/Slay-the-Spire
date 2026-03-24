@@ -9,6 +9,12 @@ from slay_the_spire.shared.types import JsonDict
 SCHEMA_VERSION = 1
 
 
+def _require_schema_version(value: object) -> int:
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise TypeError("schema_version must be an int")
+    return value
+
+
 def _copy_statuses(statuses: list[StatusState]) -> list[StatusState]:
     return list(statuses)
 
@@ -54,6 +60,7 @@ class PlayerCombatState:
     kind: str = field(init=False, default="player")
 
     def __post_init__(self) -> None:
+        self.schema_version = _require_schema_version(self.schema_version)
         if self.schema_version != SCHEMA_VERSION:
             raise ValueError("unsupported schema_version for PlayerCombatState")
         if not self.instance_id:
@@ -83,7 +90,8 @@ class PlayerCombatState:
     @classmethod
     def from_dict(cls, data: Mapping[str, object]) -> PlayerCombatState:
         data = _require_mapping_data(data)
-        if data.get("schema_version") != SCHEMA_VERSION:
+        schema_version = _require_schema_version(data.get("schema_version"))
+        if schema_version != SCHEMA_VERSION:
             raise ValueError("unsupported schema_version for PlayerCombatState")
         if data.get("kind") != "player":
             raise ValueError("player combat state must have kind=player")
@@ -111,6 +119,7 @@ class EnemyState:
     kind: str = field(init=False, default="enemy")
 
     def __post_init__(self) -> None:
+        self.schema_version = _require_schema_version(self.schema_version)
         if self.schema_version != SCHEMA_VERSION:
             raise ValueError("unsupported schema_version for EnemyState")
         if not self.instance_id:
@@ -143,7 +152,8 @@ class EnemyState:
     @classmethod
     def from_dict(cls, data: Mapping[str, object]) -> EnemyState:
         data = _require_mapping_data(data)
-        if data.get("schema_version") != SCHEMA_VERSION:
+        schema_version = _require_schema_version(data.get("schema_version"))
+        if schema_version != SCHEMA_VERSION:
             raise ValueError("unsupported schema_version for EnemyState")
         if data.get("kind") != "enemy":
             raise ValueError("enemy combat state must have kind=enemy")

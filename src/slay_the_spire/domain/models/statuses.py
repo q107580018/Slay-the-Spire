@@ -8,6 +8,12 @@ from slay_the_spire.shared.types import JsonDict
 SCHEMA_VERSION = 1
 
 
+def _require_schema_version(value: object) -> int:
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise TypeError("schema_version must be an int")
+    return value
+
+
 @dataclass(slots=True, kw_only=True)
 class StatusState:
     schema_version: int = SCHEMA_VERSION
@@ -16,6 +22,7 @@ class StatusState:
     duration: int | None = None
 
     def __post_init__(self) -> None:
+        self.schema_version = _require_schema_version(self.schema_version)
         if self.schema_version != SCHEMA_VERSION:
             raise ValueError("unsupported schema_version for StatusState")
         if not self.status_id:
@@ -37,7 +44,8 @@ class StatusState:
     def from_dict(cls, data: Mapping[str, object]) -> StatusState:
         if not isinstance(data, Mapping):
             raise TypeError("data must be a mapping")
-        if data.get("schema_version") != SCHEMA_VERSION:
+        schema_version = _require_schema_version(data.get("schema_version"))
+        if schema_version != SCHEMA_VERSION:
             raise ValueError("unsupported schema_version for StatusState")
         if not isinstance(data.get("status_id"), str):
             raise TypeError("status_id must be a string")

@@ -56,6 +56,12 @@ def _require_str(value: object, field_name: str) -> str:
     return value
 
 
+def _require_schema_version(value: object) -> int:
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise TypeError("schema_version must be an int")
+    return value
+
+
 @dataclass(slots=True, kw_only=True)
 class RoomState:
     schema_version: int = SCHEMA_VERSION
@@ -67,6 +73,7 @@ class RoomState:
     rewards: list[str] = field(default_factory=list)
 
     def __post_init__(self) -> None:
+        self.schema_version = _require_schema_version(self.schema_version)
         if self.schema_version != SCHEMA_VERSION:
             raise ValueError("unsupported schema_version for RoomState")
         if not self.room_id:
@@ -76,6 +83,8 @@ class RoomState:
         if not self.stage:
             raise ValueError("stage must not be empty")
         self.payload = _copy_payload(self.payload)
+        if not isinstance(self.rewards, list):
+            raise TypeError("rewards must be a list")
         self.rewards = list(self.rewards)
 
     def to_dict(self) -> JsonDict:
@@ -93,7 +102,8 @@ class RoomState:
     def from_dict(cls, data: Mapping[str, object]) -> RoomState:
         if not isinstance(data, Mapping):
             raise TypeError("data must be a mapping")
-        if data.get("schema_version") != SCHEMA_VERSION:
+        schema_version = _require_schema_version(data.get("schema_version"))
+        if schema_version != SCHEMA_VERSION:
             raise ValueError("unsupported schema_version for RoomState")
         payload = _require_mapping(data.get("payload", {}), "payload")
         rewards = _require_list(data.get("rewards", []), "rewards")

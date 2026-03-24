@@ -101,6 +101,197 @@ def test_room_state_to_dict_returns_deep_snapshot():
 
 
 @pytest.mark.parametrize(
+    ("kwargs", "field_name"),
+    [
+        (
+            {
+                "schema_version": 1,
+                "room_id": "room-1",
+                "room_type": "event",
+                "stage": "waiting_input",
+                "payload": {},
+                "is_resolved": False,
+                "rewards": "gold",
+            },
+            "rewards",
+        ),
+        (
+            {
+                "schema_version": 1,
+                "node_id": "node-1",
+                "next_node_ids": "node-2",
+            },
+            "next_node_ids",
+        ),
+        (
+            {
+                "schema_version": 1,
+                "round_number": 1,
+                "energy": 3,
+                "hand": "strike",
+                "draw_pile": [],
+                "discard_pile": [],
+                "exhaust_pile": [],
+                "player": PlayerCombatState(
+                    instance_id="player-1",
+                    hp=80,
+                    max_hp=80,
+                    block=0,
+                    statuses=[],
+                ),
+                "enemies": [],
+                "effect_queue": [],
+                "log": [],
+            },
+            "hand",
+        ),
+        (
+            {
+                "schema_version": 1,
+                "round_number": 1,
+                "energy": 3,
+                "hand": [],
+                "draw_pile": "strike",
+                "discard_pile": [],
+                "exhaust_pile": [],
+                "player": PlayerCombatState(
+                    instance_id="player-1",
+                    hp=80,
+                    max_hp=80,
+                    block=0,
+                    statuses=[],
+                ),
+                "enemies": [],
+                "effect_queue": [],
+                "log": [],
+            },
+            "draw_pile",
+        ),
+        (
+            {
+                "schema_version": 1,
+                "round_number": 1,
+                "energy": 3,
+                "hand": [],
+                "draw_pile": [],
+                "discard_pile": "strike",
+                "exhaust_pile": [],
+                "player": PlayerCombatState(
+                    instance_id="player-1",
+                    hp=80,
+                    max_hp=80,
+                    block=0,
+                    statuses=[],
+                ),
+                "enemies": [],
+                "effect_queue": [],
+                "log": [],
+            },
+            "discard_pile",
+        ),
+        (
+            {
+                "schema_version": 1,
+                "round_number": 1,
+                "energy": 3,
+                "hand": [],
+                "draw_pile": [],
+                "discard_pile": [],
+                "exhaust_pile": "strike",
+                "player": PlayerCombatState(
+                    instance_id="player-1",
+                    hp=80,
+                    max_hp=80,
+                    block=0,
+                    statuses=[],
+                ),
+                "enemies": [],
+                "effect_queue": [],
+                "log": [],
+            },
+            "exhaust_pile",
+        ),
+        (
+            {
+                "schema_version": 1,
+                "round_number": 1,
+                "energy": 3,
+                "hand": [],
+                "draw_pile": [],
+                "discard_pile": [],
+                "exhaust_pile": [],
+                "player": PlayerCombatState(
+                    instance_id="player-1",
+                    hp=80,
+                    max_hp=80,
+                    block=0,
+                    statuses=[],
+                ),
+                "enemies": [],
+                "effect_queue": [],
+                "log": "combat starts",
+            },
+            "log",
+        ),
+    ],
+)
+def test_constructors_reject_string_fields_meant_to_be_lists(kwargs, field_name):
+    with pytest.raises(TypeError, match=field_name):
+        if "node_id" in kwargs:
+            ActNodeState(**kwargs)
+        elif "room_id" in kwargs:
+            RoomState(**kwargs)
+        else:
+            CombatState(**kwargs)
+
+
+@pytest.mark.parametrize(
+    ("factory", "kwargs"),
+    [
+        (ActNodeState, {"schema_version": True, "node_id": "node-1", "next_node_ids": []}),
+        (
+            RoomState,
+            {
+                "schema_version": True,
+                "room_id": "room-1",
+                "room_type": "combat",
+                "stage": "waiting_input",
+                "payload": {},
+                "is_resolved": False,
+                "rewards": [],
+            },
+        ),
+        (
+            CombatState,
+            {
+                "schema_version": True,
+                "round_number": 1,
+                "energy": 3,
+                "hand": [],
+                "draw_pile": [],
+                "discard_pile": [],
+                "exhaust_pile": [],
+                "player": PlayerCombatState(
+                    instance_id="player-1",
+                    hp=80,
+                    max_hp=80,
+                    block=0,
+                    statuses=[],
+                ),
+                "enemies": [],
+                "effect_queue": [],
+                "log": [],
+            },
+        ),
+        (StatusState, {"schema_version": True, "status_id": "weak", "stacks": 1, "duration": 2}),
+    ],
+)
+def test_constructors_reject_boolean_schema_versions(factory, kwargs):
+    with pytest.raises(TypeError, match="schema_version"):
+        factory(**kwargs)
+
+
+@pytest.mark.parametrize(
     ("field", "value"),
     [
         ("payload", []),
@@ -219,6 +410,61 @@ def test_unknown_schema_version_is_rejected_or_migrated_explicitly():
                 "current_act_id": None,
             }
         )
+
+
+@pytest.mark.parametrize(
+    ("factory", "payload"),
+    [
+        (
+            RunState.from_dict,
+            {
+                "schema_version": True,
+                "seed": 7,
+                "character_id": "ironclad",
+                "current_act_id": None,
+            },
+        ),
+        (
+            RoomState.from_dict,
+            {
+                "schema_version": True,
+                "room_id": "room-1",
+                "room_type": "combat",
+                "stage": "waiting_input",
+                "payload": {},
+                "is_resolved": False,
+                "rewards": [],
+            },
+        ),
+        (
+            CombatState.from_dict,
+            {
+                "schema_version": True,
+                "round_number": 1,
+                "energy": 3,
+                "hand": [],
+                "draw_pile": [],
+                "discard_pile": [],
+                "exhaust_pile": [],
+                "player": {
+                    "schema_version": 1,
+                    "instance_id": "player-1",
+                    "hp": 80,
+                    "max_hp": 80,
+                    "block": 0,
+                    "statuses": [],
+                    "kind": "player",
+                },
+                "enemies": [],
+                "effect_queue": [],
+                "log": [],
+            },
+        ),
+    ],
+)
+def test_from_dict_rejects_boolean_schema_version(factory, payload):
+    with pytest.raises(TypeError, match="schema_version"):
+        factory(payload)
 
 
 @pytest.mark.parametrize(

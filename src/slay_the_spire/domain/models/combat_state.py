@@ -27,6 +27,12 @@ def _require_int(value: object, field_name: str) -> int:
     return value
 
 
+def _require_schema_version(value: object) -> int:
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise TypeError("schema_version must be an int")
+    return value
+
+
 def _require_str(value: object, field_name: str) -> str:
     if not isinstance(value, str):
         raise TypeError(f"{field_name} must be a string")
@@ -82,12 +88,27 @@ class CombatState:
     )
 
     def __post_init__(self) -> None:
+        self.schema_version = _require_schema_version(self.schema_version)
         if self.schema_version != SCHEMA_VERSION:
             raise ValueError("unsupported schema_version for CombatState")
         if self.round_number <= 0:
             raise ValueError("round_number must be positive")
         if self.energy < 0:
             raise ValueError("energy must be non-negative")
+        if not isinstance(self.hand, list):
+            raise TypeError("hand must be a list")
+        if not isinstance(self.draw_pile, list):
+            raise TypeError("draw_pile must be a list")
+        if not isinstance(self.discard_pile, list):
+            raise TypeError("discard_pile must be a list")
+        if not isinstance(self.exhaust_pile, list):
+            raise TypeError("exhaust_pile must be a list")
+        if not isinstance(self.enemies, list):
+            raise TypeError("enemies must be a list")
+        if not isinstance(self.effect_queue, list):
+            raise TypeError("effect_queue must be a list")
+        if not isinstance(self.log, list):
+            raise TypeError("log must be a list")
         self.hand = list(self.hand)
         self.draw_pile = list(self.draw_pile)
         self.discard_pile = list(self.discard_pile)
@@ -130,7 +151,8 @@ class CombatState:
     @classmethod
     def from_dict(cls, data: Mapping[str, object]) -> CombatState:
         data = _require_mapping_data(data)
-        if data.get("schema_version") != SCHEMA_VERSION:
+        schema_version = _require_schema_version(data.get("schema_version"))
+        if schema_version != SCHEMA_VERSION:
             raise ValueError("unsupported schema_version for CombatState")
         hand = _require_list(data.get("hand", []), "hand")
         draw_pile = _require_list(data.get("draw_pile", []), "draw_pile")
