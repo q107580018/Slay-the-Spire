@@ -203,7 +203,12 @@ def render_event_result(room_state: RoomState) -> Panel | None:
 
 
 def render_reward_panel(room_state: RoomState) -> Panel:
-    return Panel(Group(*[Text(line) for line in _format_reward_lines(room_state.rewards)]), title="奖励", box=PANEL_BOX, expand=False)
+    body: list[RenderableType] = []
+    event_result = _format_event_result(room_state) if room_state.room_type == "event" else None
+    if event_result is not None:
+        body.append(Text.assemble(("结果: ", "summary.label"), event_result))
+    body.extend(Text(line) for line in _format_reward_lines(room_state.rewards))
+    return Panel(Group(*body), title="奖励", box=PANEL_BOX, expand=False)
 
 
 def render_branch_selection_panel(room_state: RoomState) -> Panel:
@@ -224,15 +229,10 @@ def render_non_combat_screen(
 
     if mode == "select_next_room":
         body.append(render_branch_selection_panel(room_state))
-    elif room_state.room_type == "event":
-        body.append(render_event_body(room_state, registry))
-        result_panel = render_event_result(room_state)
-        if result_panel is not None:
-            body.append(result_panel)
-        if room_state.rewards:
-            body.append(render_reward_panel(room_state))
     elif room_state.is_resolved and room_state.rewards:
         body.append(render_reward_panel(room_state))
+    elif room_state.room_type == "event":
+        body.append(render_event_body(room_state, registry))
     else:
         body.append(render_default_body(room_state))
 

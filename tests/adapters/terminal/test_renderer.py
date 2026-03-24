@@ -198,7 +198,6 @@ def test_resolved_event_screen_shows_result_panel_and_rewards() -> None:
         menu_state=MenuState(),
     )
 
-    assert "事件正文" in output
     assert "结果" in output
     assert "获得升级" in output
     assert "奖励" in output
@@ -206,6 +205,7 @@ def test_resolved_event_screen_shows_result_panel_and_rewards() -> None:
     assert "卡牌 打击+" in output
     assert "查看奖励" in output
     assert "前往下一个房间" in output
+    assert "事件正文" not in output
     assert "查看事件" not in output
     assert "进行选择" not in output
     assert "战斗摘要" not in output
