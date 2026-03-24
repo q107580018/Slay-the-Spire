@@ -1,14 +1,17 @@
 from rich.console import Console
 
 from slay_the_spire.adapters.terminal.theme import TERMINAL_THEME
+from slay_the_spire.adapters.terminal.renderer import render_room
 from slay_the_spire.adapters.terminal.widgets import (
+    render_block,
     render_hp_bar,
     render_menu,
-    render_block,
     render_statuses,
-    summarize_card_effects,
     preview_enemy_intent,
+    summarize_card_effects,
 )
+from slay_the_spire.app.session import MenuState, start_session
+from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.content.registries import EnemyDef
 from slay_the_spire.domain.models.statuses import StatusState
 
@@ -76,3 +79,20 @@ def test_preview_enemy_intent_uses_move_table_without_state() -> None:
     output = preview_enemy_intent(enemy_def)
 
     assert output == "造成 3 伤害"
+
+
+def test_render_room_uses_shared_box_and_no_duplicate_hp_text() -> None:
+    session = start_session(seed=5)
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=StarterContentProvider(session.content_root),
+        menu_state=MenuState(),
+    )
+
+    assert "╭" not in output
+    assert "╮" not in output
+    assert "┌" in output
+    assert "┐" in output
+    assert output.count("80/80") == 1

@@ -8,7 +8,7 @@ from rich.console import Console, Group, RenderableType
 from rich.panel import Panel
 from rich.text import Text
 
-from slay_the_spire.adapters.terminal.theme import TERMINAL_THEME
+from slay_the_spire.adapters.terminal.theme import PANEL_BOX, TERMINAL_THEME
 from slay_the_spire.adapters.terminal.widgets import (
     preview_enemy_intent,
     render_block,
@@ -300,7 +300,7 @@ def render_room(
         if room_state.rewards:
             body.extend(Text(line) for line in _format_rewards(room_state.rewards))
         body.append(render_menu(_format_menu(room_state, combat_state, registry, menu_state)))
-        return _render_to_text(Panel(Group(*body), title="房间摘要", expand=False))
+        return _render_to_text(Panel(Group(*body), title="房间摘要", box=PANEL_BOX, expand=False))
     body.extend(
         [
             Text.assemble(("回合: ", "summary.label"), str(combat_state.round_number)),
@@ -308,7 +308,7 @@ def render_room(
             Text.assemble(("抽牌堆: ", "summary.label"), str(len(combat_state.draw_pile))),
         ]
     )
-    player_hp_line = Text(f"玩家生命: {combat_state.player.hp}/{combat_state.player.max_hp} ", style="summary.label")
+    player_hp_line = Text("玩家生命: ", style="summary.label")
     player_hp_line.append_text(render_hp_bar(combat_state.player.hp, combat_state.player.max_hp))
     body.append(player_hp_line)
     block_line = Text("玩家格挡: ", style="summary.label")
@@ -323,4 +323,4 @@ def render_room(
         if room_state.rewards:
             body.extend(Text(line) for line in _format_rewards(room_state.rewards))
     body.append(render_menu(_format_menu(room_state, combat_state, registry, menu_state)))
-    return _render_to_text(Panel(Group(*body), title="战斗摘要", expand=False))
+    return _render_to_text(Panel(Group(*body), title="战斗摘要", box=PANEL_BOX, expand=False))

@@ -31,7 +31,7 @@ def render_hp_bar(current: int, maximum: int, *, width: int = HP_BAR_WIDTH) -> T
     ratio = 0 if maximum <= 0 else max(0, min(current / maximum, 1))
     filled = round(width * ratio)
     bar = "█" * filled + "░" * (width - filled)
-    return Text.assemble((bar, hp_style_for_ratio(ratio)), f" {current}/{maximum}")
+    return Text.assemble(f"{current}/{maximum} ", (bar, hp_style_for_ratio(ratio)))
 
 
 def _status_label(status_id: str) -> tuple[str, str]:
