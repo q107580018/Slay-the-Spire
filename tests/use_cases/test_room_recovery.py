@@ -6,6 +6,7 @@ import pytest
 
 from slay_the_spire.adapters.persistence.save_files import JsonFileSaveRepository
 from slay_the_spire.content.provider import StarterContentProvider
+from slay_the_spire.domain.rewards.reward_generator import generate_combat_rewards
 from slay_the_spire.domain.models.room_state import RoomState
 from slay_the_spire.use_cases.claim_reward import claim_reward
 from slay_the_spire.use_cases.load_game import load_game
@@ -97,24 +98,32 @@ def test_reward_claim_is_not_reapplied_after_load(tmp_path: Path) -> None:
     provider = _content_provider()
     run_state = start_new_run("ironclad", seed=37, registry=provider)
     act_state = generate_act_state("act1", seed=37, registry=provider)
+    generated_rewards = generate_combat_rewards(room_id="act1:reward", seed=37)
     room_state = RoomState(
         room_id="act1:reward",
         room_type="reward",
         stage="waiting_input",
-        payload={},
+        payload={"generated_by": "combat_reward_generator"},
         is_resolved=False,
-        rewards=["gold:12", "card:strike_plus"],
+        rewards=generated_rewards,
     )
-    claimed_room = claim_reward(room_state=room_state, reward_id="gold:12")
+    claimed_room = claim_reward(room_state=room_state, reward_id=generated_rewards[0])
     repository = JsonFileSaveRepository(tmp_path / "reward.json")
     save_game(repository=repository, run_state=run_state, act_state=act_state, room_state=claimed_room)
 
     restored_room = load_game(repository=repository)["room_state"]
-    retried_room = claim_reward(room_state=restored_room, reward_id="card:strike_plus")
+    retried_room = claim_reward(room_state=restored_room, reward_id=generated_rewards[1])
 
     assert retried_room.to_dict() == restored_room.to_dict()
-    assert retried_room.payload["claimed_reward_ids"] == ["gold:12"]
-    assert retried_room.rewards == ["card:strike_plus"]
+    assert retried_room.payload["claimed_reward_ids"] == [generated_rewards[0]]
+    assert retried_room.payload["generated_by"] == "combat_reward_generator"
+    assert retried_room.rewards == [generated_rewards[1]]
+
+
+def test_generate_combat_rewards_feeds_reward_room_claim_flow() -> None:
+    rewards = generate_combat_rewards(room_id="act1:hallway_reward", seed=41)
+
+    assert rewards == ["gold:11", "card:reward_strike"]
 
 
 @pytest.mark.parametrize(
