@@ -56,8 +56,13 @@ def render_block(block: int) -> Text:
     return Text(f"🛡 {block}")
 
 
-def _styled_choice(option: str) -> Text:
+def _styled_choice(option: str | Text) -> Text:
     if isinstance(option, Text):
+        prefix, separator, _ = option.plain.partition(" ")
+        if separator and prefix.endswith(".") and prefix[:-1].isdigit():
+            rendered = option.copy()
+            rendered.stylize("menu.number", 0, len(prefix))
+            return rendered
         return option
     prefix, separator, remainder = option.partition(" ")
     if separator and prefix.endswith(".") and prefix[:-1].isdigit():
@@ -65,9 +70,9 @@ def _styled_choice(option: str) -> Text:
     return Text(option)
 
 
-def render_menu(options: list[str], *, title: str = "可选操作") -> Panel:
+def render_menu(options: list[str | Text], *, title: str | None = None) -> Panel:
     body = Group(*(_styled_choice(option) for option in options))
-    return Panel(body, title=title, box=PANEL_BOX, border_style="menu.border", expand=False)
+    return Panel(body, title=title or None, box=PANEL_BOX, border_style="menu.border", expand=False)
 
 
 def summarize_effect(effect: Mapping[str, object]) -> str:
@@ -93,7 +98,6 @@ def summarize_card_effects(effects: Sequence[Mapping[str, object]]) -> str:
 
 
 def preview_enemy_intent(enemy_def: EnemyDef) -> str:
-    move_summaries: list[str] = []
     for move in enemy_def.move_table:
         if not isinstance(move, Mapping):
             continue
@@ -102,6 +106,5 @@ def preview_enemy_intent(enemy_def: EnemyDef) -> str:
             move_summary = summarize_card_effects([effect for effect in effects if isinstance(effect, Mapping)])
         else:
             move_summary = summarize_effect(move)
-        if move_summary != "-":
-            move_summaries.append(move_summary)
-    return "；".join(move_summaries) or "-"
+        return move_summary
+    return "-"

@@ -81,6 +81,15 @@ def test_preview_enemy_intent_uses_move_table_without_state() -> None:
     assert output == "造成 3 伤害"
 
 
+def test_preview_enemy_intent_uses_first_move_for_multi_move_enemy() -> None:
+    session = start_session(seed=5)
+    enemy_def = StarterContentProvider(session.content_root).enemies().get("jaw_worm")
+
+    output = preview_enemy_intent(enemy_def)
+
+    assert output == "造成 5 伤害"
+
+
 def test_render_room_uses_shared_box_and_no_duplicate_hp_text() -> None:
     session = start_session(seed=5)
     output = render_room(
