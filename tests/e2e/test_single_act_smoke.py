@@ -154,9 +154,12 @@ def test_session_loop_routes_through_target_selection_menu() -> None:
     session, input_port = _session_with_two_enemies_for_target_selection()
 
     result = interactive_loop(session=session, input_port=input_port)
+    final_combat_state = CombatState.from_dict(result.final_session.room_state.payload["combat_state"])
 
     assert any("选择目标:" in output and "当前卡牌: 打击" in output and "2. 颚虫" in output for output in result.outputs)
-    assert any("绿史莱姆 生命: 12/12" in output for output in result.outputs)
+    assert any("绿史莱姆 生命: 12/12" in output and "颚虫 生命: 10/16" in output for output in result.outputs)
+    assert final_combat_state.enemies[0].hp == 12
+    assert final_combat_state.enemies[1].hp == 10
     assert result.outputs[-1] == "已退出游戏。"
     assert all(isinstance(prompt, str) for prompt in input_port.prompts)
     assert result.final_session.command_history == ["2", "1", "2", "6"]
@@ -173,6 +176,8 @@ def test_session_loop_routes_through_reward_selection_menu() -> None:
     assert any("1. 金币 15" in output for output in result.outputs)
     assert any("2. 卡牌 打击+" in output for output in result.outputs)
     assert any("奖励" in output and "3. 返回上一步" in output and "1. 金币 15" in output for output in result.outputs)
+    assert result.final_session.room_state.rewards == ["card:reward_strike"]
+    assert result.final_session.room_state.payload["claimed_reward_ids"] == ["gold:15"]
     assert result.outputs[-1] == "已退出游戏。"
     assert all(isinstance(prompt, str) for prompt in input_port.prompts)
     assert result.final_session.command_history == ["2", "1", "2", "1", "2", "1", "6"]
