@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import shutil
 from pathlib import Path
+from dataclasses import replace
 
 from slay_the_spire.app.cli import main
-from slay_the_spire.app.session import interactive_loop, route_command, route_menu_choice, start_session
+from slay_the_spire.app.session import SessionState, interactive_loop, route_command, route_menu_choice, start_session
+from slay_the_spire.domain.models.combat_state import CombatState
+from slay_the_spire.domain.models.entities import EnemyState
 
 
 class _InputPort:
@@ -85,6 +88,48 @@ def test_player_hp_persists_across_combat_rooms() -> None:
     assert "玩家生命: 77/80" in message
 
 
+def _session_with_two_enemies_for_target_selection() -> tuple[SessionState, _InputPort]:
+    session = start_session(seed=5)
+    combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
+    combat_state = CombatState(
+        round_number=combat_state.round_number,
+        energy=combat_state.energy,
+        hand=list(combat_state.hand),
+        draw_pile=list(combat_state.draw_pile),
+        discard_pile=list(combat_state.discard_pile),
+        exhaust_pile=list(combat_state.exhaust_pile),
+        player=combat_state.player,
+        enemies=[
+            EnemyState(
+                instance_id="enemy-1",
+                enemy_id="slime",
+                hp=12,
+                max_hp=12,
+                block=0,
+                statuses=[],
+            ),
+            EnemyState(
+                instance_id="enemy-2",
+                enemy_id="jaw_worm",
+                hp=16,
+                max_hp=16,
+                block=0,
+                statuses=[],
+            ),
+        ],
+        effect_queue=list(combat_state.effect_queue),
+        log=list(combat_state.log),
+    )
+    session = replace(
+        session,
+        room_state=replace(
+            session.room_state,
+            payload={**session.room_state.payload, "combat_state": combat_state.to_dict()},
+        ),
+    )
+    return session, _InputPort(["2", "1", "2", "6"])
+
+
 def test_session_loop_uses_chinese_numbered_menus() -> None:
     session = start_session(seed=5)
     result = interactive_loop(session=session, input_port=_InputPort(["2", "1", "2", "1", "3", "6"]))
@@ -103,6 +148,34 @@ def test_session_loop_uses_chinese_numbered_menus() -> None:
     assert "房间: 走廊" in result.outputs[5]
     assert result.outputs[6] == "已退出游戏。"
     assert result.final_session.command_history == ["2", "1", "2", "1", "3", "6"]
+
+
+def test_session_loop_routes_through_target_selection_menu() -> None:
+    session, input_port = _session_with_two_enemies_for_target_selection()
+
+    result = interactive_loop(session=session, input_port=input_port)
+
+    assert any("选择目标:" in output and "当前卡牌: 打击" in output and "2. 颚虫" in output for output in result.outputs)
+    assert any("绿史莱姆 生命: 12/12" in output for output in result.outputs)
+    assert result.outputs[-1] == "已退出游戏。"
+    assert all(isinstance(prompt, str) for prompt in input_port.prompts)
+    assert result.final_session.command_history == ["2", "1", "2", "6"]
+
+
+def test_session_loop_routes_through_reward_selection_menu() -> None:
+    session = start_session(seed=5)
+    input_port = _InputPort(["2", "1", "2", "1", "2", "1", "6"])
+
+    result = interactive_loop(session=session, input_port=input_port)
+
+    assert any("房间已完成: 是" in output for output in result.outputs)
+    assert any("1. 查看奖励" in output for output in result.outputs)
+    assert any("1. 金币 15" in output for output in result.outputs)
+    assert any("2. 卡牌 打击+" in output for output in result.outputs)
+    assert any("奖励" in output and "3. 返回上一步" in output and "1. 金币 15" in output for output in result.outputs)
+    assert result.outputs[-1] == "已退出游戏。"
+    assert all(isinstance(prompt, str) for prompt in input_port.prompts)
+    assert result.final_session.command_history == ["2", "1", "2", "1", "2", "1", "6"]
 
 
 def test_branch_event_save_and_load_use_chinese_numbered_menus(tmp_path: Path) -> None:
@@ -135,6 +208,7 @@ def test_branch_event_save_and_load_use_chinese_numbered_menus(tmp_path: Path) -
     )
 
     assert any("请选择下一个房间:" in output for output in result.outputs)
+    assert any("2. 事件" in output for output in result.outputs)
     assert any("房间: 事件" in output for output in result.outputs)
     assert any("事件正文" in output for output in result.outputs)
     assert any("发光的牧师向你献上力量。" in output for output in result.outputs)
