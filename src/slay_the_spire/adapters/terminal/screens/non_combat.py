@@ -119,6 +119,15 @@ def _format_reward_menu(room_state: RoomState) -> list[str]:
 
 
 def _format_default_menu(room_state: RoomState) -> list[str]:
+    if room_state.room_type == "event":
+        return [
+            "可选操作:",
+            "1. 查看事件",
+            "2. 进行选择",
+            "3. 保存游戏",
+            "4. 读取存档",
+            "5. 退出游戏",
+        ]
     if room_state.is_resolved and room_state.rewards:
         return [
             "可选操作:",

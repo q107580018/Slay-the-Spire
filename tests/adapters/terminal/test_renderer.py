@@ -127,6 +127,35 @@ def test_event_screen_shows_body_and_options_panel() -> None:
     assert "敌人意图" not in output
 
 
+def test_event_root_screen_uses_event_actions() -> None:
+    session = start_session(seed=5)
+    session = replace(
+        session,
+        room_state=replace(
+            session.room_state,
+            room_type="event",
+            payload={
+                "node_id": "event",
+                "room_kind": "event",
+                "event_id": "shining_light",
+                "next_node_ids": ["boss"],
+            },
+        ),
+    )
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=StarterContentProvider(session.content_root),
+        menu_state=MenuState(),
+    )
+
+    assert "查看事件" in output
+    assert "进行选择" in output
+    assert "查看当前状态" not in output
+    assert "前往下一个房间" not in output
+
+
 def test_resolved_room_with_rewards_uses_reward_screen() -> None:
     session = start_session(seed=5)
     resolved_room = replace(session.room_state, is_resolved=True, rewards=["gold:12", "card:reward_strike"])
