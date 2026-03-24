@@ -261,10 +261,6 @@ def render_enemy_panel(combat_state: CombatState, registry: ContentProviderPort)
     return Panel(Group(*lines), title="敌人意图", box=PANEL_BOX, expand=False)
 
 
-def render_reward_panel(room_state: RoomState) -> Panel:
-    return Panel(Group(*[Text(line) for line in _format_reward_lines(room_state.rewards)]), title="奖励", box=PANEL_BOX, expand=False)
-
-
 def render_hand_panel(combat_state: CombatState, registry: ContentProviderPort) -> Panel:
     if not combat_state.hand:
         return Panel(Group(Text("-")), title="手牌", box=PANEL_BOX, expand=False)
@@ -306,7 +302,5 @@ def render_combat_screen(
     )
     hand_panel = render_hand_panel(combat_state, registry)
     body_group = [body, hand_panel]
-    if room_state.is_resolved and room_state.rewards:
-        body_group.append(render_reward_panel(room_state))
     footer = render_menu_panel_for_combat(room_state, combat_state, registry, menu_state)
     return build_standard_screen(summary=summary, body=Group(*body_group), footer=footer)

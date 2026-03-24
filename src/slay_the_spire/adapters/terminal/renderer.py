@@ -280,6 +280,26 @@ def render_room(
     menu_state: Any,
 ) -> str:
     combat_state = _combat_state_from_room(room_state)
+    if _menu_mode(menu_state) == "select_next_room":
+        return _render_to_text(
+            render_non_combat_screen(
+                run_state=run_state,
+                act_state=act_state,
+                room_state=room_state,
+                registry=registry,
+                menu_state=menu_state,
+            )
+        )
+    if room_state.is_resolved and room_state.rewards:
+        return _render_to_text(
+            render_non_combat_screen(
+                run_state=run_state,
+                act_state=act_state,
+                room_state=room_state,
+                registry=registry,
+                menu_state=menu_state,
+            )
+        )
     if combat_state is not None and room_state.room_type in {"combat", "elite", "boss"}:
         return _render_to_text(
             render_combat_screen(
