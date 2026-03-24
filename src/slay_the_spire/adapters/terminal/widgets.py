@@ -1,0 +1,107 @@
+from __future__ import annotations
+
+from collections.abc import Mapping, Sequence
+
+from rich.console import Group
+from rich.panel import Panel
+from rich.text import Text
+
+from slay_the_spire.adapters.terminal.theme import HP_BAR_WIDTH, PANEL_BOX
+from slay_the_spire.content.registries import EnemyDef
+from slay_the_spire.domain.models.statuses import StatusState
+
+_STATUS_LABELS: dict[str, tuple[str, str]] = {
+    "vulnerable": ("易伤", "status.debuff"),
+    "weak": ("虚弱", "status.debuff"),
+    "strength": ("力量", "status.buff"),
+    "dexterity": ("敏捷", "status.buff"),
+    "artifact": ("人工制品", "status.buff"),
+}
+
+
+def hp_style_for_ratio(ratio: float) -> str:
+    if ratio <= 0.25:
+        return "hp.low"
+    if ratio <= 0.6:
+        return "hp.medium"
+    return "hp.high"
+
+
+def render_hp_bar(current: int, maximum: int, *, width: int = HP_BAR_WIDTH) -> Text:
+    ratio = 0 if maximum <= 0 else max(0, min(current / maximum, 1))
+    filled = round(width * ratio)
+    bar = "█" * filled + "░" * (width - filled)
+    return Text.assemble((bar, hp_style_for_ratio(ratio)), f" {current}/{maximum}")
+
+
+def _status_label(status_id: str) -> tuple[str, str]:
+    return _STATUS_LABELS.get(status_id, (status_id, "status.debuff"))
+
+
+def render_statuses(statuses: Sequence[StatusState]) -> Text:
+    if not statuses:
+        return Text("无")
+
+    rendered = Text()
+    for index, status in enumerate(statuses):
+        if index > 0:
+            rendered.append(" / ")
+        label, style = _status_label(status.status_id)
+        rendered.append(label, style=style)
+        rendered.append(f" {status.stacks}")
+    return rendered
+
+
+def render_block(block: int) -> Text:
+    return Text(f"🛡 {block}")
+
+
+def _styled_choice(option: str) -> Text:
+    if isinstance(option, Text):
+        return option
+    prefix, separator, remainder = option.partition(" ")
+    if separator and prefix.endswith(".") and prefix[:-1].isdigit():
+        return Text.assemble((prefix, "menu.number"), f"{separator}{remainder}")
+    return Text(option)
+
+
+def render_menu(options: list[str], *, title: str = "可选操作") -> Panel:
+    body = Group(*(_styled_choice(option) for option in options))
+    return Panel(body, title=title, box=PANEL_BOX, border_style="menu.border", expand=False)
+
+
+def summarize_effect(effect: Mapping[str, object]) -> str:
+    effect_type = effect.get("type")
+    if effect_type == "damage":
+        return f"造成 {int(effect.get('amount', 0))} 伤害"
+    if effect_type == "block":
+        return f"获得 {int(effect.get('amount', 0))} 格挡"
+    if effect_type == "draw":
+        return f"抽 {int(effect.get('amount', 0))} 张牌"
+    if effect_type == "vulnerable":
+        return f"施加 {int(effect.get('stacks', 0))} 易伤"
+    if effect_type == "weak":
+        return f"施加 {int(effect.get('stacks', 0))} 虚弱"
+    if isinstance(effect_type, str):
+        return effect_type
+    return "-"
+
+
+def summarize_card_effects(effects: Sequence[Mapping[str, object]]) -> str:
+    summaries = [summarize_effect(effect) for effect in effects]
+    return " / ".join(summary for summary in summaries if summary) or "-"
+
+
+def preview_enemy_intent(enemy_def: EnemyDef) -> str:
+    move_summaries: list[str] = []
+    for move in enemy_def.move_table:
+        if not isinstance(move, Mapping):
+            continue
+        effects = move.get("effects")
+        if isinstance(effects, Sequence) and not isinstance(effects, (str, bytes)):
+            move_summary = summarize_card_effects([effect for effect in effects if isinstance(effect, Mapping)])
+        else:
+            move_summary = summarize_effect(move)
+        if move_summary != "-":
+            move_summaries.append(move_summary)
+    return "；".join(move_summaries) or "-"

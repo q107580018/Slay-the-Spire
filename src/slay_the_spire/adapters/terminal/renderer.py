@@ -4,15 +4,24 @@ from collections.abc import Sequence
 from io import StringIO
 from typing import Any
 
-from rich.console import Console, RenderableType
+from rich.console import Console, Group, RenderableType
 from rich.panel import Panel
+from rich.text import Text
 
+from slay_the_spire.adapters.terminal.theme import TERMINAL_THEME
+from slay_the_spire.adapters.terminal.widgets import (
+    preview_enemy_intent,
+    render_block,
+    render_hp_bar,
+    render_menu,
+    render_statuses,
+    summarize_card_effects,
+)
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.act_state import ActState
 from slay_the_spire.domain.models.room_state import RoomState
 from slay_the_spire.domain.models.run_state import RunState
-from slay_the_spire.domain.models.statuses import StatusState
 from slay_the_spire.ports.content_provider import ContentProviderPort
 
 
@@ -27,11 +36,6 @@ _STAGE_LABELS = {
     "waiting_input": "等待操作",
     "completed": "已完成",
     "defeated": "已失败",
-}
-
-_STATUS_LABELS = {
-    "vulnerable": "易伤",
-    "weak": "虚弱",
 }
 
 _NODE_LABELS = {
@@ -51,6 +55,7 @@ def _render_to_text(renderable: RenderableType) -> str:
         record=True,
         force_terminal=False,
         color_system=None,
+        theme=TERMINAL_THEME,
     )
     console.print(renderable)
     return console.export_text(clear=False).rstrip()
@@ -68,12 +73,6 @@ def _format_next_nodes(room_state: RoomState) -> str:
     if not isinstance(next_node_ids, list) or not next_node_ids:
         return "-"
     return ", ".join(_NODE_LABELS.get(str(node_id), str(node_id)) for node_id in next_node_ids)
-
-
-def _format_statuses(statuses: Sequence[StatusState]) -> str:
-    if not statuses:
-        return "-"
-    return ", ".join(f"{_STATUS_LABELS.get(status.status_id, status.status_id)}:{status.stacks}" for status in statuses)
 
 
 def _format_node(node_id: object) -> str:
@@ -100,13 +99,14 @@ def _format_reward_label(reward_id: str) -> str:
     return reward_id
 
 
-def _format_hand(combat_state: CombatState, registry: ContentProviderPort) -> list[str]:
+def _format_hand(combat_state: CombatState, registry: ContentProviderPort) -> list[Text]:
     if not combat_state.hand:
-        return ["手牌:", "-"]
-    lines = ["手牌:"]
+        return [Text("手牌:"), Text("-")]
+    lines = [Text("手牌:")]
     for index, card_instance_id in enumerate(combat_state.hand, start=1):
         card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
-        lines.append(f"{index}. {card_def.name} 费用{card_def.cost}")
+        line = Text(f"{index}. {card_def.name} 费用{card_def.cost} - {summarize_card_effects(card_def.effects)}")
+        lines.append(line)
     return lines
 
 
@@ -119,16 +119,24 @@ def _format_rewards(rewards: Sequence[str]) -> list[str]:
     return lines
 
 
-def _format_enemies(combat_state: CombatState, registry: ContentProviderPort) -> list[str]:
+def _format_enemies(combat_state: CombatState, registry: ContentProviderPort) -> list[Text]:
     if not combat_state.enemies:
-        return ["敌人:", "-"]
-    lines = ["敌人:"]
+        return [Text("敌人:"), Text("-")]
+    lines = [Text("敌人:")]
     for index, enemy in enumerate(combat_state.enemies, start=1):
         enemy_def = registry.enemies().get(enemy.enemy_id)
-        lines.append(
-            f"- {index}. {enemy_def.name} 生命: {enemy.hp}/{enemy.max_hp} "
-            f"格挡: {enemy.block} 状态: {_format_statuses(enemy.statuses)}"
-        )
+        line = Text(f"- {index}. ")
+        line.append(enemy_def.name, style="enemy.name")
+        line.append(f" 生命: {enemy.hp}/{enemy.max_hp} ")
+        line.append_text(render_hp_bar(enemy.hp, enemy.max_hp))
+        line.append(" 格挡: ")
+        line.append_text(render_block(enemy.block))
+        line.append(" 状态: ")
+        line.append_text(render_statuses(enemy.statuses))
+        intent_preview = preview_enemy_intent(enemy_def)
+        if intent_preview != "-":
+            line.append(f" 意图: {intent_preview}")
+        lines.append(line)
     return lines
 
 
@@ -190,7 +198,12 @@ def _format_root_menu(room_state: RoomState) -> list[str]:
 
 
 def _format_card_menu(combat_state: CombatState, registry: ContentProviderPort) -> list[str]:
-    lines = _format_hand(combat_state, registry)
+    if not combat_state.hand:
+        return ["手牌:", "1. 返回上一步"]
+    lines = ["手牌:"]
+    for index, card_instance_id in enumerate(combat_state.hand, start=1):
+        card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
+        lines.append(f"{index}. {card_def.name} 费用{card_def.cost} - {summarize_card_effects(card_def.effects)}")
     lines.append(f"{len(combat_state.hand) + 1}. 返回上一步")
     return lines
 
@@ -264,44 +277,50 @@ def render_room(
     room_kind = room_state.payload.get("room_kind", room_state.room_type)
     character_name = registry.characters().get(run_state.character_id).name
     act_name = registry.acts().get(act_state.act_id).name
-    lines = [
-        f"种子: {run_state.seed}",
-        f"角色: {character_name}",
-        f"章节: {act_name}",
-        f"房间: {_format_node(node_id)}",
-        f"房间类型: {_ROOM_TYPE_LABELS.get(str(room_kind), str(room_kind))}",
-        f"阶段: {_STAGE_LABELS.get(room_state.stage, room_state.stage)}",
-        f"房间已完成: {'是' if room_state.is_resolved else '否'}",
-        f"下一房间: {_format_next_nodes(room_state)}",
+    body: list[RenderableType] = [
+        Text.assemble(("种子: ", "summary.label"), str(run_state.seed)),
+        Text.assemble(("角色: ", "summary.label"), (character_name, "player.name")),
+        Text.assemble(("章节: ", "summary.label"), str(act_name)),
+        Text.assemble(("房间: ", "summary.label"), str(_format_node(node_id))),
+        Text.assemble(("房间类型: ", "summary.label"), str(_ROOM_TYPE_LABELS.get(str(room_kind), str(room_kind)))),
+        Text.assemble(("阶段: ", "summary.label"), str(_STAGE_LABELS.get(room_state.stage, room_state.stage))),
+        Text.assemble(("房间已完成: ", "summary.label"), "是" if room_state.is_resolved else "否"),
+        Text.assemble(("下一房间: ", "summary.label"), str(_format_next_nodes(room_state))),
     ]
     combat_state = _combat_state_from_room(room_state)
     if combat_state is None:
         if room_state.room_type == "event":
             event_id = room_state.payload.get("event_id")
             if isinstance(event_id, str):
-                lines.append(f"事件: {registry.events().get(event_id).text}")
+                body.append(Text.assemble(("事件: ", "summary.label"), registry.events().get(event_id).text))
         if room_state.payload.get("result") == "gain_upgrade":
-            lines.append("结果: 获得升级")
+            body.append(Text.assemble(("结果: ", "summary.label"), "获得升级"))
         elif room_state.payload.get("result") == "nothing":
-            lines.append("结果: 什么也没有发生")
+            body.append(Text.assemble(("结果: ", "summary.label"), "什么也没有发生"))
         if room_state.rewards:
-            lines.extend(_format_rewards(room_state.rewards))
-        lines.extend(_format_menu(room_state, combat_state, registry, menu_state))
-        return _render_to_text(Panel("\n".join(lines), title="房间摘要", expand=False))
-    lines.extend(
+            body.extend(Text(line) for line in _format_rewards(room_state.rewards))
+        body.append(render_menu(_format_menu(room_state, combat_state, registry, menu_state)))
+        return _render_to_text(Panel(Group(*body), title="房间摘要", expand=False))
+    body.extend(
         [
-            f"回合: {combat_state.round_number}",
-            f"当前能量: {combat_state.energy}",
-            f"抽牌堆: {len(combat_state.draw_pile)}",
-            f"玩家生命: {combat_state.player.hp}/{combat_state.player.max_hp}",
-            f"玩家格挡: {combat_state.player.block}",
-            f"玩家状态: {_format_statuses(combat_state.player.statuses)}",
+            Text.assemble(("回合: ", "summary.label"), str(combat_state.round_number)),
+            Text.assemble(("当前能量: ", "summary.label"), str(combat_state.energy)),
+            Text.assemble(("抽牌堆: ", "summary.label"), str(len(combat_state.draw_pile))),
         ]
     )
-    lines.extend(_format_enemies(combat_state, registry))
+    player_hp_line = Text(f"玩家生命: {combat_state.player.hp}/{combat_state.player.max_hp} ", style="summary.label")
+    player_hp_line.append_text(render_hp_bar(combat_state.player.hp, combat_state.player.max_hp))
+    body.append(player_hp_line)
+    block_line = Text("玩家格挡: ", style="summary.label")
+    block_line.append_text(render_block(combat_state.player.block))
+    body.append(block_line)
+    status_line = Text("玩家状态: ", style="summary.label")
+    status_line.append_text(render_statuses(combat_state.player.statuses))
+    body.append(status_line)
+    body.extend(_format_enemies(combat_state, registry))
     if _menu_mode(menu_state) == "root":
-        lines.extend(_format_hand(combat_state, registry))
+        body.extend(_format_hand(combat_state, registry))
         if room_state.rewards:
-            lines.extend(_format_rewards(room_state.rewards))
-    lines.extend(_format_menu(room_state, combat_state, registry, menu_state))
-    return _render_to_text(Panel("\n".join(lines), title="战斗摘要", expand=False))
+            body.extend(Text(line) for line in _format_rewards(room_state.rewards))
+    body.append(render_menu(_format_menu(room_state, combat_state, registry, menu_state)))
+    return _render_to_text(Panel(Group(*body), title="战斗摘要", expand=False))
