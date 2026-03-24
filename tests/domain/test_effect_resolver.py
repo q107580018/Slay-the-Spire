@@ -59,12 +59,8 @@ def test_effects_append_to_queue_tail_in_order():
     assert [effect["type"] for effect in state.effect_queue] == [
         EFFECT_NOOP,
         EFFECT_EMIT_HOOK,
-        EFFECT_EMIT_HOOK,
     ]
-    assert [effect.get("hook_name") for effect in state.effect_queue[1:]] == [
-        "on_enemy_defeated",
-        "on_combat_end",
-    ]
+    assert [effect.get("hook_name") for effect in state.effect_queue[1:]] == ["on_enemy_defeated"]
 
 
 def test_resolver_never_recurses_synchronously():
@@ -122,10 +118,36 @@ def test_on_enemy_defeated_enqueues_before_on_combat_end():
 
     resolve_next_effect(state)
 
-    assert [effect["hook_name"] for effect in state.effect_queue] == [
-        "on_enemy_defeated",
-        "on_combat_end",
+    assert [effect["hook_name"] for effect in state.effect_queue] == ["on_enemy_defeated"]
+
+
+def test_on_combat_end_is_enqueued_only_after_defeat_hook_resolves():
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 4)],
+        effect_queue=[
+            damage_effect(source_instance_id="player-1", target_instance_id="enemy-1", amount=4),
+            noop_effect(reason="existing-tail"),
+        ],
+    )
+    registrations = [
+        HookRegistration(
+            hook_name="on_enemy_defeated",
+            category="status",
+            priority=0,
+            source_type="player",
+            source_instance_id="player-1",
+            registration_index=0,
+            effects=[noop_effect(reason="defeat-follow-up")],
+        ),
     ]
+
+    resolve_next_effect(state)
+    resolve_next_effect(state)
+    resolve_next_effect(state, hook_registrations=registrations)
+
+    assert [effect["type"] for effect in state.effect_queue] == [EFFECT_NOOP, EFFECT_EMIT_HOOK]
+    assert state.effect_queue[0]["reason"] == "defeat-follow-up"
+    assert state.effect_queue[1]["hook_name"] == "on_combat_end"
 
 
 def test_on_combat_end_fires_once_even_if_multiple_enemies_die():
@@ -143,6 +165,11 @@ def test_on_combat_end_fires_once_even_if_multiple_enemies_die():
     assert [effect.get("hook_name") for effect in state.effect_queue] == [
         "on_enemy_defeated",
         "on_enemy_defeated",
-        "on_combat_end",
     ]
 
+    resolve_next_effect(state)
+    resolve_next_effect(state)
+
+    assert [effect.get("hook_name") for effect in state.effect_queue] == [
+        "on_combat_end",
+    ]

@@ -47,6 +47,16 @@ def _has_pending_hook(state: CombatState, hook_name: str) -> bool:
     return False
 
 
+def _maybe_enqueue_combat_end(state: CombatState, *, payload: JsonDict | None = None) -> None:
+    if all(enemy.hp == 0 for enemy in state.enemies) and not _has_pending_hook(state, "on_combat_end"):
+        state.effect_queue.append(
+            emit_hook_effect(
+                hook_name="on_combat_end",
+                payload=payload or {},
+            )
+        )
+
+
 def resolve_next_effect(
     state: CombatState,
     *,
@@ -68,13 +78,6 @@ def resolve_next_effect(
                     payload={"target_instance_id": target.instance_id},
                 )
             )
-            if all(enemy.hp == 0 for enemy in state.enemies) and not _has_pending_hook(state, "on_combat_end"):
-                state.effect_queue.append(
-                    emit_hook_effect(
-                        hook_name="on_combat_end",
-                        payload={"target_instance_id": target.instance_id},
-                    )
-                )
         return effect
 
     if effect_type == EFFECT_BLOCK:
@@ -106,6 +109,11 @@ def resolve_next_effect(
             hook_registrations,
             payload=payload if isinstance(payload, dict) else None,
         )
+        if hook_name == "on_enemy_defeated":
+            _maybe_enqueue_combat_end(
+                state,
+                payload=payload if isinstance(payload, dict) else None,
+            )
         return effect
 
     if effect_type == EFFECT_NOOP:

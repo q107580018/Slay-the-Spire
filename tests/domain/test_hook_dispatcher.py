@@ -209,3 +209,42 @@ def test_hook_registration_order_serializes_stably():
             "effects": [{"type": "noop", "reason": "second"}],
         },
     ]
+
+
+def test_hook_payload_is_copied_onto_derived_effects():
+    state = make_combat_state()
+    registration = HookRegistration(
+        hook_name="on_enemy_defeated",
+        category="status",
+        priority=0,
+        source_type="player",
+        source_instance_id="player-1",
+        registration_index=0,
+        effects=[
+            {
+                "type": "noop",
+                "reason": "payload-aware",
+            }
+        ],
+    )
+    payload = {
+        "target_instance_id": "enemy-1",
+        "nested": {"tags": ["fatal"]},
+    }
+
+    dispatch_hook(state, "on_enemy_defeated", [registration], payload=payload)
+    payload["nested"]["tags"].append("mutated")
+
+    assert state.effect_queue == [
+        {
+            "type": "noop",
+            "reason": "payload-aware",
+            "hook_context": {
+                "hook_name": "on_enemy_defeated",
+                "payload": {
+                    "target_instance_id": "enemy-1",
+                    "nested": {"tags": ["fatal"]},
+                },
+            },
+        }
+    ]
