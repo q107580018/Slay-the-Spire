@@ -49,6 +49,12 @@ def _require_mapping_data(value: object) -> Mapping[str, object]:
     return value
 
 
+def _require_field(data: Mapping[str, object], field_name: str) -> object:
+    if field_name not in data:
+        raise TypeError(f"{field_name} is required")
+    return data[field_name]
+
+
 @dataclass(slots=True, kw_only=True)
 class PlayerCombatState:
     schema_version: int = SCHEMA_VERSION
@@ -99,7 +105,7 @@ class PlayerCombatState:
             raise ValueError("unsupported schema_version for PlayerCombatState")
         if data.get("kind") != "player":
             raise ValueError("player combat state must have kind=player")
-        statuses_raw = _require_list(data.get("statuses", []), "statuses")
+        statuses_raw = _require_list(_require_field(data, "statuses"), "statuses")
         statuses = [StatusState.from_dict(_require_mapping(item, "statuses item")) for item in statuses_raw]
         return cls(
             schema_version=SCHEMA_VERSION,
@@ -166,7 +172,7 @@ class EnemyState:
             raise ValueError("unsupported schema_version for EnemyState")
         if data.get("kind") != "enemy":
             raise ValueError("enemy combat state must have kind=enemy")
-        statuses_raw = _require_list(data.get("statuses", []), "statuses")
+        statuses_raw = _require_list(_require_field(data, "statuses"), "statuses")
         statuses = [StatusState.from_dict(_require_mapping(item, "statuses item")) for item in statuses_raw]
         return cls(
             schema_version=SCHEMA_VERSION,

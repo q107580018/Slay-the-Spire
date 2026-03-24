@@ -884,6 +884,39 @@ def test_combat_state_from_dict_requires_collection_fields(field_name):
 
 
 @pytest.mark.parametrize(
+    ("factory", "payload"),
+    [
+        (
+            PlayerCombatState.from_dict,
+            {
+                "schema_version": 1,
+                "instance_id": "player-1",
+                "hp": 80,
+                "max_hp": 80,
+                "block": 0,
+                "kind": "player",
+            },
+        ),
+        (
+            EnemyState.from_dict,
+            {
+                "schema_version": 1,
+                "instance_id": "enemy-1",
+                "enemy_id": "slime",
+                "hp": 10,
+                "max_hp": 10,
+                "block": 0,
+                "kind": "enemy",
+            },
+        ),
+    ],
+)
+def test_entity_from_dict_requires_statuses(factory, payload):
+    with pytest.raises(TypeError, match="statuses"):
+        factory(payload)
+
+
+@pytest.mark.parametrize(
     ("factory", "kwargs"),
     [
         (ActNodeState, {"schema_version": True, "node_id": "node-1", "next_node_ids": []}),
