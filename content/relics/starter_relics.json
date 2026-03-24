@@ -1,0 +1,17 @@
+{
+  "relics": [
+    {
+      "id": "burning_blood",
+      "name": "Burning Blood",
+      "trigger_hooks": [
+        "on_combat_end"
+      ],
+      "passive_effects": [
+        {
+          "type": "heal",
+          "amount": 6
+        }
+      ]
+    }
+  ]
+}

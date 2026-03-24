@@ -1,0 +1,28 @@
+{
+  "events": [
+    {
+      "id": "shining_light",
+      "text": "A glowing cleric offers power.",
+      "choices": [
+        {
+          "id": "accept",
+          "label": "Accept"
+        },
+        {
+          "id": "leave",
+          "label": "Leave"
+        }
+      ],
+      "outcomes": [
+        {
+          "choice_id": "accept",
+          "result": "gain_upgrade"
+        },
+        {
+          "choice_id": "leave",
+          "result": "nothing"
+        }
+      ]
+    }
+  ]
+}

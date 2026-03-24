@@ -1,7 +1,18 @@
-from typing import Protocol, TypeVar
+from __future__ import annotations
 
-ContentT = TypeVar("ContentT")
+from typing import Protocol, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from slay_the_spire.content.registries import ActRegistry, CardRegistry, EnemyRegistry, EventRegistry, RelicRegistry
 
 
-class ContentProviderPort(Protocol[ContentT]):
-    def get(self, key: str) -> ContentT: ...
+class ContentProviderPort(Protocol):
+    def cards(self) -> "CardRegistry": ...
+
+    def enemies(self) -> "EnemyRegistry": ...
+
+    def relics(self) -> "RelicRegistry": ...
+
+    def events(self) -> "EventRegistry": ...
+
+    def acts(self) -> "ActRegistry": ...

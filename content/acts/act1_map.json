@@ -1,0 +1,43 @@
+{
+  "acts": [
+    {
+      "id": "act1",
+      "name": "Act 1",
+      "enemy_pool_id": "act1_basic",
+      "elite_pool_id": "act1_elites",
+      "event_pool_id": "act1_events",
+      "boss_pool_id": "act1_elites",
+      "nodes": [
+        {
+          "id": "start",
+          "next": [
+            "hallway"
+          ]
+        },
+        {
+          "id": "hallway",
+          "next": [
+            "elite",
+            "event"
+          ]
+        },
+        {
+          "id": "elite",
+          "next": [
+            "boss"
+          ]
+        },
+        {
+          "id": "event",
+          "next": [
+            "boss"
+          ]
+        },
+        {
+          "id": "boss",
+          "next": []
+        }
+      ]
+    }
+  ]
+}
