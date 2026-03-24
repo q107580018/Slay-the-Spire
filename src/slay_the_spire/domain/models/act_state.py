@@ -8,6 +8,30 @@ from slay_the_spire.shared.types import JsonDict
 SCHEMA_VERSION = 1
 
 
+def _require_mapping(value: object, field_name: str) -> Mapping[str, object]:
+    if not isinstance(value, Mapping):
+        raise TypeError(f"{field_name} must be a mapping")
+    return value
+
+
+def _require_list(value: object, field_name: str) -> list[object]:
+    if not isinstance(value, list):
+        raise TypeError(f"{field_name} must be a list")
+    return value
+
+
+def _require_str(value: object, field_name: str) -> str:
+    if not isinstance(value, str):
+        raise TypeError(f"{field_name} must be a string")
+    return value
+
+
+def _require_mapping_data(value: object) -> Mapping[str, object]:
+    if not isinstance(value, Mapping):
+        raise TypeError("data must be a mapping")
+    return value
+
+
 @dataclass(slots=True, kw_only=True)
 class ActNodeState:
     schema_version: int = SCHEMA_VERSION
@@ -32,12 +56,14 @@ class ActNodeState:
 
     @classmethod
     def from_dict(cls, data: Mapping[str, object]) -> ActNodeState:
+        data = _require_mapping_data(data)
         if data.get("schema_version") != SCHEMA_VERSION:
             raise ValueError("unsupported schema_version for ActNodeState")
+        next_node_ids = _require_list(data.get("next_node_ids", []), "next_node_ids")
         return cls(
             schema_version=SCHEMA_VERSION,
-            node_id=str(data["node_id"]),
-            next_node_ids=[str(item) for item in data.get("next_node_ids", [])],
+            node_id=_require_str(data["node_id"], "node_id"),
+            next_node_ids=[_require_str(item, "next_node_ids item") for item in next_node_ids],
         )
 
 
@@ -100,16 +126,19 @@ class ActState:
 
     @classmethod
     def from_dict(cls, data: Mapping[str, object]) -> ActState:
+        data = _require_mapping_data(data)
         if data.get("schema_version") != SCHEMA_VERSION:
             raise ValueError("unsupported schema_version for ActState")
+        nodes_raw = _require_list(data.get("nodes", []), "nodes")
+        visited_node_ids = _require_list(data.get("visited_node_ids", []), "visited_node_ids")
         return cls(
             schema_version=SCHEMA_VERSION,
-            act_id=str(data["act_id"]),
-            current_node_id=str(data["current_node_id"]),
-            nodes=[ActNodeState.from_dict(item) for item in data.get("nodes", [])],
-            visited_node_ids=[str(item) for item in data.get("visited_node_ids", [])],
-            enemy_pool_id=None if data.get("enemy_pool_id") is None else str(data["enemy_pool_id"]),
-            elite_pool_id=None if data.get("elite_pool_id") is None else str(data["elite_pool_id"]),
-            boss_pool_id=None if data.get("boss_pool_id") is None else str(data["boss_pool_id"]),
-            event_pool_id=None if data.get("event_pool_id") is None else str(data["event_pool_id"]),
+            act_id=_require_str(data["act_id"], "act_id"),
+            current_node_id=_require_str(data["current_node_id"], "current_node_id"),
+            nodes=[ActNodeState.from_dict(_require_mapping(item, "nodes item")) for item in nodes_raw],
+            visited_node_ids=[_require_str(item, "visited_node_ids item") for item in visited_node_ids],
+            enemy_pool_id=None if data.get("enemy_pool_id") is None else _require_str(data["enemy_pool_id"], "enemy_pool_id"),
+            elite_pool_id=None if data.get("elite_pool_id") is None else _require_str(data["elite_pool_id"], "elite_pool_id"),
+            boss_pool_id=None if data.get("boss_pool_id") is None else _require_str(data["boss_pool_id"], "boss_pool_id"),
+            event_pool_id=None if data.get("event_pool_id") is None else _require_str(data["event_pool_id"], "event_pool_id"),
         )

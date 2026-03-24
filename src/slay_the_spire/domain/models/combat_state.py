@@ -9,6 +9,30 @@ from slay_the_spire.shared.types import JsonDict, JsonValue
 SCHEMA_VERSION = 1
 
 
+def _require_mapping(value: object, field_name: str) -> Mapping[str, object]:
+    if not isinstance(value, Mapping):
+        raise TypeError(f"{field_name} must be a mapping")
+    return value
+
+
+def _require_list(value: object, field_name: str) -> list[object]:
+    if not isinstance(value, list):
+        raise TypeError(f"{field_name} must be a list")
+    return value
+
+
+def _require_int(value: object, field_name: str) -> int:
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise TypeError(f"{field_name} must be an int")
+    return value
+
+
+def _require_mapping_data(value: object) -> Mapping[str, object]:
+    if not isinstance(value, Mapping):
+        raise TypeError("data must be a mapping")
+    return value
+
+
 def _normalize_json_dict(effect: Mapping[str, object]) -> JsonDict:
     result: JsonDict = {}
     for key, value in effect.items():
@@ -99,21 +123,26 @@ class CombatState:
 
     @classmethod
     def from_dict(cls, data: Mapping[str, object]) -> CombatState:
+        data = _require_mapping_data(data)
         if data.get("schema_version") != SCHEMA_VERSION:
             raise ValueError("unsupported schema_version for CombatState")
-        effect_queue = data.get("effect_queue", [])
-        if not isinstance(effect_queue, list):
-            raise TypeError("effect_queue must be a list")
+        hand = _require_list(data.get("hand", []), "hand")
+        draw_pile = _require_list(data.get("draw_pile", []), "draw_pile")
+        discard_pile = _require_list(data.get("discard_pile", []), "discard_pile")
+        exhaust_pile = _require_list(data.get("exhaust_pile", []), "exhaust_pile")
+        enemies_raw = _require_list(data.get("enemies", []), "enemies")
+        effect_queue_raw = _require_list(data.get("effect_queue", []), "effect_queue")
+        log = _require_list(data.get("log", []), "log")
         return cls(
             schema_version=SCHEMA_VERSION,
-            round_number=int(data["round_number"]),
-            energy=int(data["energy"]),
-            hand=[str(item) for item in data.get("hand", [])],
-            draw_pile=[str(item) for item in data.get("draw_pile", [])],
-            discard_pile=[str(item) for item in data.get("discard_pile", [])],
-            exhaust_pile=[str(item) for item in data.get("exhaust_pile", [])],
-            player=PlayerCombatState.from_dict(data["player"]),
-            enemies=[EnemyState.from_dict(item) for item in data.get("enemies", [])],
-            effect_queue=[_normalize_json_dict(effect) for effect in effect_queue],
-            log=[str(item) for item in data.get("log", [])],
+            round_number=_require_int(data["round_number"], "round_number"),
+            energy=_require_int(data["energy"], "energy"),
+            hand=[str(item) for item in hand],
+            draw_pile=[str(item) for item in draw_pile],
+            discard_pile=[str(item) for item in discard_pile],
+            exhaust_pile=[str(item) for item in exhaust_pile],
+            player=PlayerCombatState.from_dict(_require_mapping(data["player"], "player")),
+            enemies=[EnemyState.from_dict(_require_mapping(item, "enemies item")) for item in enemies_raw],
+            effect_queue=[_normalize_json_dict(_require_mapping(effect, "effect_queue item")) for effect in effect_queue_raw],
+            log=[str(item) for item in log],
         )

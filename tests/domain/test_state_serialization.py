@@ -81,6 +81,118 @@ def test_room_and_combat_state_round_trip_without_python_object_refs():
     assert_primitive_tree(combat_state.to_dict())
 
 
+def test_room_state_to_dict_returns_deep_snapshot():
+    payload = {"nested": {"cards": ["strike"]}}
+    state = RoomState(
+        schema_version=1,
+        room_id="room-1",
+        room_type="event",
+        stage="waiting_input",
+        payload=payload,
+        is_resolved=False,
+        rewards=[],
+    )
+
+    data = state.to_dict()
+    data["payload"]["nested"]["cards"].append("defend")
+
+    assert state.payload["nested"]["cards"] == ["strike"]
+    assert state.to_dict()["payload"]["nested"]["cards"] == ["strike"]
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("payload", []),
+        ("rewards", "gold"),
+        ("is_resolved", "false"),
+    ],
+)
+def test_room_state_from_dict_rejects_wrong_container_and_bool_types(field, value):
+    payload = {
+        "schema_version": 1,
+        "room_id": "room-1",
+        "room_type": "combat",
+        "stage": "waiting_input",
+        "payload": {},
+        "is_resolved": False,
+        "rewards": [],
+    }
+    payload[field] = value
+
+    with pytest.raises(TypeError):
+        RoomState.from_dict(payload)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("nodes", "node-1"),
+        ("visited_node_ids", "node-1"),
+    ],
+)
+def test_act_state_from_dict_rejects_string_lists(field, value):
+    payload = {
+        "schema_version": 1,
+        "act_id": "act-1",
+        "current_node_id": "node-1",
+        "nodes": [
+            {"schema_version": 1, "node_id": "node-1", "next_node_ids": []}
+        ],
+        "visited_node_ids": [],
+        "enemy_pool_id": None,
+        "elite_pool_id": None,
+        "boss_pool_id": None,
+        "event_pool_id": None,
+    }
+    payload[field] = value
+
+    with pytest.raises(TypeError):
+        ActState.from_dict(payload)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("hand", "strike"),
+        ("enemies", "enemy-1"),
+        ("effect_queue", "effect"),
+        ("log", "combat starts"),
+    ],
+)
+def test_combat_state_from_dict_rejects_string_lists(field, value):
+    payload = {
+        "schema_version": 1,
+        "round_number": 1,
+        "energy": 3,
+        "hand": [],
+        "draw_pile": [],
+        "discard_pile": [],
+        "exhaust_pile": [],
+        "player": {
+            "schema_version": 1,
+            "instance_id": "player-1",
+            "hp": 80,
+            "max_hp": 80,
+            "block": 0,
+            "statuses": [],
+            "kind": "player",
+        },
+        "enemies": [],
+        "effect_queue": [],
+        "log": [],
+    }
+    payload[field] = value
+
+    with pytest.raises(TypeError):
+        CombatState.from_dict(payload)
+
+
+def test_status_state_from_dict_rejects_non_mapping():
+    with pytest.raises(TypeError):
+        StatusState.from_dict(["not", "a", "mapping"])  # type: ignore[arg-type]
+
+
 def test_schema_version_is_preserved_on_serialization():
     state = RunState.new(character_id="ironclad", seed=7)
     data = state.to_dict()
@@ -99,6 +211,27 @@ def test_unknown_schema_version_is_rejected_or_migrated_explicitly():
                 "current_act_id": None,
             }
         )
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "error"),
+    [
+        ("seed", "7", TypeError),
+        ("character_id", 7, TypeError),
+        ("current_act_id", 7, TypeError),
+    ],
+)
+def test_run_state_from_dict_rejects_wrong_field_types(field, value, error):
+    payload = {
+        "schema_version": 1,
+        "seed": 7,
+        "character_id": "ironclad",
+        "current_act_id": None,
+    }
+    payload[field] = value
+
+    with pytest.raises(error):
+        RunState.from_dict(payload)
 
 
 def test_act_state_rebuilds_derived_node_index_on_load():

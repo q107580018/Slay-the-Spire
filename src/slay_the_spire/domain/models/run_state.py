@@ -9,6 +9,24 @@ from slay_the_spire.shared.types import JsonDict
 SCHEMA_VERSION = 1
 
 
+def _require_int(value: object, field_name: str) -> int:
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise TypeError(f"{field_name} must be an int")
+    return value
+
+
+def _require_str(value: object, field_name: str) -> str:
+    if not isinstance(value, str):
+        raise TypeError(f"{field_name} must be a string")
+    return value
+
+
+def _require_mapping(value: object) -> Mapping[str, object]:
+    if not isinstance(value, Mapping):
+        raise TypeError("data must be a mapping")
+    return value
+
+
 @dataclass(slots=True, kw_only=True)
 class RunState:
     schema_version: ClassVar[int] = SCHEMA_VERSION
@@ -34,10 +52,14 @@ class RunState:
 
     @classmethod
     def from_dict(cls, data: Mapping[str, object]) -> RunState:
+        data = _require_mapping(data)
         if data.get("schema_version") != SCHEMA_VERSION:
             raise ValueError("unsupported schema_version for RunState")
+        current_act_id = data.get("current_act_id")
+        if current_act_id is not None and not isinstance(current_act_id, str):
+            raise TypeError("current_act_id must be a string or None")
         return cls(
-            seed=int(data["seed"]),
-            character_id=str(data["character_id"]),
-            current_act_id=None if data.get("current_act_id") is None else str(data["current_act_id"]),
+            seed=_require_int(data["seed"], "seed"),
+            character_id=_require_str(data["character_id"], "character_id"),
+            current_act_id=current_act_id,
         )

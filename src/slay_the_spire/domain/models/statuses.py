@@ -35,12 +35,20 @@ class StatusState:
 
     @classmethod
     def from_dict(cls, data: Mapping[str, object]) -> StatusState:
+        if not isinstance(data, Mapping):
+            raise TypeError("data must be a mapping")
         if data.get("schema_version") != SCHEMA_VERSION:
             raise ValueError("unsupported schema_version for StatusState")
+        if not isinstance(data.get("status_id"), str):
+            raise TypeError("status_id must be a string")
+        if not isinstance(data.get("stacks"), int) or isinstance(data.get("stacks"), bool):
+            raise TypeError("stacks must be an int")
+        duration = data.get("duration")
+        if duration is not None and (not isinstance(duration, int) or isinstance(duration, bool)):
+            raise TypeError("duration must be an int or None")
         return cls(
             schema_version=SCHEMA_VERSION,
-            status_id=str(data["status_id"]),
-            stacks=int(data["stacks"]),
-            duration=None if data.get("duration") is None else int(data["duration"]),
+            status_id=data["status_id"],
+            stacks=data["stacks"],
+            duration=duration,
         )
-
