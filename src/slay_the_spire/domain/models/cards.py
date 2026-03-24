@@ -1,5 +1,16 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
+from slay_the_spire.domain.models.combat_state import CombatState
+from slay_the_spire.shared.types import JsonDict
+
+
+@dataclass(slots=True, frozen=True)
+class CombatActionResult:
+    combat_state: CombatState
+    resolved_effects: list[JsonDict]
+
 
 def card_id_from_instance_id(card_instance_id: str) -> str:
     if not isinstance(card_instance_id, str):

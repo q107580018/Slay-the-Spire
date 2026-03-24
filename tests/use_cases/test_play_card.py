@@ -96,9 +96,12 @@ def test_play_card_rejects_insufficient_energy() -> None:
 def test_play_card_rejects_missing_target_for_targeted_effect() -> None:
     state = _combat_state()
     provider = _provider_with_card(effects=[{"type": "damage", "amount": 4}])
+    before = state.to_dict()
 
     with pytest.raises(ValueError, match="target"):
         play_card(state, "custom_strike#1", None, provider)
+
+    assert state.to_dict() == before
 
 
 def test_play_card_rejects_unknown_card() -> None:
@@ -115,7 +118,8 @@ def test_play_card_uses_registry_to_resolve_card_definition() -> None:
 
     result = play_card(state, "registry_card#9", "enemy-1", provider)
 
-    assert result is state
+    assert result.combat_state is state
+    assert [effect["type"] for effect in result.resolved_effects] == ["damage"]
     assert state.energy == 2
     assert state.hand == []
     assert state.discard_pile == ["registry_card#9"]

@@ -5,6 +5,7 @@ from slay_the_spire.domain.combat.turn_flow import end_turn, resolve_player_acti
 from slay_the_spire.domain.effects.effect_types import damage_effect
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
+from slay_the_spire.use_cases.end_turn import end_turn as run_end_turn
 
 
 class _Registry:
@@ -105,3 +106,28 @@ def test_end_turn_runs_enemy_intents_and_draws_new_hand() -> None:
     assert state.hand == ["strike#2", "defend#2", "strike#3", "defend#3", "strike#4"]
     assert state.discard_pile == ["strike#1", "defend#1"]
     assert [effect["type"] for effect in resolved] == ["damage"]
+
+
+def test_end_turn_use_case_returns_structured_result() -> None:
+    registry = _Registry()
+    registry.enemies().register(
+        {
+            "id": "training_slime",
+            "name": "Training Slime",
+            "hp": 12,
+            "move_table": [
+                {
+                    "move": "tackle",
+                    "effects": [{"type": "damage", "amount": 5}],
+                }
+            ],
+            "intent_policy": "scripted",
+        }
+    )
+    state = _combat_state()
+
+    result = run_end_turn(state, registry)
+
+    assert result.combat_state is state
+    assert [effect["type"] for effect in result.resolved_effects] == ["damage"]
+    assert state.round_number == 2

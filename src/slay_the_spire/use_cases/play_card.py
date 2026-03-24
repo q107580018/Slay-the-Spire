@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from slay_the_spire.domain.combat.turn_flow import resolve_player_actions
 from slay_the_spire.domain.effects.effect_types import EFFECT_DAMAGE, copy_effect
 from slay_the_spire.domain.hooks.hook_types import HookRegistration
-from slay_the_spire.domain.models.cards import card_id_from_instance_id
+from slay_the_spire.domain.models.cards import CombatActionResult, card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.ports.content_provider import ContentProviderPort
 from slay_the_spire.shared.types import JsonDict
@@ -44,7 +44,7 @@ def play_card(
     registry: ContentProviderPort,
     *,
     hook_registrations: Sequence[HookRegistration] = (),
-) -> CombatState:
+) -> CombatActionResult:
     if card_instance_id not in combat_state.hand:
         raise ValueError(f"card {card_instance_id} is not in hand")
 
@@ -53,18 +53,21 @@ def play_card(
     if combat_state.energy < card_def.cost:
         raise ValueError("not enough energy to play card")
 
+    materialized_effects = _materialize_card_effects(
+        card_def.effects,
+        source_instance_id=combat_state.player.instance_id,
+        target_id=target_id,
+    )
+
     combat_state.energy -= card_def.cost
     combat_state.hand.remove(card_instance_id)
     combat_state.discard_pile.append(card_instance_id)
-    combat_state.effect_queue.extend(
-        _materialize_card_effects(
-            card_def.effects,
-            source_instance_id=combat_state.player.instance_id,
-            target_id=target_id,
-        )
-    )
-    resolve_player_actions(
+    combat_state.effect_queue.extend(materialized_effects)
+    resolved_effects = resolve_player_actions(
         combat_state,
         hook_registrations=hook_registrations,
     )
-    return combat_state
+    return CombatActionResult(
+        combat_state=combat_state,
+        resolved_effects=resolved_effects,
+    )
