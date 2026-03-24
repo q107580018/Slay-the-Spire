@@ -10,12 +10,14 @@
       "nodes": [
         {
           "id": "start",
+          "room_type": "combat",
           "next": [
             "hallway"
           ]
         },
         {
           "id": "hallway",
+          "room_type": "combat",
           "next": [
             "elite",
             "event"
@@ -23,18 +25,21 @@
         },
         {
           "id": "elite",
+          "room_type": "elite",
           "next": [
             "boss"
           ]
         },
         {
           "id": "event",
+          "room_type": "event",
           "next": [
             "boss"
           ]
         },
         {
           "id": "boss",
+          "room_type": "boss",
           "next": []
         }
       ]

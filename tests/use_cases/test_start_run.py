@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from slay_the_spire.app.cli import main
 from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.domain.map.map_generator import generate_act_state
@@ -56,6 +58,13 @@ def test_start_new_run_uses_starter_content() -> None:
     assert run_state.current_act_id == "act1"
 
 
+def test_start_new_run_rejects_unknown_character() -> None:
+    provider = _content_provider()
+
+    with pytest.raises(KeyError):
+        start_new_run("missing", seed=7, registry=provider)
+
+
 def test_start_new_run_loads_character_definitions_through_provider_contract() -> None:
     provider = _CountingProvider(_content_provider())
 
@@ -65,23 +74,29 @@ def test_start_new_run_loads_character_definitions_through_provider_contract() -
     assert provider.characters_calls >= 1
 
 
-def test_enter_room_returns_room_state_for_node_type() -> None:
+@pytest.mark.parametrize(
+    ("node_id", "expected_room_type"),
+    [
+        ("hallway", "combat"),
+        ("elite", "elite"),
+        ("event", "event"),
+        ("boss", "boss"),
+    ],
+)
+def test_enter_room_returns_room_state_for_node_type(node_id: str, expected_room_type: str) -> None:
     provider = _content_provider()
     run_state = start_new_run("ironclad", seed=7, registry=provider)
     act_state = generate_act_state("act1", seed=7, registry=provider)
 
-    combat_room = enter_room(run_state, act_state, node_id="hallway", registry=provider)
-    event_room = enter_room(run_state, act_state, node_id="event", registry=provider)
+    room_state = enter_room(run_state, act_state, node_id=node_id, registry=provider)
 
-    assert isinstance(combat_room, RoomState)
-    assert combat_room.room_type == "combat"
-    assert combat_room.payload["node_id"] == "hallway"
-    assert combat_room.payload["act_id"] == "act1"
-    assert combat_room.payload["room_kind"] == "combat"
-    assert isinstance(CombatState.from_dict(combat_room.payload["combat_state"]), CombatState)
+    assert isinstance(room_state, RoomState)
+    assert room_state.room_type == expected_room_type
+    assert room_state.payload["node_id"] == node_id
+    assert room_state.payload["act_id"] == "act1"
+    assert room_state.payload["room_kind"] == expected_room_type
 
-    assert isinstance(event_room, RoomState)
-    assert event_room.room_type == "event"
-    assert event_room.payload["node_id"] == "event"
-    assert event_room.payload["room_kind"] == "event"
-    assert "combat_state" not in event_room.payload
+    if expected_room_type in {"combat", "elite", "boss"}:
+        assert isinstance(CombatState.from_dict(room_state.payload["combat_state"]), CombatState)
+    else:
+        assert "combat_state" not in room_state.payload

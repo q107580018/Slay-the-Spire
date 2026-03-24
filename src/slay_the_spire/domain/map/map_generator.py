@@ -42,7 +42,7 @@ def _starting_node_id(nodes: list[ActNodeState]) -> str:
     for node in nodes:
         if node.node_id == "start":
             return node.node_id
-    return nodes[0].node_id
+    raise ValueError("act must define a start node")
 
 
 def generate_act_state(act_id: str, seed: int, registry: ContentProviderPort) -> ActState:
