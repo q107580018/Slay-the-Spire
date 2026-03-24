@@ -38,6 +38,12 @@ def _require_schema_version(value: object) -> int:
     return value
 
 
+def _require_field(data: Mapping[str, object], field_name: str) -> object:
+    if field_name not in data:
+        raise TypeError(f"{field_name} is required")
+    return data[field_name]
+
+
 @dataclass(slots=True, kw_only=True)
 class ActNodeState:
     schema_version: int = SCHEMA_VERSION
@@ -70,7 +76,7 @@ class ActNodeState:
         schema_version = _require_schema_version(data.get("schema_version"))
         if schema_version != SCHEMA_VERSION:
             raise ValueError("unsupported schema_version for ActNodeState")
-        next_node_ids = _require_list(data.get("next_node_ids", []), "next_node_ids")
+        next_node_ids = _require_list(_require_field(data, "next_node_ids"), "next_node_ids")
         return cls(
             schema_version=SCHEMA_VERSION,
             node_id=_require_str(data["node_id"], "node_id"),
@@ -156,8 +162,11 @@ class ActState:
         schema_version = _require_schema_version(data.get("schema_version"))
         if schema_version != SCHEMA_VERSION:
             raise ValueError("unsupported schema_version for ActState")
-        nodes_raw = _require_list(data.get("nodes", []), "nodes")
-        visited_node_ids = _require_list(data.get("visited_node_ids", []), "visited_node_ids")
+        nodes_raw = _require_list(_require_field(data, "nodes"), "nodes")
+        visited_node_ids = _require_list(
+            _require_field(data, "visited_node_ids"),
+            "visited_node_ids",
+        )
         return cls(
             schema_version=SCHEMA_VERSION,
             act_id=_require_str(data["act_id"], "act_id"),

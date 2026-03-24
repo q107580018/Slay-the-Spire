@@ -760,6 +760,38 @@ def test_act_state_from_dict_rejects_dangling_next_node_edges():
         )
 
 
+def test_act_node_state_from_dict_requires_next_node_ids():
+    with pytest.raises(TypeError, match="next_node_ids"):
+        ActNodeState.from_dict(
+            {
+                "schema_version": 1,
+                "node_id": "node-1",
+            }
+        )
+
+
+def test_act_state_from_dict_requires_visited_node_ids():
+    with pytest.raises(TypeError, match="visited_node_ids"):
+        ActState.from_dict(
+            {
+                "schema_version": 1,
+                "act_id": "act-1",
+                "current_node_id": "node-1",
+                "nodes": [
+                    {
+                        "schema_version": 1,
+                        "node_id": "node-1",
+                        "next_node_ids": [],
+                    }
+                ],
+                "enemy_pool_id": None,
+                "elite_pool_id": None,
+                "boss_pool_id": None,
+                "event_pool_id": None,
+            }
+        )
+
+
 def test_room_state_from_dict_rejects_non_string_payload_keys():
     with pytest.raises(TypeError, match="payload keys"):
         RoomState.from_dict(
