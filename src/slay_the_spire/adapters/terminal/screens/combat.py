@@ -59,6 +59,32 @@ def _format_next_nodes(room_state: RoomState) -> str:
     return ", ".join(_format_node(node_id) for node_id in next_node_ids)
 
 
+def _format_reward_label(reward_id: str) -> str:
+    if reward_id.startswith("gold:"):
+        return f"金币 {reward_id.split(':', 1)[1]}"
+    if reward_id.startswith("card:"):
+        reward_name = reward_id.split(":", 1)[1]
+        if reward_name == "reward_strike":
+            return "卡牌 打击+"
+        if reward_name == "reward_defend":
+            return "卡牌 防御+"
+        return f"卡牌 {reward_name}"
+    if reward_id.startswith("event:"):
+        result = reward_id.split(":", 1)[1]
+        if result == "gain_upgrade":
+            return "事件结果 获得升级"
+        if result == "nothing":
+            return "事件结果 什么也没有发生"
+        return f"事件结果 {result}"
+    return reward_id
+
+
+def _format_reward_lines(rewards: list[str]) -> list[str]:
+    if not rewards:
+        return ["-"]
+    return [f"{index}. {_format_reward_label(reward)}" for index, reward in enumerate(rewards, start=1)]
+
+
 def _format_root_menu(room_state: RoomState) -> list[str]:
     if room_state.is_resolved:
         if room_state.rewards:
@@ -114,11 +140,7 @@ def _format_event_menu(room_state: RoomState, registry: ContentProviderPort) -> 
 
 def _format_reward_menu(room_state: RoomState) -> list[str]:
     lines = ["奖励:"]
-    if not room_state.rewards:
-        lines.append("-")
-    else:
-        for index, reward in enumerate(room_state.rewards, start=1):
-            lines.append(f"{index}. {_format_reward_label(reward)}")
+    lines.extend(_format_reward_lines(room_state.rewards))
     lines.append(f"{len(room_state.rewards) + 1}. 返回上一步")
     return lines
 
@@ -239,6 +261,10 @@ def render_enemy_panel(combat_state: CombatState, registry: ContentProviderPort)
     return Panel(Group(*lines), title="敌人意图", box=PANEL_BOX, expand=False)
 
 
+def render_reward_panel(room_state: RoomState) -> Panel:
+    return Panel(Group(*[Text(line) for line in _format_reward_lines(room_state.rewards)]), title="奖励", box=PANEL_BOX, expand=False)
+
+
 def render_hand_panel(combat_state: CombatState, registry: ContentProviderPort) -> Panel:
     if not combat_state.hand:
         return Panel(Group(Text("-")), title="手牌", box=PANEL_BOX, expand=False)
@@ -279,5 +305,8 @@ def render_combat_screen(
         right=render_enemy_panel(combat_state, registry),
     )
     hand_panel = render_hand_panel(combat_state, registry)
+    body_group = [body, hand_panel]
+    if room_state.is_resolved and room_state.rewards:
+        body_group.append(render_reward_panel(room_state))
     footer = render_menu_panel_for_combat(room_state, combat_state, registry, menu_state)
-    return build_standard_screen(summary=summary, body=Group(body, hand_panel), footer=footer)
+    return build_standard_screen(summary=summary, body=Group(*body_group), footer=footer)
