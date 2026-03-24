@@ -245,7 +245,11 @@ def _format_target_menu(combat_state: CombatState, registry: ContentProviderPort
     living_enemies = [enemy for enemy in combat_state.enemies if enemy.hp > 0]
     for index, enemy in enumerate(living_enemies, start=1):
         enemy_def = registry.enemies().get(enemy.enemy_id)
-        lines.append(f"{index}. {enemy_def.name} 生命: {enemy.hp}/{enemy.max_hp}")
+        line = Text(f"{index}. ")
+        line.append(enemy_def.name, style="enemy.name")
+        line.append(" 生命: ")
+        line.append_text(render_hp_bar(enemy.hp, enemy.max_hp))
+        lines.append(line)
     lines.append(f"{len(living_enemies) + 1}. 返回上一步")
     return lines
 

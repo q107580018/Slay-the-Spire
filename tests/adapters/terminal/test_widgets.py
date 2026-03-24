@@ -97,3 +97,17 @@ def test_render_room_uses_shared_box_and_no_duplicate_hp_text() -> None:
     assert "┐" in output
     assert output.count("80/80") == 1
     assert output.count("12/12") == 1
+
+
+def test_render_room_select_target_menu_uses_shared_hp_bar_contract() -> None:
+    session = start_session(seed=5)
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=StarterContentProvider(session.content_root),
+        menu_state=MenuState(mode="select_target"),
+    )
+
+    assert "选择目标" in output
+    assert "12/12 12/12" not in output
