@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import random
+from collections.abc import Sequence
 from typing import TypeVar
 
 T = TypeVar("T")
@@ -10,7 +11,7 @@ T = TypeVar("T")
 @dataclass(slots=True)
 class SeededRng:
     seed: int
-    _random: random.Random = field(init=False, repr=False)
+    _random: random.Random = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         self._random = random.Random(self.seed)
@@ -21,6 +22,5 @@ class SeededRng:
     def random(self) -> float:
         return self._random.random()
 
-    def choice(self, seq: list[T] | tuple[T, ...]) -> T:
+    def choice(self, seq: Sequence[T]) -> T:
         return self._random.choice(seq)
-
