@@ -1,0 +1,32 @@
+{
+  "enemies": [
+    {
+      "id": "slime",
+      "name": "Green Slime",
+      "hp": 12,
+      "move_table": [
+        {
+          "move": "tackle",
+          "weight": 1
+        }
+      ],
+      "intent_policy": "weighted_random"
+    },
+    {
+      "id": "jaw_worm",
+      "name": "Jaw Worm",
+      "hp": 16,
+      "move_table": [
+        {
+          "move": "bite",
+          "weight": 2
+        },
+        {
+          "move": "chomp",
+          "weight": 1
+        }
+      ],
+      "intent_policy": "cycle"
+    }
+  ]
+}

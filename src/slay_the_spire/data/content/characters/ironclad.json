@@ -1,0 +1,21 @@
+{
+  "id": "ironclad",
+  "name": "Ironclad",
+  "starter_deck": [
+    "strike",
+    "strike",
+    "strike",
+    "strike",
+    "defend",
+    "defend",
+    "defend",
+    "defend",
+    "bash"
+  ],
+  "starter_relic_ids": [
+    "burning_blood"
+  ],
+  "starting_act_id": "act1",
+  "starter_card_pool_id": "ironclad_starter",
+  "starter_relic_pool_id": "starter_relics"
+}

@@ -1,0 +1,16 @@
+{
+  "enemies": [
+    {
+      "id": "lagavulin",
+      "name": "Lagavulin",
+      "hp": 109,
+      "move_table": [
+        {
+          "move": "awaken",
+          "weight": 1
+        }
+      ],
+      "intent_policy": "scripted"
+    }
+  ]
+}

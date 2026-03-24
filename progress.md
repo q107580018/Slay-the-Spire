@@ -51,8 +51,31 @@
   - 根据第二轮审阅补强 hook tie-break 与 RoomState 保存/恢复语义
   - 第三轮审阅通过，无阻塞性设计问题
   - 用户确认 spec 可接受，并要求执行 Git 提交
+  - 输出 implementation plan 到 `docs/superpowers/plans/2026-03-24-terminal-sts2-core-implementation.md`
+  - 发起独立 plan 审阅
+  - 根据 plan 审阅意见补强 RoomState 恢复、effect/hook 不变量测试、typed registry/provider 契约与 use case 边界
+  - 发起第二轮 plan 审阅
+  - 根据第二轮 plan 审阅补强休息点恢复、hook 剩余不变量、ContentProviderPort 职责边界与版本兼容负例
+  - 发起第三轮 plan 审阅
+  - 根据第三轮 plan 审阅补齐 `test_room_recovery.py` 的实际执行命令
+  - 发起最终 plan 审阅确认
+  - implementation plan 最终审阅通过
 - Files created/modified:
   - docs/superpowers/specs/2026-03-24-terminal-sts2-core-design.md (updated)
+  - docs/superpowers/plans/2026-03-24-terminal-sts2-core-implementation.md (created)
+  - progress.md (updated)
+
+### Phase 5: Delivery / Execution
+- **Status:** in_progress
+- Actions taken:
+  - 用户选择 `Subagent-Driven` 执行方式
+  - Task 1 实现完成并通过 spec 审查与代码质量审查
+  - Task 1 相关提交为 `d124972` 与后续质量修复 `205e136`
+  - Task 2 实现完成并通过 spec 审查与代码质量审查
+  - Task 2 相关提交为 `1f162bb` 与后续质量修复 `5bfe1bd`
+  - Task 3 实现完成并通过 spec 审查与代码质量审查
+  - Task 3 相关提交为 `68576da`、`9213a07`、`c58ae5b`、`8e89988`、`c3d95fa`、`a2d5fea`、`832b4f6`、`f762d38`、`c0a9cbd`、`da7cc35`、`fb6c5a6`、`6154bb5`
+- Files created/modified:
   - progress.md (updated)
 
 ## Test Results
@@ -70,8 +93,8 @@
 ## 5-Question Reboot Check
 | Question | Answer |
 |----------|--------|
-| Where am I? | Phase 4 / 设计 spec 已写完，等待审阅 |
-| Where am I going? | 实现计划阶段 |
+| Where am I? | Phase 5 / 已完成 Task 3，正在执行 Task 4 |
+| Where am I going? | 按 implementation plan 逐任务推进代码实现 |
 | What's the goal? | 梳理 `Slay the Spire 2` 已知机制并形成终端版复刻方案 |
 | What have I learned? | 第一版最适合采用 Python 的领域模型 + 数据驱动架构 |
-| What have I done? | 已完成研究、设计收敛和正式 spec 输出 |
+| What have I done? | 已完成研究、设计、spec、implementation plan，以及 Task 1-3 |

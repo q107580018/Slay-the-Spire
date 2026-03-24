@@ -1,0 +1,48 @@
+{
+  "acts": [
+    {
+      "id": "act1",
+      "name": "Act 1",
+      "enemy_pool_id": "act1_basic",
+      "elite_pool_id": "act1_elites",
+      "event_pool_id": "act1_events",
+      "boss_pool_id": "act1_elites",
+      "nodes": [
+        {
+          "id": "start",
+          "room_type": "combat",
+          "next": [
+            "hallway"
+          ]
+        },
+        {
+          "id": "hallway",
+          "room_type": "combat",
+          "next": [
+            "elite",
+            "event"
+          ]
+        },
+        {
+          "id": "elite",
+          "room_type": "elite",
+          "next": [
+            "boss"
+          ]
+        },
+        {
+          "id": "event",
+          "room_type": "event",
+          "next": [
+            "boss"
+          ]
+        },
+        {
+          "id": "boss",
+          "room_type": "boss",
+          "next": []
+        }
+      ]
+    }
+  ]
+}

@@ -12,6 +12,7 @@ def _build_parser() -> argparse.ArgumentParser:
     new_parser = subparsers.add_parser("new")
     new_parser.add_argument("--seed", type=int, required=True)
     new_parser.add_argument("--character", default="ironclad")
+    new_parser.add_argument("--content-root")
 
     return parser
 
@@ -24,7 +25,7 @@ def main(argv: list[str] | None = None) -> int:
         return int(exc.code)
 
     if args.command == "new":
-        session = start_session(seed=args.seed, character_id=args.character)
+        session = start_session(seed=args.seed, character_id=args.character, content_root=args.content_root)
         print(render_session(session))
         return 0
 

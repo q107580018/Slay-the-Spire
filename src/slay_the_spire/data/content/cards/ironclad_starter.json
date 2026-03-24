@@ -1,0 +1,41 @@
+{
+  "cards": [
+    {
+      "id": "strike",
+      "name": "Strike",
+      "cost": 1,
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 6
+        }
+      ]
+    },
+    {
+      "id": "defend",
+      "name": "Defend",
+      "cost": 1,
+      "effects": [
+        {
+          "type": "block",
+          "amount": 5
+        }
+      ]
+    },
+    {
+      "id": "bash",
+      "name": "Bash",
+      "cost": 2,
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 8
+        },
+        {
+          "type": "vulnerable",
+          "stacks": 2
+        }
+      ]
+    }
+  ]
+}
