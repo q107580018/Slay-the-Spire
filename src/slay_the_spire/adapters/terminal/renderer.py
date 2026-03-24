@@ -8,6 +8,7 @@ from rich.console import Console, Group, RenderableType
 from rich.panel import Panel
 from rich.text import Text
 
+from slay_the_spire.adapters.terminal.screens.combat import render_combat_screen
 from slay_the_spire.adapters.terminal.theme import PANEL_BOX, TERMINAL_THEME
 from slay_the_spire.adapters.terminal.widgets import (
     preview_enemy_intent,
@@ -281,6 +282,18 @@ def render_room(
     room_kind = room_state.payload.get("room_kind", room_state.room_type)
     character_name = registry.characters().get(run_state.character_id).name
     act_name = registry.acts().get(act_state.act_id).name
+    combat_state = _combat_state_from_room(room_state)
+    if combat_state is not None:
+        return _render_to_text(
+            render_combat_screen(
+                run_state=run_state,
+                act_state=act_state,
+                room_state=room_state,
+                combat_state=combat_state,
+                registry=registry,
+                menu_state=menu_state,
+            )
+        )
     body: list[RenderableType] = [
         Text.assemble(("种子: ", "summary.label"), str(run_state.seed)),
         Text.assemble(("角色: ", "summary.label"), (character_name, "player.name")),
@@ -305,26 +318,3 @@ def render_room(
             body.extend(Text(line) for line in _format_rewards(room_state.rewards))
         body.append(render_menu(_format_menu(room_state, combat_state, registry, menu_state)))
         return _render_to_text(Panel(Group(*body), title="房间摘要", box=PANEL_BOX, expand=False))
-    body.extend(
-        [
-            Text.assemble(("回合: ", "summary.label"), str(combat_state.round_number)),
-            Text.assemble(("当前能量: ", "summary.label"), str(combat_state.energy)),
-            Text.assemble(("抽牌堆: ", "summary.label"), str(len(combat_state.draw_pile))),
-        ]
-    )
-    player_hp_line = Text("玩家生命: ", style="summary.label")
-    player_hp_line.append_text(render_hp_bar(combat_state.player.hp, combat_state.player.max_hp))
-    body.append(player_hp_line)
-    block_line = Text("玩家格挡: ", style="summary.label")
-    block_line.append_text(render_block(combat_state.player.block))
-    body.append(block_line)
-    status_line = Text("玩家状态: ", style="summary.label")
-    status_line.append_text(render_statuses(combat_state.player.statuses))
-    body.append(status_line)
-    body.extend(_format_enemies(combat_state, registry))
-    if _menu_mode(menu_state) == "root":
-        body.extend(_format_hand(combat_state, registry))
-        if room_state.rewards:
-            body.extend(Text(line) for line in _format_rewards(room_state.rewards))
-    body.append(render_menu(_format_menu(room_state, combat_state, registry, menu_state)))
-    return _render_to_text(Panel(Group(*body), title="战斗摘要", box=PANEL_BOX, expand=False))
