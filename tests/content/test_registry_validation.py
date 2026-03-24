@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from slay_the_spire.content.catalog import ContentCatalog
 from slay_the_spire.content.loaders import load_json_file
 from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.content.registries import CardRegistry, EnemyRegistry
@@ -43,11 +44,11 @@ def test_provider_exposes_registry_accessors() -> None:
     assert provider.acts().get("act1").enemy_pool_id == "act1_basic"
 
 
-def test_starter_provider_passes_startup_integrity() -> None:
-    provider = StarterContentProvider(Path(__file__).resolve().parents[2] / "content")
+def test_starter_catalog_passes_startup_integrity() -> None:
+    catalog = ContentCatalog.from_content_root(Path(__file__).resolve().parents[2] / "content")
 
-    assert provider.cards().get("strike").name == "Strike"
-    assert provider.enemies().get("jaw_worm").id == "jaw_worm"
-    assert provider.relics().get("burning_blood").name == "Burning Blood"
-    assert provider.events().get("shining_light").id == "shining_light"
-    assert provider.acts().get("act1").id == "act1"
+    assert catalog.cards.get("strike").name == "Strike"
+    assert catalog.enemies.get("jaw_worm").id == "jaw_worm"
+    assert catalog.relics.get("burning_blood").name == "Burning Blood"
+    assert catalog.events.get("shining_light").id == "shining_light"
+    assert catalog.acts.get("act1").id == "act1"
