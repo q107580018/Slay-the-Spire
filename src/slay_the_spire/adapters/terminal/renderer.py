@@ -127,7 +127,7 @@ def _format_enemies(combat_state: CombatState, registry: ContentProviderPort) ->
         enemy_def = registry.enemies().get(enemy.enemy_id)
         line = Text(f"- {index}. ")
         line.append(enemy_def.name, style="enemy.name")
-        line.append(f" 生命: {enemy.hp}/{enemy.max_hp} ")
+        line.append(" 生命: ")
         line.append_text(render_hp_bar(enemy.hp, enemy.max_hp))
         line.append(" 格挡: ")
         line.append_text(render_block(enemy.block))

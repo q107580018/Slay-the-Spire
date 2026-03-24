@@ -96,3 +96,4 @@ def test_render_room_uses_shared_box_and_no_duplicate_hp_text() -> None:
     assert "┌" in output
     assert "┐" in output
     assert output.count("80/80") == 1
+    assert output.count("12/12") == 1
