@@ -105,6 +105,32 @@ def test_room_state_to_dict_returns_deep_snapshot():
     [
         (
             {
+                "seed": "7",
+                "character_id": "ironclad",
+                "current_act_id": None,
+            },
+            "seed",
+        ),
+        (
+            {
+                "seed": 7,
+                "character_id": "ironclad",
+                "current_act_id": 1,
+            },
+            "current_act_id",
+        ),
+    ],
+)
+def test_run_state_constructor_rejects_invalid_field_types(kwargs, field_name):
+    with pytest.raises(TypeError, match=field_name):
+        RunState(**kwargs)
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "field_name"),
+    [
+        (
+            {
                 "schema_version": 1,
                 "room_id": "room-1",
                 "room_type": "event",
@@ -118,10 +144,42 @@ def test_room_state_to_dict_returns_deep_snapshot():
         (
             {
                 "schema_version": 1,
+                "room_id": "room-1",
+                "room_type": "event",
+                "stage": "waiting_input",
+                "payload": {},
+                "is_resolved": "false",
+                "rewards": [],
+            },
+            "is_resolved",
+        ),
+        (
+            {
+                "schema_version": 1,
+                "room_id": "room-1",
+                "room_type": "event",
+                "stage": "waiting_input",
+                "payload": {},
+                "is_resolved": False,
+                "rewards": [1],
+            },
+            "rewards item",
+        ),
+        (
+            {
+                "schema_version": 1,
                 "node_id": "node-1",
                 "next_node_ids": "node-2",
             },
             "next_node_ids",
+        ),
+        (
+            {
+                "schema_version": 1,
+                "node_id": "node-1",
+                "next_node_ids": [2],
+            },
+            "next_node_ids item",
         ),
         (
             {
@@ -232,6 +290,116 @@ def test_room_state_to_dict_returns_deep_snapshot():
                 "log": "combat starts",
             },
             "log",
+        ),
+        (
+            {
+                "schema_version": 1,
+                "round_number": 1,
+                "energy": 3,
+                "hand": [1],
+                "draw_pile": [],
+                "discard_pile": [],
+                "exhaust_pile": [],
+                "player": PlayerCombatState(
+                    instance_id="player-1",
+                    hp=80,
+                    max_hp=80,
+                    block=0,
+                    statuses=[],
+                ),
+                "enemies": [],
+                "effect_queue": [],
+                "log": [],
+            },
+            "hand item",
+        ),
+        (
+            {
+                "schema_version": 1,
+                "round_number": 1,
+                "energy": 3,
+                "hand": [],
+                "draw_pile": [1],
+                "discard_pile": [],
+                "exhaust_pile": [],
+                "player": PlayerCombatState(
+                    instance_id="player-1",
+                    hp=80,
+                    max_hp=80,
+                    block=0,
+                    statuses=[],
+                ),
+                "enemies": [],
+                "effect_queue": [],
+                "log": [],
+            },
+            "draw_pile item",
+        ),
+        (
+            {
+                "schema_version": 1,
+                "round_number": 1,
+                "energy": 3,
+                "hand": [],
+                "draw_pile": [],
+                "discard_pile": [1],
+                "exhaust_pile": [],
+                "player": PlayerCombatState(
+                    instance_id="player-1",
+                    hp=80,
+                    max_hp=80,
+                    block=0,
+                    statuses=[],
+                ),
+                "enemies": [],
+                "effect_queue": [],
+                "log": [],
+            },
+            "discard_pile item",
+        ),
+        (
+            {
+                "schema_version": 1,
+                "round_number": 1,
+                "energy": 3,
+                "hand": [],
+                "draw_pile": [],
+                "discard_pile": [],
+                "exhaust_pile": [1],
+                "player": PlayerCombatState(
+                    instance_id="player-1",
+                    hp=80,
+                    max_hp=80,
+                    block=0,
+                    statuses=[],
+                ),
+                "enemies": [],
+                "effect_queue": [],
+                "log": [],
+            },
+            "exhaust_pile item",
+        ),
+        (
+            {
+                "schema_version": 1,
+                "round_number": 1,
+                "energy": 3,
+                "hand": [],
+                "draw_pile": [],
+                "discard_pile": [],
+                "exhaust_pile": [],
+                "player": PlayerCombatState(
+                    instance_id="player-1",
+                    hp=80,
+                    max_hp=80,
+                    block=0,
+                    statuses=[],
+                ),
+                "enemies": [],
+                "effect_queue": [],
+                "log": [1],
+            },
+            "log item",
         ),
     ],
 )

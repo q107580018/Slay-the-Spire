@@ -76,16 +76,20 @@ class RoomState:
         self.schema_version = _require_schema_version(self.schema_version)
         if self.schema_version != SCHEMA_VERSION:
             raise ValueError("unsupported schema_version for RoomState")
+        self.room_id = _require_str(self.room_id, "room_id")
+        self.room_type = _require_str(self.room_type, "room_type")
+        self.stage = _require_str(self.stage, "stage")
         if not self.room_id:
             raise ValueError("room_id must not be empty")
         if not self.room_type:
             raise ValueError("room_type must not be empty")
         if not self.stage:
             raise ValueError("stage must not be empty")
+        self.is_resolved = _require_bool(self.is_resolved, "is_resolved")
         self.payload = _copy_payload(self.payload)
         if not isinstance(self.rewards, list):
             raise TypeError("rewards must be a list")
-        self.rewards = list(self.rewards)
+        self.rewards = [_require_str(item, "rewards item") for item in self.rewards]
 
     def to_dict(self) -> JsonDict:
         return {

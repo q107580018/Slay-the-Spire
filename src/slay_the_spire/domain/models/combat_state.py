@@ -91,6 +91,8 @@ class CombatState:
         self.schema_version = _require_schema_version(self.schema_version)
         if self.schema_version != SCHEMA_VERSION:
             raise ValueError("unsupported schema_version for CombatState")
+        self.round_number = _require_int(self.round_number, "round_number")
+        self.energy = _require_int(self.energy, "energy")
         if self.round_number <= 0:
             raise ValueError("round_number must be positive")
         if self.energy < 0:
@@ -109,13 +111,13 @@ class CombatState:
             raise TypeError("effect_queue must be a list")
         if not isinstance(self.log, list):
             raise TypeError("log must be a list")
-        self.hand = list(self.hand)
-        self.draw_pile = list(self.draw_pile)
-        self.discard_pile = list(self.discard_pile)
-        self.exhaust_pile = list(self.exhaust_pile)
+        self.hand = [_require_str(item, "hand item") for item in self.hand]
+        self.draw_pile = [_require_str(item, "draw_pile item") for item in self.draw_pile]
+        self.discard_pile = [_require_str(item, "discard_pile item") for item in self.discard_pile]
+        self.exhaust_pile = [_require_str(item, "exhaust_pile item") for item in self.exhaust_pile]
         self.enemies = list(self.enemies)
         self.effect_queue = [_normalize_json_dict(effect) for effect in self.effect_queue]
-        self.log = list(self.log)
+        self.log = [_require_str(item, "log item") for item in self.log]
         self._refresh_entity_index()
 
     def _refresh_entity_index(self) -> None:

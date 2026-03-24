@@ -48,11 +48,12 @@ class ActNodeState:
         self.schema_version = _require_schema_version(self.schema_version)
         if self.schema_version != SCHEMA_VERSION:
             raise ValueError("unsupported schema_version for ActNodeState")
+        self.node_id = _require_str(self.node_id, "node_id")
         if not self.node_id:
             raise ValueError("node_id must not be empty")
         if not isinstance(self.next_node_ids, list):
             raise TypeError("next_node_ids must be a list")
-        self.next_node_ids = list(self.next_node_ids)
+        self.next_node_ids = [_require_str(item, "next_node_ids item") for item in self.next_node_ids]
         if len(set(self.next_node_ids)) != len(self.next_node_ids):
             raise ValueError("next_node_ids must be unique")
 

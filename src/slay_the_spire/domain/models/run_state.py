@@ -41,6 +41,10 @@ class RunState:
     current_act_id: str | None
 
     def __post_init__(self) -> None:
+        self.seed = _require_int(self.seed, "seed")
+        self.character_id = _require_str(self.character_id, "character_id")
+        if self.current_act_id is not None:
+            self.current_act_id = _require_str(self.current_act_id, "current_act_id")
         if not self.character_id:
             raise ValueError("character_id must not be empty")
 
