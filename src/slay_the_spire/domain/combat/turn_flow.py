@@ -23,7 +23,10 @@ def _require_mapping(value: object, field_name: str) -> Mapping[str, object]:
 def _draw_cards(state: CombatState, *, amount: int) -> None:
     for _ in range(max(amount, 0)):
         if not state.draw_pile:
-            break
+            if not state.discard_pile:
+                break
+            state.draw_pile.extend(state.discard_pile)
+            state.discard_pile.clear()
         state.hand.append(state.draw_pile.pop(0))
 
 
@@ -115,6 +118,8 @@ def end_turn(
         registry,
         hook_registrations=hook_registrations,
     )
+    if state.player.hp <= 0:
+        return resolved
     state.round_number += 1
     start_turn(
         state,

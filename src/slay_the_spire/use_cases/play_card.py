@@ -31,7 +31,7 @@ def _materialize_card_effects(
             if target_id is None:
                 raise ValueError("target is required for targeted cards")
             effect["target_instance_id"] = target_id
-        elif effect_type == "block" and "target_instance_id" not in effect:
+        elif effect_type in {"block", "draw"} and "target_instance_id" not in effect:
             effect["target_instance_id"] = source_instance_id
         effects.append(effect)
     return effects

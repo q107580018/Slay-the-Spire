@@ -112,6 +112,29 @@ def test_play_card_rejects_unknown_card() -> None:
         play_card(state, "unknown_card#1", "enemy-1", provider)
 
 
+def test_play_card_rejects_invalid_card_instance_id_format() -> None:
+    state = _combat_state(hand=["registry_card"])
+    provider = _provider_with_card(card_id="registry_card")
+    before = state.to_dict()
+
+    with pytest.raises(ValueError, match="card_instance_id"):
+        play_card(state, "registry_card", "enemy-1", provider)
+
+    assert state.to_dict() == before
+
+
+def test_play_card_defaults_draw_target_to_player() -> None:
+    state = _combat_state(hand=["draw_card#1"])
+    state.draw_pile = ["bonus_card#1"]
+    provider = _provider_with_card(card_id="draw_card", effects=[{"type": "draw", "amount": 1}])
+
+    result = play_card(state, "draw_card#1", None, provider)
+
+    assert [effect["type"] for effect in result.resolved_effects] == ["draw"]
+    assert state.hand == ["bonus_card#1"]
+    assert state.discard_pile == ["draw_card#1"]
+
+
 def test_play_card_uses_registry_to_resolve_card_definition() -> None:
     state = _combat_state(hand=["registry_card#9"])
     provider = _provider_with_card(card_id="registry_card", effects=[{"type": "damage", "amount": 7}])
