@@ -39,6 +39,15 @@ def _migrate_document(document: Mapping[str, object]) -> JsonDict:
     return dict(document)
 
 
+def _combat_state_from_room(room_state: RoomState | None) -> CombatState | None:
+    if room_state is None:
+        return None
+    combat_state = room_state.payload.get("combat_state")
+    if combat_state is None:
+        return None
+    return CombatState.from_dict(_require_mapping(combat_state, "room_state.payload.combat_state"))
+
+
 def _room_with_restored_combat_state(
     room_state: RoomState | None,
     combat_state: CombatState | None,
@@ -58,6 +67,19 @@ def _room_with_restored_combat_state(
     )
 
 
+def _resolve_combat_sources(
+    *,
+    room_state: RoomState | None,
+    top_level_combat_state: CombatState | None,
+) -> tuple[RoomState | None, CombatState | None]:
+    room_combat_state = _combat_state_from_room(room_state)
+    if room_combat_state is not None and top_level_combat_state is not None:
+        if room_combat_state.to_dict() != top_level_combat_state.to_dict():
+            raise ValueError("combat_state sources do not match")
+    resolved_combat_state = top_level_combat_state or room_combat_state
+    return _room_with_restored_combat_state(room_state, resolved_combat_state), resolved_combat_state
+
+
 def load_game(*, repository: SaveRepositoryPort[Mapping[str, object]]) -> LoadedGame:
     document = repository.load()
     if document is None:
@@ -74,15 +96,19 @@ def load_game(*, repository: SaveRepositoryPort[Mapping[str, object]]) -> Loaded
     combat_state_raw = migrated.get("combat_state")
     run_state = None if run_state_raw is None else RunState.from_dict(_require_mapping(run_state_raw, "run_state"))
     act_state = None if act_state_raw is None else ActState.from_dict(_require_mapping(act_state_raw, "act_state"))
-    combat_state = (
+    top_level_combat_state = (
         None
         if combat_state_raw is None
         else CombatState.from_dict(_require_mapping(combat_state_raw, "combat_state"))
     )
     room_state = None if room_state_raw is None else RoomState.from_dict(_require_mapping(room_state_raw, "room_state"))
+    room_state, combat_state = _resolve_combat_sources(
+        room_state=room_state,
+        top_level_combat_state=top_level_combat_state,
+    )
     return {
         "run_state": run_state,
         "act_state": act_state,
-        "room_state": _room_with_restored_combat_state(room_state, combat_state),
+        "room_state": room_state,
         "combat_state": combat_state,
     }

@@ -19,8 +19,8 @@ def claim_reward(*, room_state: RoomState, reward_id: str) -> RoomState:
         schema_version=room_state.schema_version,
         room_id=room_state.room_id,
         room_type=room_state.room_type,
-        stage="completed" if not remaining_rewards else "waiting_input",
+        stage="completed",
         payload=payload,
-        is_resolved=not remaining_rewards,
+        is_resolved=True,
         rewards=remaining_rewards,
     )
