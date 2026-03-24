@@ -205,15 +205,17 @@ def render_non_combat_screen(
     mode = _menu_mode(menu_state)
     body: list[RenderableType] = []
 
-    if room_state.is_resolved and room_state.rewards:
-        body.append(render_reward_panel(room_state))
-    elif mode == "select_next_room":
+    if mode == "select_next_room":
         body.append(render_branch_selection_panel(room_state))
-    elif room_state.room_type == "event" or mode == "select_event_choice":
+    elif room_state.room_type == "event":
         body.append(render_event_body(room_state, registry))
         result_panel = render_event_result(room_state)
         if result_panel is not None:
             body.append(result_panel)
+        if room_state.rewards:
+            body.append(render_reward_panel(room_state))
+    elif room_state.is_resolved and room_state.rewards:
+        body.append(render_reward_panel(room_state))
     else:
         body.append(render_default_body(room_state))
 
