@@ -14,6 +14,12 @@ def _require_schema_version(value: object) -> int:
     return value
 
 
+def _require_int(value: object, field_name: str) -> int:
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise TypeError(f"{field_name} must be an int")
+    return value
+
+
 @dataclass(slots=True, kw_only=True)
 class StatusState:
     schema_version: int = SCHEMA_VERSION
@@ -27,6 +33,9 @@ class StatusState:
             raise ValueError("unsupported schema_version for StatusState")
         if not isinstance(self.status_id, str):
             raise TypeError("status_id must be a string")
+        self.stacks = _require_int(self.stacks, "stacks")
+        if self.duration is not None:
+            self.duration = _require_int(self.duration, "duration")
         if not self.status_id:
             raise ValueError("status_id must not be empty")
         if self.stacks <= 0:

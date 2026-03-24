@@ -281,8 +281,91 @@ def test_identity_like_fields_are_validated_on_direct_construction(
 
 
 @pytest.mark.parametrize(
+    ("factory", "kwargs", "field_name"),
+    [
+        (
+            StatusState,
+            {"status_id": "weak", "stacks": True, "duration": None},
+            "stacks",
+        ),
+        (
+            StatusState,
+            {"status_id": "weak", "stacks": 1, "duration": True},
+            "duration",
+        ),
+        (
+            PlayerCombatState,
+            {"instance_id": "player-1", "hp": True, "max_hp": 10, "block": 0, "statuses": []},
+            "hp",
+        ),
+        (
+            PlayerCombatState,
+            {"instance_id": "player-1", "hp": 10, "max_hp": True, "block": 0, "statuses": []},
+            "max_hp",
+        ),
+        (
+            PlayerCombatState,
+            {"instance_id": "player-1", "hp": 10, "max_hp": 10, "block": True, "statuses": []},
+            "block",
+        ),
+        (
+            EnemyState,
+            {
+                "instance_id": "enemy-1",
+                "enemy_id": "slime",
+                "hp": True,
+                "max_hp": 10,
+                "block": 0,
+                "statuses": [],
+            },
+            "hp",
+        ),
+        (
+            EnemyState,
+            {
+                "instance_id": "enemy-1",
+                "enemy_id": "slime",
+                "hp": 10,
+                "max_hp": True,
+                "block": 0,
+                "statuses": [],
+            },
+            "max_hp",
+        ),
+        (
+            EnemyState,
+            {
+                "instance_id": "enemy-1",
+                "enemy_id": "slime",
+                "hp": 10,
+                "max_hp": 10,
+                "block": True,
+                "statuses": [],
+            },
+            "block",
+        ),
+    ],
+)
+def test_numeric_fields_reject_bool_on_direct_construction(factory, kwargs, field_name):
+    with pytest.raises(TypeError, match=field_name):
+        factory(**kwargs)
+
+
+@pytest.mark.parametrize(
     ("kwargs", "field_name"),
     [
+        (
+            {
+                "schema_version": 1,
+                "room_id": "room-1",
+                "room_type": "event",
+                "stage": "waiting_input",
+                "payload": [],
+                "is_resolved": False,
+                "rewards": [],
+            },
+            "payload",
+        ),
         (
             {
                 "schema_version": 1,

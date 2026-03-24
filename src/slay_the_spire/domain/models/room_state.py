@@ -86,6 +86,7 @@ class RoomState:
         if not self.stage:
             raise ValueError("stage must not be empty")
         self.is_resolved = _require_bool(self.is_resolved, "is_resolved")
+        self.payload = _require_mapping(self.payload, "payload")
         self.payload = _copy_payload(self.payload)
         if not isinstance(self.rewards, list):
             raise TypeError("rewards must be a list")

@@ -64,6 +64,9 @@ class PlayerCombatState:
         if self.schema_version != SCHEMA_VERSION:
             raise ValueError("unsupported schema_version for PlayerCombatState")
         self.instance_id = _require_str(self.instance_id, "instance_id")
+        self.hp = _require_int(self.hp, "hp")
+        self.max_hp = _require_int(self.max_hp, "max_hp")
+        self.block = _require_int(self.block, "block")
         if not self.instance_id:
             raise ValueError("instance_id must not be empty")
         if self.max_hp <= 0:
@@ -125,6 +128,9 @@ class EnemyState:
             raise ValueError("unsupported schema_version for EnemyState")
         self.instance_id = _require_str(self.instance_id, "instance_id")
         self.enemy_id = _require_str(self.enemy_id, "enemy_id")
+        self.hp = _require_int(self.hp, "hp")
+        self.max_hp = _require_int(self.max_hp, "max_hp")
+        self.block = _require_int(self.block, "block")
         if not self.instance_id:
             raise ValueError("instance_id must not be empty")
         if not self.enemy_id:
