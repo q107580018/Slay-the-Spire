@@ -2,15 +2,15 @@
   "events": [
     {
       "id": "shining_light",
-      "text": "A glowing cleric offers power.",
+      "text": "发光的牧师向你献上力量。",
       "choices": [
         {
           "id": "accept",
-          "label": "Accept"
+          "label": "接受"
         },
         {
           "id": "leave",
-          "label": "Leave"
+          "label": "离开"
         }
       ],
       "outcomes": [

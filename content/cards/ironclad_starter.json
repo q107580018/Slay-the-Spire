@@ -2,7 +2,7 @@
   "cards": [
     {
       "id": "strike",
-      "name": "Strike",
+      "name": "打击",
       "cost": 1,
       "effects": [
         {
@@ -13,7 +13,7 @@
     },
     {
       "id": "defend",
-      "name": "Defend",
+      "name": "防御",
       "cost": 1,
       "effects": [
         {
@@ -24,7 +24,7 @@
     },
     {
       "id": "bash",
-      "name": "Bash",
+      "name": "重击",
       "cost": 2,
       "effects": [
         {

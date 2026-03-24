@@ -3,14 +3,14 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from slay_the_spire.domain.combat.turn_flow import resolve_player_actions
-from slay_the_spire.domain.effects.effect_types import EFFECT_DAMAGE, copy_effect
+from slay_the_spire.domain.effects.effect_types import EFFECT_DAMAGE, EFFECT_VULNERABLE, copy_effect
 from slay_the_spire.domain.hooks.hook_types import HookRegistration
 from slay_the_spire.domain.models.cards import CombatActionResult, card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.ports.content_provider import ContentProviderPort
 from slay_the_spire.shared.types import JsonDict
 
-_TARGETED_EFFECT_TYPES = {EFFECT_DAMAGE}
+_TARGETED_EFFECT_TYPES = {EFFECT_DAMAGE, EFFECT_VULNERABLE}
 
 
 def _materialize_card_effects(

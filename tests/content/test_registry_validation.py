@@ -37,18 +37,18 @@ def test_json_loader_reads_raw_json(tmp_path: Path) -> None:
 def test_provider_exposes_registry_accessors() -> None:
     provider = StarterContentProvider(Path(__file__).resolve().parents[2] / "content")
 
-    assert provider.characters().get("ironclad").name == "Ironclad"
-    assert provider.cards().get("bash").name == "Bash"
-    assert provider.enemies().get("slime").name == "Green Slime"
+    assert provider.characters().get("ironclad").name == "铁甲战士"
+    assert provider.cards().get("bash").name == "重击"
+    assert provider.enemies().get("slime").name == "绿史莱姆"
     assert provider.relics().get("burning_blood").id == "burning_blood"
-    assert provider.events().get("shining_light").text.startswith("A glowing")
+    assert provider.events().get("shining_light").text.startswith("发光的牧师")
     assert provider.acts().get("act1").enemy_pool_id == "act1_basic"
 
 
 def test_starter_catalog_passes_startup_integrity() -> None:
     catalog = ContentCatalog.from_content_root(Path(__file__).resolve().parents[2] / "content")
 
-    assert catalog.cards.get("strike").name == "Strike"
+    assert catalog.cards.get("strike").name == "打击"
     assert catalog.enemies.get("jaw_worm").id == "jaw_worm"
     assert catalog.relics.get("burning_blood").name == "Burning Blood"
     assert catalog.events.get("shining_light").id == "shining_light"

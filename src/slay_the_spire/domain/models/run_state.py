@@ -39,16 +39,24 @@ class RunState:
     seed: int
     character_id: str
     current_act_id: str | None
+    current_hp: int = 80
+    max_hp: int = 80
 
     def __post_init__(self) -> None:
         self.seed = _require_int(self.seed, "seed")
         self.character_id = _require_str(self.character_id, "character_id")
+        self.current_hp = _require_int(self.current_hp, "current_hp")
+        self.max_hp = _require_int(self.max_hp, "max_hp")
         if self.current_act_id is not None:
             self.current_act_id = _require_str(self.current_act_id, "current_act_id")
             if not self.current_act_id:
                 raise ValueError("current_act_id must not be empty")
         if not self.character_id:
             raise ValueError("character_id must not be empty")
+        if self.max_hp <= 0:
+            raise ValueError("max_hp must be positive")
+        if not 0 <= self.current_hp <= self.max_hp:
+            raise ValueError("current_hp must be between 0 and max_hp")
 
     @classmethod
     def new(cls, *, character_id: str, seed: int) -> RunState:
@@ -60,6 +68,8 @@ class RunState:
             "seed": self.seed,
             "character_id": self.character_id,
             "current_act_id": self.current_act_id,
+            "current_hp": self.current_hp,
+            "max_hp": self.max_hp,
         }
 
     @classmethod
@@ -75,4 +85,6 @@ class RunState:
             seed=_require_int(data["seed"], "seed"),
             character_id=_require_str(data["character_id"], "character_id"),
             current_act_id=current_act_id,
+            current_hp=_require_int(data.get("current_hp", 80), "current_hp"),
+            max_hp=_require_int(data.get("max_hp", 80), "max_hp"),
         )

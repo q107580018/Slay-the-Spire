@@ -112,6 +112,33 @@ def test_enter_room_returns_room_state_for_node_type(node_id: str, expected_room
         assert "combat_state" not in room_state.payload
 
 
+def test_enter_room_builds_playable_combat_state_for_combat_nodes() -> None:
+    provider = _content_provider()
+    run_state = start_new_run("ironclad", seed=7, registry=provider)
+    act_state = generate_act_state("act1", seed=7, registry=provider)
+
+    room_state = enter_room(run_state, act_state, node_id="start", registry=provider)
+    combat_state = CombatState.from_dict(room_state.payload["combat_state"])
+
+    assert combat_state.energy == 3
+    assert combat_state.round_number == 1
+    assert combat_state.hand == [
+        "strike#1",
+        "strike#2",
+        "strike#3",
+        "strike#4",
+        "defend#5",
+    ]
+    assert combat_state.draw_pile == [
+        "defend#6",
+        "defend#7",
+        "defend#8",
+        "bash#9",
+    ]
+    assert len(combat_state.enemies) == 1
+    assert combat_state.enemies[0].enemy_id == "slime"
+
+
 def test_enter_room_rejects_unsupported_room_type() -> None:
     provider = _content_provider()
     act_registry = ActRegistry()

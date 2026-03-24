@@ -28,3 +28,9 @@ class StarterContentProvider(ContentProviderPort):
 
     def acts(self) -> ActRegistry:
         return self._catalog.acts
+
+    def enemy_ids_for_pool(self, pool_id: str) -> tuple[str, ...]:
+        return self._catalog.enemy_ids_for_pool(pool_id)
+
+    def event_ids_for_pool(self, pool_id: str) -> tuple[str, ...]:
+        return self._catalog.event_ids_for_pool(pool_id)

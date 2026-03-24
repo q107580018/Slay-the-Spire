@@ -4,8 +4,7 @@ import shutil
 from pathlib import Path
 
 from slay_the_spire.app.cli import main
-from slay_the_spire.app.session import interactive_loop, route_command, start_session
-from slay_the_spire.adapters.terminal.prompts import prompt_for_room
+from slay_the_spire.app.session import interactive_loop, route_command, route_menu_choice, start_session
 
 
 class _InputPort:
@@ -17,28 +16,33 @@ class _InputPort:
         return self._commands.pop(0)
 
 
-def test_main_new_run_renders_first_room(capsys) -> None:
+def test_main_new_run_renders_first_room(capsys, monkeypatch) -> None:
+    monkeypatch.setattr("builtins.input", lambda _prompt="": "6")
+
     exit_code = main(["new", "--seed", "5"])
 
     captured = capsys.readouterr()
 
     assert exit_code == 0
-    assert "Run seed: 5" in captured.out
-    assert "Act: act1" in captured.out
-    assert "Room: start" in captured.out
+    assert "种子: 5" in captured.out
+    assert "章节: 第一幕" in captured.out
+    assert "房间: 起点" in captured.out
+    assert "6. 退出游戏" in captured.out
+    assert "已退出游戏。" in captured.out
 
 
-def test_main_new_run_accepts_explicit_content_root(tmp_path: Path, capsys) -> None:
+def test_main_new_run_accepts_explicit_content_root(tmp_path: Path, capsys, monkeypatch) -> None:
     content_root = Path(__file__).resolve().parents[2] / "content"
     temp_content_root = tmp_path / "content"
     shutil.copytree(content_root, temp_content_root)
+    monkeypatch.setattr("builtins.input", lambda _prompt="": "6")
 
     exit_code = main(["new", "--seed", "5", "--content-root", str(temp_content_root)])
 
     captured = capsys.readouterr()
 
     assert exit_code == 0
-    assert "Run seed: 5" in captured.out
+    assert "种子: 5" in captured.out
     assert temp_content_root.exists()
 
 
@@ -48,6 +52,8 @@ def test_custom_content_root_is_preserved_across_next(tmp_path: Path) -> None:
     shutil.copytree(content_root, temp_content_root)
 
     session = start_session(seed=5, content_root=temp_content_root)
+    _, session, _ = route_command("play 1", session=session)
+    _, session, _ = route_command("play 2", session=session)
     _, next_session, _ = route_command("next", session=session)
 
     assert next_session.content_root == temp_content_root
@@ -65,24 +71,91 @@ def test_default_content_root_uses_packaged_data(tmp_path: Path, monkeypatch) ->
     assert (content_root / "characters" / "ironclad.json").exists()
 
 
-def test_session_loop_routes_basic_commands() -> None:
+def test_player_hp_persists_across_combat_rooms() -> None:
     session = start_session(seed=5)
-    assert prompt_for_room(session.room_state) == "Command (look, next, help, quit): "
+    _, session, _ = route_command("end", session=session)
+    _, session, _ = route_command("play 4", session=session)
+    _, session, _ = route_command("play 4", session=session)
+    _, session, message = route_command("next", session=session)
 
-    running, next_session, message = route_command("look", session=session)
-    assert running is True
-    assert next_session is not session
-    assert next_session.command_history == ["look"]
-    assert "Run seed: 5" in message
+    assert session.room_state.payload["node_id"] == "hallway"
+    assert session.run_state.current_hp == 77
+    assert "玩家生命: 77/80" in message
 
-    running, advanced_session, message = route_command("next", session=session)
-    assert running is True
-    assert advanced_session is not session
-    assert advanced_session.room_state.payload["node_id"] == "hallway"
-    assert "Room:" in message
 
-    result = interactive_loop(session=session, input_port=_InputPort(["help", "quit"]))
-    assert result.outputs[0].startswith("Run seed: 5")
-    assert result.outputs[1] == "Commands: look, next, help, quit"
-    assert result.outputs[2] == "Goodbye."
-    assert result.final_session.command_history == ["help", "quit"]
+def test_session_loop_uses_chinese_numbered_menus() -> None:
+    session = start_session(seed=5)
+    result = interactive_loop(session=session, input_port=_InputPort(["2", "1", "2", "1", "3", "6"]))
+
+    assert result.outputs[0].startswith("种子: 5")
+    assert "1. 查看战场" in result.outputs[0]
+    assert "2. 出牌" in result.outputs[0]
+    assert "1. 打击 费用1" in result.outputs[1]
+    assert "6. 返回上一步" in result.outputs[1]
+    assert "绿史莱姆 生命: 6/12" in result.outputs[2]
+    assert "1. 打击 费用1" in result.outputs[3]
+    assert "房间已完成: 是" in result.outputs[4]
+    assert "1. 查看奖励" in result.outputs[4]
+    assert "房间: 走廊" in result.outputs[5]
+    assert result.outputs[6] == "已退出游戏。"
+    assert result.final_session.command_history == ["2", "1", "2", "1", "3", "6"]
+
+
+def test_branch_event_save_and_load_use_chinese_numbered_menus(tmp_path: Path) -> None:
+    save_path = tmp_path / "save.json"
+    session = start_session(seed=5, save_path=save_path)
+
+    result = interactive_loop(
+        session=session,
+        input_port=_InputPort(
+            [
+                "2",  # 出牌
+                "1",  # 打击
+                "2",  # 出牌
+                "1",  # 打击
+                "3",  # 前往走廊
+                "2",  # 出牌
+                "1",  # 打击
+                "2",  # 出牌
+                "1",  # 打击
+                "3",  # 选择下一个房间
+                "2",  # 事件
+                "2",  # 进行选择
+                "1",  # 接受
+                "4",  # 保存游戏
+                "5",  # 读取存档
+                "6",  # 退出
+            ]
+        ),
+    )
+
+    assert any("请选择下一个房间:" in output for output in result.outputs)
+    assert any("2. 事件" in output for output in result.outputs)
+    assert any("房间: 事件" in output for output in result.outputs)
+    assert any("事件: 发光的牧师向你献上力量。" in output for output in result.outputs)
+    assert any("1. 接受" in output for output in result.outputs)
+    assert any("结果: 获得升级" in output for output in result.outputs)
+    assert any("已保存到" in output for output in result.outputs)
+    assert any("已从存档恢复。" in output for output in result.outputs)
+    assert result.outputs[-1] == "已退出游戏。"
+    assert result.final_session.command_history == ["2", "1", "2", "1", "3", "2", "1", "2", "1", "3", "2", "2", "1", "4", "5", "6"]
+
+
+def test_cli_load_command_restores_saved_session(tmp_path: Path, capsys, monkeypatch) -> None:
+    save_path = tmp_path / "save.json"
+    session = start_session(seed=5, save_path=save_path)
+    _, session, _ = route_menu_choice("2", session=session)
+    _, session, _ = route_menu_choice("1", session=session)
+    _, session, _ = route_menu_choice("2", session=session)
+    _, session, _ = route_menu_choice("1", session=session)
+    _, session, _ = route_menu_choice("4", session=session)
+
+    monkeypatch.setattr("builtins.input", lambda _prompt="": "6")
+
+    exit_code = main(["load", "--save-path", str(save_path)])
+
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "房间已完成: 是" in captured.out
+    assert "1. 查看奖励" in captured.out

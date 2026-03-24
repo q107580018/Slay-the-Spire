@@ -1,17 +1,27 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from pathlib import Path
+from typing import Callable
 
-from slay_the_spire.adapters.terminal.prompts import prompt_for_room
+from slay_the_spire.adapters.terminal.prompts import prompt_for_session
 from slay_the_spire.adapters.terminal.renderer import render_room
+from slay_the_spire.adapters.persistence.save_files import JsonFileSaveRepository
 from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.domain.map.map_generator import generate_act_state
+from slay_the_spire.domain.models.cards import card_id_from_instance_id
+from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.act_state import ActState
 from slay_the_spire.domain.models.room_state import RoomState
 from slay_the_spire.domain.models.run_state import RunState
+from slay_the_spire.domain.rewards.reward_generator import generate_combat_rewards
 from slay_the_spire.ports.input_port import InputPort
+from slay_the_spire.use_cases.load_game import load_game
+from slay_the_spire.use_cases.resolve_event_choice import resolve_event_choice
+from slay_the_spire.use_cases.end_turn import end_turn
 from slay_the_spire.use_cases.enter_room import enter_room
+from slay_the_spire.use_cases.play_card import play_card
+from slay_the_spire.use_cases.save_game import save_game
 from slay_the_spire.use_cases.start_run import start_new_run
 
 
@@ -37,11 +47,19 @@ def _is_content_root(path: Path) -> bool:
 
 
 @dataclass(slots=True)
+class MenuState:
+    mode: str = "root"
+    selected_card_instance_id: str | None = None
+
+
+@dataclass(slots=True)
 class SessionState:
     run_state: RunState
     act_state: ActState
     room_state: RoomState
     content_root: Path
+    save_path: Path
+    menu_state: MenuState = field(default_factory=MenuState)
     command_history: list[str] | None = None
 
 
@@ -57,20 +75,173 @@ def _with_command_history(session: SessionState, command: str) -> SessionState:
     return replace(session, command_history=history)
 
 
+def _with_menu_choice_history(session: SessionState, choice: str) -> SessionState:
+    history = list(session.command_history or [])
+    history.append(choice)
+    return replace(session, command_history=history)
+
+
+def _preserve_menu_history(updated_session: SessionState, *, history_session: SessionState) -> SessionState:
+    return replace(updated_session, command_history=list(history_session.command_history or []))
+
+
+def _content_provider(session: SessionState) -> StarterContentProvider:
+    return StarterContentProvider(session.content_root)
+
+
+def default_save_path() -> Path:
+    return Path.cwd() / "saves" / "latest.json"
+
+
+def _combat_state_from_room(room_state: RoomState) -> CombatState | None:
+    combat_state = room_state.payload.get("combat_state")
+    if not isinstance(combat_state, dict):
+        return None
+    return CombatState.from_dict(combat_state)
+
+
+def _room_with_rewards_claimed(room_state: RoomState, reward_id: str) -> RoomState:
+    if reward_id not in room_state.rewards:
+        raise ValueError("reward_id not found in room rewards")
+    payload = dict(room_state.payload)
+    claimed_reward_ids = list(payload.get("claimed_reward_ids", []))
+    claimed_reward_ids.append(reward_id)
+    payload["claimed_reward_ids"] = claimed_reward_ids
+    remaining_rewards = [reward for reward in room_state.rewards if reward != reward_id]
+    return RoomState(
+        schema_version=room_state.schema_version,
+        room_id=room_state.room_id,
+        room_type=room_state.room_type,
+        stage=room_state.stage,
+        payload=payload,
+        is_resolved=room_state.is_resolved,
+        rewards=remaining_rewards,
+    )
+
+
+def _combat_target_ids(combat_state: CombatState) -> list[str]:
+    return [enemy.instance_id for enemy in combat_state.enemies if enemy.hp > 0]
+
+
+def _combat_is_won(combat_state: CombatState) -> bool:
+    return bool(combat_state.enemies) and all(enemy.hp == 0 for enemy in combat_state.enemies)
+
+
+def _room_with_combat_state(
+    room_state: RoomState,
+    combat_state: CombatState,
+    *,
+    stage: str,
+    is_resolved: bool,
+    rewards: list[str] | None = None,
+) -> RoomState:
+    payload = dict(room_state.payload)
+    payload["combat_state"] = combat_state.to_dict()
+    return RoomState(
+        schema_version=room_state.schema_version,
+        room_id=room_state.room_id,
+        room_type=room_state.room_type,
+        stage=stage,
+        payload=payload,
+        is_resolved=is_resolved,
+        rewards=list(room_state.rewards if rewards is None else rewards),
+    )
+
+
+def _session_with_combat_state(session: SessionState, combat_state: CombatState) -> SessionState:
+    updated_run_state = replace(
+        session.run_state,
+        current_hp=combat_state.player.hp,
+        max_hp=combat_state.player.max_hp,
+    )
+    if combat_state.player.hp <= 0:
+        room_state = _room_with_combat_state(
+            session.room_state,
+            combat_state,
+            stage="defeated",
+            is_resolved=False,
+        )
+        return replace(session, run_state=updated_run_state, room_state=room_state)
+    if _combat_is_won(combat_state):
+        room_state = _room_with_combat_state(
+            session.room_state,
+            combat_state,
+            stage="completed",
+            is_resolved=True,
+            rewards=generate_combat_rewards(room_id=session.room_state.room_id, seed=session.run_state.seed),
+        )
+        return replace(session, run_state=updated_run_state, room_state=room_state)
+    room_state = _room_with_combat_state(
+        session.room_state,
+        combat_state,
+        stage="waiting_input",
+        is_resolved=False,
+    )
+    return replace(session, run_state=updated_run_state, room_state=room_state)
+
+
+def _resolve_hand_card(combat_state: CombatState, hand_index: str) -> str:
+    try:
+        index = int(hand_index)
+    except ValueError as exc:
+        raise ValueError("hand index must be an integer") from exc
+    if index <= 0 or index > len(combat_state.hand):
+        raise ValueError("hand index is out of range")
+    return combat_state.hand[index - 1]
+
+
+def _resolve_target_id(combat_state: CombatState, target_index: str | None) -> str | None:
+    living_targets = _combat_target_ids(combat_state)
+    if target_index is None:
+        if len(living_targets) == 1:
+            return living_targets[0]
+        return None
+    try:
+        index = int(target_index)
+    except ValueError as exc:
+        raise ValueError("target index must be an integer") from exc
+    if index <= 0 or index > len(living_targets):
+        raise ValueError("target index is out of range")
+    return living_targets[index - 1]
+
+
+def _card_requires_target(card_instance_id: str, session: SessionState) -> bool:
+    card_def = _content_provider(session).cards().get(card_id_from_instance_id(card_instance_id))
+    return any(effect.get("type") in {"damage", "vulnerable"} for effect in card_def.effects)
+
+
+def _hand_index_for_card(combat_state: CombatState, card_instance_id: str) -> int:
+    for index, current in enumerate(combat_state.hand, start=1):
+        if current == card_instance_id:
+            return index
+    raise ValueError("selected card is no longer in hand")
+
+
 def _advance_to_next_room(session: SessionState) -> SessionState:
+    return _advance_to_node(session, None)
+
+
+def _advance_to_node(session: SessionState, node_id: str | None) -> SessionState:
     next_node_ids = session.room_state.payload.get("next_node_ids", [])
     if not isinstance(next_node_ids, list) or not next_node_ids:
         return session
-    next_node_id = next_node_ids[0]
+    next_node_id = next_node_ids[0] if node_id is None else node_id
     if not isinstance(next_node_id, str):
         return session
     provider = StarterContentProvider(session.content_root)
     room_state = enter_room(session.run_state, session.act_state, node_id=next_node_id, registry=provider)
-    return replace(session, room_state=room_state)
+    return replace(session, room_state=room_state, menu_state=MenuState())
 
 
-def start_session(*, seed: int, character_id: str = "ironclad", content_root: str | Path | None = None) -> SessionState:
+def start_session(
+    *,
+    seed: int,
+    character_id: str = "ironclad",
+    content_root: str | Path | None = None,
+    save_path: str | Path | None = None,
+) -> SessionState:
     resolved_content_root = default_content_root() if content_root is None else Path(content_root)
+    resolved_save_path = default_save_path() if save_path is None else Path(save_path)
     provider = StarterContentProvider(resolved_content_root)
     run_state = start_new_run(character_id, seed=seed, registry=provider)
     act_state = generate_act_state(run_state.current_act_id or "act1", seed=seed, registry=provider)
@@ -80,6 +251,29 @@ def start_session(*, seed: int, character_id: str = "ironclad", content_root: st
         act_state=act_state,
         room_state=room_state,
         content_root=resolved_content_root,
+        save_path=resolved_save_path,
+        menu_state=MenuState(),
+    )
+
+
+def load_session(
+    *,
+    save_path: str | Path | None = None,
+    content_root: str | Path | None = None,
+) -> SessionState:
+    resolved_content_root = default_content_root() if content_root is None else Path(content_root)
+    resolved_save_path = default_save_path() if save_path is None else Path(save_path)
+    repository = JsonFileSaveRepository(resolved_save_path)
+    loaded = load_game(repository=repository)
+    if loaded["run_state"] is None or loaded["act_state"] is None or loaded["room_state"] is None:
+        raise FileNotFoundError(f"save file is empty or incomplete: {resolved_save_path}")
+    return SessionState(
+        run_state=loaded["run_state"],
+        act_state=loaded["act_state"],
+        room_state=loaded["room_state"],
+        content_root=resolved_content_root,
+        save_path=resolved_save_path,
+        menu_state=MenuState(),
     )
 
 
@@ -88,28 +282,340 @@ def render_session(session: SessionState) -> str:
         run_state=session.run_state,
         act_state=session.act_state,
         room_state=session.room_state,
+        registry=_content_provider(session),
+        menu_state=session.menu_state,
     )
 
 
 def route_command(command: str, *, session: SessionState) -> tuple[bool, SessionState, str]:
-    normalized = command.strip().lower()
+    raw_command = command.strip()
+    normalized = raw_command.lower()
+    next_session = _with_command_history(session, normalized or "look")
     if normalized in {"", "look"}:
-        return True, _with_command_history(session, normalized or "look"), render_session(session)
-    if normalized in {"next", "advance"}:
-        next_session = _advance_to_next_room(_with_command_history(session, normalized))
         return True, next_session, render_session(next_session)
+    if normalized == "hand":
+        return True, next_session, render_session(next_session)
+    if normalized.startswith("play"):
+        if next_session.room_state.room_type not in {"combat", "elite", "boss"}:
+            return True, next_session, "Play is only available in combat rooms."
+        if next_session.room_state.is_resolved:
+            return True, next_session, "Combat is already resolved."
+        combat_state = _combat_state_from_room(next_session.room_state)
+        if combat_state is None:
+            return True, next_session, "Combat state is unavailable."
+        parts = normalized.split()
+        if len(parts) not in {2, 3}:
+            return True, next_session, "Usage: play <hand-index> [target-index]"
+        try:
+            card_instance_id = _resolve_hand_card(combat_state, parts[1])
+            card_def = _content_provider(next_session).cards().get(card_id_from_instance_id(card_instance_id))
+            target_id = _resolve_target_id(combat_state, parts[2] if len(parts) == 3 else None)
+            if any(effect.get("type") in {"damage", "vulnerable"} for effect in card_def.effects) and target_id is None:
+                return True, next_session, "Target is required."
+            result = play_card(combat_state, card_instance_id, target_id, _content_provider(next_session))
+        except (KeyError, TypeError, ValueError) as exc:
+            return True, next_session, str(exc)
+        resolved_session = _session_with_combat_state(next_session, result.combat_state)
+        return True, resolved_session, render_session(resolved_session)
+    if normalized == "end":
+        if next_session.room_state.room_type not in {"combat", "elite", "boss"}:
+            return True, next_session, "End is only available in combat rooms."
+        if next_session.room_state.is_resolved:
+            return True, next_session, "Combat is already resolved."
+        combat_state = _combat_state_from_room(next_session.room_state)
+        if combat_state is None:
+            return True, next_session, "Combat state is unavailable."
+        try:
+            result = end_turn(combat_state, _content_provider(next_session))
+        except (KeyError, TypeError, ValueError) as exc:
+            return True, next_session, str(exc)
+        resolved_session = _session_with_combat_state(next_session, result.combat_state)
+        return True, resolved_session, render_session(resolved_session)
+    if normalized in {"next", "advance"}:
+        if not next_session.room_state.is_resolved:
+            return True, next_session, "Room is not resolved."
+        advanced_session = _advance_to_next_room(next_session)
+        return True, advanced_session, render_session(advanced_session)
     if normalized in {"help", "?"}:
-        return True, _with_command_history(session, normalized), "Commands: look, next, help, quit"
+        return (
+            True,
+            next_session,
+            "Commands: look, hand, play <hand-index> [target-index], end, next, help, quit",
+        )
     if normalized in {"quit", "exit"}:
-        return False, _with_command_history(session, normalized), "Goodbye."
-    return True, _with_command_history(session, normalized or command), f"Unknown command: {command.strip() or '<empty>'}"
+        return False, next_session, "Goodbye."
+    return True, next_session, f"Unknown command: {raw_command or '<empty>'}"
 
 
-def interactive_loop(*, session: SessionState, input_port: InputPort) -> SessionLoopResult:
-    outputs = [render_session(session)]
+def _invalid_menu_choice(session: SessionState) -> tuple[bool, SessionState, str]:
+    return True, session, "无效选项，请输入菜单编号。"
+
+
+def _save_current_session(session: SessionState) -> tuple[bool, SessionState, str]:
+    repository = JsonFileSaveRepository(session.save_path)
+    combat_state = _combat_state_from_room(session.room_state)
+    save_game(
+        repository=repository,
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        combat_state=combat_state,
+    )
+    return True, replace(session, menu_state=MenuState()), f"已保存到 {session.save_path}"
+
+
+def _load_current_session(session: SessionState) -> tuple[bool, SessionState, str]:
+    restored = load_session(save_path=session.save_path, content_root=session.content_root)
+    restored = replace(restored, command_history=list(session.command_history or []))
+    return True, restored, f"已从存档恢复。当前存档: {session.save_path}"
+
+
+def _route_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+    if session.room_state.is_resolved:
+        if session.room_state.rewards:
+            if choice == "1":
+                return True, replace(session, menu_state=MenuState()), render_session(replace(session, menu_state=MenuState()))
+            if choice == "2":
+                if not session.room_state.rewards:
+                    return True, replace(session, menu_state=MenuState()), "当前没有可领取的奖励。"
+                next_session = replace(session, menu_state=MenuState(mode="select_reward"))
+                return True, next_session, render_session(next_session)
+            if choice == "3":
+                next_node_ids = session.room_state.payload.get("next_node_ids", [])
+                if isinstance(next_node_ids, list) and len(next_node_ids) > 1:
+                    next_session = replace(session, menu_state=MenuState(mode="select_next_room"))
+                    return True, next_session, render_session(next_session)
+                running, next_session, message = route_command("next", session=replace(session, menu_state=MenuState()))
+                next_session = _preserve_menu_history(next_session, history_session=session)
+                return running, replace(next_session, menu_state=MenuState()), message
+            if choice == "4":
+                return _save_current_session(session)
+            if choice == "5":
+                return _load_current_session(session)
+            if choice == "6":
+                return False, replace(session, menu_state=MenuState()), "已退出游戏。"
+            return _invalid_menu_choice(session)
+        if choice == "1":
+            next_node_ids = session.room_state.payload.get("next_node_ids", [])
+            if isinstance(next_node_ids, list) and len(next_node_ids) > 1:
+                next_session = replace(session, menu_state=MenuState(mode="select_next_room"))
+                return True, next_session, render_session(next_session)
+            running, next_session, message = route_command("next", session=replace(session, menu_state=MenuState()))
+            next_session = _preserve_menu_history(next_session, history_session=session)
+            return running, replace(next_session, menu_state=MenuState()), message
+        if choice == "2":
+            return _save_current_session(session)
+        if choice == "3":
+            return _load_current_session(session)
+        if choice == "4":
+            return False, replace(session, menu_state=MenuState()), "已退出游戏。"
+        return _invalid_menu_choice(session)
+
+    if session.room_state.room_type in {"combat", "elite", "boss"}:
+        if choice == "1":
+            return True, replace(session, menu_state=MenuState()), render_session(replace(session, menu_state=MenuState()))
+        if choice == "2":
+            combat_state = _combat_state_from_room(session.room_state)
+            if combat_state is None or not combat_state.hand:
+                return True, replace(session, menu_state=MenuState()), "当前没有可打出的手牌。"
+            next_session = replace(session, menu_state=MenuState(mode="select_card"))
+            return True, next_session, render_session(next_session)
+        if choice == "3":
+            running, next_session, message = route_command("end", session=replace(session, menu_state=MenuState()))
+            next_session = _preserve_menu_history(next_session, history_session=session)
+            return running, replace(next_session, menu_state=MenuState()), message
+        if choice == "4":
+            return _save_current_session(session)
+        if choice == "5":
+            return _load_current_session(session)
+        if choice == "6":
+            return False, replace(session, menu_state=MenuState()), "已退出游戏。"
+        return _invalid_menu_choice(session)
+
+    if session.room_state.room_type == "event":
+        if choice == "1":
+            return True, replace(session, menu_state=MenuState()), render_session(replace(session, menu_state=MenuState()))
+        if choice == "2":
+            next_session = replace(session, menu_state=MenuState(mode="select_event_choice"))
+            return True, next_session, render_session(next_session)
+        if choice == "3":
+            return _save_current_session(session)
+        if choice == "4":
+            return _load_current_session(session)
+        if choice == "5":
+            return False, replace(session, menu_state=MenuState()), "已退出游戏。"
+        return _invalid_menu_choice(session)
+
+    if choice == "1":
+        return True, replace(session, menu_state=MenuState()), render_session(replace(session, menu_state=MenuState()))
+    if choice == "2":
+        running, next_session, message = route_command("next", session=replace(session, menu_state=MenuState()))
+        next_session = _preserve_menu_history(next_session, history_session=session)
+        return running, replace(next_session, menu_state=MenuState()), message
+    if choice == "3":
+        return _save_current_session(session)
+    if choice == "4":
+        return _load_current_session(session)
+    if choice == "5":
+        return False, replace(session, menu_state=MenuState()), "已退出游戏。"
+    return _invalid_menu_choice(session)
+
+
+def _route_card_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+    combat_state = _combat_state_from_room(session.room_state)
+    if combat_state is None:
+        return True, replace(session, menu_state=MenuState()), "战斗状态不可用。"
+    back_choice = str(len(combat_state.hand) + 1)
+    if choice == back_choice:
+        next_session = replace(session, menu_state=MenuState())
+        return True, next_session, render_session(next_session)
+    try:
+        card_instance_id = _resolve_hand_card(combat_state, choice)
+    except ValueError:
+        return _invalid_menu_choice(session)
+    if _card_requires_target(card_instance_id, session) and len(_combat_target_ids(combat_state)) > 1:
+        next_session = replace(
+            session,
+            menu_state=MenuState(mode="select_target", selected_card_instance_id=card_instance_id),
+        )
+        return True, next_session, render_session(next_session)
+    running, next_session, message = route_command(
+        f"play {choice}",
+        session=replace(session, menu_state=MenuState()),
+    )
+    next_session = _preserve_menu_history(next_session, history_session=session)
+    return running, replace(next_session, menu_state=MenuState()), message
+
+
+def _route_target_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+    combat_state = _combat_state_from_room(session.room_state)
+    if combat_state is None:
+        return True, replace(session, menu_state=MenuState()), "战斗状态不可用。"
+    selected_card_instance_id = session.menu_state.selected_card_instance_id
+    if selected_card_instance_id is None:
+        next_session = replace(session, menu_state=MenuState(mode="select_card"))
+        return True, next_session, render_session(next_session)
+    targets = _combat_target_ids(combat_state)
+    back_choice = str(len(targets) + 1)
+    if choice == back_choice:
+        next_session = replace(session, menu_state=MenuState(mode="select_card"))
+        return True, next_session, render_session(next_session)
+    try:
+        target_index = int(choice)
+    except ValueError:
+        return _invalid_menu_choice(session)
+    if target_index <= 0 or target_index > len(targets):
+        return _invalid_menu_choice(session)
+    try:
+        hand_index = _hand_index_for_card(combat_state, selected_card_instance_id)
+    except ValueError:
+        next_session = replace(session, menu_state=MenuState())
+        return True, next_session, "所选手牌已发生变化，请重新选择。"
+    running, next_session, message = route_command(
+        f"play {hand_index} {target_index}",
+        session=replace(session, menu_state=MenuState()),
+    )
+    next_session = _preserve_menu_history(next_session, history_session=session)
+    return running, replace(next_session, menu_state=MenuState()), message
+
+
+def _route_next_room_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+    next_node_ids = session.room_state.payload.get("next_node_ids", [])
+    if not isinstance(next_node_ids, list):
+        return _invalid_menu_choice(session)
+    back_choice = str(len(next_node_ids) + 1)
+    if choice == back_choice:
+        next_session = replace(session, menu_state=MenuState())
+        return True, next_session, render_session(next_session)
+    try:
+        index = int(choice)
+    except ValueError:
+        return _invalid_menu_choice(session)
+    if index <= 0 or index > len(next_node_ids):
+        return _invalid_menu_choice(session)
+    next_node_id = next_node_ids[index - 1]
+    if not isinstance(next_node_id, str):
+        return _invalid_menu_choice(session)
+    next_session = _advance_to_node(replace(session, menu_state=MenuState()), next_node_id)
+    return True, _preserve_menu_history(next_session, history_session=session), render_session(next_session)
+
+
+def _route_event_choice_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+    event_id = session.room_state.payload.get("event_id")
+    if not isinstance(event_id, str):
+        return True, replace(session, menu_state=MenuState()), "当前事件不可用。"
+    event_def = _content_provider(session).events().get(event_id)
+    back_choice = str(len(event_def.choices) + 1)
+    if choice == back_choice:
+        next_session = replace(session, menu_state=MenuState())
+        return True, next_session, render_session(next_session)
+    try:
+        index = int(choice)
+    except ValueError:
+        return _invalid_menu_choice(session)
+    if index <= 0 or index > len(event_def.choices):
+        return _invalid_menu_choice(session)
+    choice_id = event_def.choices[index - 1].get("id")
+    if not isinstance(choice_id, str):
+        return True, replace(session, menu_state=MenuState()), "事件选项无效。"
+    room_state = resolve_event_choice(
+        room_state=session.room_state,
+        choice_id=choice_id,
+        registry=_content_provider(session),
+    )
+    next_session = replace(session, room_state=room_state, menu_state=MenuState())
+    return True, next_session, render_session(next_session)
+
+
+def _route_reward_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+    rewards = list(session.room_state.rewards)
+    back_choice = str(len(rewards) + 1)
+    if choice == back_choice:
+        next_session = replace(session, menu_state=MenuState())
+        return True, next_session, render_session(next_session)
+    try:
+        index = int(choice)
+    except ValueError:
+        return _invalid_menu_choice(session)
+    if index <= 0 or index > len(rewards):
+        return _invalid_menu_choice(session)
+    room_state = _room_with_rewards_claimed(session.room_state, rewards[index - 1])
+    next_session = replace(session, room_state=room_state, menu_state=MenuState())
+    return True, next_session, render_session(next_session)
+
+
+def route_menu_choice(choice: str, *, session: SessionState) -> tuple[bool, SessionState, str]:
+    next_session = _with_menu_choice_history(session, choice.strip())
+    if next_session.menu_state.mode == "root":
+        return _route_root_menu(choice.strip(), next_session)
+    if next_session.menu_state.mode == "select_card":
+        return _route_card_menu(choice.strip(), next_session)
+    if next_session.menu_state.mode == "select_target":
+        return _route_target_menu(choice.strip(), next_session)
+    if next_session.menu_state.mode == "select_next_room":
+        return _route_next_room_menu(choice.strip(), next_session)
+    if next_session.menu_state.mode == "select_event_choice":
+        return _route_event_choice_menu(choice.strip(), next_session)
+    if next_session.menu_state.mode == "select_reward":
+        return _route_reward_menu(choice.strip(), next_session)
+    return _invalid_menu_choice(replace(next_session, menu_state=MenuState()))
+
+
+def interactive_loop(
+    *,
+    session: SessionState,
+    input_port: InputPort,
+    output_writer: Callable[[str], None] | None = None,
+) -> SessionLoopResult:
+    initial_output = render_session(session)
+    outputs = [initial_output]
+    if output_writer is not None:
+        output_writer(initial_output)
     running = True
     while running:
-        command = input_port.read(prompt_for_room(session.room_state))
-        running, session, message = route_command(command, session=session)
+        command = input_port.read(prompt_for_session(session))
+        running, session, message = route_menu_choice(command, session=session)
         outputs.append(message)
+        if output_writer is not None:
+            output_writer(message)
     return SessionLoopResult(outputs=outputs, final_session=session)

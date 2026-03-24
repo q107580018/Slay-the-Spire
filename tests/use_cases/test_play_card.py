@@ -148,3 +148,24 @@ def test_play_card_uses_registry_to_resolve_card_definition() -> None:
     assert state.discard_pile == ["registry_card#9"]
     assert state.enemies[0].hp == 3
     assert provider.cards_calls >= 2
+
+
+def test_play_card_applies_vulnerable_status_effects() -> None:
+    state = _combat_state(hand=["bash#1"], energy=2)
+    provider = _provider_with_card(
+        card_id="bash",
+        cost=2,
+        effects=[
+            {"type": "damage", "amount": 8},
+            {"type": "vulnerable", "stacks": 2},
+        ],
+    )
+
+    result = play_card(state, "bash#1", "enemy-1", provider)
+
+    assert result.combat_state is state
+    assert [effect["type"] for effect in result.resolved_effects] == ["damage", "vulnerable"]
+    assert state.enemies[0].hp == 2
+    assert len(state.enemies[0].statuses) == 1
+    assert state.enemies[0].statuses[0].status_id == "vulnerable"
+    assert state.enemies[0].statuses[0].stacks == 2

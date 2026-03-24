@@ -2,7 +2,7 @@
   "acts": [
     {
       "id": "act1",
-      "name": "Act 1",
+      "name": "第一幕",
       "enemy_pool_id": "act1_basic",
       "elite_pool_id": "act1_elites",
       "event_pool_id": "act1_events",

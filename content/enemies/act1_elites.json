@@ -2,12 +2,18 @@
   "enemies": [
     {
       "id": "lagavulin",
-      "name": "Lagavulin",
+      "name": "沉睡巨像",
       "hp": 109,
       "move_table": [
         {
           "move": "awaken",
-          "weight": 1
+          "weight": 1,
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 18
+            }
+          ]
         }
       ],
       "intent_policy": "scripted"
