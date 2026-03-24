@@ -93,6 +93,8 @@ class CombatState:
             raise ValueError("unsupported schema_version for CombatState")
         self.round_number = _require_int(self.round_number, "round_number")
         self.energy = _require_int(self.energy, "energy")
+        if not isinstance(self.player, PlayerCombatState):
+            raise TypeError("player must be a PlayerCombatState")
         if self.round_number <= 0:
             raise ValueError("round_number must be positive")
         if self.energy < 0:

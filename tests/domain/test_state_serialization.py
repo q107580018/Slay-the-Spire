@@ -131,6 +131,160 @@ def test_run_state_constructor_rejects_invalid_field_types(kwargs, field_name):
     [
         (
             {
+                "seed": 7,
+                "character_id": "ironclad",
+                "current_act_id": "",
+            },
+            "current_act_id",
+        ),
+    ],
+)
+def test_run_state_constructor_rejects_empty_optional_identity(kwargs, field_name):
+    with pytest.raises(ValueError, match=field_name):
+        RunState(**kwargs)
+
+
+@pytest.mark.parametrize(
+    ("factory", "kwargs", "error_type", "field_name"),
+    [
+        (
+            StatusState,
+            {"status_id": 1, "stacks": 1, "duration": None},
+            TypeError,
+            "status_id",
+        ),
+        (
+            StatusState,
+            {"status_id": "", "stacks": 1, "duration": None},
+            ValueError,
+            "status_id",
+        ),
+        (
+            PlayerCombatState,
+            {"instance_id": 1, "hp": 10, "max_hp": 10, "block": 0, "statuses": []},
+            TypeError,
+            "instance_id",
+        ),
+        (
+            PlayerCombatState,
+            {"instance_id": "", "hp": 10, "max_hp": 10, "block": 0, "statuses": []},
+            ValueError,
+            "instance_id",
+        ),
+        (
+            EnemyState,
+            {
+                "instance_id": 1,
+                "enemy_id": "slime",
+                "hp": 10,
+                "max_hp": 10,
+                "block": 0,
+                "statuses": [],
+            },
+            TypeError,
+            "instance_id",
+        ),
+        (
+            EnemyState,
+            {
+                "instance_id": "enemy-1",
+                "enemy_id": 1,
+                "hp": 10,
+                "max_hp": 10,
+                "block": 0,
+                "statuses": [],
+            },
+            TypeError,
+            "enemy_id",
+        ),
+        (
+            EnemyState,
+            {
+                "instance_id": "",
+                "enemy_id": "slime",
+                "hp": 10,
+                "max_hp": 10,
+                "block": 0,
+                "statuses": [],
+            },
+            ValueError,
+            "instance_id",
+        ),
+        (
+            EnemyState,
+            {
+                "instance_id": "enemy-1",
+                "enemy_id": "",
+                "hp": 10,
+                "max_hp": 10,
+                "block": 0,
+                "statuses": [],
+            },
+            ValueError,
+            "enemy_id",
+        ),
+        (
+            ActState,
+            {
+                "schema_version": 1,
+                "act_id": 1,
+                "current_node_id": "node-1",
+                "nodes": [ActNodeState(node_id="node-1", next_node_ids=[])],
+                "visited_node_ids": [],
+            },
+            TypeError,
+            "act_id",
+        ),
+        (
+            ActState,
+            {
+                "schema_version": 1,
+                "act_id": "act-1",
+                "current_node_id": 1,
+                "nodes": [ActNodeState(node_id="node-1", next_node_ids=[])],
+                "visited_node_ids": [],
+            },
+            TypeError,
+            "current_node_id",
+        ),
+        (
+            ActState,
+            {
+                "schema_version": 1,
+                "act_id": "",
+                "current_node_id": "node-1",
+                "nodes": [ActNodeState(node_id="node-1", next_node_ids=[])],
+                "visited_node_ids": [],
+            },
+            ValueError,
+            "act_id",
+        ),
+        (
+            ActState,
+            {
+                "schema_version": 1,
+                "act_id": "act-1",
+                "current_node_id": "",
+                "nodes": [ActNodeState(node_id="node-1", next_node_ids=[])],
+                "visited_node_ids": [],
+            },
+            ValueError,
+            "current_node_id",
+        ),
+    ],
+)
+def test_identity_like_fields_are_validated_on_direct_construction(
+    factory, kwargs, error_type, field_name
+):
+    with pytest.raises(error_type, match=field_name):
+        factory(**kwargs)
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "field_name"),
+    [
+        (
+            {
                 "schema_version": 1,
                 "room_id": "room-1",
                 "room_type": "event",
@@ -411,6 +565,23 @@ def test_constructors_reject_string_fields_meant_to_be_lists(kwargs, field_name)
             RoomState(**kwargs)
         else:
             CombatState(**kwargs)
+
+
+def test_combat_state_constructor_rejects_invalid_player_type():
+    with pytest.raises(TypeError, match="player"):
+        CombatState(
+            schema_version=1,
+            round_number=1,
+            energy=3,
+            hand=[],
+            draw_pile=[],
+            discard_pile=[],
+            exhaust_pile=[],
+            player="player-1",  # type: ignore[arg-type]
+            enemies=[],
+            effect_queue=[],
+            log=[],
+        )
 
 
 @pytest.mark.parametrize(

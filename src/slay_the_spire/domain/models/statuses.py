@@ -25,6 +25,8 @@ class StatusState:
         self.schema_version = _require_schema_version(self.schema_version)
         if self.schema_version != SCHEMA_VERSION:
             raise ValueError("unsupported schema_version for StatusState")
+        if not isinstance(self.status_id, str):
+            raise TypeError("status_id must be a string")
         if not self.status_id:
             raise ValueError("status_id must not be empty")
         if self.stacks <= 0:

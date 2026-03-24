@@ -95,6 +95,8 @@ class ActState:
         self.schema_version = _require_schema_version(self.schema_version)
         if self.schema_version != SCHEMA_VERSION:
             raise ValueError("unsupported schema_version for ActState")
+        self.act_id = _require_str(self.act_id, "act_id")
+        self.current_node_id = _require_str(self.current_node_id, "current_node_id")
         if not self.act_id:
             raise ValueError("act_id must not be empty")
         if not self.current_node_id:
