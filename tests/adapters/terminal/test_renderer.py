@@ -95,3 +95,77 @@ def test_victory_root_screen_keeps_rewards_visible() -> None:
     assert "查看奖励" in output
     assert "金币 20" in output
     assert "卡牌 打击+" in output
+
+
+def test_event_screen_shows_body_and_options_panel() -> None:
+    session = start_session(seed=5)
+    session = replace(
+        session,
+        room_state=replace(
+            session.room_state,
+            room_type="event",
+            payload={
+                "node_id": "event",
+                "room_kind": "event",
+                "event_id": "shining_light",
+                "next_node_ids": ["boss"],
+            },
+        ),
+    )
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=StarterContentProvider(session.content_root),
+        menu_state=MenuState(mode="select_event_choice"),
+    )
+
+    assert "事件" in output
+    assert "发光的牧师向你献上力量。" in output
+    assert "1. 接受" in output
+    assert "战斗摘要" not in output
+    assert "敌人意图" not in output
+
+
+def test_resolved_room_with_rewards_uses_reward_screen() -> None:
+    session = start_session(seed=5)
+    resolved_room = replace(session.room_state, is_resolved=True, rewards=["gold:12", "card:reward_strike"])
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=resolved_room,
+        registry=StarterContentProvider(session.content_root),
+        menu_state=MenuState(),
+    )
+
+    assert "奖励" in output
+    assert "金币 12" in output
+    assert "卡牌 打击+" in output
+    assert "战斗摘要" not in output
+    assert "敌人意图" not in output
+    assert "手牌" not in output
+
+
+def test_select_next_room_uses_branch_selection_screen() -> None:
+    session = start_session(seed=5)
+    resolved_room = replace(
+        session.room_state,
+        is_resolved=True,
+        payload={
+            **session.room_state.payload,
+            "next_node_ids": ["hallway", "event"],
+        },
+    )
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=resolved_room,
+        registry=StarterContentProvider(session.content_root),
+        menu_state=MenuState(mode="select_next_room"),
+    )
+
+    assert "请选择下一个房间" in output
+    assert "1. 走廊" in output
+    assert "2. 事件" in output
+    assert "战斗摘要" not in output
+    assert "敌人意图" not in output

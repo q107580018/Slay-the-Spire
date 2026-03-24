@@ -9,6 +9,7 @@ from rich.panel import Panel
 from rich.text import Text
 
 from slay_the_spire.adapters.terminal.screens.combat import render_combat_screen
+from slay_the_spire.adapters.terminal.screens.non_combat import render_non_combat_screen
 from slay_the_spire.adapters.terminal.theme import PANEL_BOX, TERMINAL_THEME
 from slay_the_spire.adapters.terminal.widgets import (
     preview_enemy_intent,
@@ -278,11 +279,37 @@ def render_room(
     registry: ContentProviderPort,
     menu_state: Any,
 ) -> str:
-    node_id = room_state.payload.get("node_id", act_state.current_node_id)
-    room_kind = room_state.payload.get("room_kind", room_state.room_type)
-    character_name = registry.characters().get(run_state.character_id).name
-    act_name = registry.acts().get(act_state.act_id).name
     combat_state = _combat_state_from_room(room_state)
+    if room_state.is_resolved and room_state.rewards:
+        return _render_to_text(
+            render_non_combat_screen(
+                run_state=run_state,
+                act_state=act_state,
+                room_state=room_state,
+                registry=registry,
+                menu_state=menu_state,
+            )
+        )
+    if room_state.room_type == "event" or _menu_mode(menu_state) in {"select_next_room", "select_event_choice", "select_reward"}:
+        return _render_to_text(
+            render_non_combat_screen(
+                run_state=run_state,
+                act_state=act_state,
+                room_state=room_state,
+                registry=registry,
+                menu_state=menu_state,
+            )
+        )
+    if room_state.room_type not in {"combat", "elite", "boss"}:
+        return _render_to_text(
+            render_non_combat_screen(
+                run_state=run_state,
+                act_state=act_state,
+                room_state=room_state,
+                registry=registry,
+                menu_state=menu_state,
+            )
+        )
     if combat_state is not None:
         return _render_to_text(
             render_combat_screen(
@@ -294,27 +321,12 @@ def render_room(
                 menu_state=menu_state,
             )
         )
-    body: list[RenderableType] = [
-        Text.assemble(("种子: ", "summary.label"), str(run_state.seed)),
-        Text.assemble(("角色: ", "summary.label"), (character_name, "player.name")),
-        Text.assemble(("章节: ", "summary.label"), str(act_name)),
-        Text.assemble(("房间: ", "summary.label"), str(_format_node(node_id))),
-        Text.assemble(("房间类型: ", "summary.label"), str(_ROOM_TYPE_LABELS.get(str(room_kind), str(room_kind)))),
-        Text.assemble(("阶段: ", "summary.label"), str(_STAGE_LABELS.get(room_state.stage, room_state.stage))),
-        Text.assemble(("房间已完成: ", "summary.label"), "是" if room_state.is_resolved else "否"),
-        Text.assemble(("下一房间: ", "summary.label"), str(_format_next_nodes(room_state))),
-    ]
-    combat_state = _combat_state_from_room(room_state)
-    if combat_state is None:
-        if room_state.room_type == "event":
-            event_id = room_state.payload.get("event_id")
-            if isinstance(event_id, str):
-                body.append(Text.assemble(("事件: ", "summary.label"), registry.events().get(event_id).text))
-        if room_state.payload.get("result") == "gain_upgrade":
-            body.append(Text.assemble(("结果: ", "summary.label"), "获得升级"))
-        elif room_state.payload.get("result") == "nothing":
-            body.append(Text.assemble(("结果: ", "summary.label"), "什么也没有发生"))
-        if room_state.rewards:
-            body.extend(Text(line) for line in _format_rewards(room_state.rewards))
-        body.append(render_menu(_format_menu(room_state, combat_state, registry, menu_state)))
-        return _render_to_text(Panel(Group(*body), title="房间摘要", box=PANEL_BOX, expand=False))
+    return _render_to_text(
+        render_non_combat_screen(
+            run_state=run_state,
+            act_state=act_state,
+            room_state=room_state,
+            registry=registry,
+            menu_state=menu_state,
+        )
+    )
