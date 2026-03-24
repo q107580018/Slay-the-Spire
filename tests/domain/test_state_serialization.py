@@ -155,9 +155,17 @@ def test_act_state_from_dict_rejects_string_lists(field, value):
     ("field", "value"),
     [
         ("hand", "strike"),
+        ("hand", [1]),
+        ("draw_pile", "strike"),
+        ("draw_pile", [1]),
+        ("discard_pile", "strike"),
+        ("discard_pile", [1]),
+        ("exhaust_pile", "strike"),
+        ("exhaust_pile", [1]),
         ("enemies", "enemy-1"),
         ("effect_queue", "effect"),
         ("log", "combat starts"),
+        ("log", [True]),
     ],
 )
 def test_combat_state_from_dict_rejects_string_lists(field, value):

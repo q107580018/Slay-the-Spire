@@ -27,6 +27,12 @@ def _require_int(value: object, field_name: str) -> int:
     return value
 
 
+def _require_str(value: object, field_name: str) -> str:
+    if not isinstance(value, str):
+        raise TypeError(f"{field_name} must be a string")
+    return value
+
+
 def _require_mapping_data(value: object) -> Mapping[str, object]:
     if not isinstance(value, Mapping):
         raise TypeError("data must be a mapping")
@@ -137,12 +143,12 @@ class CombatState:
             schema_version=SCHEMA_VERSION,
             round_number=_require_int(data["round_number"], "round_number"),
             energy=_require_int(data["energy"], "energy"),
-            hand=[str(item) for item in hand],
-            draw_pile=[str(item) for item in draw_pile],
-            discard_pile=[str(item) for item in discard_pile],
-            exhaust_pile=[str(item) for item in exhaust_pile],
+            hand=[_require_str(item, "hand item") for item in hand],
+            draw_pile=[_require_str(item, "draw_pile item") for item in draw_pile],
+            discard_pile=[_require_str(item, "discard_pile item") for item in discard_pile],
+            exhaust_pile=[_require_str(item, "exhaust_pile item") for item in exhaust_pile],
             player=PlayerCombatState.from_dict(_require_mapping(data["player"], "player")),
             enemies=[EnemyState.from_dict(_require_mapping(item, "enemies item")) for item in enemies_raw],
             effect_queue=[_normalize_json_dict(_require_mapping(effect, "effect_queue item")) for effect in effect_queue_raw],
-            log=[str(item) for item in log],
+            log=[_require_str(item, "log item") for item in log],
         )
