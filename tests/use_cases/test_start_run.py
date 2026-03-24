@@ -6,6 +6,7 @@ import pytest
 
 from slay_the_spire.app.cli import main
 from slay_the_spire.content.provider import StarterContentProvider
+from slay_the_spire.content.registries import ActRegistry
 from slay_the_spire.domain.map.map_generator import generate_act_state
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.room_state import RoomState
@@ -41,6 +42,15 @@ class _CountingProvider:
 
     def acts(self):
         return self._delegate.acts()
+
+
+class _OverrideActProvider(_CountingProvider):
+    def __init__(self, delegate: StarterContentProvider, act_registry: ActRegistry) -> None:
+        super().__init__(delegate)
+        self._act_registry = act_registry
+
+    def acts(self):
+        return self._act_registry
 
 
 def test_main_returns_zero_for_stub_argv() -> None:
@@ -100,3 +110,28 @@ def test_enter_room_returns_room_state_for_node_type(node_id: str, expected_room
         assert isinstance(CombatState.from_dict(room_state.payload["combat_state"]), CombatState)
     else:
         assert "combat_state" not in room_state.payload
+
+
+def test_enter_room_rejects_unsupported_room_type() -> None:
+    provider = _content_provider()
+    act_registry = ActRegistry()
+    act_registry.register(
+        {
+            "id": "act1",
+            "name": "Act 1",
+            "enemy_pool_id": "act1_basic",
+            "elite_pool_id": "act1_elites",
+            "event_pool_id": "act1_events",
+            "boss_pool_id": "act1_elites",
+            "nodes": [
+                {"id": "start", "room_type": "combat", "next": ["hallway"]},
+                {"id": "hallway", "room_type": "shop", "next": []},
+            ],
+        }
+    )
+    custom_provider = _OverrideActProvider(provider, act_registry)
+    run_state = start_new_run("ironclad", seed=7, registry=provider)
+    act_state = generate_act_state("act1", seed=7, registry=custom_provider)
+
+    with pytest.raises(ValueError, match="unsupported room_type: shop"):
+        enter_room(run_state, act_state, node_id="hallway", registry=custom_provider)

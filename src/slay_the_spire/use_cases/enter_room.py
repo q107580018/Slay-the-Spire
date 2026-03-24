@@ -10,6 +10,8 @@ from slay_the_spire.domain.models.room_state import RoomState
 from slay_the_spire.domain.models.run_state import RunState
 from slay_the_spire.ports.content_provider import ContentProviderPort
 
+_SUPPORTED_ROOM_TYPES = {"combat", "elite", "event", "boss"}
+
 
 def _require_mapping(value: object, field_name: str) -> Mapping[str, object]:
     if not isinstance(value, Mapping):
@@ -36,7 +38,10 @@ def _room_type_for_node(act_state: ActState, node_id: str, registry: ContentProv
         room_type = node.get("room_type")
         if room_type is None:
             raise ValueError("room_type is required for act nodes")
-        return _require_str(room_type, "node.room_type")
+        room_type = _require_str(room_type, "node.room_type")
+        if room_type not in _SUPPORTED_ROOM_TYPES:
+            raise ValueError(f"unsupported room_type: {room_type}")
+        return room_type
     raise ValueError(f"node {node_id} not found in act {act_state.act_id}")
 
 
