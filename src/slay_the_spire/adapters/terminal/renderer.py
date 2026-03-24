@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from io import StringIO
 from typing import Any
 
 from rich.console import Console, RenderableType
@@ -43,7 +44,9 @@ _NODE_LABELS = {
 
 
 def _render_to_text(renderable: RenderableType) -> str:
+    buffer = StringIO()
     console = Console(
+        file=buffer,
         width=100,
         record=True,
         force_terminal=False,

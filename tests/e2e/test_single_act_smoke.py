@@ -87,7 +87,9 @@ def test_session_loop_uses_chinese_numbered_menus() -> None:
     session = start_session(seed=5)
     result = interactive_loop(session=session, input_port=_InputPort(["2", "1", "2", "1", "3", "6"]))
 
-    assert result.outputs[0].startswith("种子: 5")
+    assert "╭" in result.outputs[0] or "┌" in result.outputs[0]
+    assert "当前能量: 3" in result.outputs[0]
+    assert "抽牌堆: 4" in result.outputs[0]
     assert "1. 查看战场" in result.outputs[0]
     assert "2. 出牌" in result.outputs[0]
     assert "1. 打击 费用1" in result.outputs[1]
