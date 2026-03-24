@@ -1,2 +1,0 @@
-"""Serializable domain models."""
-
