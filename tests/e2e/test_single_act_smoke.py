@@ -10,9 +10,11 @@ from slay_the_spire.app.session import interactive_loop, route_command, route_me
 class _InputPort:
     def __init__(self, commands: list[str]) -> None:
         self._commands = commands
+        self.prompts: list[str] = []
 
     def read(self, prompt: str = "") -> str:
-        del prompt
+        assert isinstance(prompt, str)
+        self.prompts.append(prompt)
         return self._commands.pop(0)
 
 
@@ -106,40 +108,45 @@ def test_session_loop_uses_chinese_numbered_menus() -> None:
 def test_branch_event_save_and_load_use_chinese_numbered_menus(tmp_path: Path) -> None:
     save_path = tmp_path / "save.json"
     session = start_session(seed=5, save_path=save_path)
+    input_port = _InputPort(
+        [
+            "2",  # 出牌
+            "1",  # 打击
+            "2",  # 出牌
+            "1",  # 打击
+            "3",  # 前往走廊
+            "2",  # 出牌
+            "1",  # 打击
+            "2",  # 出牌
+            "1",  # 打击
+            "3",  # 选择下一个房间
+            "2",  # 事件
+            "2",  # 进行选择
+            "1",  # 接受
+            "4",  # 保存游戏
+            "5",  # 读取存档
+            "6",  # 退出
+        ]
+    )
 
     result = interactive_loop(
         session=session,
-        input_port=_InputPort(
-            [
-                "2",  # 出牌
-                "1",  # 打击
-                "2",  # 出牌
-                "1",  # 打击
-                "3",  # 前往走廊
-                "2",  # 出牌
-                "1",  # 打击
-                "2",  # 出牌
-                "1",  # 打击
-                "3",  # 选择下一个房间
-                "2",  # 事件
-                "2",  # 进行选择
-                "1",  # 接受
-                "4",  # 保存游戏
-                "5",  # 读取存档
-                "6",  # 退出
-            ]
-        ),
+        input_port=input_port,
     )
 
     assert any("请选择下一个房间:" in output for output in result.outputs)
-    assert any("2. 事件" in output for output in result.outputs)
     assert any("房间: 事件" in output for output in result.outputs)
-    assert any("事件: 发光的牧师向你献上力量。" in output for output in result.outputs)
+    assert any("事件正文" in output for output in result.outputs)
+    assert any("发光的牧师向你献上力量。" in output for output in result.outputs)
+    assert any("事件选项:" in output for output in result.outputs)
     assert any("1. 接受" in output for output in result.outputs)
-    assert any("结果: 获得升级" in output for output in result.outputs)
+    assert any("奖励" in output and "结果: 获得升级" in output for output in result.outputs)
+    assert any("1. 事件结果 获得升级" in output for output in result.outputs)
+    assert any("房间已完成: 是" in output for output in result.outputs)
     assert any("已保存到" in output for output in result.outputs)
     assert any("已从存档恢复。" in output for output in result.outputs)
     assert result.outputs[-1] == "已退出游戏。"
+    assert all(isinstance(prompt, str) for prompt in input_port.prompts)
     assert result.final_session.command_history == ["2", "1", "2", "1", "3", "2", "1", "2", "1", "3", "2", "2", "1", "4", "5", "6"]
 
 
