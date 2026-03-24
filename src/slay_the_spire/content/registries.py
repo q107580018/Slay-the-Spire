@@ -2,10 +2,8 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Generic, TypeVar
 
-from slay_the_spire.content.loaders import load_json_file
 from slay_the_spire.shared.types import JsonDict
 
 T = TypeVar("T")
@@ -248,92 +246,39 @@ class CharacterRegistry(_BaseRegistry[CharacterDef]):
         )
 
 
-@dataclass(slots=True)
-class ContentCatalog:
-    characters: CharacterRegistry = field(default_factory=CharacterRegistry)
-    cards: CardRegistry = field(default_factory=CardRegistry)
-    enemies: EnemyRegistry = field(default_factory=EnemyRegistry)
-    relics: RelicRegistry = field(default_factory=RelicRegistry)
-    events: EventRegistry = field(default_factory=EventRegistry)
-    acts: ActRegistry = field(default_factory=ActRegistry)
-    card_pool_ids: set[str] = field(default_factory=set)
-    enemy_pool_ids: set[str] = field(default_factory=set)
-    relic_pool_ids: set[str] = field(default_factory=set)
-    event_pool_ids: set[str] = field(default_factory=set)
-
-    @classmethod
-    def from_content_root(cls, content_root: str | Path) -> ContentCatalog:
-        root = Path(content_root)
-        catalog = cls()
-        catalog._load_characters(root / "characters")
-        catalog._load_card_pools(root / "cards")
-        catalog._load_enemy_pools(root / "enemies")
-        catalog._load_event_pools(root / "events")
-        catalog._load_relic_pools(root / "relics")
-        catalog._load_acts(root / "acts")
-        catalog.validate_startup_integrity()
-        return catalog
-
-    def _load_characters(self, directory: Path) -> None:
-        for path in sorted(directory.glob("*.json")):
-            self.characters.register(load_json_file(path))
-
-    def _load_card_pools(self, directory: Path) -> None:
-        for path in sorted(directory.glob("*.json")):
-            self.card_pool_ids.add(path.stem)
-            self.cards.register_many(_require_record_list(_load_list_payload(path, "cards"), "cards"))
-
-    def _load_enemy_pools(self, directory: Path) -> None:
-        for path in sorted(directory.glob("*.json")):
-            self.enemy_pool_ids.add(path.stem)
-            self.enemies.register_many(_require_record_list(_load_list_payload(path, "enemies"), "enemies"))
-
-    def _load_event_pools(self, directory: Path) -> None:
-        for path in sorted(directory.glob("*.json")):
-            self.event_pool_ids.add(path.stem)
-            self.events.register_many(_require_record_list(_load_list_payload(path, "events"), "events"))
-
-    def _load_relic_pools(self, directory: Path) -> None:
-        for path in sorted(directory.glob("*.json")):
-            self.relic_pool_ids.add(path.stem)
-            self.relics.register_many(_require_record_list(_load_list_payload(path, "relics"), "relics"))
-
-    def _load_acts(self, directory: Path) -> None:
-        for path in sorted(directory.glob("*.json")):
-            self.acts.register_many(_require_record_list(_load_list_payload(path, "acts"), "acts"))
-
-    def validate_startup_integrity(self) -> None:
-        try:
-            character = self.characters.get("ironclad")
-        except KeyError as exc:
-            raise ValueError("ironclad character is required") from exc
-        if character.starter_card_pool_id not in self.card_pool_ids:
-            raise ValueError("starter_card_pool_id must reference a loaded card pool")
-        if character.starter_relic_pool_id not in self.relic_pool_ids:
-            raise ValueError("starter_relic_pool_id must reference a loaded relic pool")
-        self.acts.get(character.starting_act_id)
-        for card_id in character.starter_deck:
-            self.cards.get(card_id)
-        for relic_id in character.starter_relic_ids:
-            self.relics.get(relic_id)
-        act = self.acts.get(character.starting_act_id)
-        if act.enemy_pool_id not in self.enemy_pool_ids:
-            raise ValueError("enemy_pool_id must reference a loaded enemy pool")
-        if act.elite_pool_id not in self.enemy_pool_ids:
-            raise ValueError("elite_pool_id must reference a loaded enemy pool")
-        if act.event_pool_id not in self.event_pool_ids:
-            raise ValueError("event_pool_id must reference a loaded event pool")
-        if act.boss_pool_id not in self.enemy_pool_ids:
-            raise ValueError("boss_pool_id must reference a loaded enemy pool")
-
-
-ContentRegistry = ContentCatalog
-
-
-def _load_list_payload(path: Path, key: str) -> object:
-    payload = load_json_file(path)
-    if not isinstance(payload, Mapping):
-        raise TypeError(f"{path.name} must contain a JSON object")
-    if key not in payload:
-        raise ValueError(f"{key} is required in {path.name}")
-    return payload[key]
+def validate_startup_integrity(
+    *,
+    characters: CharacterRegistry,
+    cards: CardRegistry,
+    enemies: EnemyRegistry,
+    relics: RelicRegistry,
+    events: EventRegistry,
+    acts: ActRegistry,
+    card_pool_ids: set[str],
+    enemy_pool_ids: set[str],
+    relic_pool_ids: set[str],
+    event_pool_ids: set[str],
+    character_id: str = "ironclad",
+) -> None:
+    try:
+        character = characters.get(character_id)
+    except KeyError as exc:
+        raise ValueError(f"{character_id} character is required") from exc
+    if character.starter_card_pool_id not in card_pool_ids:
+        raise ValueError("starter_card_pool_id must reference a loaded card pool")
+    if character.starter_relic_pool_id not in relic_pool_ids:
+        raise ValueError("starter_relic_pool_id must reference a loaded relic pool")
+    acts.get(character.starting_act_id)
+    for card_id in character.starter_deck:
+        cards.get(card_id)
+    for relic_id in character.starter_relic_ids:
+        relics.get(relic_id)
+    act = acts.get(character.starting_act_id)
+    if act.enemy_pool_id not in enemy_pool_ids:
+        raise ValueError("enemy_pool_id must reference a loaded enemy pool")
+    if act.elite_pool_id not in enemy_pool_ids:
+        raise ValueError("elite_pool_id must reference a loaded enemy pool")
+    if act.event_pool_id not in event_pool_ids:
+        raise ValueError("event_pool_id must reference a loaded event pool")
+    if act.boss_pool_id not in enemy_pool_ids:
+        raise ValueError("boss_pool_id must reference a loaded enemy pool")
