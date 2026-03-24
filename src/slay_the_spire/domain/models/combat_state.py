@@ -1,0 +1,119 @@
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Mapping
+
+from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
+from slay_the_spire.shared.types import JsonDict, JsonValue
+
+SCHEMA_VERSION = 1
+
+
+def _normalize_json_dict(effect: Mapping[str, object]) -> JsonDict:
+    result: JsonDict = {}
+    for key, value in effect.items():
+        if value is None or isinstance(value, (str, int, float, bool)):
+            result[str(key)] = value
+        elif isinstance(value, list):
+            normalized_list: list[JsonValue] = []
+            for item in value:
+                if item is None or isinstance(item, (str, int, float, bool)):
+                    normalized_list.append(item)
+                elif isinstance(item, Mapping):
+                    normalized_list.append(_normalize_json_dict(item))
+                else:
+                    raise TypeError("effect_queue must contain JSON-compatible values")
+            result[str(key)] = normalized_list
+        elif isinstance(value, Mapping):
+            result[str(key)] = _normalize_json_dict(value)
+        else:
+            raise TypeError("effect_queue must contain JSON-compatible values")
+    return result
+
+
+@dataclass(slots=True, kw_only=True)
+class CombatState:
+    schema_version: int = SCHEMA_VERSION
+    round_number: int
+    energy: int
+    hand: list[str] = field(default_factory=list)
+    draw_pile: list[str] = field(default_factory=list)
+    discard_pile: list[str] = field(default_factory=list)
+    exhaust_pile: list[str] = field(default_factory=list)
+    player: PlayerCombatState
+    enemies: list[EnemyState] = field(default_factory=list)
+    effect_queue: list[JsonDict] = field(default_factory=list)
+    log: list[str] = field(default_factory=list)
+    _entity_by_id: dict[str, PlayerCombatState | EnemyState] = field(
+        init=False,
+        repr=False,
+        compare=False,
+        default_factory=dict,
+    )
+
+    def __post_init__(self) -> None:
+        if self.schema_version != SCHEMA_VERSION:
+            raise ValueError("unsupported schema_version for CombatState")
+        if self.round_number <= 0:
+            raise ValueError("round_number must be positive")
+        if self.energy < 0:
+            raise ValueError("energy must be non-negative")
+        self.hand = list(self.hand)
+        self.draw_pile = list(self.draw_pile)
+        self.discard_pile = list(self.discard_pile)
+        self.exhaust_pile = list(self.exhaust_pile)
+        self.enemies = list(self.enemies)
+        self.effect_queue = [_normalize_json_dict(effect) for effect in self.effect_queue]
+        self.log = list(self.log)
+        self._refresh_entity_index()
+
+    def _refresh_entity_index(self) -> None:
+        self._entity_by_id.clear()
+        if self.player.instance_id in self._entity_by_id:
+            raise ValueError("duplicate instance_id found in CombatState")
+        self._entity_by_id[self.player.instance_id] = self.player
+        for enemy in self.enemies:
+            if not isinstance(enemy, EnemyState):
+                raise TypeError("enemies must contain EnemyState instances")
+            if enemy.instance_id in self._entity_by_id:
+                raise ValueError("duplicate instance_id found in CombatState")
+            self._entity_by_id[enemy.instance_id] = enemy
+
+    def get_entity(self, instance_id: str) -> PlayerCombatState | EnemyState:
+        return self._entity_by_id[instance_id]
+
+    def to_dict(self) -> JsonDict:
+        return {
+            "schema_version": self.schema_version,
+            "round_number": self.round_number,
+            "energy": self.energy,
+            "hand": list(self.hand),
+            "draw_pile": list(self.draw_pile),
+            "discard_pile": list(self.discard_pile),
+            "exhaust_pile": list(self.exhaust_pile),
+            "player": self.player.to_dict(),
+            "enemies": [enemy.to_dict() for enemy in self.enemies],
+            "effect_queue": [_normalize_json_dict(effect) for effect in self.effect_queue],
+            "log": list(self.log),
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, object]) -> CombatState:
+        if data.get("schema_version") != SCHEMA_VERSION:
+            raise ValueError("unsupported schema_version for CombatState")
+        effect_queue = data.get("effect_queue", [])
+        if not isinstance(effect_queue, list):
+            raise TypeError("effect_queue must be a list")
+        return cls(
+            schema_version=SCHEMA_VERSION,
+            round_number=int(data["round_number"]),
+            energy=int(data["energy"]),
+            hand=[str(item) for item in data.get("hand", [])],
+            draw_pile=[str(item) for item in data.get("draw_pile", [])],
+            discard_pile=[str(item) for item in data.get("discard_pile", [])],
+            exhaust_pile=[str(item) for item in data.get("exhaust_pile", [])],
+            player=PlayerCombatState.from_dict(data["player"]),
+            enemies=[EnemyState.from_dict(item) for item in data.get("enemies", [])],
+            effect_queue=[_normalize_json_dict(effect) for effect in effect_queue],
+            log=[str(item) for item in data.get("log", [])],
+        )
