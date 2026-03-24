@@ -51,6 +51,12 @@ def _require_mapping_data(value: object) -> Mapping[str, object]:
     return value
 
 
+def _require_field(data: Mapping[str, object], field_name: str) -> object:
+    if field_name not in data:
+        raise TypeError(f"{field_name} is required")
+    return data[field_name]
+
+
 def _normalize_json_dict(effect: Mapping[str, object]) -> JsonDict:
     result: JsonDict = {}
     for key, value in effect.items():
@@ -125,7 +131,10 @@ class CombatState:
         self.discard_pile = [_require_str(item, "discard_pile item") for item in self.discard_pile]
         self.exhaust_pile = [_require_str(item, "exhaust_pile item") for item in self.exhaust_pile]
         self.enemies = list(self.enemies)
-        self.effect_queue = [_normalize_json_dict(effect) for effect in self.effect_queue]
+        self.effect_queue = [
+            _normalize_json_dict(_require_mapping(effect, "effect_queue item"))
+            for effect in self.effect_queue
+        ]
         self.log = [_require_str(item, "log item") for item in self.log]
         self._refresh_entity_index()
 
@@ -165,13 +174,13 @@ class CombatState:
         schema_version = _require_schema_version(data.get("schema_version"))
         if schema_version != SCHEMA_VERSION:
             raise ValueError("unsupported schema_version for CombatState")
-        hand = _require_list(data.get("hand", []), "hand")
-        draw_pile = _require_list(data.get("draw_pile", []), "draw_pile")
-        discard_pile = _require_list(data.get("discard_pile", []), "discard_pile")
-        exhaust_pile = _require_list(data.get("exhaust_pile", []), "exhaust_pile")
-        enemies_raw = _require_list(data.get("enemies", []), "enemies")
-        effect_queue_raw = _require_list(data.get("effect_queue", []), "effect_queue")
-        log = _require_list(data.get("log", []), "log")
+        hand = _require_list(_require_field(data, "hand"), "hand")
+        draw_pile = _require_list(_require_field(data, "draw_pile"), "draw_pile")
+        discard_pile = _require_list(_require_field(data, "discard_pile"), "discard_pile")
+        exhaust_pile = _require_list(_require_field(data, "exhaust_pile"), "exhaust_pile")
+        enemies_raw = _require_list(_require_field(data, "enemies"), "enemies")
+        effect_queue_raw = _require_list(_require_field(data, "effect_queue"), "effect_queue")
+        log = _require_list(_require_field(data, "log"), "log")
         return cls(
             schema_version=SCHEMA_VERSION,
             round_number=_require_int(data["round_number"], "round_number"),

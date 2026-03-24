@@ -68,6 +68,12 @@ def _require_schema_version(value: object) -> int:
     return value
 
 
+def _require_field(data: Mapping[str, object], field_name: str) -> object:
+    if field_name not in data:
+        raise TypeError(f"{field_name} is required")
+    return data[field_name]
+
+
 @dataclass(slots=True, kw_only=True)
 class RoomState:
     schema_version: int = SCHEMA_VERSION
@@ -116,8 +122,8 @@ class RoomState:
         schema_version = _require_schema_version(data.get("schema_version"))
         if schema_version != SCHEMA_VERSION:
             raise ValueError("unsupported schema_version for RoomState")
-        payload = _require_mapping(data.get("payload", {}), "payload")
-        rewards = _require_list(data.get("rewards", []), "rewards")
+        payload = _require_mapping(_require_field(data, "payload"), "payload")
+        rewards = _require_list(_require_field(data, "rewards"), "rewards")
         return cls(
             schema_version=SCHEMA_VERSION,
             room_id=_require_str(data["room_id"], "room_id"),

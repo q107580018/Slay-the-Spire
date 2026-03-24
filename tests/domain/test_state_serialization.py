@@ -714,6 +714,29 @@ def test_combat_state_constructor_rejects_invalid_player_type():
         )
 
 
+def test_combat_state_constructor_rejects_non_mapping_effect_queue_items():
+    with pytest.raises(TypeError, match="effect_queue item"):
+        CombatState(
+            schema_version=1,
+            round_number=1,
+            energy=3,
+            hand=[],
+            draw_pile=[],
+            discard_pile=[],
+            exhaust_pile=[],
+            player=PlayerCombatState(
+                instance_id="player-1",
+                hp=80,
+                max_hp=80,
+                block=0,
+                statuses=[],
+            ),
+            enemies=[],
+            effect_queue=["not-a-mapping"],  # type: ignore[list-item]
+            log=[],
+        )
+
+
 def test_act_state_from_dict_rejects_dangling_next_node_edges():
     with pytest.raises(ValueError, match="next_node_ids"):
         ActState.from_dict(
@@ -752,6 +775,23 @@ def test_room_state_from_dict_rejects_non_string_payload_keys():
         )
 
 
+@pytest.mark.parametrize("field_name", ["payload", "rewards"])
+def test_room_state_from_dict_requires_collection_fields(field_name):
+    payload = {
+        "schema_version": 1,
+        "room_id": "room-1",
+        "room_type": "event",
+        "stage": "waiting_input",
+        "payload": {},
+        "is_resolved": False,
+        "rewards": [],
+    }
+    del payload[field_name]
+
+    with pytest.raises(TypeError, match=field_name):
+        RoomState.from_dict(payload)
+
+
 def test_combat_state_from_dict_rejects_non_string_effect_queue_keys():
     with pytest.raises(TypeError, match="effect_queue keys"):
         CombatState.from_dict(
@@ -777,6 +817,38 @@ def test_combat_state_from_dict_rejects_non_string_effect_queue_keys():
                 "log": [],
             }
         )
+
+
+@pytest.mark.parametrize(
+    "field_name",
+    ["hand", "draw_pile", "discard_pile", "exhaust_pile", "enemies", "effect_queue", "log"],
+)
+def test_combat_state_from_dict_requires_collection_fields(field_name):
+    payload = {
+        "schema_version": 1,
+        "round_number": 1,
+        "energy": 3,
+        "hand": [],
+        "draw_pile": [],
+        "discard_pile": [],
+        "exhaust_pile": [],
+        "player": {
+            "schema_version": 1,
+            "instance_id": "player-1",
+            "hp": 80,
+            "max_hp": 80,
+            "block": 0,
+            "statuses": [],
+            "kind": "player",
+        },
+        "enemies": [],
+        "effect_queue": [],
+        "log": [],
+    }
+    del payload[field_name]
+
+    with pytest.raises(TypeError, match=field_name):
+        CombatState.from_dict(payload)
 
 
 @pytest.mark.parametrize(
