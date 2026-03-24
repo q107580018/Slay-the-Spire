@@ -112,6 +112,14 @@ class ActState:
         invalid_visited = [node_id for node_id in self.visited_node_ids if node_id not in self._node_by_id]
         if invalid_visited:
             raise ValueError("visited_node_ids must exist in nodes")
+        dangling_next_node_ids = [
+            next_node_id
+            for node in self.nodes
+            for next_node_id in node.next_node_ids
+            if next_node_id not in self._node_by_id
+        ]
+        if dangling_next_node_ids:
+            raise ValueError("next_node_ids must exist in nodes")
 
     def _refresh_node_index(self) -> None:
         self._node_by_id.clear()

@@ -8,13 +8,19 @@ from slay_the_spire.shared.types import JsonDict, JsonValue
 SCHEMA_VERSION = 1
 
 
+def _require_json_key(key: object) -> str:
+    if not isinstance(key, str):
+        raise TypeError("payload keys must be strings")
+    return key
+
+
 def _ensure_json_value(value: object) -> JsonValue:
     if value is None or isinstance(value, (str, int, float, bool)):
         return value
     if isinstance(value, list):
         return [_ensure_json_value(item) for item in value]
     if isinstance(value, Mapping):
-        return {str(key): _ensure_json_value(item) for key, item in value.items()}
+        return {_require_json_key(key): _ensure_json_value(item) for key, item in value.items()}
     raise TypeError("payload must contain only JSON-compatible values")
 
 
@@ -24,12 +30,12 @@ def _snapshot_json_value(value: JsonValue) -> JsonValue:
     if isinstance(value, list):
         return [_snapshot_json_value(item) for item in value]
     if isinstance(value, Mapping):
-        return {str(key): _snapshot_json_value(item) for key, item in value.items()}
+        return {_require_json_key(key): _snapshot_json_value(item) for key, item in value.items()}
     raise TypeError("payload must contain only JSON-compatible values")
 
 
 def _copy_payload(payload: Mapping[str, JsonValue]) -> JsonDict:
-    return {str(key): _ensure_json_value(value) for key, value in payload.items()}
+    return {_require_json_key(key): _ensure_json_value(value) for key, value in payload.items()}
 
 
 def _require_mapping(value: object, field_name: str) -> Mapping[str, object]:
@@ -98,7 +104,7 @@ class RoomState:
             "room_id": self.room_id,
             "room_type": self.room_type,
             "stage": self.stage,
-            "payload": {str(key): _snapshot_json_value(value) for key, value in self.payload.items()},
+            "payload": {_require_json_key(key): _snapshot_json_value(value) for key, value in self.payload.items()},
             "is_resolved": self.is_resolved,
             "rewards": list(self.rewards),
         }
@@ -117,7 +123,7 @@ class RoomState:
             room_id=_require_str(data["room_id"], "room_id"),
             room_type=_require_str(data["room_type"], "room_type"),
             stage=_require_str(data["stage"], "stage"),
-            payload={str(key): value for key, value in payload.items()},
+            payload={_require_json_key(key): value for key, value in payload.items()},
             is_resolved=_require_bool(data["is_resolved"], "is_resolved"),
             rewards=[_require_str(item, "rewards item") for item in rewards],
         )

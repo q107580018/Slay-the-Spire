@@ -100,6 +100,19 @@ def test_room_state_to_dict_returns_deep_snapshot():
     assert state.to_dict()["payload"]["nested"]["cards"] == ["strike"]
 
 
+def test_act_state_constructor_rejects_dangling_next_node_edges():
+    with pytest.raises(ValueError, match="next_node_ids"):
+        ActState(
+            schema_version=1,
+            act_id="act-1",
+            current_node_id="node-1",
+            nodes=[
+                ActNodeState(node_id="node-1", next_node_ids=["node-2"]),
+            ],
+            visited_node_ids=[],
+        )
+
+
 @pytest.mark.parametrize(
     ("kwargs", "field_name"),
     [
@@ -372,6 +385,18 @@ def test_numeric_fields_reject_bool_on_direct_construction(factory, kwargs, fiel
                 "room_id": "room-1",
                 "room_type": "event",
                 "stage": "waiting_input",
+                "payload": {1: "a", "1": "b"},
+                "is_resolved": False,
+                "rewards": [],
+            },
+            "payload keys",
+        ),
+        (
+            {
+                "schema_version": 1,
+                "room_id": "room-1",
+                "room_type": "event",
+                "stage": "waiting_input",
                 "payload": {},
                 "is_resolved": False,
                 "rewards": "gold",
@@ -417,6 +442,28 @@ def test_numeric_fields_reject_bool_on_direct_construction(factory, kwargs, fiel
                 "next_node_ids": [2],
             },
             "next_node_ids item",
+        ),
+        (
+            {
+                "schema_version": 1,
+                "round_number": 1,
+                "energy": 3,
+                "hand": [],
+                "draw_pile": [],
+                "discard_pile": [],
+                "exhaust_pile": [],
+                "player": PlayerCombatState(
+                    instance_id="player-1",
+                    hp=80,
+                    max_hp=80,
+                    block=0,
+                    statuses=[],
+                ),
+                "enemies": [],
+                "effect_queue": [{1: "a", "1": "b"}],
+                "log": [],
+            },
+            "effect_queue keys",
         ),
         (
             {
@@ -664,6 +711,71 @@ def test_combat_state_constructor_rejects_invalid_player_type():
             enemies=[],
             effect_queue=[],
             log=[],
+        )
+
+
+def test_act_state_from_dict_rejects_dangling_next_node_edges():
+    with pytest.raises(ValueError, match="next_node_ids"):
+        ActState.from_dict(
+            {
+                "schema_version": 1,
+                "act_id": "act-1",
+                "current_node_id": "node-1",
+                "nodes": [
+                    {
+                        "schema_version": 1,
+                        "node_id": "node-1",
+                        "next_node_ids": ["node-2"],
+                    }
+                ],
+                "visited_node_ids": [],
+                "enemy_pool_id": None,
+                "elite_pool_id": None,
+                "boss_pool_id": None,
+                "event_pool_id": None,
+            }
+        )
+
+
+def test_room_state_from_dict_rejects_non_string_payload_keys():
+    with pytest.raises(TypeError, match="payload keys"):
+        RoomState.from_dict(
+            {
+                "schema_version": 1,
+                "room_id": "room-1",
+                "room_type": "event",
+                "stage": "waiting_input",
+                "payload": {1: "a", "1": "b"},
+                "is_resolved": False,
+                "rewards": [],
+            }
+        )
+
+
+def test_combat_state_from_dict_rejects_non_string_effect_queue_keys():
+    with pytest.raises(TypeError, match="effect_queue keys"):
+        CombatState.from_dict(
+            {
+                "schema_version": 1,
+                "round_number": 1,
+                "energy": 3,
+                "hand": [],
+                "draw_pile": [],
+                "discard_pile": [],
+                "exhaust_pile": [],
+                "player": {
+                    "schema_version": 1,
+                    "instance_id": "player-1",
+                    "hp": 80,
+                    "max_hp": 80,
+                    "block": 0,
+                    "statuses": [],
+                    "kind": "player",
+                },
+                "enemies": [],
+                "effect_queue": [{1: "a", "1": "b"}],
+                "log": [],
+            }
         )
 
 

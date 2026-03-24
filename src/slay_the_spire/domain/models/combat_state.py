@@ -9,6 +9,12 @@ from slay_the_spire.shared.types import JsonDict, JsonValue
 SCHEMA_VERSION = 1
 
 
+def _require_json_key(key: object) -> str:
+    if not isinstance(key, str):
+        raise TypeError("effect_queue keys must be strings")
+    return key
+
+
 def _require_mapping(value: object, field_name: str) -> Mapping[str, object]:
     if not isinstance(value, Mapping):
         raise TypeError(f"{field_name} must be a mapping")
@@ -48,8 +54,9 @@ def _require_mapping_data(value: object) -> Mapping[str, object]:
 def _normalize_json_dict(effect: Mapping[str, object]) -> JsonDict:
     result: JsonDict = {}
     for key, value in effect.items():
+        normalized_key = _require_json_key(key)
         if value is None or isinstance(value, (str, int, float, bool)):
-            result[str(key)] = value
+            result[normalized_key] = value
         elif isinstance(value, list):
             normalized_list: list[JsonValue] = []
             for item in value:
@@ -59,9 +66,9 @@ def _normalize_json_dict(effect: Mapping[str, object]) -> JsonDict:
                     normalized_list.append(_normalize_json_dict(item))
                 else:
                     raise TypeError("effect_queue must contain JSON-compatible values")
-            result[str(key)] = normalized_list
+            result[normalized_key] = normalized_list
         elif isinstance(value, Mapping):
-            result[str(key)] = _normalize_json_dict(value)
+            result[normalized_key] = _normalize_json_dict(value)
         else:
             raise TypeError("effect_queue must contain JSON-compatible values")
     return result
