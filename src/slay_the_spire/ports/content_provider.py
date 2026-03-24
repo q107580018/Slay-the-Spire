@@ -1,5 +1,7 @@
-from typing import Protocol
+from typing import Protocol, TypeVar
+
+ContentT = TypeVar("ContentT")
 
 
-class ContentProviderPort(Protocol):
-    def get(self, key: str) -> object: ...
+class ContentProviderPort(Protocol[ContentT]):
+    def get(self, key: str) -> ContentT: ...

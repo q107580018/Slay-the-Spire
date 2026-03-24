@@ -1,7 +1,9 @@
-from typing import Protocol
+from typing import Protocol, TypeVar
+
+StateT = TypeVar("StateT")
 
 
-class SaveRepositoryPort(Protocol):
-    def load(self) -> object | None: ...
+class SaveRepositoryPort(Protocol[StateT]):
+    def load(self) -> StateT | None: ...
 
-    def save(self, state: object) -> None: ...
+    def save(self, state: StateT) -> None: ...
