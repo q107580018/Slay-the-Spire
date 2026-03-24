@@ -16,6 +16,31 @@ def _content_provider() -> StarterContentProvider:
     return StarterContentProvider(Path(__file__).resolve().parents[2] / "content")
 
 
+class _CountingProvider:
+    def __init__(self, delegate: StarterContentProvider) -> None:
+        self._delegate = delegate
+        self.characters_calls = 0
+
+    def characters(self):
+        self.characters_calls += 1
+        return self._delegate.characters()
+
+    def cards(self):
+        return self._delegate.cards()
+
+    def enemies(self):
+        return self._delegate.enemies()
+
+    def relics(self):
+        return self._delegate.relics()
+
+    def events(self):
+        return self._delegate.events()
+
+    def acts(self):
+        return self._delegate.acts()
+
+
 def test_main_returns_zero_for_stub_argv() -> None:
     assert main(["--help"]) == 0
 
@@ -29,6 +54,15 @@ def test_start_new_run_uses_starter_content() -> None:
     assert run_state.seed == 7
     assert run_state.character_id == "ironclad"
     assert run_state.current_act_id == "act1"
+
+
+def test_start_new_run_loads_character_definitions_through_provider_contract() -> None:
+    provider = _CountingProvider(_content_provider())
+
+    run_state = start_new_run("ironclad", seed=7, registry=provider)
+
+    assert run_state.current_act_id == "act1"
+    assert provider.characters_calls >= 1
 
 
 def test_enter_room_returns_room_state_for_node_type() -> None:

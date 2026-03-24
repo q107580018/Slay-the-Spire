@@ -37,6 +37,7 @@ def test_json_loader_reads_raw_json(tmp_path: Path) -> None:
 def test_provider_exposes_registry_accessors() -> None:
     provider = StarterContentProvider(Path(__file__).resolve().parents[2] / "content")
 
+    assert provider.characters().get("ironclad").name == "Ironclad"
     assert provider.cards().get("bash").name == "Bash"
     assert provider.enemies().get("slime").name == "Green Slime"
     assert provider.relics().get("burning_blood").id == "burning_blood"
