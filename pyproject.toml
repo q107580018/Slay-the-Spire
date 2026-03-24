@@ -6,6 +6,9 @@ build-backend = "setuptools.build_meta"
 name = "slay-the-spire"
 version = "0.1.0"
 requires-python = ">=3.12"
+dependencies = [
+    "rich>=14.3.3",
+]
 
 [dependency-groups]
 dev = ["pytest>=8.0"]

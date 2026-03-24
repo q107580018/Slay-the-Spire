@@ -3,6 +3,9 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
+from rich.console import Console, RenderableType
+from rich.panel import Panel
+
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.act_state import ActState
@@ -37,6 +40,17 @@ _NODE_LABELS = {
     "event": "事件",
     "boss": "Boss",
 }
+
+
+def _render_to_text(renderable: RenderableType) -> str:
+    console = Console(
+        width=100,
+        record=True,
+        force_terminal=False,
+        color_system=None,
+    )
+    console.print(renderable)
+    return console.export_text(clear=False).rstrip()
 
 
 def _combat_state_from_room(room_state: RoomState) -> CombatState | None:
@@ -270,11 +284,12 @@ def render_room(
         if room_state.rewards:
             lines.extend(_format_rewards(room_state.rewards))
         lines.extend(_format_menu(room_state, combat_state, registry, menu_state))
-        return "\n".join(lines)
+        return _render_to_text(Panel("\n".join(lines), title="房间摘要", expand=False))
     lines.extend(
         [
             f"回合: {combat_state.round_number}",
-            f"能量: {combat_state.energy}",
+            f"当前能量: {combat_state.energy}",
+            f"抽牌堆: {len(combat_state.draw_pile)}",
             f"玩家生命: {combat_state.player.hp}/{combat_state.player.max_hp}",
             f"玩家格挡: {combat_state.player.block}",
             f"玩家状态: {_format_statuses(combat_state.player.statuses)}",
@@ -286,4 +301,4 @@ def render_room(
         if room_state.rewards:
             lines.extend(_format_rewards(room_state.rewards))
     lines.extend(_format_menu(room_state, combat_state, registry, menu_state))
-    return "\n".join(lines)
+    return _render_to_text(Panel("\n".join(lines), title="战斗摘要", expand=False))
