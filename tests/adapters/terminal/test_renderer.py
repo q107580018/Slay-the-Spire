@@ -24,6 +24,10 @@ def test_combat_root_screen_keeps_full_context_and_hand_panel() -> None:
     assert "当前能量" in output
     assert "手牌" in output
     assert "敌人意图" in output
+    assert "4. 查看资料" in output
+    assert "5. 保存游戏" in output
+    assert "6. 读取存档" in output
+    assert "7. 退出游戏" in output
 
 
 def test_non_combat_renderer_shows_full_map_rows_and_current_position() -> None:

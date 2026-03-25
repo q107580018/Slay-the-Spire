@@ -12,6 +12,8 @@ def test_combat_root_menu_can_enter_inspect_root() -> None:
 
     assert running is True
     assert next_session.menu_state.mode == "inspect_root"
+    assert next_session.menu_state.inspect_parent_mode == "root"
+    assert next_session.menu_state.inspect_item_id is None
     assert "资料总览" in message
 
 
@@ -22,8 +24,12 @@ def test_inspect_root_can_open_deck_and_return() -> None:
     _running, back_session, back_message = route_menu_choice(str(len(deck_session.run_state.deck) + 1), session=deck_session)
 
     assert deck_session.menu_state.mode == "inspect_deck"
+    assert deck_session.menu_state.inspect_parent_mode == "root"
+    assert deck_session.menu_state.inspect_item_id == "deck"
     assert "牌组列表" in deck_message
     assert back_session.menu_state.mode == "inspect_root"
+    assert back_session.menu_state.inspect_parent_mode == "root"
+    assert back_session.menu_state.inspect_item_id is None
     assert "资料总览" in back_message
 
 
@@ -37,6 +43,9 @@ def test_inspect_deck_can_return_to_parent_root_menu() -> None:
 
     assert inspect_session.menu_state.mode == "inspect_root"
     assert deck_session.menu_state.mode == "inspect_deck"
+    assert deck_session.menu_state.inspect_parent_mode == "root"
+    assert deck_session.menu_state.inspect_item_id == "deck"
     assert back_session.menu_state.mode == "inspect_root"
+    assert back_session.menu_state.inspect_parent_mode == "root"
     assert root_session.menu_state.mode == "root"
     assert "查看战场" in root_message

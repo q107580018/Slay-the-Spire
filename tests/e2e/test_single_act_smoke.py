@@ -64,7 +64,7 @@ def _shop_leave_choice(room_state: RoomState) -> str:
 
 
 def test_main_new_run_renders_first_room(capsys, monkeypatch) -> None:
-    monkeypatch.setattr("builtins.input", lambda _prompt="": "6")
+    monkeypatch.setattr("builtins.input", lambda _prompt="": "7")
 
     exit_code = main(["new", "--seed", "1"])
 
@@ -74,7 +74,7 @@ def test_main_new_run_renders_first_room(capsys, monkeypatch) -> None:
     assert exit_code == 0
     assert "种子: 1" in output
     assert "房间: 起点" in output
-    assert "6. 退出游戏" in output
+    assert "7. 退出游戏" in output
 
 
 def test_single_act_smoke_covers_map_shop_rest_and_boss_victory() -> None:
