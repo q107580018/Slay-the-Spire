@@ -524,12 +524,13 @@ def _return_from_inspect(session: SessionState) -> SessionState:
 
 
 def _route_inspect_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+    parent_mode = session.menu_state.inspect_parent_mode or "root"
     if choice == "1":
         next_session = replace(
             session,
             menu_state=MenuState(
                 mode="inspect_stats",
-                inspect_parent_mode=session.menu_state.mode,
+                inspect_parent_mode=parent_mode,
                 inspect_item_id="stats",
             ),
         )
@@ -539,7 +540,7 @@ def _route_inspect_root_menu(choice: str, session: SessionState) -> tuple[bool, 
             session,
             menu_state=MenuState(
                 mode="inspect_deck",
-                inspect_parent_mode=session.menu_state.mode,
+                inspect_parent_mode=parent_mode,
                 inspect_item_id="deck",
             ),
         )
@@ -549,7 +550,7 @@ def _route_inspect_root_menu(choice: str, session: SessionState) -> tuple[bool, 
             session,
             menu_state=MenuState(
                 mode="inspect_relics",
-                inspect_parent_mode=session.menu_state.mode,
+                inspect_parent_mode=parent_mode,
                 inspect_item_id="relics",
             ),
         )
