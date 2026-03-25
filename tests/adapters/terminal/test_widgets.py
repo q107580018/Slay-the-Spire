@@ -35,6 +35,12 @@ def test_render_hp_bar_uses_full_and_empty_blocks() -> None:
     assert "18/30" in output
 
 
+def test_terminal_theme_uses_original_hp_bar_colors() -> None:
+    assert str(TERMINAL_THEME.styles["hp.high"]) == "green"
+    assert str(TERMINAL_THEME.styles["hp.medium"]) == "yellow"
+    assert str(TERMINAL_THEME.styles["hp.low"]) == "bold red"
+
+
 def test_render_statuses_returns_compact_chinese_labels() -> None:
     output = _export(render_statuses([StatusState(status_id="vulnerable", stacks=2)]))
     assert "易伤 2" in output

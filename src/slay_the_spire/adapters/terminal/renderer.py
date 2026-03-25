@@ -40,6 +40,49 @@ def _menu_mode(menu_state: Any) -> str:
     return str(getattr(menu_state, "mode", "root"))
 
 
+def render_room_renderable(
+    *,
+    run_state: RunState,
+    act_state: ActState,
+    room_state: RoomState,
+    registry: ContentProviderPort,
+    menu_state: Any,
+) -> RenderableType:
+    combat_state = _combat_state_from_room(room_state)
+    if _menu_mode(menu_state) == "select_next_room":
+        return render_non_combat_screen(
+            run_state=run_state,
+            act_state=act_state,
+            room_state=room_state,
+            registry=registry,
+            menu_state=menu_state,
+        )
+    if room_state.is_resolved and room_state.rewards:
+        return render_non_combat_screen(
+            run_state=run_state,
+            act_state=act_state,
+            room_state=room_state,
+            registry=registry,
+            menu_state=menu_state,
+        )
+    if combat_state is not None and room_state.room_type in {"combat", "elite", "boss"}:
+        return render_combat_screen(
+            run_state=run_state,
+            act_state=act_state,
+            room_state=room_state,
+            combat_state=combat_state,
+            registry=registry,
+            menu_state=menu_state,
+        )
+    return render_non_combat_screen(
+        run_state=run_state,
+        act_state=act_state,
+        room_state=room_state,
+        registry=registry,
+        menu_state=menu_state,
+    )
+
+
 def render_room(
     *,
     run_state: RunState,
@@ -48,40 +91,8 @@ def render_room(
     registry: ContentProviderPort,
     menu_state: Any,
 ) -> str:
-    combat_state = _combat_state_from_room(room_state)
-    if _menu_mode(menu_state) == "select_next_room":
-        return _render_to_text(
-            render_non_combat_screen(
-                run_state=run_state,
-                act_state=act_state,
-                room_state=room_state,
-                registry=registry,
-                menu_state=menu_state,
-            )
-        )
-    if room_state.is_resolved and room_state.rewards:
-        return _render_to_text(
-            render_non_combat_screen(
-                run_state=run_state,
-                act_state=act_state,
-                room_state=room_state,
-                registry=registry,
-                menu_state=menu_state,
-            )
-        )
-    if combat_state is not None and room_state.room_type in {"combat", "elite", "boss"}:
-        return _render_to_text(
-            render_combat_screen(
-                run_state=run_state,
-                act_state=act_state,
-                room_state=room_state,
-                combat_state=combat_state,
-                registry=registry,
-                menu_state=menu_state,
-            )
-        )
     return _render_to_text(
-        render_non_combat_screen(
+        render_room_renderable(
             run_state=run_state,
             act_state=act_state,
             room_state=room_state,

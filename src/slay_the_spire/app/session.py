@@ -4,8 +4,10 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Callable
 
+from rich.console import RenderableType
+
 from slay_the_spire.adapters.terminal.prompts import prompt_for_session
-from slay_the_spire.adapters.terminal.renderer import render_room
+from slay_the_spire.adapters.terminal.renderer import render_room, render_room_renderable
 from slay_the_spire.adapters.persistence.save_files import JsonFileSaveRepository
 from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.domain.map.map_generator import generate_act_state
@@ -279,6 +281,16 @@ def load_session(
 
 def render_session(session: SessionState) -> str:
     return render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=_content_provider(session),
+        menu_state=session.menu_state,
+    )
+
+
+def render_session_renderable(session: SessionState) -> RenderableType:
+    return render_room_renderable(
         run_state=session.run_state,
         act_state=session.act_state,
         room_state=session.room_state,

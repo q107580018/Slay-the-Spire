@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import shutil
 from pathlib import Path
 from dataclasses import replace
@@ -21,19 +22,24 @@ class _InputPort:
         return self._commands.pop(0)
 
 
+def _strip_ansi(text: str) -> str:
+    return re.sub(r"\x1b\[[0-9;]*m", "", text)
+
+
 def test_main_new_run_renders_first_room(capsys, monkeypatch) -> None:
     monkeypatch.setattr("builtins.input", lambda _prompt="": "6")
 
     exit_code = main(["new", "--seed", "5"])
 
     captured = capsys.readouterr()
+    output = _strip_ansi(captured.out)
 
     assert exit_code == 0
-    assert "种子: 5" in captured.out
-    assert "章节: 第一幕" in captured.out
-    assert "房间: 起点" in captured.out
-    assert "6. 退出游戏" in captured.out
-    assert "已退出游戏。" in captured.out
+    assert "种子: 5" in output
+    assert "章节: 第一幕" in output
+    assert "房间: 起点" in output
+    assert "6. 退出游戏" in output
+    assert "已退出游戏。" in output
 
 
 def test_main_new_run_accepts_explicit_content_root(tmp_path: Path, capsys, monkeypatch) -> None:
@@ -243,7 +249,8 @@ def test_cli_load_command_restores_saved_session(tmp_path: Path, capsys, monkeyp
     exit_code = main(["load", "--save-path", str(save_path)])
 
     captured = capsys.readouterr()
+    output = _strip_ansi(captured.out)
 
     assert exit_code == 0
-    assert "房间已完成: 是" in captured.out
-    assert "1. 查看奖励" in captured.out
+    assert "房间已完成: 是" in output
+    assert "1. 查看奖励" in output
