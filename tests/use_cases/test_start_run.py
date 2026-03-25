@@ -81,11 +81,12 @@ def test_start_new_run_populates_gold_deck_relics_and_empty_potions() -> None:
         "strike#2",
         "strike#3",
         "strike#4",
-        "defend#5",
+        "strike#5",
         "defend#6",
         "defend#7",
         "defend#8",
-        "bash#9",
+        "defend#9",
+        "bash#10",
     ]
     assert run_state.relics == ["burning_blood"]
     assert run_state.potions == []
@@ -156,12 +157,13 @@ def test_enter_room_builds_playable_combat_state_for_combat_nodes() -> None:
         "strike#2",
         "strike#3",
         "strike#4",
-        "defend#5",
+        "strike#5",
     ]
     assert combat_state.draw_pile == [
         "defend#6",
         "defend#7",
         "defend#8",
-        "bash#9",
+        "defend#9",
+        "bash#10",
     ]
     assert len(combat_state.enemies) == 1

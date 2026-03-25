@@ -7,6 +7,7 @@ from slay_the_spire.domain.effects.effect_types import (
     EFFECT_DAMAGE,
     EFFECT_DRAW,
     EFFECT_EMIT_HOOK,
+    EFFECT_HEAL,
     EFFECT_NOOP,
     EFFECT_VULNERABLE,
     emit_hook_effect,
@@ -54,6 +55,10 @@ def _damage_amount(target: PlayerCombatState | EnemyState, base_amount: int) -> 
     if _vulnerable_bonus(target):
         amount += amount // 2
     return amount
+
+
+def _heal_target(target: PlayerCombatState | EnemyState, amount: int) -> None:
+    target.hp = min(target.max_hp, target.hp + max(amount, 0))
 
 
 def _apply_status(
@@ -117,6 +122,13 @@ def resolve_next_effect(
         if _is_dead(target):
             return noop_effect(reason="dead_target")
         target.block += max(int(effect.get("amount", 0)), 0)
+        return effect
+
+    if effect_type == EFFECT_HEAL:
+        target = _get_target(state, effect.get("target_instance_id"))
+        if _is_dead(target):
+            return noop_effect(reason="dead_target")
+        _heal_target(target, int(effect.get("amount", 0)))
         return effect
 
     if effect_type == EFFECT_DRAW:

@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 
+from slay_the_spire.content.registries import EnemyDef
 from slay_the_spire.domain.effects.effect_resolver import resolve_effect_queue
 from slay_the_spire.domain.effects.effect_types import copy_effect
 from slay_the_spire.domain.hooks.hook_types import HookRegistration
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import EnemyState
+from slay_the_spire.domain.models.statuses import StatusState
 from slay_the_spire.ports.content_provider import ContentProviderPort
 from slay_the_spire.shared.types import JsonDict
 
@@ -28,6 +30,58 @@ def _draw_cards(state: CombatState, *, amount: int) -> None:
             state.draw_pile.extend(state.discard_pile)
             state.discard_pile.clear()
         state.hand.append(state.draw_pile.pop(0))
+
+
+def _status_stacks(enemy: EnemyState, status_id: str) -> int:
+    for status in enemy.statuses:
+        if status.status_id == status_id:
+            return status.stacks
+    return 0
+
+
+def _set_status_stacks(enemy: EnemyState, status_id: str, stacks: int) -> None:
+    for index, status in enumerate(enemy.statuses):
+        if status.status_id != status_id:
+            continue
+        if stacks <= 0:
+            enemy.statuses.pop(index)
+        else:
+            enemy.statuses[index] = StatusState(status_id=status_id, stacks=stacks)
+        return
+    if stacks > 0:
+        enemy.statuses.append(StatusState(status_id=status_id, stacks=stacks))
+
+
+def _sleep_turns(enemy_def: EnemyDef) -> int:
+    if not enemy_def.move_table:
+        return 0
+    first_move = _require_mapping(enemy_def.move_table[0], "move_table item")
+    if first_move.get("move") != "sleep":
+        return 0
+    sleep_turns = first_move.get("sleep_turns", 0)
+    if not isinstance(sleep_turns, int):
+        raise TypeError("sleep_turns must be an int")
+    return max(sleep_turns, 0)
+
+
+def _select_enemy_move(state: CombatState, enemy: EnemyState, enemy_def: EnemyDef) -> Mapping[str, object] | None:
+    if not enemy_def.move_table:
+        return None
+
+    sleeping_stacks = _status_stacks(enemy, "sleeping")
+    if sleeping_stacks > 0:
+        _set_status_stacks(enemy, "sleeping", sleeping_stacks - 1)
+        return None
+
+    sleep_turns = _sleep_turns(enemy_def)
+    active_moves = enemy_def.move_table[1:] if sleep_turns > 0 else enemy_def.move_table
+    if not active_moves:
+        return None
+    if enemy_def.intent_policy != "scripted":
+        return _require_mapping(active_moves[0], "move_table item")
+
+    move_index = max(state.round_number - sleep_turns - 1, 0) % len(active_moves)
+    return _require_mapping(active_moves[move_index], "move_table item")
 
 
 def _effects_from_payload(
@@ -89,9 +143,9 @@ def run_enemy_turn(
         if enemy.hp <= 0:
             continue
         enemy_def = registry.enemies().get(enemy.enemy_id)
-        if not enemy_def.move_table:
+        move = _select_enemy_move(state, enemy, enemy_def)
+        if move is None:
             continue
-        move = _require_mapping(enemy_def.move_table[0], "move_table item")
         state.effect_queue.extend(
             _effects_from_payload(
                 move,

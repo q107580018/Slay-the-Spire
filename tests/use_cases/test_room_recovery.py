@@ -116,7 +116,7 @@ def test_rest_upgrade_subflow_survives_load_session(tmp_path: Path) -> None:
     restored_session = load_session(save_path=tmp_path / "rest.json", content_root=Path(__file__).resolve().parents[2] / "content")
 
     assert restored_room.stage == "select_upgrade_card"
-    assert restored_room.payload["upgrade_options"] == ["bash#9"]
+    assert restored_room.payload["upgrade_options"] == ["bash#10"]
     assert restored_session.menu_state.mode == "rest_upgrade_card"
 
 
@@ -266,6 +266,33 @@ def test_player_defeat_sets_session_game_over_and_blocks_further_actions(tmp_pat
     assert restored.run_phase == "game_over"
     assert same_session.run_phase == "game_over"
     assert "已结束" in message
+
+
+def test_burning_blood_heals_after_winning_combat() -> None:
+    base_session = start_session(seed=7)
+    combat_state = CombatState.from_dict(base_session.room_state.payload["combat_state"])
+    combat_state.player.hp = 50
+    combat_state.enemies[0].hp = 6
+    session = replace(
+        base_session,
+        run_state=replace(base_session.run_state, current_hp=50),
+        room_state=RoomState(
+            room_id=base_session.room_state.room_id,
+            room_type=base_session.room_state.room_type,
+            stage="waiting_input",
+            payload={
+                **base_session.room_state.payload,
+                "combat_state": combat_state.to_dict(),
+            },
+            is_resolved=False,
+            rewards=[],
+        ),
+    )
+
+    _running, next_session, _message = route_command("play 1", session=session)
+
+    assert next_session.room_state.is_resolved is True
+    assert next_session.run_state.current_hp == 56
 
 
 @pytest.mark.parametrize(

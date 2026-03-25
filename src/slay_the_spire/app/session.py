@@ -10,6 +10,7 @@ from slay_the_spire.adapters.terminal.prompts import prompt_for_session
 from slay_the_spire.adapters.terminal.renderer import render_room, render_room_renderable
 from slay_the_spire.adapters.persistence.save_files import JsonFileSaveRepository
 from slay_the_spire.content.provider import StarterContentProvider
+from slay_the_spire.domain.hooks.runtime import build_runtime_hook_registrations
 from slay_the_spire.domain.map.map_generator import generate_act_state
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
@@ -152,6 +153,10 @@ def _combat_target_ids(combat_state: CombatState) -> list[str]:
 
 def _combat_is_won(combat_state: CombatState) -> bool:
     return bool(combat_state.enemies) and all(enemy.hp == 0 for enemy in combat_state.enemies)
+
+
+def _combat_hook_registrations(session: SessionState):
+    return build_runtime_hook_registrations(session.run_state, _content_provider(session))
 
 
 def _room_with_combat_state(
@@ -359,7 +364,13 @@ def route_command(command: str, *, session: SessionState) -> tuple[bool, Session
             target_id = _resolve_target_id(combat_state, parts[2] if len(parts) == 3 else None)
             if any(effect.get("type") in {"damage", "vulnerable"} for effect in card_def.effects) and target_id is None:
                 return True, next_session, "Target is required."
-            result = play_card(combat_state, card_instance_id, target_id, _content_provider(next_session))
+            result = play_card(
+                combat_state,
+                card_instance_id,
+                target_id,
+                _content_provider(next_session),
+                hook_registrations=_combat_hook_registrations(next_session),
+            )
         except (KeyError, TypeError, ValueError) as exc:
             return True, next_session, str(exc)
         resolved_session = _session_with_combat_state(next_session, result.combat_state)
@@ -373,7 +384,11 @@ def route_command(command: str, *, session: SessionState) -> tuple[bool, Session
         if combat_state is None:
             return True, next_session, "Combat state is unavailable."
         try:
-            result = end_turn(combat_state, _content_provider(next_session))
+            result = end_turn(
+                combat_state,
+                _content_provider(next_session),
+                hook_registrations=_combat_hook_registrations(next_session),
+            )
         except (KeyError, TypeError, ValueError) as exc:
             return True, next_session, str(exc)
         resolved_session = _session_with_combat_state(next_session, result.combat_state)

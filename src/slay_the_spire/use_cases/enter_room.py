@@ -8,6 +8,7 @@ from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
 from slay_the_spire.domain.models.room_state import RoomState
 from slay_the_spire.domain.models.run_state import RunState
+from slay_the_spire.domain.models.statuses import StatusState
 from slay_the_spire.ports.content_provider import ContentProviderPort
 
 _SUPPORTED_ROOM_TYPES = {"combat", "elite", "event", "boss", "shop", "rest"}
@@ -26,13 +27,22 @@ def _build_card_instance_ids(card_ids: list[str]) -> list[str]:
 
 def _build_enemy_state(enemy_id: str, registry: ContentProviderPort) -> EnemyState:
     enemy_def = registry.enemies().get(enemy_id)
+    statuses: list[StatusState] = []
+    if enemy_def.move_table:
+        first_move = enemy_def.move_table[0]
+        if first_move.get("move") == "sleep":
+            sleep_turns = first_move.get("sleep_turns", 0)
+            if not isinstance(sleep_turns, int):
+                raise TypeError("sleep_turns must be an int")
+            if sleep_turns > 0:
+                statuses.append(StatusState(status_id="sleeping", stacks=sleep_turns))
     return EnemyState(
         instance_id="enemy-1",
         enemy_id=enemy_def.id,
         hp=enemy_def.hp,
         max_hp=enemy_def.hp,
         block=0,
-        statuses=[],
+        statuses=statuses,
     )
 
 
