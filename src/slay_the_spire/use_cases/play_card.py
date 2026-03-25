@@ -50,6 +50,8 @@ def play_card(
 
     card_id = card_id_from_instance_id(card_instance_id)
     card_def = registry.cards().get(card_id)
+    if not getattr(card_def, "playable", True):
+        raise ValueError("这张牌无法打出。")
     if combat_state.energy < card_def.cost:
         raise ValueError("not enough energy to play card")
 

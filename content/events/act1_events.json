@@ -2,11 +2,11 @@
   "events": [
     {
       "id": "shining_light",
-      "text": "发光的牧师向你献上力量。",
+      "text": "一道圣洁的光照在你身上，墙壁上的符文开始发热。",
       "choices": [
         {
           "id": "accept",
-          "label": "接受"
+          "label": "接受圣光，选择 1 张牌升级"
         },
         {
           "id": "leave",
@@ -16,11 +16,297 @@
       "outcomes": [
         {
           "choice_id": "accept",
-          "result": "gain_upgrade"
+          "result": "gain_upgrade",
+          "result_text": "圣光改造了你的牌组。",
+          "effect": {
+            "type": "upgrade_card_selection"
+          }
         },
         {
           "choice_id": "leave",
-          "result": "nothing"
+          "result": "nothing",
+          "result_text": "你决定不冒这个风险。",
+          "effect": {
+            "type": "nothing"
+          }
+        }
+      ]
+    },
+    {
+      "id": "the_cleric",
+      "text": "一名神职者向你伸出手，表示他既能医治伤口，也能净化牌组。",
+      "choices": [
+        {
+          "id": "heal",
+          "label": "支付 35 金币，恢复 20 点生命"
+        },
+        {
+          "id": "purify",
+          "label": "支付 50 金币，移除 1 张牌"
+        },
+        {
+          "id": "leave",
+          "label": "离开"
+        }
+      ],
+      "outcomes": [
+        {
+          "choice_id": "heal",
+          "result": "cleric_heal",
+          "result_text": "神职者替你包扎了伤口。",
+          "effect": {
+            "type": "heal",
+            "gold_cost": 35,
+            "heal_amount": 20
+          }
+        },
+        {
+          "choice_id": "purify",
+          "result": "cleric_purify",
+          "result_text": "神职者净化了你牌组中的一张牌。",
+          "effect": {
+            "type": "remove_card_selection",
+            "gold_cost": 50
+          }
+        },
+        {
+          "choice_id": "leave",
+          "result": "nothing",
+          "result_text": "你向神职者点头致意后离开。",
+          "effect": {
+            "type": "nothing"
+          }
+        }
+      ]
+    },
+    {
+      "id": "world_of_goop",
+      "text": "你踩进了一滩黏糊糊的污泥，闪闪发亮的金币正沉在里面。",
+      "choices": [
+        {
+          "id": "dig",
+          "label": "继续翻找，失去 11 点生命，获得 75 金币"
+        },
+        {
+          "id": "leave",
+          "label": "立刻抽身，丢下 20 金币"
+        }
+      ],
+      "outcomes": [
+        {
+          "choice_id": "dig",
+          "result": "goop_gold",
+          "result_text": "你忍痛从污泥里捞出了不少金币。",
+          "effect": {
+            "type": "gain_gold_and_lose_hp",
+            "gain_gold": 75,
+            "lose_hp": 11
+          }
+        },
+        {
+          "choice_id": "leave",
+          "result": "goop_escape",
+          "result_text": "你狼狈地挣脱了污泥，但丢下了一些金币。",
+          "effect": {
+            "type": "lose_gold",
+            "lose_gold": 20
+          }
+        }
+      ]
+    },
+    {
+      "id": "living_wall",
+      "text": "一面会呼吸的墙在你面前蠕动，仿佛能吞噬或重塑你的牌组。",
+      "choices": [
+        {
+          "id": "forget",
+          "label": "忘却，移除 1 张牌"
+        },
+        {
+          "id": "grow",
+          "label": "成长，升级 1 张牌"
+        }
+      ],
+      "outcomes": [
+        {
+          "choice_id": "forget",
+          "result": "remove_card",
+          "result_text": "活墙吞掉了你牌组中的一张牌。",
+          "effect": {
+            "type": "remove_card_selection",
+            "gold_cost": 0
+          }
+        },
+        {
+          "choice_id": "grow",
+          "result": "gain_upgrade",
+          "result_text": "活墙重塑了你牌组中的一张牌。",
+          "effect": {
+            "type": "upgrade_card_selection"
+          }
+        }
+      ]
+    },
+    {
+      "id": "big_fish",
+      "text": "走廊上方垂下三样诱人的东西：香蕉、甜甜圈，还有一个神秘盒子。",
+      "choices": [
+        {
+          "id": "banana",
+          "label": "香蕉，恢复 1/3 最大生命"
+        },
+        {
+          "id": "donut",
+          "label": "甜甜圈，最大生命 +5"
+        },
+        {
+          "id": "leave",
+          "label": "离开那个神秘盒子"
+        }
+      ],
+      "outcomes": [
+        {
+          "choice_id": "banana",
+          "result": "big_fish_banana",
+          "result_text": "你吃下香蕉，感觉精神恢复了不少。",
+          "effect": {
+            "type": "heal_percent",
+            "heal_percent": 33
+          }
+        },
+        {
+          "choice_id": "donut",
+          "result": "big_fish_donut",
+          "result_text": "你吃下甜甜圈，身体变得更结实了。",
+          "effect": {
+            "type": "increase_max_hp",
+            "amount": 5
+          }
+        },
+        {
+          "choice_id": "leave",
+          "result": "nothing",
+          "result_text": "你决定不碰那只来路不明的盒子。",
+          "effect": {
+            "type": "nothing"
+          }
+        }
+      ]
+    },
+    {
+      "id": "golden_shrine",
+      "text": "你面前是一座镀金神龛，空气中弥漫着古老而诱人的财富气息。",
+      "choices": [
+        {
+          "id": "pray",
+          "label": "祈祷，获得 100 金币"
+        },
+        {
+          "id": "leave",
+          "label": "离开"
+        }
+      ],
+      "outcomes": [
+        {
+          "choice_id": "pray",
+          "result": "golden_shrine_pray",
+          "result_text": "金币从神龛上方洒落，你迅速把它们收进囊中。",
+          "effect": {
+            "type": "gain_gold",
+            "gain_gold": 100
+          }
+        },
+        {
+          "choice_id": "leave",
+          "result": "nothing",
+          "result_text": "你没有惊动神龛，悄然离开。",
+          "effect": {
+            "type": "nothing"
+          }
+        }
+      ]
+    },
+    {
+      "id": "the_ssssserpent",
+      "text": "一条蜿蜒的蛇人从阴影中现身，承诺只要你点头，就会赐予你财富。",
+      "choices": [
+        {
+          "id": "agree",
+          "label": "答应，获得 175 金币并加入 1 张疑虑"
+        },
+        {
+          "id": "leave",
+          "label": "拒绝并离开"
+        }
+      ],
+      "outcomes": [
+        {
+          "choice_id": "agree",
+          "result": "serpent_gold",
+          "result_text": "蛇人的报酬确实丰厚，但你心里种下了一丝疑虑。",
+          "effect": {
+            "type": "gain_gold_and_add_curse",
+            "gain_gold": 175,
+            "curse_id": "doubt"
+          }
+        },
+        {
+          "choice_id": "leave",
+          "result": "nothing",
+          "result_text": "你拒绝了这场交易，转身离开。",
+          "effect": {
+            "type": "nothing"
+          }
+        }
+      ]
+    },
+    {
+      "id": "golden_idol",
+      "text": "一座古旧祭坛上摆着一尊金神像。你知道，想拿走它总得付出点代价。",
+      "choices": [
+        {
+          "id": "hide",
+          "label": "悄悄取走，最大生命 -11，获得金神像"
+        },
+        {
+          "id": "smash",
+          "label": "强行夺走，失去 24 点生命，获得金神像"
+        },
+        {
+          "id": "escape",
+          "label": "拼命逃离，加入 1 张伤口，获得金神像"
+        }
+      ],
+      "outcomes": [
+        {
+          "choice_id": "hide",
+          "result": "golden_idol_hide",
+          "result_text": "你忍着虚弱把金神像塞进了背包。",
+          "effect": {
+            "type": "gain_relic_and_reduce_max_hp",
+            "relic_id": "golden_idol",
+            "lose_max_hp": 11
+          }
+        },
+        {
+          "choice_id": "smash",
+          "result": "golden_idol_smash",
+          "result_text": "你硬生生扛下了祭坛的反击，抱走了金神像。",
+          "effect": {
+            "type": "gain_relic_and_lose_hp",
+            "relic_id": "golden_idol",
+            "lose_hp": 24
+          }
+        },
+        {
+          "choice_id": "escape",
+          "result": "golden_idol_escape",
+          "result_text": "你跌跌撞撞地逃离了祭坛，但还是带走了金神像。",
+          "effect": {
+            "type": "gain_relic_and_add_curse",
+            "relic_id": "golden_idol",
+            "curse_id": "injury"
+          }
         }
       ]
     }

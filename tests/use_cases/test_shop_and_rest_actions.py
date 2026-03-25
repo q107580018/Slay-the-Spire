@@ -61,7 +61,8 @@ def test_shop_buy_card_spends_gold_and_adds_deck_instance() -> None:
     assert result.run_state.gold == 150
     assert result.run_state.deck[-1] == "strike#4"
     assert result.room_state.stage == "waiting_input"
-    assert result.room_state.payload["cards"] == []
+    assert result.room_state.payload["cards"][0]["sold"] is True
+    assert result.message is None
 
 
 def test_shop_buy_potion_spends_gold_and_adds_potion() -> None:
@@ -69,7 +70,30 @@ def test_shop_buy_potion_spends_gold_and_adds_potion() -> None:
 
     assert result.run_state.gold == 140
     assert result.run_state.potions == ["fire_potion"]
-    assert result.room_state.payload["potions"] == []
+    assert result.room_state.payload["potions"][0]["sold"] is True
+    assert result.message is None
+
+
+def test_shop_buy_card_with_insufficient_gold_returns_prompt() -> None:
+    result = shop_action(run_state=_run_state(gold=40), room_state=_shop_room(), action_id="buy_card:card-1")
+
+    assert result.run_state.to_dict() == _run_state(gold=40).to_dict()
+    assert result.room_state.to_dict() == _shop_room().to_dict()
+    assert result.message == "金币不足，无法购买该商品。"
+
+
+def test_shop_buying_sold_item_returns_prompt() -> None:
+    first_result = shop_action(run_state=_run_state(), room_state=_shop_room(), action_id="buy_card:card-1")
+
+    result = shop_action(
+        run_state=first_result.run_state,
+        room_state=first_result.room_state,
+        action_id="buy_card:card-1",
+    )
+
+    assert result.run_state.to_dict() == first_result.run_state.to_dict()
+    assert result.room_state.to_dict() == first_result.room_state.to_dict()
+    assert result.message == "该商品已购买。"
 
 
 def test_shop_remove_card_uses_run_level_price_progression() -> None:
@@ -90,6 +114,30 @@ def test_shop_remove_card_uses_run_level_price_progression() -> None:
     assert result.run_state.card_removal_count == 3
     assert result.room_state.stage == "waiting_input"
     assert result.room_state.payload["remove_used"] is True
+    assert result.message is None
+
+
+def test_shop_remove_service_after_use_returns_prompt() -> None:
+    used_remove = shop_action(
+        run_state=_run_state(gold=300, card_removal_count=2),
+        room_state=_shop_room(remove_price=125),
+        action_id="remove",
+    )
+    resolved_remove = shop_action(
+        run_state=used_remove.run_state,
+        room_state=used_remove.room_state,
+        action_id="remove_card:defend#2",
+    )
+
+    result = shop_action(
+        run_state=resolved_remove.run_state,
+        room_state=resolved_remove.room_state,
+        action_id="remove",
+    )
+
+    assert result.run_state.to_dict() == resolved_remove.run_state.to_dict()
+    assert result.room_state.to_dict() == resolved_remove.room_state.to_dict()
+    assert result.message == "本次商店的删牌服务已使用。"
 
 
 def test_shop_cancel_remove_returns_to_root_without_spending_remove_use() -> None:

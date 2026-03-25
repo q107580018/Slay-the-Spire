@@ -142,6 +142,22 @@ def test_enter_room_supports_shop_and_rest_room_types(room_type: str) -> None:
         assert room_state.payload["actions"] == ["rest", "smith"]
 
 
+def test_enter_room_shop_payload_excludes_curse_cards_and_event_only_relics() -> None:
+    provider = _content_provider()
+    run_state = start_new_run("ironclad", seed=7, registry=provider)
+    act_state = generate_act_state("act1", seed=7, registry=provider)
+    node_id = _node_id_for_room_type(act_state, "shop")
+
+    room_state = enter_room(run_state, act_state, node_id=node_id, registry=provider)
+
+    offered_cards = [item["card_id"] for item in room_state.payload["cards"]]
+    offered_relics = [item["relic_id"] for item in room_state.payload["relics"]]
+
+    assert "doubt" not in offered_cards
+    assert "injury" not in offered_cards
+    assert "golden_idol" not in offered_relics
+
+
 def test_enter_room_builds_playable_combat_state_for_combat_nodes() -> None:
     provider = _content_provider()
     run_state = start_new_run("ironclad", seed=7, registry=provider)

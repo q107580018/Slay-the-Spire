@@ -59,16 +59,21 @@ def _format_next_nodes(room_state: RoomState) -> str:
     return ", ".join(_format_node(node_id) for node_id in next_node_ids)
 
 
-def _format_reward_label(reward_id: str) -> str:
+def _reward_card_id(reward_name: str) -> str:
+    if reward_name == "reward_strike":
+        return "strike_plus"
+    if reward_name == "reward_defend":
+        return "defend_plus"
+    return reward_name
+
+
+def _format_reward_label(reward_id: str, registry: ContentProviderPort) -> str:
     if reward_id.startswith("gold:"):
         return f"金币 {reward_id.split(':', 1)[1]}"
     if reward_id.startswith("card:"):
         reward_name = reward_id.split(":", 1)[1]
-        if reward_name == "reward_strike":
-            return "卡牌 打击+"
-        if reward_name == "reward_defend":
-            return "卡牌 防御+"
-        return f"卡牌 {reward_name}"
+        card_def = registry.cards().get(_reward_card_id(reward_name))
+        return f"卡牌 {card_def.name}"
     if reward_id.startswith("event:"):
         result = reward_id.split(":", 1)[1]
         if result == "gain_upgrade":
@@ -79,10 +84,10 @@ def _format_reward_label(reward_id: str) -> str:
     return reward_id
 
 
-def _format_reward_lines(rewards: list[str]) -> list[str]:
+def _format_reward_lines(rewards: list[str], registry: ContentProviderPort) -> list[str]:
     if not rewards:
         return ["-"]
-    return [f"{index}. {_format_reward_label(reward)}" for index, reward in enumerate(rewards, start=1)]
+    return [f"{index}. {_format_reward_label(reward, registry)}" for index, reward in enumerate(rewards, start=1)]
 
 
 def _format_root_menu(room_state: RoomState) -> list[str]:
@@ -138,11 +143,10 @@ def _format_event_menu(room_state: RoomState, registry: ContentProviderPort) -> 
     return lines
 
 
-def _format_reward_menu(room_state: RoomState) -> list[str]:
+def _format_reward_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str]:
     lines = ["奖励:"]
-    lines.extend(_format_reward_lines(room_state.rewards))
-    lines.append(f"{len(room_state.rewards) + 1}. 全部领取")
-    lines.append(f"{len(room_state.rewards) + 2}. 返回上一步")
+    lines.extend(_format_reward_lines(room_state.rewards, registry))
+    lines.append(f"{len(room_state.rewards) + 1}. 返回上一步")
     return lines
 
 
@@ -152,7 +156,9 @@ def _format_card_menu(combat_state: CombatState, registry: ContentProviderPort) 
     lines = ["手牌:"]
     for index, card_instance_id in enumerate(combat_state.hand, start=1):
         card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
-        lines.append(f"{index}. {card_def.name} 费用{card_def.cost} - {summarize_card_effects(card_def.effects)}")
+        cost_label = "无法打出" if not getattr(card_def, "playable", True) or card_def.cost < 0 else f"费用{card_def.cost}"
+        effect_summary = summarize_card_effects(card_def.effects) if card_def.effects else "无效果"
+        lines.append(f"{index}. {card_def.name} {cost_label} - {effect_summary}")
     lines.append(f"{len(combat_state.hand) + 1}. 返回上一步")
     return lines
 
@@ -190,7 +196,7 @@ def _format_menu(
     if mode == "select_event_choice":
         return _format_event_menu(room_state, registry)
     if mode == "select_reward":
-        return _format_reward_menu(room_state)
+        return _format_reward_menu(room_state, registry)
     return _format_root_menu(room_state)
 
 

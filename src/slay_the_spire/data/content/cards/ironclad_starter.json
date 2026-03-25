@@ -23,6 +23,28 @@
       ]
     },
     {
+      "id": "strike_plus",
+      "name": "打击+",
+      "cost": 1,
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 9
+        }
+      ]
+    },
+    {
+      "id": "defend_plus",
+      "name": "防御+",
+      "cost": 1,
+      "effects": [
+        {
+          "type": "block",
+          "amount": 8
+        }
+      ]
+    },
+    {
       "id": "bash",
       "name": "重击",
       "cost": 2,
@@ -50,6 +72,101 @@
         {
           "type": "vulnerable",
           "stacks": 3
+        }
+      ]
+    },
+    {
+      "id": "anger",
+      "name": "愤怒",
+      "cost": 0,
+      "upgrades_to": "anger_plus",
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 6
+        },
+        {
+          "type": "create_card_copy",
+          "card_id": "anger",
+          "zone": "discard_pile"
+        }
+      ]
+    },
+    {
+      "id": "anger_plus",
+      "name": "愤怒+",
+      "cost": 0,
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 8
+        },
+        {
+          "type": "create_card_copy",
+          "card_id": "anger_plus",
+          "zone": "discard_pile"
+        }
+      ]
+    },
+    {
+      "id": "pommel_strike",
+      "name": "柄击",
+      "cost": 1,
+      "upgrades_to": "pommel_strike_plus",
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 9
+        },
+        {
+          "type": "draw",
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "pommel_strike_plus",
+      "name": "柄击+",
+      "cost": 1,
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 10
+        },
+        {
+          "type": "draw",
+          "amount": 2
+        }
+      ]
+    },
+    {
+      "id": "shrug_it_off",
+      "name": "不屈意志",
+      "cost": 1,
+      "upgrades_to": "shrug_it_off_plus",
+      "effects": [
+        {
+          "type": "block",
+          "amount": 8
+        },
+        {
+          "type": "draw",
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "shrug_it_off_plus",
+      "name": "不屈意志+",
+      "cost": 1,
+      "effects": [
+        {
+          "type": "block",
+          "amount": 11
+        },
+        {
+          "type": "draw",
+          "amount": 1
         }
       ]
     }

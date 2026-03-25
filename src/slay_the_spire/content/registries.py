@@ -46,6 +46,14 @@ def _require_optional_str(value: object, field_name: str) -> str | None:
     return _require_str(value, field_name)
 
 
+def _require_optional_bool(value: object, field_name: str, *, default: bool) -> bool:
+    if value is None:
+        return default
+    if not isinstance(value, bool):
+        raise TypeError(f"{field_name} must be a bool")
+    return value
+
+
 @dataclass(slots=True, frozen=True)
 class CardDef:
     id: str
@@ -53,6 +61,8 @@ class CardDef:
     cost: int
     effects: list[JsonDict]
     upgrades_to: str | None = None
+    playable: bool = True
+    can_appear_in_shop: bool = True
 
 
 @dataclass(slots=True, frozen=True)
@@ -70,6 +80,7 @@ class RelicDef:
     name: str
     trigger_hooks: list[str]
     passive_effects: list[JsonDict]
+    can_appear_in_shop: bool = True
 
 
 @dataclass(slots=True, frozen=True)
@@ -153,6 +164,12 @@ class CardRegistry(_BaseRegistry[CardDef]):
             cost=_require_int(data.get("cost"), "cost"),
             effects=[dict(item) for item in effects],
             upgrades_to=_require_optional_str(data.get("upgrades_to"), "upgrades_to"),
+            playable=_require_optional_bool(data.get("playable"), "playable", default=True),
+            can_appear_in_shop=_require_optional_bool(
+                data.get("can_appear_in_shop"),
+                "can_appear_in_shop",
+                default=True,
+            ),
         )
 
 
@@ -195,6 +212,11 @@ class RelicRegistry(_BaseRegistry[RelicDef]):
             name=_require_str(data.get("name"), "name"),
             trigger_hooks=trigger_hooks,
             passive_effects=[dict(item) for item in passive_effects],
+            can_appear_in_shop=_require_optional_bool(
+                data.get("can_appear_in_shop"),
+                "can_appear_in_shop",
+                default=True,
+            ),
         )
 
 

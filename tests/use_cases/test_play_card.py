@@ -135,6 +135,27 @@ def test_play_card_defaults_draw_target_to_player() -> None:
     assert state.discard_pile == ["draw_card#1"]
 
 
+def test_play_card_creates_a_new_anger_copy_in_discard_pile() -> None:
+    state = _combat_state(hand=["anger#1"], energy=3)
+    provider = _provider_with_card(
+        card_id="anger",
+        cost=0,
+        effects=[
+            {"type": "damage", "amount": 6},
+            {"type": "create_card_copy", "card_id": "anger", "zone": "discard_pile"},
+        ],
+    )
+
+    result = play_card(state, "anger#1", "enemy-1", provider)
+
+    assert result.combat_state is state
+    assert [effect["type"] for effect in result.resolved_effects] == ["damage", "create_card_copy"]
+    assert state.energy == 3
+    assert state.hand == []
+    assert state.discard_pile == ["anger#1", "anger#2"]
+    assert state.enemies[0].hp == 4
+
+
 def test_play_card_uses_registry_to_resolve_card_definition() -> None:
     state = _combat_state(hand=["registry_card#9"])
     provider = _provider_with_card(card_id="registry_card", effects=[{"type": "damage", "amount": 7}])
@@ -169,3 +190,20 @@ def test_play_card_applies_vulnerable_status_effects() -> None:
     assert len(state.enemies[0].statuses) == 1
     assert state.enemies[0].statuses[0].status_id == "vulnerable"
     assert state.enemies[0].statuses[0].stacks == 2
+
+
+def test_play_card_rejects_unplayable_cards() -> None:
+    state = _combat_state(hand=["doubt#1"])
+    provider = _Provider()
+    provider.cards().register(
+        {
+            "id": "doubt",
+            "name": "疑虑",
+            "cost": -1,
+            "playable": False,
+            "effects": [],
+        }
+    )
+
+    with pytest.raises(ValueError, match="无法打出"):
+        play_card(state, "doubt#1", None, provider)

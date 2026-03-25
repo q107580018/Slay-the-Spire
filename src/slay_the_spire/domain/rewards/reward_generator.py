@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+_IRONCLAD_EARLY_REWARD_CARDS = (
+    "anger",
+    "pommel_strike",
+    "shrug_it_off",
+)
+
 
 def _room_hash(room_id: str) -> int:
     if not isinstance(room_id, str):
@@ -19,5 +25,5 @@ def generate_combat_rewards(*, room_id: str, seed: int) -> list[str]:
     normalized_seed = _require_seed(seed)
     base = _room_hash(room_id) + normalized_seed
     gold_amount = 10 + (normalized_seed % 10)
-    card_suffix = "reward_strike" if base % 2 == 0 else "reward_defend"
-    return [f"gold:{gold_amount}", f"card:{card_suffix}"]
+    card_id = _IRONCLAD_EARLY_REWARD_CARDS[base % len(_IRONCLAD_EARLY_REWARD_CARDS)]
+    return [f"gold:{gold_amount}", f"card:{card_id}"]
