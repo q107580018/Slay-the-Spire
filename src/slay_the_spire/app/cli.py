@@ -2,12 +2,8 @@ from __future__ import annotations
 
 import argparse
 
-from slay_the_spire.app.session import interactive_loop, load_session, start_session
-
-
-class TerminalInputPort:
-    def read(self, prompt: str = "") -> str:
-        return input(prompt)
+from slay_the_spire.adapters.terminal.app import run_terminal_session
+from slay_the_spire.app.session import load_session, start_session
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -41,7 +37,7 @@ def main(argv: list[str] | None = None) -> int:
             content_root=args.content_root,
             save_path=args.save_path,
         )
-        interactive_loop(session=session, input_port=TerminalInputPort(), output_writer=print)
+        run_terminal_session(session=session)
         return 0
 
     if args.command == "load":
@@ -49,7 +45,7 @@ def main(argv: list[str] | None = None) -> int:
             save_path=args.save_path,
             content_root=args.content_root,
         )
-        interactive_loop(session=session, input_port=TerminalInputPort(), output_writer=print)
+        run_terminal_session(session=session)
         return 0
 
     parser.print_help()
