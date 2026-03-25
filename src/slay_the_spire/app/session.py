@@ -527,6 +527,16 @@ def _return_from_inspect(session: SessionState) -> SessionState:
     )
 
 
+def _root_view_title(session: SessionState) -> str:
+    if session.room_state.room_type in {"combat", "elite", "boss"}:
+        return "战斗"
+    if session.room_state.room_type == "event":
+        return "查看事件"
+    if session.room_state.is_resolved and session.room_state.rewards:
+        return "查看奖励"
+    return "查看当前状态"
+
+
 def _route_inspect_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
     parent_mode = session.menu_state.inspect_parent_mode or "root"
     if choice == "1":
@@ -560,8 +570,21 @@ def _route_inspect_root_menu(choice: str, session: SessionState) -> tuple[bool, 
         )
         return True, next_session, _inspect_transition_message(next_session, "遗物列表")
     if choice == "4":
+        if session.room_state.room_type in {"combat", "elite", "boss"}:
+            next_session = _return_from_inspect(session)
+            return True, next_session, _inspect_transition_message(next_session, "战斗")
+        next_session = replace(
+            session,
+            menu_state=MenuState(
+                mode="inspect_potions",
+                inspect_parent_mode=parent_mode,
+                inspect_item_id="potions",
+            ),
+        )
+        return True, next_session, _inspect_transition_message(next_session, "药水列表")
+    if choice == "5":
         next_session = _return_from_inspect(session)
-        return True, next_session, _inspect_transition_message(next_session, "战斗")
+        return True, next_session, _inspect_transition_message(next_session, _root_view_title(next_session))
     return _invalid_menu_choice(session)
 
 
@@ -602,10 +625,13 @@ def _route_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionS
                 next_session = _preserve_menu_history(next_session, history_session=session)
                 return running, replace(next_session, menu_state=_menu_state_for_room(next_session.room_state)), message
             if choice == "4":
-                return _save_current_session(session)
+                next_session = _enter_inspect_root(session, parent_mode="root")
+                return True, next_session, _menu_view_message(next_session, "资料总览")
             if choice == "5":
-                return _load_current_session(session)
+                return _save_current_session(session)
             if choice == "6":
+                return _load_current_session(session)
+            if choice == "7":
                 return False, replace(session, menu_state=MenuState()), "已退出游戏。"
             return _invalid_menu_choice(session)
         if choice == "1":
@@ -617,10 +643,13 @@ def _route_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionS
             next_session = _preserve_menu_history(next_session, history_session=session)
             return running, replace(next_session, menu_state=_menu_state_for_room(next_session.room_state)), message
         if choice == "2":
-            return _save_current_session(session)
+            next_session = _enter_inspect_root(session, parent_mode="root")
+            return True, next_session, _menu_view_message(next_session, "资料总览")
         if choice == "3":
-            return _load_current_session(session)
+            return _save_current_session(session)
         if choice == "4":
+            return _load_current_session(session)
+        if choice == "5":
             return False, replace(session, menu_state=MenuState()), "已退出游戏。"
         return _invalid_menu_choice(session)
 
@@ -655,10 +684,13 @@ def _route_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionS
             next_session = replace(session, menu_state=MenuState(mode="select_event_choice"))
             return True, next_session, render_session(next_session)
         if choice == "3":
-            return _save_current_session(session)
+            next_session = _enter_inspect_root(session, parent_mode="root")
+            return True, next_session, _menu_view_message(next_session, "资料总览")
         if choice == "4":
-            return _load_current_session(session)
+            return _save_current_session(session)
         if choice == "5":
+            return _load_current_session(session)
+        if choice == "6":
             return False, replace(session, menu_state=MenuState()), "已退出游戏。"
         return _invalid_menu_choice(session)
 
@@ -669,10 +701,13 @@ def _route_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionS
         next_session = _preserve_menu_history(next_session, history_session=session)
         return running, replace(next_session, menu_state=MenuState()), message
     if choice == "3":
-        return _save_current_session(session)
+        next_session = _enter_inspect_root(session, parent_mode="root")
+        return True, next_session, _menu_view_message(next_session, "资料总览")
     if choice == "4":
-        return _load_current_session(session)
+        return _save_current_session(session)
     if choice == "5":
+        return _load_current_session(session)
+    if choice == "6":
         return False, replace(session, menu_state=MenuState()), "已退出游戏。"
     return _invalid_menu_choice(session)
 
@@ -1049,6 +1084,8 @@ def route_menu_choice(choice: str, *, session: SessionState) -> tuple[bool, Sess
         return _route_inspect_leaf_menu(choice.strip(), next_session, "角色状态")
     if next_session.menu_state.mode == "inspect_relics":
         return _route_inspect_leaf_menu(choice.strip(), next_session, "遗物列表")
+    if next_session.menu_state.mode == "inspect_potions":
+        return _route_inspect_leaf_menu(choice.strip(), next_session, "药水列表")
     return _invalid_menu_choice(replace(next_session, menu_state=MenuState()))
 
 

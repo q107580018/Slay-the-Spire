@@ -3,6 +3,23 @@ from __future__ import annotations
 from dataclasses import replace
 
 from slay_the_spire.app.session import MenuState, route_menu_choice, start_session
+from slay_the_spire.domain.models.room_state import RoomState
+
+
+def _event_room() -> RoomState:
+    return RoomState(
+        room_id="act1:event",
+        room_type="event",
+        stage="waiting_input",
+        payload={
+            "node_id": "r1c0",
+            "room_kind": "event",
+            "event_id": "shining_light",
+            "next_node_ids": ["r2c0"],
+        },
+        is_resolved=False,
+        rewards=[],
+    )
 
 
 def test_combat_root_menu_can_enter_inspect_root() -> None:
@@ -70,3 +87,37 @@ def test_inspect_leaf_pages_keep_transition_messages_consistent() -> None:
     assert relic_message.splitlines()[0] == "遗物列表"
     assert relic_back_session.menu_state.mode == "inspect_root"
     assert relic_back_message.splitlines()[0] == "资料总览"
+
+
+def test_non_combat_root_menu_can_enter_inspect_root() -> None:
+    session = replace(start_session(seed=5), room_state=_event_room())
+
+    running, next_session, message = route_menu_choice("3", session=session)
+
+    assert running is True
+    assert next_session.menu_state.mode == "inspect_root"
+    assert next_session.menu_state.inspect_parent_mode == "root"
+    assert next_session.menu_state.inspect_item_id is None
+    assert "资料总览" in message
+
+
+def test_non_combat_inspect_root_can_open_potions_and_return() -> None:
+    base_session = replace(start_session(seed=5), room_state=_event_room())
+    session = replace(
+        base_session,
+        run_state=replace(base_session.run_state, potions=["fire_potion"]),
+        menu_state=MenuState(mode="inspect_root", inspect_parent_mode="root"),
+    )
+
+    _running, potion_session, potion_message = route_menu_choice("4", session=session)
+    _running, back_session, back_message = route_menu_choice("1", session=potion_session)
+    _running, root_session, root_message = route_menu_choice("5", session=back_session)
+
+    assert potion_session.menu_state.mode == "inspect_potions"
+    assert potion_session.menu_state.inspect_parent_mode == "root"
+    assert potion_session.menu_state.inspect_item_id == "potions"
+    assert potion_message.splitlines()[0] == "药水列表"
+    assert back_session.menu_state.mode == "inspect_root"
+    assert back_message.splitlines()[0] == "资料总览"
+    assert root_session.menu_state.mode == "root"
+    assert "查看事件" in root_message

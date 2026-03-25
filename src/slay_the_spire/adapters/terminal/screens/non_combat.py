@@ -260,6 +260,95 @@ def _format_reward_menu(room_state: RoomState, registry: ContentProviderPort) ->
     return lines
 
 
+def _format_non_combat_inspect_root_menu() -> list[str]:
+    return [
+        "资料总览:",
+        "1. 属性",
+        "2. 牌组",
+        "3. 遗物",
+        "4. 药水",
+        "5. 返回上一步",
+    ]
+
+
+def _format_non_combat_inspect_deck_menu(run_state: RunState, registry: ContentProviderPort) -> list[str]:
+    lines = ["牌组:"]
+    if not run_state.deck:
+        lines.append("-")
+    else:
+        for index, card_instance_id in enumerate(run_state.deck, start=1):
+            card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
+            lines.append(f"{index}. {card_def.name}")
+    lines.append(f"{len(run_state.deck) + 1}. 返回上一步")
+    return lines
+
+
+def _format_non_combat_inspect_leaf_menu(title: str) -> list[str]:
+    return [f"{title}:", "1. 返回上一步"]
+
+
+def format_non_combat_inspect_menu(
+    run_state: RunState,
+    room_state: RoomState,
+    registry: ContentProviderPort,
+    menu_state: Any,
+) -> list[str]:
+    mode = _menu_mode(menu_state)
+    if mode == "inspect_root":
+        return _format_non_combat_inspect_root_menu()
+    if mode == "inspect_deck":
+        return _format_non_combat_inspect_deck_menu(run_state, registry)
+    if mode == "inspect_stats":
+        return _format_non_combat_inspect_leaf_menu("属性")
+    if mode == "inspect_relics":
+        return _format_non_combat_inspect_leaf_menu("遗物")
+    if mode == "inspect_potions":
+        return _format_non_combat_inspect_leaf_menu("药水")
+    return _format_default_menu(room_state)
+
+
+def render_non_combat_inspect_panel(
+    run_state: RunState,
+    act_state: ActState,
+    room_state: RoomState,
+    registry: ContentProviderPort,
+    menu_state: Any,
+) -> Panel:
+    mode = _menu_mode(menu_state)
+    if mode == "inspect_stats":
+        lines = [
+            f"当前生命: {run_state.current_hp}/{run_state.max_hp}",
+            f"金币: {run_state.gold}",
+            f"当前章节: {act_state.act_id}",
+            f"当前房间: {_format_node_id(room_state.payload.get('node_id', act_state.current_node_id))}",
+        ]
+        return Panel(Group(*[Text(line) for line in lines]), title="属性", box=PANEL_BOX, expand=False)
+    if mode == "inspect_deck":
+        lines = [Text(line) for line in _format_non_combat_inspect_deck_menu(run_state, registry)]
+        return Panel(Group(*lines), title="牌组", box=PANEL_BOX, expand=False)
+    if mode == "inspect_relics":
+        lines = ["当前遗物:"]
+        if not run_state.relics:
+            lines.append("-")
+        else:
+            for relic_id in run_state.relics:
+                lines.append(f"- {registry.relics().get(relic_id).name}")
+        return Panel(Group(*[Text(line) for line in lines]), title="遗物", box=PANEL_BOX, expand=False)
+    if mode == "inspect_potions":
+        lines = ["当前药水:"]
+        if not run_state.potions:
+            lines.append("-")
+        else:
+            for potion_id in run_state.potions:
+                lines.append(f"- {registry.potions().get(potion_id).name}")
+        return Panel(Group(*[Text(line) for line in lines]), title="药水", box=PANEL_BOX, expand=False)
+    lines = [
+        "可查看共享资料页。",
+        "包含属性、牌组、遗物和药水。",
+    ]
+    return Panel(Group(*[Text(line) for line in lines]), title="资料总览", box=PANEL_BOX, expand=False)
+
+
 def _shop_offer_status(*, price: object, sold: bool, current_gold: int) -> str:
     if sold:
         return "已购买"
@@ -400,33 +489,37 @@ def _format_default_menu(room_state: RoomState) -> list[str]:
                 "1. 查看奖励",
                 "2. 领取奖励",
                 "3. 前往下一个房间",
-                "4. 保存游戏",
-                "5. 读取存档",
-                "6. 退出游戏",
+                "4. 查看资料",
+                "5. 保存游戏",
+                "6. 读取存档",
+                "7. 退出游戏",
             ]
         return [
             "可选操作:",
             "1. 前往下一个房间",
-            "2. 保存游戏",
-            "3. 读取存档",
-            "4. 退出游戏",
+            "2. 查看资料",
+            "3. 保存游戏",
+            "4. 读取存档",
+            "5. 退出游戏",
         ]
     if room_state.room_type == "event":
         return [
             "可选操作:",
             "1. 查看事件",
             "2. 进行选择",
-            "3. 保存游戏",
-            "4. 读取存档",
-            "5. 退出游戏",
+            "3. 查看资料",
+            "4. 保存游戏",
+            "5. 读取存档",
+            "6. 退出游戏",
         ]
     return [
         "可选操作:",
         "1. 查看当前状态",
         "2. 前往下一个房间",
-        "3. 保存游戏",
-        "4. 读取存档",
-        "5. 退出游戏",
+        "3. 查看资料",
+        "4. 保存游戏",
+        "5. 读取存档",
+        "6. 退出游戏",
     ]
 
 
@@ -582,6 +675,8 @@ def render_non_combat_screen(
 
     if run_phase != "active":
         body.append(render_terminal_phase_panel(run_phase))
+    elif mode.startswith("inspect_"):
+        body.append(render_non_combat_inspect_panel(run_state, act_state, room_state, registry, menu_state))
     elif mode == "select_next_room":
         body.append(Panel(Group(*[Text(line) for line in _format_next_room_menu(act_state, room_state)]), title="路径选择", box=PANEL_BOX, expand=False))
     elif room_state.room_type == "shop":
@@ -597,6 +692,8 @@ def render_non_combat_screen(
 
     if run_phase != "active":
         footer = render_menu(_format_terminal_phase_menu(run_phase))
+    elif mode.startswith("inspect_"):
+        footer = render_menu(format_non_combat_inspect_menu(run_state, room_state, registry, menu_state))
     elif mode == "select_next_room":
         footer = render_menu(_format_next_room_menu(act_state, room_state))
     elif mode == "select_event_choice":
