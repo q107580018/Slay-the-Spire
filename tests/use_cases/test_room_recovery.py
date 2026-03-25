@@ -216,6 +216,41 @@ def test_non_boss_reward_claim_returns_to_map_selection() -> None:
     assert next_session.run_state.gold == 110
 
 
+def test_event_room_inspect_round_trip_keeps_choice_flow() -> None:
+    session = replace(
+        start_session(seed=7),
+        room_state=RoomState(
+            room_id="act1:event",
+            room_type="event",
+            stage="waiting_input",
+            payload={
+                "node_id": "r1c1",
+                "room_kind": "event",
+                "event_id": "golden_shrine",
+                "next_node_ids": ["r2c0"],
+            },
+            is_resolved=False,
+            rewards=[],
+        ),
+    )
+
+    _running, inspect_session, inspect_message = route_menu_choice("3", session=session)
+    _running, stats_session, stats_message = route_menu_choice("1", session=inspect_session)
+    _running, inspect_back_session, inspect_back_message = route_menu_choice("1", session=stats_session)
+    _running, root_session, root_message = route_menu_choice("5", session=inspect_back_session)
+    _running, choice_menu_session, _choice_menu_message = route_menu_choice("2", session=root_session)
+    _running, next_session, _message = route_menu_choice("1", session=choice_menu_session)
+
+    assert inspect_session.menu_state.mode == "inspect_root"
+    assert "资料总览" in inspect_message
+    assert stats_session.menu_state.mode == "inspect_stats"
+    assert inspect_back_session.menu_state.mode == "inspect_root"
+    assert root_session.menu_state.mode == "root"
+    assert "查看事件" in root_message
+    assert choice_menu_session.menu_state.mode == "select_event_choice"
+    assert next_session.room_state.is_resolved is True
+
+
 def test_claim_all_rewards_clears_non_boss_room_rewards() -> None:
     session = replace(
         start_session(seed=7),

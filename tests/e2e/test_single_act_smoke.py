@@ -74,15 +74,26 @@ def test_main_new_run_renders_first_room(capsys, monkeypatch) -> None:
     assert exit_code == 0
     assert "种子: 1" in output
     assert "房间: 起点" in output
+    assert "4. 查看资料" in output
     assert "7. 退出游戏" in output
 
 
 def test_single_act_smoke_covers_map_shop_rest_and_boss_victory() -> None:
     session = start_session(seed=1)
+    _running, session, _message = route_menu_choice("4", session=session)
+    _running, session, _message = route_menu_choice("5", session=session)
+    _running, session, _message = route_menu_choice("1", session=session)
+    _running, session, _message = route_menu_choice("2", session=session)
+    _running, session, _message = route_menu_choice("10", session=session)
     path = _path_with_shop_and_rest(session.act_state)
     visited_types: list[str] = [session.room_state.room_type]
 
     for next_node_id in path[1:]:
+        if session.room_state.room_type == "event":
+            _running, session, _message = route_menu_choice("3", session=session)
+            _running, session, _message = route_menu_choice("1", session=session)
+            _running, session, _message = route_menu_choice("1", session=session)
+            _running, session, _message = route_menu_choice("5", session=session)
         if session.room_state.room_type == "shop":
             _running, session, _message = route_menu_choice("1", session=session)
             _running, session, _message = route_menu_choice(_shop_leave_choice(session.room_state), session=session)
