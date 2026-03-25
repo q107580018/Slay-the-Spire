@@ -104,5 +104,5 @@ def test_single_act_smoke_covers_map_shop_rest_and_boss_victory() -> None:
     assert "shop" in visited_types
     assert "rest" in visited_types
     assert session.run_phase == "victory"
-    assert session.run_state.gold < 99
+    assert session.run_state.gold == 148
     assert "bash_plus#10" in session.run_state.deck

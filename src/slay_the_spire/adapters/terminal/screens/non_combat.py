@@ -216,30 +216,42 @@ def _format_event_menu(room_state: RoomState, registry: ContentProviderPort) -> 
 def _format_reward_menu(room_state: RoomState) -> list[str]:
     lines = ["奖励:"]
     lines.extend(_format_reward_lines(room_state.rewards))
-    lines.append(f"{len(room_state.rewards) + 1}. 返回上一步")
+    lines.append(f"{len(room_state.rewards) + 1}. 全部领取")
+    lines.append(f"{len(room_state.rewards) + 2}. 返回上一步")
     return lines
 
 
-def _format_shop_root_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str]:
+def _offer_status(offer: dict[str, object], *, current_gold: int) -> str:
+    if offer.get("sold") is True:
+        return "[已售出]"
+    price = offer.get("price")
+    if not isinstance(price, int):
+        return "[状态未知]"
+    if current_gold < price:
+        return "[金币不足]"
+    return "[可购买]"
+
+
+def _format_shop_root_menu(room_state: RoomState, registry: ContentProviderPort, *, current_gold: int) -> list[str]:
     lines = ["商店操作:"]
     index = 1
     for offer in room_state.payload.get("cards", []):
         if isinstance(offer, dict):
             card_id = offer.get("card_id")
             card_name = registry.cards().get(card_id).name if isinstance(card_id, str) else card_id
-            lines.append(f"{index}. 购买卡牌 {card_name} - {offer.get('price')} 金币")
+            lines.append(f"{index}. 购买卡牌 {card_name} - {offer.get('price')} 金币 {_offer_status(offer, current_gold=current_gold)}")
             index += 1
     for offer in room_state.payload.get("relics", []):
         if isinstance(offer, dict):
             relic_id = offer.get("relic_id")
             relic_name = registry.relics().get(relic_id).name if isinstance(relic_id, str) else relic_id
-            lines.append(f"{index}. 购买遗物 {relic_name} - {offer.get('price')} 金币")
+            lines.append(f"{index}. 购买遗物 {relic_name} - {offer.get('price')} 金币 {_offer_status(offer, current_gold=current_gold)}")
             index += 1
     for offer in room_state.payload.get("potions", []):
         if isinstance(offer, dict):
             potion_id = offer.get("potion_id")
             potion_name = registry.potions().get(potion_id).name if isinstance(potion_id, str) else potion_id
-            lines.append(f"{index}. 购买药水 {potion_name} - {offer.get('price')} 金币")
+            lines.append(f"{index}. 购买药水 {potion_name} - {offer.get('price')} 金币 {_offer_status(offer, current_gold=current_gold)}")
             index += 1
     if room_state.payload.get("remove_used") is not True:
         lines.append(f"{index}. 删牌服务")
@@ -405,29 +417,29 @@ def render_reward_panel(room_state: RoomState) -> Panel:
     return Panel(Group(*body), title="奖励", box=PANEL_BOX, expand=False)
 
 
-def render_shop_panel(room_state: RoomState, registry: ContentProviderPort) -> Panel:
+def render_shop_panel(room_state: RoomState, registry: ContentProviderPort, *, current_gold: int) -> Panel:
     cards = room_state.payload.get("cards", [])
     relics = room_state.payload.get("relics", [])
     potions = room_state.payload.get("potions", [])
     remove_price = room_state.payload.get("remove_price", 75)
-    lines = ["卡牌商品:"]
+    lines = [f"当前金币: {current_gold}", "卡牌商品:"]
     for offer in cards if isinstance(cards, list) else []:
         if isinstance(offer, dict):
             card_id = offer.get("card_id")
             card_name = registry.cards().get(card_id).name if isinstance(card_id, str) else card_id
-            lines.append(f"- {card_name} / {offer.get('price')} 金币")
+            lines.append(f"- {card_name} / {offer.get('price')} 金币 {_offer_status(offer, current_gold=current_gold)}")
     lines.append("遗物商品:")
     for offer in relics if isinstance(relics, list) else []:
         if isinstance(offer, dict):
             relic_id = offer.get("relic_id")
             relic_name = registry.relics().get(relic_id).name if isinstance(relic_id, str) else relic_id
-            lines.append(f"- {relic_name} / {offer.get('price')} 金币")
+            lines.append(f"- {relic_name} / {offer.get('price')} 金币 {_offer_status(offer, current_gold=current_gold)}")
     lines.append("药水商品:")
     for offer in potions if isinstance(potions, list) else []:
         if isinstance(offer, dict):
             potion_id = offer.get("potion_id")
             potion_name = registry.potions().get(potion_id).name if isinstance(potion_id, str) else potion_id
-            lines.append(f"- {potion_name} / {offer.get('price')} 金币")
+            lines.append(f"- {potion_name} / {offer.get('price')} 金币 {_offer_status(offer, current_gold=current_gold)}")
     lines.append(f"删牌服务: {remove_price} 金币")
     return Panel(Group(*[Text(line) for line in lines]), title="商店", box=PANEL_BOX, expand=False)
 
@@ -473,7 +485,7 @@ def render_non_combat_screen(
     elif mode == "select_next_room":
         body.append(Panel(Group(*[Text(line) for line in _format_next_room_menu(act_state, room_state)]), title="路径选择", box=PANEL_BOX, expand=False))
     elif room_state.room_type == "shop":
-        body.append(render_shop_panel(room_state, registry))
+        body.append(render_shop_panel(room_state, registry, current_gold=run_state.gold))
     elif room_state.room_type == "rest":
         body.append(render_rest_panel(room_state))
     elif room_state.is_resolved and room_state.rewards:
@@ -492,7 +504,7 @@ def render_non_combat_screen(
     elif mode == "select_reward":
         footer = render_menu(_format_reward_menu(room_state))
     elif mode == "shop_root":
-        footer = render_menu(_format_shop_root_menu(room_state, registry))
+        footer = render_menu(_format_shop_root_menu(room_state, registry, current_gold=run_state.gold))
     elif mode == "shop_remove_card":
         footer = render_menu(_format_shop_remove_menu(room_state))
     elif mode == "rest_root":

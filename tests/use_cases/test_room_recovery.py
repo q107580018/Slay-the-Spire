@@ -191,6 +191,7 @@ def test_claiming_boss_reward_sets_session_victory_and_does_not_return_to_map() 
 
     assert next_session.run_phase == "victory"
     assert next_session.room_state.rewards == []
+    assert next_session.run_state.gold == 198
 
 
 def test_non_boss_reward_claim_returns_to_map_selection() -> None:
@@ -212,6 +213,30 @@ def test_non_boss_reward_claim_returns_to_map_selection() -> None:
     assert next_session.run_phase == "active"
     assert next_session.room_state.rewards == []
     assert next_session.menu_state.mode == "root"
+    assert next_session.run_state.gold == 110
+
+
+def test_claim_all_rewards_clears_non_boss_room_rewards() -> None:
+    session = replace(
+        start_session(seed=7),
+        room_state=RoomState(
+            room_id="act1:hallway",
+            room_type="combat",
+            stage="completed",
+            payload={"node_id": "r1c0", "next_node_ids": ["r2c0", "r2c1"]},
+            is_resolved=True,
+            rewards=["gold:11", "card:reward_strike"],
+        ),
+        menu_state=MenuState(mode="select_reward"),
+    )
+
+    _running, next_session, _message = route_menu_choice("3", session=session)
+
+    assert next_session.run_phase == "active"
+    assert next_session.room_state.rewards == []
+    assert next_session.menu_state.mode == "root"
+    assert next_session.run_state.gold == 110
+    assert next_session.run_state.deck[-1] == "strike_plus#11"
 
 
 def test_player_defeat_sets_session_game_over_and_blocks_further_actions(tmp_path: Path) -> None:

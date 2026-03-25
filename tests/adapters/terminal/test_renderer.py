@@ -89,6 +89,43 @@ def test_shop_renderer_shows_cards_relics_potions_and_remove_service() -> None:
     assert "burning_blood" not in output
 
 
+def test_shop_renderer_shows_current_gold_and_affordance_statuses() -> None:
+    session = replace(start_session(seed=5), run_state=replace(start_session(seed=5).run_state, gold=60))
+    room_state = RoomState(
+        room_id="act1:shop",
+        room_type="shop",
+        stage="waiting_input",
+        payload={
+            "node_id": "r3c1",
+            "cards": [
+                {"offer_id": "card-1", "card_id": "strike", "price": 50},
+                {"offer_id": "card-2", "card_id": "defend", "price": 75},
+            ],
+            "relics": [{"offer_id": "relic-1", "relic_id": "burning_blood", "price": 150, "sold": True}],
+            "potions": [],
+            "remove_price": 75,
+            "next_node_ids": ["r4c0"],
+        },
+        is_resolved=False,
+        rewards=[],
+    )
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=room_state,
+        registry=_provider(session),
+        menu_state=MenuState(mode="shop_root"),
+        run_phase="active",
+    )
+
+    assert "当前金币" in output
+    assert "60" in output
+    assert "[可购买]" in output
+    assert "[金币不足]" in output
+    assert "[已售出]" in output
+
+
 def test_rest_renderer_shows_root_and_upgrade_selection_states() -> None:
     session = start_session(seed=5)
     root_room = RoomState(

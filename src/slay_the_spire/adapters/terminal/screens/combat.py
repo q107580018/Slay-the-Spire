@@ -141,7 +141,8 @@ def _format_event_menu(room_state: RoomState, registry: ContentProviderPort) -> 
 def _format_reward_menu(room_state: RoomState) -> list[str]:
     lines = ["奖励:"]
     lines.extend(_format_reward_lines(room_state.rewards))
-    lines.append(f"{len(room_state.rewards) + 1}. 返回上一步")
+    lines.append(f"{len(room_state.rewards) + 1}. 全部领取")
+    lines.append(f"{len(room_state.rewards) + 2}. 返回上一步")
     return lines
 
 

@@ -147,6 +147,55 @@ def _room_with_rewards_claimed(room_state: RoomState, reward_id: str) -> RoomSta
     )
 
 
+def _next_instance_id(deck: list[str], card_id: str) -> str:
+    highest_suffix = 0
+    for card_instance_id in deck:
+        current_card_id = card_id_from_instance_id(card_instance_id)
+        _current_id, suffix = card_instance_id.split("#", 1)
+        if current_card_id == card_id or suffix.isdigit():
+            highest_suffix = max(highest_suffix, int(suffix))
+    return f"{card_id}#{highest_suffix + 1}"
+
+
+def _apply_reward_to_run_state(run_state: RunState, reward_id: str) -> RunState:
+    if reward_id.startswith("gold:"):
+        amount = int(reward_id.split(":", 1)[1])
+        return replace(run_state, gold=run_state.gold + amount)
+    if reward_id == "card:reward_strike":
+        return replace(
+            run_state,
+            deck=[*run_state.deck, _next_instance_id(run_state.deck, "strike_plus")],
+        )
+    if reward_id == "card:reward_defend":
+        return replace(
+            run_state,
+            deck=[*run_state.deck, _next_instance_id(run_state.deck, "defend_plus")],
+        )
+    return run_state
+
+
+def _claim_session_reward(session: SessionState, reward_id: str) -> SessionState:
+    updated_run_state = _apply_reward_to_run_state(session.run_state, reward_id)
+    updated_room_state = _room_with_rewards_claimed(session.room_state, reward_id)
+    run_phase = session.run_phase
+    if session.room_state.room_type == "boss" and not updated_room_state.rewards:
+        run_phase = "victory"
+    return replace(
+        session,
+        run_state=updated_run_state,
+        room_state=updated_room_state,
+        run_phase=run_phase,
+        menu_state=MenuState(),
+    )
+
+
+def _claim_all_session_rewards(session: SessionState) -> SessionState:
+    updated_session = session
+    for reward_id in list(session.room_state.rewards):
+        updated_session = _claim_session_reward(updated_session, reward_id)
+    return updated_session
+
+
 def _combat_target_ids(combat_state: CombatState) -> list[str]:
     return [enemy.instance_id for enemy in combat_state.enemies if enemy.hp > 0]
 
@@ -631,9 +680,13 @@ def _route_event_choice_menu(choice: str, session: SessionState) -> tuple[bool, 
 
 def _route_reward_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
     rewards = list(session.room_state.rewards)
-    back_choice = str(len(rewards) + 1)
+    claim_all_choice = str(len(rewards) + 1)
+    back_choice = str(len(rewards) + 2)
     if choice == back_choice:
         next_session = replace(session, menu_state=MenuState())
+        return True, next_session, render_session(next_session)
+    if choice == claim_all_choice:
+        next_session = _claim_all_session_rewards(session)
         return True, next_session, render_session(next_session)
     try:
         index = int(choice)
@@ -641,11 +694,7 @@ def _route_reward_menu(choice: str, session: SessionState) -> tuple[bool, Sessio
         return _invalid_menu_choice(session)
     if index <= 0 or index > len(rewards):
         return _invalid_menu_choice(session)
-    room_state = _room_with_rewards_claimed(session.room_state, rewards[index - 1])
-    run_phase = session.run_phase
-    if session.room_state.room_type == "boss" and not room_state.rewards:
-        run_phase = "victory"
-    next_session = replace(session, room_state=room_state, run_phase=run_phase, menu_state=MenuState())
+    next_session = _claim_session_reward(session, rewards[index - 1])
     return True, next_session, render_session(next_session)
 
 
