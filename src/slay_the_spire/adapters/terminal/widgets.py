@@ -99,6 +99,26 @@ def summarize_card_effects(effects: Sequence[Mapping[str, object]]) -> str:
     return " / ".join(summary for summary in summaries if summary) or "-"
 
 
+def summarize_relic_effect(effect: Mapping[str, object]) -> str:
+    effect_type = effect.get("type")
+    if effect_type == "event_gold_bonus":
+        return f"事件金币奖励 +{int(effect.get('percent', 0))}%"
+    return summarize_effect(effect)
+
+
+def summarize_relic_effects(effects: Sequence[Mapping[str, object]]) -> str:
+    summaries = [summarize_relic_effect(effect) for effect in effects]
+    return " / ".join(summary for summary in summaries if summary) or "-"
+
+
+def summarize_trigger_hooks(trigger_hooks: Sequence[str]) -> str:
+    hook_labels = {
+        "on_combat_end": "战斗结束后",
+    }
+    labels = [hook_labels.get(hook, hook) for hook in trigger_hooks]
+    return " / ".join(labels) if labels else "-"
+
+
 def format_card_cost(cost: int) -> str:
     if cost < 0:
         return "无法打出"
