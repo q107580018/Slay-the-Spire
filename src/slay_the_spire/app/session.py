@@ -543,9 +543,8 @@ def _root_view_title(session: SessionState) -> str:
 
 def _route_inspect_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
     parent_mode = session.menu_state.inspect_parent_mode or "root"
-    combat_inspect_enabled = session.room_state.room_type in {"combat", "elite", "boss"} and not (
-        session.room_state.is_resolved and session.room_state.rewards
-    )
+    reward_room_inspect = session.room_state.is_resolved and bool(session.room_state.rewards)
+    combat_inspect_enabled = session.room_state.room_type in {"combat", "elite", "boss"} and not reward_room_inspect
     if combat_inspect_enabled:
         if choice == "1":
             next_session = replace(
@@ -640,7 +639,7 @@ def _route_inspect_root_menu(choice: str, session: SessionState) -> tuple[bool, 
         )
         return True, next_session, _inspect_transition_message(next_session, "遗物列表")
     if choice == "4":
-        if session.room_state.room_type in {"combat", "elite", "boss"}:
+        if session.room_state.room_type in {"combat", "elite", "boss"} and not reward_room_inspect:
             next_session = _return_from_inspect(session)
             return True, next_session, _inspect_transition_message(next_session, "战斗")
         next_session = replace(

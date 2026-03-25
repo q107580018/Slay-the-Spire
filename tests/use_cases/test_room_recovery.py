@@ -323,6 +323,47 @@ def test_combat_reward_root_inspect_uses_visible_back_choice_before_claim_flow()
     assert "前往下一个房间" in claimed_message
 
 
+def test_combat_reward_root_inspect_potions_follow_visible_menu_numbering() -> None:
+    base_session = start_session(seed=7)
+    session = replace(
+        base_session,
+        run_state=replace(base_session.run_state, potions=["fire_potion"]),
+        room_state=RoomState(
+            room_id="act1:hallway",
+            room_type="combat",
+            stage="completed",
+            payload={"node_id": "r1c0", "next_node_ids": ["r2c0"]},
+            is_resolved=True,
+            rewards=["gold:11"],
+        ),
+    )
+
+    _running, inspect_session, inspect_message = route_menu_choice("4", session=session)
+    _running, potions_session, potions_message = route_menu_choice("4", session=inspect_session)
+    _running, inspect_back_session, inspect_back_message = route_menu_choice("1", session=potions_session)
+    _running, reward_root_session, reward_root_message = route_menu_choice("5", session=inspect_back_session)
+    _running, select_reward_session, select_reward_message = route_menu_choice("2", session=reward_root_session)
+    _running, claimed_session, claimed_message = route_menu_choice("1", session=select_reward_session)
+
+    assert inspect_session.menu_state.mode == "inspect_root"
+    assert inspect_session.menu_state.inspect_parent_mode == "root"
+    assert "资料总览" in inspect_message
+    assert potions_session.menu_state.mode == "inspect_potions"
+    assert potions_session.menu_state.inspect_parent_mode == "root"
+    assert potions_session.menu_state.inspect_item_id == "potions"
+    assert "药水列表" in potions_message
+    assert inspect_back_session.menu_state.mode == "inspect_root"
+    assert inspect_back_session.menu_state.inspect_parent_mode == "root"
+    assert "资料总览" in inspect_back_message
+    assert reward_root_session.menu_state.mode == "root"
+    assert "查看奖励" in reward_root_message
+    assert select_reward_session.menu_state.mode == "select_reward"
+    assert "奖励" in select_reward_message
+    assert claimed_session.room_state.rewards == []
+    assert claimed_session.run_state.gold == 110
+    assert "前往下一个房间" in claimed_message
+
+
 def test_claim_all_rewards_clears_non_boss_room_rewards() -> None:
     session = replace(
         start_session(seed=7),
