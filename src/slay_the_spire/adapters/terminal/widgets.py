@@ -81,6 +81,8 @@ def summarize_effect(effect: Mapping[str, object]) -> str:
         return f"造成 {int(effect.get('amount', 0))} 伤害"
     if effect_type == "block":
         return f"获得 {int(effect.get('amount', 0))} 格挡"
+    if effect_type == "heal":
+        return f"回复 {int(effect.get('amount', 0))} 点生命"
     if effect_type == "draw":
         return f"抽 {int(effect.get('amount', 0))} 张牌"
     if effect_type == "vulnerable":
@@ -95,6 +97,12 @@ def summarize_effect(effect: Mapping[str, object]) -> str:
 def summarize_card_effects(effects: Sequence[Mapping[str, object]]) -> str:
     summaries = [summarize_effect(effect) for effect in effects]
     return " / ".join(summary for summary in summaries if summary) or "-"
+
+
+def format_card_cost(cost: int) -> str:
+    if cost < 0:
+        return "无法打出"
+    return str(cost)
 
 
 def preview_enemy_intent(enemy_def: EnemyDef) -> str:
