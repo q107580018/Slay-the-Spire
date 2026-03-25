@@ -16,21 +16,45 @@ Status: Draft for review
 
 ## 2. 参考项目
 
-本设计明确参考 [`sts2-cli`](https://github.com/wuhao21/sts2-cli) 的地图外部表现与交互方式，尤其是：
+本设计现在以 **公开可得的 Slay the Spire 2 Early Access 资料** 为主锚点，并用 [`sts2-cli`](https://github.com/wuhao21/sts2-cli) 作为“运行真实 STS2 引擎的终端参考”。
+
+主要参考来源：
+
+- [`sts2-cli`](https://github.com/wuhao21/sts2-cli)
+- [STS2 Wiki Acts](https://sts2.wiki/acts/)
+- [STS2 Wiki Relics](https://sts2.wiki/relics/)
+- [Pro Game Guides: Slay the Spire 2 Beginner's Guide](https://progameguides.com/slay-the-spire-2/slay-the-spire-2-beginners-guide/)
+
+其中明确影响本次设计的公开信息包括：
+
+- `sts2-cli` 已公开暴露 `shop` 的 `cards / relics / potions / remove` 交互
+- `sts2-cli` 已公开暴露 `rest_site` 的可扩展选项模型，而不是永久写死只有两个动作
+- PGG 当前公开写明 STS2 休息点的基础动作仍是 `Rest / Smith`，其中 `Rest` 为回复 `30%` 最大生命值
+- PGG 当前公开写明 STS2 的删牌服务首个价格为 `75`
+- STS2 Wiki 当前列出的四个 Act 房间规模为 `13 / 14 / 15 / 15`
+- STS2 Wiki 当前列出的 relic 效果已经显示休息点行为可以被 relic 扩展，例如 `Girya` 与 `Miniature Tent`
+
+本设计明确参考 `sts2-cli` 的地图外部表现与交互方式，尤其是：
 
 - 地图使用运行时生成的分层图，而不是手写死路线
 - 地图节点以 `row / col / type / children` 的图结构暴露
 - 当前决策点只允许选择“当前可达节点”
 - 完整地图单独查看，不要求每次决策都展示整张图
 
-本项目不会照搬 `sts2-cli` 的真实游戏引擎实现，也不会追求与真实 STS2 一致的地图算法、字段或房间概率。本次只借鉴它的地图建模方式与终端交互思路。
+本项目不会照搬 `sts2-cli` 的真实游戏引擎实现，也不会追求与实时 Early Access 构建逐字段完全一致。因为 STS2 仍在频繁更新，本次设计采用：
+
+- 能公开确认的机制，尽量对齐
+- 公开资料不足的细节，保守简化
+- 一旦简化，就在文档中明确标注为“实现取舍”，而不是假装等同于原版
 
 ## 3. 目标
 
 - 将地图从静态节点图升级为基于种子的随机分支图
 - 在当前单 Act 流程中正式接入 `shop` 与 `rest`
+- 让 `shop` 包含 STS2 风格的卡、遗物、药水、删牌服务
 - 支持查看完整分层地图，同时在决策时只允许选择当前可达节点
 - 让商店、休息点在多步交互下保持稳定状态
+- 让休息点与商店的动作模型可以继续承载 STS2 风格的扩展动作
 - 为后续增加更多房型、更多地图规则和更复杂奖励系统留出边界
 
 ## 4. 非目标
@@ -38,8 +62,14 @@ Status: Draft for review
 - 不追求复刻真实 STS 或 `sts2-cli` 的地图生成算法
 - 不实现 `treasure`、`unknown`、`ancient` 等额外房型
 - 不实现商店刷新、药水商店、打折、会员卡等高级商店机制
-- 不实现 campfire 特殊遗物交互或复杂事件链
+- 不实现假商店、Ancients、Act 变体专属地图逻辑或 campfire relic 全量交互
 - 不兼容旧存档 schema
+
+旧存档处理策略明确为：
+
+- 旧 schema 在 `load` 时直接拒绝加载
+- 返回明确错误信息，提示当前版本需要新开 run
+- 本轮不做自动迁移
 
 ## 5. 范围
 
@@ -48,7 +78,7 @@ Status: Draft for review
 - 房型：`combat / event / elite / shop / rest / boss`
 - 随机地图生成与完整地图查看
 - 地图选择与房间流转重构
-- 商店：买牌、买遗物、删牌、离开
+- 商店：买牌、买遗物、买药水、删牌、离开
 - 休息点：回血、强化
 - 必要的终端 UI 扩展与测试补齐
 
@@ -76,6 +106,14 @@ Status: Draft for review
 ### 6.4 优先做可玩的闭环，而不是高保真模拟
 
 本次优先做“地图可走、商店可买、休息点可用、能回到地图继续推进”的完整体验，不在第一轮引入真实 STS 的复杂概率表和例外规则。
+
+### 6.5 动作模型优先于动作数量
+
+STS2 的休息点和商店都不是“永远只有固定两个按钮”的系统。第一轮虽然只实现基础子集，但状态模型必须允许：
+
+- 休息点拥有多个动态动作
+- 商店拥有多种商品类别
+- 某些 relic 或事件改变房间可执行动作
 
 ## 7. 架构概览
 
@@ -141,7 +179,7 @@ tests/
 
 ```json
 {
-  "floor_count": 7,
+  "floor_count": 13,
   "starting_columns": 1,
   "min_branch_choices": 1,
   "max_branch_choices": 2,
@@ -159,9 +197,18 @@ tests/
 
 这里的意图是：
 
+- 采用更接近 STS2 当前公开 Act 规模的长度
 - 早期楼层避免过早刷出高风险房型
 - 中后期逐步开放 `shop / rest / elite`
 - 具体概率和抽样策略由 `map_generator` 内部定义，但必须满足这些下限约束
+
+这里有一个明确的实现取舍：
+
+- STS2 Wiki 当前公开的是每个 Act 的 `Rooms 13 / 14 / 15 / 15`
+- 本项目第一轮把这个信息**解释为目标地图层级规模**
+- 因为当前终端版本仍采用“每层一个决策行”的简化模型，所以默认取 `floor_count = 13` 作为 MVP
+
+这是一条实现层推断，不是宣称 STS2 内部一定使用与本项目完全相同的地图层定义。
 
 字段语义在本次实现中明确为：
 
@@ -252,6 +299,91 @@ floor 6:           (6,0) boss
 这里不额外持久化 `reachable_nodes` 或“显示层 map rows”，因为都可以从 `nodes + current_node_id` 推导。
 
 由于本次不兼容旧档，`ActState` 与 `ActNodeState` 的 `schema_version` 可以直接提升。
+
+`visited_node_ids` 的更新时机明确为：
+
+- 用户完成地图选择并成功进入某节点对应房间时，立即将该节点写入 `visited_node_ids`
+- 不等待房间结算后再写入
+
+这样完整地图中的“已访问节点”表示“已经进入过的节点”，不是“已经完全清空的节点”。
+
+## 9.1 数据模型增量
+
+为支撑 STS2 风格的商店、休息点和 run 终局，本次状态模型增量明确如下。
+
+### RunState
+
+在现有字段基础上，新增长期 run 级真相源：
+
+- `gold`
+- `deck`
+- `relics`
+- `potions`
+- `card_removal_count`
+
+可选但推荐：
+
+- `run_status`，取值如 `in_progress / victory / defeat`
+
+语义约定：
+
+- 长期牌组、金币、遗物、药水都属于 `RunState`
+- 房间内临时可选项、库存、候选列表不放进 `RunState`
+- 商店购买、删牌、休息点强化都直接改写 `RunState`
+
+### ActState
+
+`ActState` 仍只负责：
+
+- 当前 Act 地图图结构
+- 当前节点位置
+- 已访问节点
+- 当前 Act 的内容池引用
+
+不把金币、牌组、药水、遗物复制到 `ActState`。
+
+### RoomState
+
+`RoomState` 负责当前房间生命周期内的状态：
+
+- 当前房间类型
+- 当前房间阶段
+- 当前房间载荷
+- 当前房间奖励
+
+商店库存、删牌候选、强化候选、事件中间结果，都只存在于 `RoomState.payload`。
+
+推荐字段草图：
+
+```json
+{
+  "shop_inventory": {
+    "cards": [{"entry_id": "card-1", "content_id": "strike_plus", "price": 50, "kind": "card"}],
+    "relics": [{"entry_id": "relic-1", "content_id": "anchor", "price": 150, "kind": "relic"}],
+    "potions": [{"entry_id": "potion-1", "content_id": "fire_potion", "price": 60, "kind": "potion"}]
+  },
+  "remove_candidates": ["strike#1", "defend#2"],
+  "upgrade_options": ["bash#3"],
+  "purchased_ids": ["card-1"],
+  "remove_used": false
+}
+```
+
+药水购买后的运行态表示遵循与遗物、牌组相同的原则：购买结果直接写入 `RunState.potions`，不在 `RoomState` 中额外保存长期副本。
+
+### SessionState
+
+`SessionState` 继续承担编排职责，并新增 session 级转场语义：
+
+- `run_phase`，取值建议为 `active / game_over / victory`
+
+语义约定：
+
+- `run_phase = active` 时，允许正常房间与地图交互
+- `run_phase = victory` 时，渲染通关页，不再允许继续推进
+- `run_phase = game_over` 时，渲染失败页，不再允许继续推进
+
+如果实现时不想新增 `run_phase`，则至少要新增等价的布尔或枚举字段，不能把终局状态隐含在 renderer 分支里。
 
 ## 10. 地图生成
 
@@ -348,11 +480,25 @@ floor 6:           (6,0) boss
 - `heal`
 - `smith`
 
+第一轮只实现上述两个基础动作，但动作结构必须允许后续扩展出更多 STS2 风格选项，例如：
+
+- `lift`
+- `dig`
+- `recall`
+- 其他由 relic 或事件解锁的特殊选项
+
 `heal` 为一步结算；`smith` 进入选牌子状态，完成后房间结束并返回地图。
 
 ### 12.4 商店
 
 商店进入时生成一次性的库存和价格快照。玩家可以在同一房间内执行多步操作，直到主动离开。
+
+商品类别第一轮至少包括：
+
+- cards
+- relics
+- potions
+- card removal
 
 ### 12.5 返回地图
 
@@ -425,6 +571,7 @@ floor 6:           (6,0) boss
 
 - `shop_inventory.cards`
 - `shop_inventory.relics`
+- `shop_inventory.potions`
 - `remove_service`
 - `purchased_ids`
 - `remove_used`
@@ -439,12 +586,20 @@ floor 6:           (6,0) boss
 
 - `cards`: 3 张可买卡
 - `relics`: 1 个可买遗物
+- `potions`: 2 个可买药水
 - `remove_service`: 1 次删牌服务
+
+这里也是明确的实现取舍：
+
+- 公开资料能确认 STS2 商店包含 `cards / relics / potions / remove`
+- 但公开资料不足以稳定确认当前 live build 的精确商品数量
+- 因此第一轮保留商品类别完整，对商品数量做保守简化
 
 生成规则采用保守固定版：
 
 - 卡牌从角色可用卡池中抽取 3 个不重复条目
 - 遗物从当前遗物池中抽取 1 个未持有条目
+- 药水从药水池中抽取 2 个不重复条目
 - 若池子不足，则按实际可生成数量展示，不强行补齐
 - 商店一旦生成，在离开前不刷新
 
@@ -459,6 +614,7 @@ floor 6:           (6,0) boss
 
 - 买牌
 - 买遗物
+- 买药水
 - 删牌
 - 离开
 
@@ -470,11 +626,23 @@ floor 6:           (6,0) boss
 - 删牌服务只能使用一次
 - 金币不足时动作失败但不改变房间状态
 
-第一轮价格规则明确为固定值，避免在计划阶段引入额外经济系统：
+第一轮价格规则明确为：
 
 - 卡牌：`50`
 - 遗物：`150`
-- 删牌：`75`
+- 药水：`60`
+- 删牌：按 run 级递增价格计算，初始 `75`
+
+删牌价格规则对齐当前公开 STS2 指南信息：
+
+- 本 run 第 1 次删牌：`75`
+- 本 run 第 2 次删牌：`100`
+- 第一轮不再继续外推更高档位，后续若要严格对齐 live build 再补
+
+为支持这条规则，`RunState` 需要新增类似：
+
+- `card_removal_count`
+- 或 `next_card_removal_cost`
 
 失败动作规则明确为：
 
@@ -504,11 +672,11 @@ floor 6:           (6,0) boss
 
 `heal` 直接修改 `RunState.current_hp`，本次规则固定为：
 
-- 回复 `20` 点生命
+- 回复 `30%` 最大生命值
 - 回复后不超过 `RunState.max_hp`
 - 不受遗物、事件或其他修正影响
 
-这条规则只为第一轮可玩闭环服务，后续如果引入 campfire 相关遗物，再单独扩展。
+这里与公开 STS2 指南对齐。后续如果引入 campfire 相关 relic，再单独扩展。
 
 ### 14.3 Smith
 
@@ -534,7 +702,8 @@ floor 6:           (6,0) boss
 
 1. 打败 boss 后进入 boss 奖励阶段
 2. 领取完奖励后不返回地图
-3. session 进入 run 完成状态，并渲染胜利/通关画面
+3. `RunState` 标记为胜利完成，`SessionState.run_phase` 切到 `victory`
+4. renderer 渲染胜利/通关画面
 
 也就是说：
 
@@ -586,7 +755,7 @@ floor 6:           (6,0) boss
 商店屏幕分区建议为：
 
 - 顶部摘要：金币、角色 HP、当前 Act / 楼层
-- 中部：卡牌区、遗物区、删牌服务区
+- 中部：卡牌区、遗物区、药水区、删牌服务区
 - 底部：可执行操作
 
 ### 16.3 休息点
@@ -599,7 +768,7 @@ floor 6:           (6,0) boss
 商店也采用明确的最小状态机：
 
 1. `RoomState.stage = "waiting_input"`，展示库存与根菜单
-2. 选择买牌或买遗物时直接结算，成功后留在当前商店
+2. 选择买牌、买遗物或买药水时直接结算，成功后留在当前商店
 3. 选择删牌时切到 `RoomState.stage = "select_remove_card"`
 4. `payload["remove_candidates"]` 保存当前可删实例列表
 5. 完成删牌后回到商店根菜单，但 `remove_used = true`
@@ -628,8 +797,9 @@ floor 6:           (6,0) boss
 新增测试覆盖：
 
 - 进入 `shop/rest`
-- 商店购买牌与遗物
+- 商店购买牌、遗物与药水
 - 商店删牌一次性约束
+- 商店删牌 run 级价格递增
 - 休息点回血
 - 休息点强化
 - 离开房间后返回地图
@@ -642,6 +812,7 @@ floor 6:           (6,0) boss
 - 从地图进入商店
 - 从地图进入休息点
 - 商店多步交互后返回地图
+- 商店药水购买
 - 休息点强化后继续推进 run
 
 ## 18. 实施顺序
@@ -650,12 +821,13 @@ floor 6:           (6,0) boss
 
 1. 重构 `ActDef / ActState / map_generator`
 2. 接通地图选择与完整地图视图
-3. 扩展 `enter_room`，正式支持 `shop/rest`
-4. 完成 `shop_action` 的库存、价格、删牌逻辑
-5. 完成 `rest_action` 的回血与强化逻辑
-6. 更新 `session.py` 流转
-7. 更新 Rich 终端渲染
-8. 补齐测试并跑全量验证
+3. 扩展 `RunState / SessionState` 数据模型
+4. 扩展 `enter_room`，正式支持 `shop/rest`
+5. 完成 `shop_action` 的库存、价格、删牌逻辑
+6. 完成 `rest_action` 的回血与强化逻辑
+7. 更新 `session.py` 流转与 run 终局
+8. 更新 Rich 终端渲染
+9. 补齐测试并跑全量验证
 
 ## 19. 风险与缓解
 
@@ -671,6 +843,10 @@ floor 6:           (6,0) boss
 
 缓解：地图全图视图与商店列表都从状态推导，不允许 renderer 直接决定规则结果。
 
+### 19.4 内容文件修改遗漏
+
+缓解：若本轮新增药水、升级卡、商店遗物或地图配置字段，需要同时更新源码内容目录与打包内容目录，避免测试环境和打包运行时读取不同数据。
+
 ## 20. 推荐方案总结
 
 本次采用“模板 + 生成器”的中间路线：
@@ -681,5 +857,6 @@ floor 6:           (6,0) boss
 - 地图决策只允许选当前可达节点
 - UI 额外支持完整地图查看
 - 商店与休息点都以稳定的房间 payload 驱动多步交互
+- 商店类别与休息点动作模型优先向 STS2 Early Access 的公开表现靠拢
 
 这条路线最适合当前仓库现状：改动集中、实现成本可控、能显著提升可玩性，并且为后续继续加房型、地图规则、内容池和奖励系统留下自然扩展位。
