@@ -25,3 +25,15 @@ def test_format_relic_detail_lines_include_passive_effect_description() -> None:
 
     assert any("燃烧之血" in line.plain for line in lines)
     assert any("回复 6 点生命" in line.plain for line in lines)
+    assert all("on_combat_end" not in line.plain for line in lines)
+
+
+def test_format_relic_detail_lines_translate_gold_bonus_effect() -> None:
+    session = start_session(seed=5)
+    registry = StarterContentProvider(session.content_root)
+
+    lines = format_relic_detail_lines("golden_idol", registry)
+
+    assert any("金神像" in line.plain for line in lines)
+    assert any("金币" in line.plain for line in lines)
+    assert all("event_gold_bonus" not in line.plain for line in lines)
