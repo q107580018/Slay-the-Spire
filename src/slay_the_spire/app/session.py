@@ -528,6 +528,8 @@ def _return_from_inspect(session: SessionState) -> SessionState:
 
 
 def _root_view_title(session: SessionState) -> str:
+    if session.room_state.is_resolved and session.room_state.rewards:
+        return "查看奖励"
     if session.room_state.room_type in {"combat", "elite", "boss"}:
         return "战斗"
     if session.room_state.room_type == "event":
@@ -536,14 +538,15 @@ def _root_view_title(session: SessionState) -> str:
         return "商店操作"
     if session.menu_state.mode == "rest_root" or session.room_state.room_type == "rest":
         return "休息点操作"
-    if session.room_state.is_resolved and session.room_state.rewards:
-        return "查看奖励"
     return "查看当前状态"
 
 
 def _route_inspect_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
     parent_mode = session.menu_state.inspect_parent_mode or "root"
-    if session.room_state.room_type in {"combat", "elite", "boss"}:
+    combat_inspect_enabled = session.room_state.room_type in {"combat", "elite", "boss"} and not (
+        session.room_state.is_resolved and session.room_state.rewards
+    )
+    if combat_inspect_enabled:
         if choice == "1":
             next_session = replace(
                 session,
