@@ -64,6 +64,31 @@ def test_combat_renderer_shows_deck_list_and_back_choice_in_inspect_mode() -> No
     assert "返回上一步" in output
 
 
+def test_combat_renderer_distinguishes_inspect_stats_and_relics_pages() -> None:
+    session = start_session(seed=5)
+    stats_output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=_provider(session),
+        menu_state=MenuState(mode="inspect_stats", inspect_parent_mode="root", inspect_item_id="stats"),
+        run_phase=session.run_phase,
+    )
+    relics_output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=_provider(session),
+        menu_state=MenuState(mode="inspect_relics", inspect_parent_mode="root", inspect_item_id="relics"),
+        run_phase=session.run_phase,
+    )
+
+    assert "角色状态" in stats_output
+    assert "遗物列表" not in stats_output
+    assert "遗物列表" in relics_output
+    assert "角色状态" not in relics_output
+
+
 def test_non_combat_renderer_shows_full_map_rows_and_current_position() -> None:
     session = start_session(seed=5)
     room_state = RoomState(

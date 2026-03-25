@@ -143,9 +143,9 @@ def _format_inspect_deck_menu(run_state: RunState, registry: ContentProviderPort
     return lines
 
 
-def _format_inspect_leaf_menu() -> list[str]:
+def _format_inspect_leaf_menu(title: str) -> list[str]:
     return [
-        "资料总览:",
+        f"{title}:",
         "1. 返回上一步",
     ]
 
@@ -222,8 +222,10 @@ def _format_menu(
         return _format_inspect_root_menu()
     if mode == "inspect_deck":
         return _format_inspect_deck_menu(run_state, registry)
-    if mode in {"inspect_stats", "inspect_relics"}:
-        return _format_inspect_leaf_menu()
+    if mode == "inspect_stats":
+        return _format_inspect_leaf_menu("角色状态")
+    if mode == "inspect_relics":
+        return _format_inspect_leaf_menu("遗物列表")
     if mode == "select_card":
         return _format_card_menu(combat_state, registry)
     if mode == "select_target":
@@ -330,8 +332,10 @@ def _inspect_body_panel(menu_state: Any, run_state: RunState, combat_state: Comb
     if mode == "inspect_deck":
         lines = [Text(line) for line in _format_inspect_deck_menu(run_state, registry)]
         return Panel(Group(*lines), title="牌组列表", box=PANEL_BOX, expand=False)
-    if mode in {"inspect_stats", "inspect_relics"}:
-        return Panel(Group(Text("当前处于资料查看。")), title="资料总览", box=PANEL_BOX, expand=False)
+    if mode == "inspect_stats":
+        return Panel(Group(Text("当前处于角色状态查看。")), title="角色状态", box=PANEL_BOX, expand=False)
+    if mode == "inspect_relics":
+        return Panel(Group(Text("当前处于遗物列表查看。")), title="遗物列表", box=PANEL_BOX, expand=False)
     return Panel(
         Group(
             Text("当前处于资料总览。"),
