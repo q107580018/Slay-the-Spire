@@ -121,6 +121,35 @@ def _format_root_menu(room_state: RoomState) -> list[str]:
     ]
 
 
+def _format_inspect_root_menu() -> list[str]:
+    return [
+        "资料总览:",
+        "1. 角色状态",
+        "2. 牌组列表",
+        "3. 遗物列表",
+        "4. 返回战斗",
+    ]
+
+
+def _format_inspect_deck_menu(run_state: RunState, registry: ContentProviderPort) -> list[str]:
+    lines = ["牌组列表:"]
+    if not run_state.deck:
+        lines.append("-")
+    else:
+        for index, card_instance_id in enumerate(run_state.deck, start=1):
+            card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
+            lines.append(f"{index}. {card_def.name}")
+    lines.append(f"{len(run_state.deck) + 1}. 返回上一步")
+    return lines
+
+
+def _format_inspect_leaf_menu() -> list[str]:
+    return [
+        "资料总览:",
+        "1. 返回上一步",
+    ]
+
+
 def _format_next_room_menu(room_state: RoomState) -> list[str]:
     lines = ["请选择下一个房间:"]
     next_node_ids = room_state.payload.get("next_node_ids", [])
@@ -183,11 +212,18 @@ def _format_target_menu(combat_state: CombatState, registry: ContentProviderPort
 
 def _format_menu(
     room_state: RoomState,
+    run_state: RunState,
     combat_state: CombatState,
     registry: ContentProviderPort,
     menu_state: Any,
 ) -> list[str | Text]:
     mode = _menu_mode(menu_state)
+    if mode == "inspect_root":
+        return _format_inspect_root_menu()
+    if mode == "inspect_deck":
+        return _format_inspect_deck_menu(run_state, registry)
+    if mode in {"inspect_stats", "inspect_relics"}:
+        return _format_inspect_leaf_menu()
     if mode == "select_card":
         return _format_card_menu(combat_state, registry)
     if mode == "select_target":
@@ -281,11 +317,30 @@ def render_hand_panel(combat_state: CombatState, registry: ContentProviderPort) 
 
 def render_menu_panel_for_combat(
     room_state: RoomState,
+    run_state: RunState,
     combat_state: CombatState,
     registry: ContentProviderPort,
     menu_state: Any,
 ) -> Panel:
-    return render_menu(_format_menu(room_state, combat_state, registry, menu_state))
+    return render_menu(_format_menu(room_state, run_state, combat_state, registry, menu_state))
+
+
+def _inspect_body_panel(menu_state: Any, run_state: RunState, combat_state: CombatState, registry: ContentProviderPort) -> Panel:
+    mode = _menu_mode(menu_state)
+    if mode == "inspect_deck":
+        lines = [Text(line) for line in _format_inspect_deck_menu(run_state, registry)]
+        return Panel(Group(*lines), title="牌组列表", box=PANEL_BOX, expand=False)
+    if mode in {"inspect_stats", "inspect_relics"}:
+        return Panel(Group(Text("当前处于资料查看。")), title="资料总览", box=PANEL_BOX, expand=False)
+    return Panel(
+        Group(
+            Text("当前处于资料总览。"),
+            Text("可查看角色状态、牌组列表和遗物列表。"),
+        ),
+        title="资料总览",
+        box=PANEL_BOX,
+        expand=False,
+    )
 
 
 def render_combat_screen(
@@ -304,11 +359,16 @@ def render_combat_screen(
         combat_state=combat_state,
         registry=registry,
     )
-    body = build_two_column_body(
-        left=render_player_panel(combat_state, registry),
-        right=render_enemy_panel(combat_state, registry),
-    )
-    hand_panel = render_hand_panel(combat_state, registry)
-    body_group = [body, hand_panel]
-    footer = render_menu_panel_for_combat(room_state, combat_state, registry, menu_state)
+    mode = _menu_mode(menu_state)
+    if mode.startswith("inspect_"):
+        body = _inspect_body_panel(menu_state, run_state, combat_state, registry)
+        body_group = [body]
+    else:
+        body = build_two_column_body(
+            left=render_player_panel(combat_state, registry),
+            right=render_enemy_panel(combat_state, registry),
+        )
+        hand_panel = render_hand_panel(combat_state, registry)
+        body_group = [body, hand_panel]
+    footer = render_menu_panel_for_combat(room_state, run_state, combat_state, registry, menu_state)
     return build_standard_screen(summary=summary, body=Group(*body_group), footer=footer)

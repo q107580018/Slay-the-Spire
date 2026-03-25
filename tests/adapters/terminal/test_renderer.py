@@ -30,6 +30,40 @@ def test_combat_root_screen_keeps_full_context_and_hand_panel() -> None:
     assert "7. 退出游戏" in output
 
 
+def test_combat_renderer_shows_inspect_root_menu_when_in_inspect_mode() -> None:
+    session = start_session(seed=5)
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=_provider(session),
+        menu_state=MenuState(mode="inspect_root", inspect_parent_mode="root"),
+        run_phase=session.run_phase,
+    )
+
+    assert "资料总览" in output
+    assert "查看战场" not in output
+    assert "1. 角色状态" in output
+    assert "4. 返回战斗" in output
+
+
+def test_combat_renderer_shows_deck_list_and_back_choice_in_inspect_mode() -> None:
+    session = start_session(seed=5)
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=_provider(session),
+        menu_state=MenuState(mode="inspect_deck", inspect_parent_mode="root", inspect_item_id="deck"),
+        run_phase=session.run_phase,
+    )
+
+    assert "牌组列表" in output
+    assert "查看战场" not in output
+    assert "打击" in output
+    assert "返回上一步" in output
+
+
 def test_non_combat_renderer_shows_full_map_rows_and_current_position() -> None:
     session = start_session(seed=5)
     room_state = RoomState(
