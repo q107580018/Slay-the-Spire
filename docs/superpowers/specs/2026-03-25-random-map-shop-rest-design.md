@@ -131,9 +131,96 @@ tests/
 - 最后一层为 boss
 - 中间层只出现 `combat / event / elite / shop / rest`
 - `elite / shop / rest` 不能出现在过早楼层
+- 每个 Act 至少出现 1 个 `shop`
+- 每个 Act 至少出现 1 个 `rest`
 - 整张图从起点到 boss 至少有一条合法路径
 
 `enemy_pool_id / elite_pool_id / boss_pool_id / event_pool_id` 继续保留在 `ActDef` 中，不需要因为地图重构而移动位置。
+
+一个最小可执行的 `map_config` 示例：
+
+```json
+{
+  "floor_count": 7,
+  "starting_columns": 1,
+  "min_branch_choices": 1,
+  "max_branch_choices": 2,
+  "boss_room_type": "boss",
+  "room_rules": {
+    "early_floors": ["combat", "event"],
+    "mid_floors": ["combat", "event", "shop", "rest"],
+    "late_floors": ["combat", "event", "elite", "shop", "rest"],
+    "min_floor_for_elite": 3,
+    "min_floor_for_shop": 2,
+    "min_floor_for_rest": 2
+  }
+}
+```
+
+这里的意图是：
+
+- 早期楼层避免过早刷出高风险房型
+- 中后期逐步开放 `shop / rest / elite`
+- 具体概率和抽样策略由 `map_generator` 内部定义，但必须满足这些下限约束
+
+字段语义在本次实现中明确为：
+
+- `floor_count`：总层数，包含起点层和 boss 层
+- `starting_columns`：第 0 层生成的起点节点数；第一轮固定允许为 `1`
+- `min_branch_choices`：每个非 boss 节点最少出边数下限
+- `max_branch_choices`：每个非 boss 节点最多出边数上限
+- `boss_room_type`：最后一层唯一节点的房型，第一轮固定为 `boss`
+- `room_rules`：各楼层房型池约束，不是概率权重表
+
+生成规则约定为：
+
+1. 第 0 层生成 `starting_columns` 个起点节点
+2. 第 `floor_count - 1` 层生成 1 个 boss 节点
+3. 先生成图拓扑，再分配房型；两步分开处理
+4. 拓扑生成时，中间每层节点数由上一层出边汇总得到，但单层节点数上限固定为 `3`
+5. 每个非 boss 节点按 `[min_branch_choices, max_branch_choices]` 随机生成出边数
+6. 出边只能连接下一层节点，不允许跨层或回边
+7. 同一节点的出边不重复
+8. 房型分配时，`room_rules` 只决定“某层允许出现哪些房型”，具体从允许集合中按均匀随机抽样
+9. 若房型分配结果违反楼层最低限制或该层无合法房型，则只重抽该层房型，不改动已生成拓扑
+10. 若拓扑生成本身无法满足“起点可达 boss、非 boss 至少一条出边、单层不超过 3 个节点”，则整张图从头重生
+
+这意味着本次地图生成器是：
+
+- 有限宽度的分层 DAG
+- 每层最多 3 个节点
+- 每个节点最多 2 个后继
+- 房型按合法集合均匀抽样
+
+额外放置约束：
+
+- 若初次房型分配结果中没有 `shop`，则在满足楼层限制的合法节点中强制替换 1 个非 boss 节点为 `shop`
+- 若初次房型分配结果中没有 `rest`，则在满足楼层限制的合法节点中强制替换 1 个非 boss 节点为 `rest`
+- 强制替换不能覆盖已存在的 `shop/rest/boss`
+
+重抽边界因此明确为：
+
+- 拓扑不合法：整张图重生
+- 房型不合法：只重抽当前层房型
+- 不允许“上一层连边和当前层房型一起局部回溯”的中间策略
+
+一个示意生成图：
+
+```text
+floor 0:  (0,0) start
+             |
+floor 1:  (1,0) combat   (1,1) event
+           /    \            |
+floor 2: (2,0) combat  (2,1) shop
+            \          /
+floor 3:     (3,0) elite   (3,1) rest
+                \          /
+floor 4:         (4,0) combat
+                    |
+floor 5:           (5,0) event
+                    |
+floor 6:           (6,0) boss
+```
 
 ## 9. ActState 与节点模型
 
@@ -278,6 +365,58 @@ tests/
 
 这样更适合商店停留、休息点选牌和完整地图查看。
 
+### 12.6 房间交互子状态归属
+
+本次明确区分：
+
+- `RoomState.stage`：规则层的房间阶段真相源
+- `RoomState.payload`：房间内多步交互所需的持久化数据
+- `MenuState`：终端当前菜单焦点与临时选择，不作为规则真相源
+
+也就是说：
+
+- 是否处于 `smith` 选牌、商店根菜单、奖励阶段，属于 `RoomState.stage`
+- 当前商店库存、可升级牌列表、已购项目、删牌是否已用，属于 `RoomState.payload`
+- UI 当前高亮项、最近一次输入、底部菜单模式，属于 `MenuState`
+
+这样可以保证：
+
+- 存档/读档只依赖 `RoomState`
+- renderer 只消费规则状态
+- `MenuState` 不承担业务语义
+
+### 12.7 统一阶段约定
+
+本次所有房间统一使用以下阶段语义：
+
+- `waiting_input`：房间已进入，等待用户做当前阶段动作
+- `select_upgrade_card`：休息点强化选牌子阶段
+- `select_remove_card`：商店删牌选牌子阶段
+- `completed`：房间核心动作已完成，等待返回地图或进入奖励后续
+
+`is_resolved` 语义统一为：
+
+- `False`：房间仍在交互中，不能安全返回地图
+- `True`：房间主要规则动作已完成，可以进入下一步返回地图或奖励领取
+
+房型状态迁移表：
+
+| 房型 | 进入时 `stage` | 交互中阶段 | 完成后 `stage` | 完成后 `is_resolved` | 返回地图前额外步骤 |
+|---|---|---|---|---|---|
+| `combat` | `waiting_input` | `waiting_input` | `completed` | `True` | 奖励领取 |
+| `elite` | `waiting_input` | `waiting_input` | `completed` | `True` | 奖励领取 |
+| `boss` | `waiting_input` | `waiting_input` | `completed` | `True` | Boss 奖励领取后结束 run，不返回地图 |
+| `event` | `waiting_input` | `waiting_input` | `completed` | `True` | 领取事件后续结果 |
+| `rest` | `waiting_input` | `select_upgrade_card` 可选 | `completed` | `True` | 返回地图 |
+| `shop` | `waiting_input` | `select_remove_card` 可选 | `completed` | `True` | 返回地图 |
+
+统一路由规则：
+
+1. `enter_room()` 创建房间时，除特殊奖励页外一律进入 `waiting_input`
+2. 房间内部子流程只允许切换到该房型定义的中间阶段
+3. 一旦房间切到 `completed` 且 `is_resolved = True`，只允许执行“领取奖励/返回地图”类动作
+4. `session.py` 不允许绕过 `RoomState.stage` 直接跳房间
+
 ## 13. 商店设计
 
 ### 13.1 进入商店时生成快照
@@ -296,6 +435,26 @@ tests/
 - `kind`
 - `content_id`
 
+第一轮将商店快照具体化为：
+
+- `cards`: 3 张可买卡
+- `relics`: 1 个可买遗物
+- `remove_service`: 1 次删牌服务
+
+生成规则采用保守固定版：
+
+- 卡牌从角色可用卡池中抽取 3 个不重复条目
+- 遗物从当前遗物池中抽取 1 个未持有条目
+- 若池子不足，则按实际可生成数量展示，不强行补齐
+- 商店一旦生成，在离开前不刷新
+
+随机性与存档稳定性约定：
+
+- 所有房间级随机载荷都必须由 `run seed + room_id + payload kind` 派生
+- 商店库存和价格只在第一次进入该房间时生成一次，并持久化到 `RoomState.payload`
+- 读档后不得重新抽取商店库存
+- 事件、奖励、商店等房间级随机结果都遵循同一原则：一旦进入房间并生成结果，就以房间 payload 为唯一真相源
+
 ### 13.2 商店支持的动作
 
 - 买牌
@@ -310,6 +469,19 @@ tests/
 - 已购买项目不能再次购买
 - 删牌服务只能使用一次
 - 金币不足时动作失败但不改变房间状态
+
+第一轮价格规则明确为固定值，避免在计划阶段引入额外经济系统：
+
+- 卡牌：`50`
+- 遗物：`150`
+- 删牌：`75`
+
+失败动作规则明确为：
+
+- 金币不足：返回当前商店，不改 `RunState`，记录错误消息到房间或会话输出
+- 目标已被购买：返回当前商店，不改状态
+- 删牌已使用：返回当前商店，不改状态
+- 删牌目标不存在：返回当前商店，不改状态
 
 ### 13.4 运行态修改
 
@@ -330,11 +502,45 @@ tests/
 
 ### 14.2 Heal
 
-`heal` 直接修改 `RunState.current_hp`，回复量可以先采用固定值或最大生命比例，规则简单且可测试即可。
+`heal` 直接修改 `RunState.current_hp`，本次规则固定为：
+
+- 回复 `20` 点生命
+- 回复后不超过 `RunState.max_hp`
+- 不受遗物、事件或其他修正影响
+
+这条规则只为第一轮可玩闭环服务，后续如果引入 campfire 相关遗物，再单独扩展。
 
 ### 14.3 Smith
 
 `smith` 进入 `select_upgrade_card` 子状态，列出当前牌组内所有可升级卡。选择后升级目标牌，并结束房间。
+
+这里明确状态机：
+
+1. `RoomState.stage = "waiting_input"`，展示 `heal / smith / leave`
+2. 选择 `smith` 后，切换到 `RoomState.stage = "select_upgrade_card"`
+3. `payload["upgrade_options"]` 保存当前可升级实例列表
+4. 用户选择一张牌后执行升级，房间切到 `stage = "completed"`
+5. 用户返回地图
+
+取消行为明确为：
+
+- 在 `select_upgrade_card` 阶段允许返回休息点根菜单
+- 返回不会消耗休息点机会
+- 一旦升级完成，不能再次进入 `smith`
+
+### 14.5 Boss 结算终点
+
+本项目当前目标是单 Act 闭环，因此 boss 的最终流转明确为：
+
+1. 打败 boss 后进入 boss 奖励阶段
+2. 领取完奖励后不返回地图
+3. session 进入 run 完成状态，并渲染胜利/通关画面
+
+也就是说：
+
+- `boss` 房间仍然有奖励阶段
+- 但 boss 不是“回地图的另一种战斗房”
+- boss 奖励领取完毕就是当前 run 终点
 
 ### 14.4 升级模型
 
@@ -389,6 +595,17 @@ tests/
 
 - 根菜单：回血 / 强化 / 离开
 - 强化选牌：列出可升级卡
+
+商店也采用明确的最小状态机：
+
+1. `RoomState.stage = "waiting_input"`，展示库存与根菜单
+2. 选择买牌或买遗物时直接结算，成功后留在当前商店
+3. 选择删牌时切到 `RoomState.stage = "select_remove_card"`
+4. `payload["remove_candidates"]` 保存当前可删实例列表
+5. 完成删牌后回到商店根菜单，但 `remove_used = true`
+6. 用户选择离开后，房间 `stage = "completed"` 并返回地图
+
+`select_remove_card` 阶段也允许取消并返回商店根菜单，且取消不消耗删牌服务。
 
 ### 16.4 交互风格
 
