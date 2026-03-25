@@ -195,13 +195,6 @@ def render_event_body(room_state: RoomState, registry: ContentProviderPort) -> P
     return Panel(Group(Text(event_def.text)), title="事件正文", box=PANEL_BOX, expand=False)
 
 
-def render_event_result(room_state: RoomState) -> Panel | None:
-    result = _format_event_result(room_state)
-    if result is None:
-        return None
-    return Panel(Group(Text.assemble(("结果: ", "summary.label"), result)), title="结果", box=PANEL_BOX, expand=False)
-
-
 def render_reward_panel(room_state: RoomState) -> Panel:
     body: list[RenderableType] = []
     event_result = _format_event_result(room_state) if room_state.room_type == "event" else None
