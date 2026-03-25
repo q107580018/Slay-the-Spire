@@ -4,9 +4,11 @@ from collections.abc import Sequence
 
 from slay_the_spire.domain.effects.effect_types import (
     EFFECT_BLOCK,
+    EFFECT_CREATE_CARD_COPY,
     EFFECT_DAMAGE,
     EFFECT_DRAW,
     EFFECT_EMIT_HOOK,
+    EFFECT_HEAL,
     EFFECT_NOOP,
     EFFECT_VULNERABLE,
     emit_hook_effect,
@@ -14,6 +16,7 @@ from slay_the_spire.domain.effects.effect_types import (
 )
 from slay_the_spire.domain.hooks.hook_dispatcher import dispatch_hook
 from slay_the_spire.domain.hooks.hook_types import HookRegistration
+from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
 from slay_the_spire.domain.models.statuses import StatusState
@@ -54,6 +57,37 @@ def _damage_amount(target: PlayerCombatState | EnemyState, base_amount: int) -> 
     if _vulnerable_bonus(target):
         amount += amount // 2
     return amount
+
+
+def _heal_target(target: PlayerCombatState | EnemyState, amount: int) -> None:
+    target.hp = min(target.max_hp, target.hp + max(amount, 0))
+
+
+def _next_card_instance_id(state: CombatState, card_id: str) -> str:
+    highest_suffix = 0
+    for card_instance_id in [*state.hand, *state.draw_pile, *state.discard_pile, *state.exhaust_pile]:
+        if card_id_from_instance_id(card_instance_id) != card_id:
+            continue
+        _existing_card_id, suffix = card_instance_id.split("#", 1)
+        if suffix.isdigit():
+            highest_suffix = max(highest_suffix, int(suffix))
+    return f"{card_id}#{highest_suffix + 1}"
+
+
+def _append_card_to_zone(state: CombatState, *, zone: str, card_instance_id: str) -> None:
+    if zone == "hand":
+        state.hand.append(card_instance_id)
+        return
+    if zone == "draw_pile":
+        state.draw_pile.append(card_instance_id)
+        return
+    if zone == "discard_pile":
+        state.discard_pile.append(card_instance_id)
+        return
+    if zone == "exhaust_pile":
+        state.exhaust_pile.append(card_instance_id)
+        return
+    raise ValueError(f"unsupported card copy zone: {zone}")
 
 
 def _apply_status(
@@ -119,6 +153,13 @@ def resolve_next_effect(
         target.block += max(int(effect.get("amount", 0)), 0)
         return effect
 
+    if effect_type == EFFECT_HEAL:
+        target = _get_target(state, effect.get("target_instance_id"))
+        if _is_dead(target):
+            return noop_effect(reason="dead_target")
+        _heal_target(target, int(effect.get("amount", 0)))
+        return effect
+
     if effect_type == EFFECT_DRAW:
         target = _get_target(state, effect.get("target_instance_id"))
         if _is_dead(target):
@@ -136,6 +177,20 @@ def resolve_next_effect(
             target,
             status_id="vulnerable",
             stacks=int(effect.get("stacks", 0)),
+        )
+        return effect
+
+    if effect_type == EFFECT_CREATE_CARD_COPY:
+        card_id = effect.get("card_id")
+        zone = effect.get("zone", "discard_pile")
+        if not isinstance(card_id, str):
+            raise TypeError("card_id must be a string")
+        if not isinstance(zone, str):
+            raise TypeError("zone must be a string")
+        _append_card_to_zone(
+            state,
+            zone=zone,
+            card_instance_id=_next_card_instance_id(state, card_id),
         )
         return effect
 

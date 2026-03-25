@@ -116,7 +116,7 @@ def test_rest_upgrade_subflow_survives_load_session(tmp_path: Path) -> None:
     restored_session = load_session(save_path=tmp_path / "rest.json", content_root=Path(__file__).resolve().parents[2] / "content")
 
     assert restored_room.stage == "select_upgrade_card"
-    assert restored_room.payload["upgrade_options"] == ["bash#9"]
+    assert restored_room.payload["upgrade_options"] == ["bash#10"]
     assert restored_session.menu_state.mode == "rest_upgrade_card"
 
 
@@ -170,7 +170,7 @@ def test_claim_reward_marks_room_completed_immediately() -> None:
 def test_generate_combat_rewards_feeds_reward_room_claim_flow() -> None:
     rewards = generate_combat_rewards(room_id="act1:hallway_reward", seed=41)
 
-    assert rewards == ["gold:11", "card:reward_strike"]
+    assert rewards == ["gold:11", "card:pommel_strike"]
 
 
 def test_claiming_boss_reward_sets_session_victory_and_does_not_return_to_map() -> None:
@@ -191,6 +191,7 @@ def test_claiming_boss_reward_sets_session_victory_and_does_not_return_to_map() 
 
     assert next_session.run_phase == "victory"
     assert next_session.room_state.rewards == []
+    assert next_session.run_state.gold == 198
 
 
 def test_non_boss_reward_claim_returns_to_map_selection() -> None:
@@ -212,6 +213,108 @@ def test_non_boss_reward_claim_returns_to_map_selection() -> None:
     assert next_session.run_phase == "active"
     assert next_session.room_state.rewards == []
     assert next_session.menu_state.mode == "root"
+    assert next_session.run_state.gold == 110
+
+
+def test_claim_all_rewards_clears_non_boss_room_rewards() -> None:
+    session = replace(
+        start_session(seed=7),
+        room_state=RoomState(
+            room_id="act1:hallway",
+            room_type="combat",
+            stage="completed",
+            payload={"node_id": "r1c0", "next_node_ids": ["r2c0", "r2c1"]},
+            is_resolved=True,
+            rewards=["gold:11", "card:anger"],
+        ),
+        menu_state=MenuState(mode="select_reward"),
+    )
+
+    _running, next_session, _message = route_menu_choice("3", session=session)
+
+    assert next_session.run_phase == "active"
+    assert next_session.room_state.rewards == []
+    assert next_session.menu_state.mode == "root"
+    assert next_session.run_state.gold == 110
+    assert next_session.run_state.deck[-1] == "anger#11"
+
+
+def test_claim_all_rewards_sets_boss_room_to_victory() -> None:
+    session = replace(
+        start_session(seed=7),
+        room_state=RoomState(
+            room_id="act1:boss",
+            room_type="boss",
+            stage="completed",
+            payload={"node_id": "boss", "next_node_ids": []},
+            is_resolved=True,
+            rewards=["gold:99", "card:shrug_it_off"],
+        ),
+        menu_state=MenuState(mode="select_reward"),
+    )
+
+    _running, next_session, _message = route_menu_choice("3", session=session)
+
+    assert next_session.run_phase == "victory"
+    assert next_session.room_state.rewards == []
+    assert next_session.menu_state.mode == "root"
+    assert next_session.run_state.gold == 198
+    assert next_session.run_state.deck[-1] == "shrug_it_off#11"
+
+
+def test_shop_menu_returns_prompt_when_gold_is_insufficient() -> None:
+    session = replace(
+        start_session(seed=7),
+        run_state=replace(start_session(seed=7).run_state, gold=40),
+        room_state=RoomState(
+            room_id="act1:shop",
+            room_type="shop",
+            stage="waiting_input",
+            payload={
+                "node_id": "r3c1",
+                "cards": [{"offer_id": "card-1", "card_id": "strike", "price": 50}],
+                "relics": [],
+                "potions": [],
+                "remove_price": 75,
+                "next_node_ids": ["r4c0"],
+            },
+            is_resolved=False,
+            rewards=[],
+        ),
+        menu_state=MenuState(mode="shop_root"),
+    )
+
+    _running, next_session, message = route_menu_choice("1", session=session)
+
+    assert next_session.run_state.gold == 40
+    assert "金币不足，无法购买该商品。" in message
+
+
+def test_shop_menu_returns_prompt_when_item_is_already_purchased() -> None:
+    base_session = start_session(seed=7)
+    session = replace(
+        base_session,
+        room_state=RoomState(
+            room_id="act1:shop",
+            room_type="shop",
+            stage="waiting_input",
+            payload={
+                "node_id": "r3c1",
+                "cards": [{"offer_id": "card-1", "card_id": "strike", "price": 50, "sold": True}],
+                "relics": [],
+                "potions": [],
+                "remove_price": 75,
+                "next_node_ids": ["r4c0"],
+            },
+            is_resolved=False,
+            rewards=[],
+        ),
+        menu_state=MenuState(mode="shop_root"),
+    )
+
+    _running, _next_session, message = route_menu_choice("1", session=session)
+
+    assert "该商品已购买。" in message
 
 
 def test_player_defeat_sets_session_game_over_and_blocks_further_actions(tmp_path: Path) -> None:
@@ -266,6 +369,72 @@ def test_player_defeat_sets_session_game_over_and_blocks_further_actions(tmp_pat
     assert restored.run_phase == "game_over"
     assert same_session.run_phase == "game_over"
     assert "已结束" in message
+
+
+def test_game_over_menu_uses_terminal_phase_choice_mapping(tmp_path: Path) -> None:
+    base_session = start_session(seed=61, save_path=tmp_path / "game_over.json")
+    session = replace(
+        base_session,
+        run_state=replace(base_session.run_state, current_hp=0),
+        room_state=replace(base_session.room_state, stage="defeated", is_resolved=False),
+        run_phase="game_over",
+        menu_state=MenuState(),
+    )
+
+    running, viewed_session, viewed_message = route_menu_choice("1", session=session)
+
+    assert running is True
+    assert viewed_session.run_phase == "game_over"
+    assert "游戏结束" in viewed_message
+
+    running, saved_session, saved_message = route_menu_choice("2", session=session)
+
+    assert running is True
+    assert saved_session.save_path.exists()
+    assert f"已保存到 {saved_session.save_path}" == saved_message
+
+    altered_session = replace(session, run_state=replace(session.run_state, current_hp=7))
+
+    running, loaded_session, loaded_message = route_menu_choice("3", session=altered_session)
+
+    assert running is True
+    assert loaded_session.run_state.current_hp == 0
+    assert loaded_session.run_phase == "game_over"
+    assert loaded_session.room_state.stage == "defeated"
+    assert f"已从存档恢复。当前存档: {saved_session.save_path}" == loaded_message
+
+    running, exited_session, exited_message = route_menu_choice("4", session=session)
+
+    assert running is False
+    assert exited_session.menu_state.mode == "root"
+    assert exited_message == "已退出游戏。"
+
+
+def test_burning_blood_heals_after_winning_combat() -> None:
+    base_session = start_session(seed=7)
+    combat_state = CombatState.from_dict(base_session.room_state.payload["combat_state"])
+    combat_state.player.hp = 50
+    combat_state.enemies[0].hp = 6
+    session = replace(
+        base_session,
+        run_state=replace(base_session.run_state, current_hp=50),
+        room_state=RoomState(
+            room_id=base_session.room_state.room_id,
+            room_type=base_session.room_state.room_type,
+            stage="waiting_input",
+            payload={
+                **base_session.room_state.payload,
+                "combat_state": combat_state.to_dict(),
+            },
+            is_resolved=False,
+            rewards=[],
+        ),
+    )
+
+    _running, next_session, _message = route_command("play 1", session=session)
+
+    assert next_session.room_state.is_resolved is True
+    assert next_session.run_state.current_hp == 56
 
 
 @pytest.mark.parametrize(

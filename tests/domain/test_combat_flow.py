@@ -5,6 +5,7 @@ from slay_the_spire.domain.combat.turn_flow import end_turn, resolve_player_acti
 from slay_the_spire.domain.effects.effect_types import damage_effect
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
+from slay_the_spire.domain.models.statuses import StatusState
 from slay_the_spire.use_cases.end_turn import end_turn as run_end_turn
 
 
@@ -142,3 +143,71 @@ def test_end_turn_stops_before_next_turn_when_player_dies() -> None:
     assert state.round_number == 1
     assert state.energy == 1
     assert state.hand == []
+
+
+def test_lagavulin_sleeps_for_first_three_enemy_turns_then_attacks() -> None:
+    registry = _Registry()
+    registry.enemies().register(
+        {
+            "id": "lagavulin",
+            "name": "Lagavulin",
+            "hp": 109,
+            "move_table": [
+                {
+                    "move": "sleep",
+                    "sleep_turns": 3,
+                },
+                {
+                    "move": "attack",
+                    "effects": [{"type": "damage", "amount": 18}],
+                },
+                {
+                    "move": "attack",
+                    "effects": [{"type": "damage", "amount": 18}],
+                },
+            ],
+            "intent_policy": "scripted",
+        }
+    )
+    state = CombatState(
+        round_number=1,
+        energy=3,
+        hand=[],
+        draw_pile=[],
+        discard_pile=[],
+        exhaust_pile=[],
+        player=PlayerCombatState(
+            instance_id="player-1",
+            hp=80,
+            max_hp=80,
+            block=0,
+            statuses=[],
+        ),
+        enemies=[
+            EnemyState(
+                instance_id="enemy-1",
+                enemy_id="lagavulin",
+                hp=109,
+                max_hp=109,
+                block=0,
+                statuses=[StatusState(status_id="sleeping", stacks=3)],
+            )
+        ],
+        effect_queue=[],
+        log=[],
+    )
+
+    for expected_sleep_stacks in (2, 1, 0):
+        resolved = end_turn(state, registry)
+        assert resolved == []
+        assert state.player.hp == 80
+        sleeping_statuses = [status for status in state.enemies[0].statuses if status.status_id == "sleeping"]
+        if expected_sleep_stacks == 0:
+            assert sleeping_statuses == []
+        else:
+            assert [status.stacks for status in sleeping_statuses] == [expected_sleep_stacks]
+
+    resolved = end_turn(state, registry)
+
+    assert [effect["type"] for effect in resolved] == ["damage"]
+    assert state.player.hp == 62

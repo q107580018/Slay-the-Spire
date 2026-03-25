@@ -6,7 +6,20 @@
       "hp": 109,
       "move_table": [
         {
-          "move": "awaken",
+          "move": "sleep",
+          "sleep_turns": 3
+        },
+        {
+          "move": "heavy_slam",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 18
+            }
+          ]
+        },
+        {
+          "move": "heavy_slam",
           "weight": 1,
           "effects": [
             {

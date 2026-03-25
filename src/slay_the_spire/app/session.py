@@ -11,6 +11,7 @@ from slay_the_spire.adapters.terminal.renderer import render_room, render_room_r
 from slay_the_spire.adapters.persistence.save_files import JsonFileSaveRepository
 from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.domain.map.map_generator import generate_act_state
+from slay_the_spire.domain.hooks.runtime import build_runtime_hook_registrations
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.act_state import ActState
@@ -19,6 +20,8 @@ from slay_the_spire.domain.models.run_state import RunState
 from slay_the_spire.domain.rewards.reward_generator import generate_combat_rewards
 from slay_the_spire.ports.input_port import InputPort
 from slay_the_spire.use_cases.load_game import load_game
+from slay_the_spire.use_cases.apply_reward import apply_reward
+from slay_the_spire.use_cases.event_action import event_action
 from slay_the_spire.use_cases.resolve_event_choice import resolve_event_choice
 from slay_the_spire.use_cases.end_turn import end_turn
 from slay_the_spire.use_cases.enter_room import enter_room
@@ -124,6 +127,11 @@ def _menu_state_for_room(room_state: RoomState) -> MenuState:
         if room_state.stage == "select_upgrade_card":
             return MenuState(mode="rest_upgrade_card")
         return MenuState(mode="rest_root")
+    if room_state.room_type == "event" and not room_state.is_resolved:
+        if room_state.stage == "select_event_upgrade_card":
+            return MenuState(mode="event_upgrade_card")
+        if room_state.stage == "select_event_remove_card":
+            return MenuState(mode="event_remove_card")
     return MenuState()
 
 
@@ -146,12 +154,49 @@ def _room_with_rewards_claimed(room_state: RoomState, reward_id: str) -> RoomSta
     )
 
 
+def _room_with_all_rewards_claimed(room_state: RoomState) -> RoomState:
+    claimed_room = room_state
+    for reward_id in list(room_state.rewards):
+        claimed_room = _room_with_rewards_claimed(claimed_room, reward_id)
+    return claimed_room
+
+
+def _claim_session_reward(session: SessionState, reward_id: str) -> SessionState:
+    updated_run_state = apply_reward(
+        run_state=session.run_state,
+        reward_id=reward_id,
+        registry=_content_provider(session),
+    )
+    updated_room_state = _room_with_rewards_claimed(session.room_state, reward_id)
+    run_phase = session.run_phase
+    if session.room_state.room_type == "boss" and not updated_room_state.rewards:
+        run_phase = "victory"
+    return replace(
+        session,
+        run_state=updated_run_state,
+        room_state=updated_room_state,
+        run_phase=run_phase,
+        menu_state=MenuState(),
+    )
+
+
+def _claim_all_session_rewards(session: SessionState) -> SessionState:
+    updated_session = session
+    for reward_id in list(session.room_state.rewards):
+        updated_session = _claim_session_reward(updated_session, reward_id)
+    return updated_session
+
+
 def _combat_target_ids(combat_state: CombatState) -> list[str]:
     return [enemy.instance_id for enemy in combat_state.enemies if enemy.hp > 0]
 
 
 def _combat_is_won(combat_state: CombatState) -> bool:
     return bool(combat_state.enemies) and all(enemy.hp == 0 for enemy in combat_state.enemies)
+
+
+def _combat_hook_registrations(session: SessionState):
+    return build_runtime_hook_registrations(session.run_state, _content_provider(session))
 
 
 def _room_with_combat_state(
@@ -359,7 +404,13 @@ def route_command(command: str, *, session: SessionState) -> tuple[bool, Session
             target_id = _resolve_target_id(combat_state, parts[2] if len(parts) == 3 else None)
             if any(effect.get("type") in {"damage", "vulnerable"} for effect in card_def.effects) and target_id is None:
                 return True, next_session, "Target is required."
-            result = play_card(combat_state, card_instance_id, target_id, _content_provider(next_session))
+            result = play_card(
+                combat_state,
+                card_instance_id,
+                target_id,
+                _content_provider(next_session),
+                hook_registrations=_combat_hook_registrations(next_session),
+            )
         except (KeyError, TypeError, ValueError) as exc:
             return True, next_session, str(exc)
         resolved_session = _session_with_combat_state(next_session, result.combat_state)
@@ -373,7 +424,11 @@ def route_command(command: str, *, session: SessionState) -> tuple[bool, Session
         if combat_state is None:
             return True, next_session, "Combat state is unavailable."
         try:
-            result = end_turn(combat_state, _content_provider(next_session))
+            result = end_turn(
+                combat_state,
+                _content_provider(next_session),
+                hook_registrations=_combat_hook_registrations(next_session),
+            )
         except (KeyError, TypeError, ValueError) as exc:
             return True, next_session, str(exc)
         resolved_session = _session_with_combat_state(next_session, result.combat_state)
@@ -398,6 +453,13 @@ def _invalid_menu_choice(session: SessionState) -> tuple[bool, SessionState, str
     return True, session, "无效选项，请输入菜单编号。"
 
 
+def _message_with_render(session: SessionState, message: str | None) -> str:
+    rendered = render_session(session)
+    if not message:
+        return rendered
+    return f"{message}\n\n{rendered}"
+
+
 def _save_current_session(session: SessionState) -> tuple[bool, SessionState, str]:
     repository = JsonFileSaveRepository(session.save_path)
     combat_state = _combat_state_from_room(session.room_state)
@@ -417,7 +479,22 @@ def _load_current_session(session: SessionState) -> tuple[bool, SessionState, st
     return True, restored, f"已从存档恢复。当前存档: {session.save_path}"
 
 
+def _route_terminal_phase_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+    if choice == "1":
+        return True, replace(session, menu_state=MenuState()), render_session(replace(session, menu_state=MenuState()))
+    if choice == "2":
+        return _save_current_session(session)
+    if choice == "3":
+        return _load_current_session(session)
+    if choice == "4":
+        return False, replace(session, menu_state=MenuState()), "已退出游戏。"
+    return _invalid_menu_choice(session)
+
+
 def _route_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+    if session.run_phase in {"victory", "game_over"}:
+        return _route_terminal_phase_menu(choice, session)
+
     if session.room_state.is_resolved:
         if session.room_state.rewards:
             if choice == "1":
@@ -605,32 +682,109 @@ def _route_event_choice_menu(choice: str, session: SessionState) -> tuple[bool, 
     choice_id = event_def.choices[index - 1].get("id")
     if not isinstance(choice_id, str):
         return True, replace(session, menu_state=MenuState()), "事件选项无效。"
-    room_state = resolve_event_choice(
+    result = event_action(
+        run_state=session.run_state,
         room_state=session.room_state,
-        choice_id=choice_id,
+        action_id=f"choice:{choice_id}",
         registry=_content_provider(session),
     )
-    next_session = replace(session, room_state=room_state, menu_state=MenuState())
-    return True, next_session, render_session(next_session)
+    next_session = replace(
+        session,
+        run_state=result.run_state,
+        room_state=result.room_state,
+        run_phase=_derive_run_phase(result.run_state, result.room_state),
+        menu_state=_menu_state_for_room(result.room_state),
+    )
+    return True, next_session, _message_with_render(next_session, result.message)
+
+
+def _route_event_upgrade_card_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+    options = session.room_state.payload.get("upgrade_options", [])
+    if not isinstance(options, list):
+        return _invalid_menu_choice(session)
+    back_choice = str(len(options) + 1)
+    if choice == back_choice:
+        result = event_action(
+            run_state=session.run_state,
+            room_state=session.room_state,
+            action_id="cancel",
+            registry=_content_provider(session),
+        )
+    else:
+        try:
+            index = int(choice)
+        except ValueError:
+            return _invalid_menu_choice(session)
+        if index <= 0 or index > len(options):
+            return _invalid_menu_choice(session)
+        result = event_action(
+            run_state=session.run_state,
+            room_state=session.room_state,
+            action_id=f"upgrade_card:{options[index - 1]}",
+            registry=_content_provider(session),
+        )
+    next_session = replace(
+        session,
+        run_state=result.run_state,
+        room_state=result.room_state,
+        run_phase=_derive_run_phase(result.run_state, result.room_state),
+        menu_state=_menu_state_for_room(result.room_state),
+    )
+    return True, next_session, _message_with_render(next_session, result.message)
+
+
+def _route_event_remove_card_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+    candidates = session.room_state.payload.get("remove_candidates", [])
+    if not isinstance(candidates, list):
+        return _invalid_menu_choice(session)
+    back_choice = str(len(candidates) + 1)
+    if choice == back_choice:
+        result = event_action(
+            run_state=session.run_state,
+            room_state=session.room_state,
+            action_id="cancel",
+            registry=_content_provider(session),
+        )
+    else:
+        try:
+            index = int(choice)
+        except ValueError:
+            return _invalid_menu_choice(session)
+        if index <= 0 or index > len(candidates):
+            return _invalid_menu_choice(session)
+        result = event_action(
+            run_state=session.run_state,
+            room_state=session.room_state,
+            action_id=f"remove_card:{candidates[index - 1]}",
+            registry=_content_provider(session),
+        )
+    next_session = replace(
+        session,
+        run_state=result.run_state,
+        room_state=result.room_state,
+        run_phase=_derive_run_phase(result.run_state, result.room_state),
+        menu_state=_menu_state_for_room(result.room_state),
+    )
+    return True, next_session, _message_with_render(next_session, result.message)
 
 
 def _route_reward_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
     rewards = list(session.room_state.rewards)
-    back_choice = str(len(rewards) + 1)
+    claim_all_choice = str(len(rewards) + 1)
+    back_choice = str(len(rewards) + 2)
     if choice == back_choice:
         next_session = replace(session, menu_state=MenuState())
         return True, next_session, render_session(next_session)
-    try:
-        index = int(choice)
-    except ValueError:
-        return _invalid_menu_choice(session)
-    if index <= 0 or index > len(rewards):
-        return _invalid_menu_choice(session)
-    room_state = _room_with_rewards_claimed(session.room_state, rewards[index - 1])
-    run_phase = session.run_phase
-    if session.room_state.room_type == "boss" and not room_state.rewards:
-        run_phase = "victory"
-    next_session = replace(session, room_state=room_state, run_phase=run_phase, menu_state=MenuState())
+    if choice == claim_all_choice:
+        next_session = _claim_all_session_rewards(session)
+    else:
+        try:
+            index = int(choice)
+        except ValueError:
+            return _invalid_menu_choice(session)
+        if index <= 0 or index > len(rewards):
+            return _invalid_menu_choice(session)
+        next_session = _claim_session_reward(session, rewards[index - 1])
     return True, next_session, render_session(next_session)
 
 
@@ -645,8 +799,7 @@ def _shop_root_actions(room_state: RoomState) -> list[str]:
     for offer in room_state.payload.get("potions", []):
         if isinstance(offer, dict) and isinstance(offer.get("offer_id"), str):
             actions.append(f"buy_potion:{offer['offer_id']}")
-    if room_state.payload.get("remove_used") is not True:
-        actions.append("remove")
+    actions.append("remove")
     actions.extend(["leave", "__save__", "__load__", "__quit__"])
     return actions
 
@@ -673,7 +826,7 @@ def _route_shop_root_menu(choice: str, session: SessionState) -> tuple[bool, Ses
         room_state=result.room_state,
         menu_state=_menu_state_for_room(result.room_state),
     )
-    return True, next_session, render_session(next_session)
+    return True, next_session, _message_with_render(next_session, result.message)
 
 
 def _route_shop_remove_card_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
@@ -702,7 +855,7 @@ def _route_shop_remove_card_menu(choice: str, session: SessionState) -> tuple[bo
         room_state=result.room_state,
         menu_state=_menu_state_for_room(result.room_state),
     )
-    return True, next_session, render_session(next_session)
+    return True, next_session, _message_with_render(next_session, result.message)
 
 
 def _route_rest_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
@@ -782,6 +935,10 @@ def route_menu_choice(choice: str, *, session: SessionState) -> tuple[bool, Sess
         return _route_next_room_menu(choice.strip(), next_session)
     if next_session.menu_state.mode == "select_event_choice":
         return _route_event_choice_menu(choice.strip(), next_session)
+    if next_session.menu_state.mode == "event_upgrade_card":
+        return _route_event_upgrade_card_menu(choice.strip(), next_session)
+    if next_session.menu_state.mode == "event_remove_card":
+        return _route_event_remove_card_menu(choice.strip(), next_session)
     if next_session.menu_state.mode == "select_reward":
         return _route_reward_menu(choice.strip(), next_session)
     if next_session.menu_state.mode == "shop_root":

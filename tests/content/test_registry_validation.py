@@ -41,7 +41,7 @@ def test_provider_exposes_registry_accessors() -> None:
     assert provider.cards().get("bash").name == "重击"
     assert provider.enemies().get("slime").name == "绿史莱姆"
     assert provider.relics().get("burning_blood").id == "burning_blood"
-    assert provider.events().get("shining_light").text.startswith("发光的牧师")
+    assert provider.events().get("shining_light").text.startswith("一道圣洁的光")
     assert provider.acts().get("act1").enemy_pool_id == "act1_basic"
 
 
@@ -52,6 +52,16 @@ def test_starter_catalog_passes_startup_integrity() -> None:
     assert catalog.enemies.get("jaw_worm").id == "jaw_worm"
     assert catalog.relics.get("burning_blood").name == "燃烧之血"
     assert catalog.events.get("shining_light").id == "shining_light"
+    assert catalog.events.get("the_cleric").id == "the_cleric"
+    assert catalog.events.get("world_of_goop").id == "world_of_goop"
+    assert catalog.events.get("living_wall").id == "living_wall"
+    assert catalog.events.get("big_fish").id == "big_fish"
+    assert catalog.events.get("golden_shrine").id == "golden_shrine"
+    assert catalog.events.get("golden_idol").id == "golden_idol"
+    assert catalog.events.get("the_ssssserpent").id == "the_ssssserpent"
+    assert catalog.cards.get("doubt").id == "doubt"
+    assert catalog.cards.get("injury").id == "injury"
+    assert catalog.relics.get("golden_idol").id == "golden_idol"
     assert catalog.acts.get("act1").id == "act1"
 
 

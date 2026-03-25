@@ -11,6 +11,7 @@ from slay_the_spire.domain.models.run_state import RunState
 class ShopActionResult:
     run_state: RunState
     room_state: RoomState
+    message: str | None = None
 
 
 def _next_instance_id(deck: list[str], card_id: str) -> str:
@@ -32,14 +33,22 @@ def _offer_by_id(items: object, offer_id: str) -> dict[str, object] | None:
     return None
 
 
-def _remove_offer(items: object, offer_id: str) -> list[object]:
+def _mark_offer_sold(items: object, offer_id: str) -> list[object]:
     if not isinstance(items, list):
         return []
-    return [item for item in items if not (isinstance(item, dict) and item.get("offer_id") == offer_id)]
+    updated: list[object] = []
+    for item in items:
+        if isinstance(item, dict) and item.get("offer_id") == offer_id:
+            sold_item = dict(item)
+            sold_item["sold"] = True
+            updated.append(sold_item)
+            continue
+        updated.append(item)
+    return updated
 
 
-def _result(run_state: RunState, room_state: RoomState) -> ShopActionResult:
-    return ShopActionResult(run_state=run_state, room_state=room_state)
+def _result(run_state: RunState, room_state: RoomState, message: str | None = None) -> ShopActionResult:
+    return ShopActionResult(run_state=run_state, room_state=room_state, message=message)
 
 
 def shop_action(*, run_state: RunState, room_state: RoomState, action_id: str) -> ShopActionResult:
@@ -65,14 +74,14 @@ def shop_action(*, run_state: RunState, room_state: RoomState, action_id: str) -
         if not action_id.startswith("remove_card:"):
             return _result(run_state, room_state)
         if payload.get("remove_used") is True:
-            return _result(run_state, room_state)
+            return _result(run_state, room_state, "本次商店的删牌服务已使用。")
         card_instance_id = action_id.removeprefix("remove_card:")
         candidates = payload.get("remove_candidates")
         if not isinstance(candidates, list) or card_instance_id not in candidates:
             return _result(run_state, room_state)
         remove_price = payload.get("remove_price", 75)
         if not isinstance(remove_price, int) or run_state.gold < remove_price:
-            return _result(run_state, room_state)
+            return _result(run_state, room_state, "金币不足，无法使用删牌服务。")
         payload.pop("remove_candidates", None)
         payload["remove_used"] = True
         updated_run_state = replace(
@@ -95,6 +104,11 @@ def shop_action(*, run_state: RunState, room_state: RoomState, action_id: str) -
         )
 
     if action_id == "remove":
+        remove_price = payload.get("remove_price", 75)
+        if payload.get("remove_used") is True:
+            return _result(run_state, room_state, "本次商店的删牌服务已使用。")
+        if not isinstance(remove_price, int) or run_state.gold < remove_price:
+            return _result(run_state, room_state, "金币不足，无法使用删牌服务。")
         payload["remove_candidates"] = list(run_state.deck)
         return _result(
             run_state,
@@ -126,11 +140,13 @@ def shop_action(*, run_state: RunState, room_state: RoomState, action_id: str) -
         offer = _offer_by_id(payload.get("cards"), offer_id)
         if offer is None:
             return _result(run_state, room_state)
+        if offer.get("sold") is True:
+            return _result(run_state, room_state, "该商品已购买。")
         price = offer.get("price")
         card_id = offer.get("card_id")
         if not isinstance(price, int) or not isinstance(card_id, str) or run_state.gold < price:
-            return _result(run_state, room_state)
-        payload["cards"] = _remove_offer(payload.get("cards"), offer_id)
+            return _result(run_state, room_state, "金币不足，无法购买该商品。")
+        payload["cards"] = _mark_offer_sold(payload.get("cards"), offer_id)
         updated_run_state = replace(
             run_state,
             gold=run_state.gold - price,
@@ -153,11 +169,13 @@ def shop_action(*, run_state: RunState, room_state: RoomState, action_id: str) -
         offer = _offer_by_id(payload.get("relics"), offer_id)
         if offer is None:
             return _result(run_state, room_state)
+        if offer.get("sold") is True:
+            return _result(run_state, room_state, "该商品已购买。")
         price = offer.get("price")
         relic_id = offer.get("relic_id")
         if not isinstance(price, int) or not isinstance(relic_id, str) or run_state.gold < price:
-            return _result(run_state, room_state)
-        payload["relics"] = _remove_offer(payload.get("relics"), offer_id)
+            return _result(run_state, room_state, "金币不足，无法购买该商品。")
+        payload["relics"] = _mark_offer_sold(payload.get("relics"), offer_id)
         updated_run_state = replace(
             run_state,
             gold=run_state.gold - price,
@@ -180,11 +198,13 @@ def shop_action(*, run_state: RunState, room_state: RoomState, action_id: str) -
         offer = _offer_by_id(payload.get("potions"), offer_id)
         if offer is None:
             return _result(run_state, room_state)
+        if offer.get("sold") is True:
+            return _result(run_state, room_state, "该商品已购买。")
         price = offer.get("price")
         potion_id = offer.get("potion_id")
         if not isinstance(price, int) or not isinstance(potion_id, str) or run_state.gold < price:
-            return _result(run_state, room_state)
-        payload["potions"] = _remove_offer(payload.get("potions"), offer_id)
+            return _result(run_state, room_state, "金币不足，无法购买该商品。")
+        payload["potions"] = _mark_offer_sold(payload.get("potions"), offer_id)
         updated_run_state = replace(
             run_state,
             gold=run_state.gold - price,

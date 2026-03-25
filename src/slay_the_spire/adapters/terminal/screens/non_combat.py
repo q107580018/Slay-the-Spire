@@ -10,6 +10,7 @@ from slay_the_spire.adapters.terminal.screens.layout import build_standard_scree
 from slay_the_spire.adapters.terminal.theme import PANEL_BOX
 from slay_the_spire.adapters.terminal.widgets import render_menu
 from slay_the_spire.domain.models.act_state import ActState, ActNodeState
+from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.room_state import RoomState
 from slay_the_spire.domain.models.run_state import RunState
 from slay_the_spire.ports.content_provider import ContentProviderPort
@@ -38,6 +39,8 @@ _STAGE_LABELS = {
     "defeated": "已失败",
     "select_remove_card": "选择删牌",
     "select_upgrade_card": "选择强化",
+    "select_event_remove_card": "事件中选择删牌",
+    "select_event_upgrade_card": "事件中选择强化",
 }
 
 _RUN_PHASE_LABELS = {
@@ -81,16 +84,27 @@ def _format_next_nodes(act_state: ActState, room_state: RoomState) -> str:
     return ", ".join(_format_node_choice(act_state, node_id) for node_id in next_node_ids)
 
 
-def _format_reward_label(reward_id: str) -> str:
+def _format_card_instance_label(card_instance_id: str, registry: ContentProviderPort) -> str:
+    card_id = card_id_from_instance_id(card_instance_id)
+    card_def = registry.cards().get(card_id)
+    return f"{card_def.name} ({card_instance_id})"
+
+
+def _reward_card_id(reward_name: str) -> str:
+    if reward_name == "reward_strike":
+        return "strike_plus"
+    if reward_name == "reward_defend":
+        return "defend_plus"
+    return reward_name
+
+
+def _format_reward_label(reward_id: str, registry: ContentProviderPort) -> str:
     if reward_id.startswith("gold:"):
-        return f"金币 {reward_id.split(':', 1)[1]}"
+        return f"金币 +{reward_id.split(':', 1)[1]}"
     if reward_id.startswith("card:"):
         reward_name = reward_id.split(":", 1)[1]
-        if reward_name == "reward_strike":
-            return "卡牌 打击+"
-        if reward_name == "reward_defend":
-            return "卡牌 防御+"
-        return f"卡牌 {reward_name}"
+        card_def = registry.cards().get(_reward_card_id(reward_name))
+        return f"卡牌 {card_def.name}"
     if reward_id.startswith("event:"):
         result = reward_id.split(":", 1)[1]
         if result == "gain_upgrade":
@@ -101,13 +115,16 @@ def _format_reward_label(reward_id: str) -> str:
     return reward_id
 
 
-def _format_reward_lines(rewards: list[str]) -> list[str]:
+def _format_reward_lines(rewards: list[str], registry: ContentProviderPort) -> list[str]:
     if not rewards:
         return ["-"]
-    return [f"{index}. {_format_reward_label(reward)}" for index, reward in enumerate(rewards, start=1)]
+    return [f"{index}. {_format_reward_label(reward, registry)}" for index, reward in enumerate(rewards, start=1)]
 
 
 def _format_event_result(room_state: RoomState) -> str | None:
+    result_text = room_state.payload.get("result_text")
+    if isinstance(result_text, str):
+        return result_text
     result = room_state.payload.get("result")
     if not isinstance(result, str):
         return None
@@ -213,37 +230,96 @@ def _format_event_menu(room_state: RoomState, registry: ContentProviderPort) -> 
     return lines
 
 
-def _format_reward_menu(room_state: RoomState) -> list[str]:
-    lines = ["奖励:"]
-    lines.extend(_format_reward_lines(room_state.rewards))
-    lines.append(f"{len(room_state.rewards) + 1}. 返回上一步")
+def _format_event_upgrade_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str]:
+    lines = ["选择要升级的卡牌:"]
+    options = room_state.payload.get("upgrade_options", [])
+    if not isinstance(options, list):
+        options = []
+    for index, card_instance_id in enumerate(options, start=1):
+        lines.append(f"{index}. {_format_card_instance_label(card_instance_id, registry)}")
+    lines.append(f"{len(options) + 1}. 返回上一步")
     return lines
 
 
-def _format_shop_root_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str]:
-    lines = ["商店操作:"]
+def _format_event_remove_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str]:
+    lines = ["选择要移除的卡牌:"]
+    candidates = room_state.payload.get("remove_candidates", [])
+    if not isinstance(candidates, list):
+        candidates = []
+    for index, card_instance_id in enumerate(candidates, start=1):
+        lines.append(f"{index}. {_format_card_instance_label(card_instance_id, registry)}")
+    lines.append(f"{len(candidates) + 1}. 返回上一步")
+    return lines
+
+
+def _format_reward_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str]:
+    lines = ["奖励:"]
+    lines.extend(_format_reward_lines(room_state.rewards, registry))
+    lines.append(f"{len(room_state.rewards) + 1}. 全部领取")
+    lines.append(f"{len(room_state.rewards) + 2}. 返回上一步")
+    return lines
+
+
+def _shop_offer_status(*, price: object, sold: bool, current_gold: int) -> str:
+    if sold:
+        return "已购买"
+    if not isinstance(price, int) or current_gold < price:
+        return "金币不足"
+    return "可购买"
+
+
+def _remove_service_status(*, remove_used: bool, remove_price: object, current_gold: int) -> str:
+    if remove_used:
+        return "已使用"
+    if not isinstance(remove_price, int) or current_gold < remove_price:
+        return "金币不足"
+    return "可购买"
+
+
+def _format_shop_root_menu(room_state: RoomState, registry: ContentProviderPort, run_state: RunState) -> list[str]:
+    lines = ["商店操作:", f"当前金币: {run_state.gold}"]
     index = 1
     for offer in room_state.payload.get("cards", []):
         if isinstance(offer, dict):
             card_id = offer.get("card_id")
             card_name = registry.cards().get(card_id).name if isinstance(card_id, str) else card_id
-            lines.append(f"{index}. 购买卡牌 {card_name} - {offer.get('price')} 金币")
+            status = _shop_offer_status(
+                price=offer.get("price"),
+                sold=offer.get("sold") is True,
+                current_gold=run_state.gold,
+            )
+            lines.append(f"{index}. 购买卡牌 {card_name} - {offer.get('price')} 金币 [{status}]")
             index += 1
     for offer in room_state.payload.get("relics", []):
         if isinstance(offer, dict):
             relic_id = offer.get("relic_id")
             relic_name = registry.relics().get(relic_id).name if isinstance(relic_id, str) else relic_id
-            lines.append(f"{index}. 购买遗物 {relic_name} - {offer.get('price')} 金币")
+            status = _shop_offer_status(
+                price=offer.get("price"),
+                sold=offer.get("sold") is True,
+                current_gold=run_state.gold,
+            )
+            lines.append(f"{index}. 购买遗物 {relic_name} - {offer.get('price')} 金币 [{status}]")
             index += 1
     for offer in room_state.payload.get("potions", []):
         if isinstance(offer, dict):
             potion_id = offer.get("potion_id")
             potion_name = registry.potions().get(potion_id).name if isinstance(potion_id, str) else potion_id
-            lines.append(f"{index}. 购买药水 {potion_name} - {offer.get('price')} 金币")
+            status = _shop_offer_status(
+                price=offer.get("price"),
+                sold=offer.get("sold") is True,
+                current_gold=run_state.gold,
+            )
+            lines.append(f"{index}. 购买药水 {potion_name} - {offer.get('price')} 金币 [{status}]")
             index += 1
-    if room_state.payload.get("remove_used") is not True:
-        lines.append(f"{index}. 删牌服务")
-        index += 1
+    remove_price = room_state.payload.get("remove_price", 75)
+    remove_status = _remove_service_status(
+        remove_used=room_state.payload.get("remove_used") is True,
+        remove_price=remove_price,
+        current_gold=run_state.gold,
+    )
+    lines.append(f"{index}. 删牌服务 - {remove_price} 金币 [{remove_status}]")
+    index += 1
     lines.extend(
         [
             f"{index}. 离开商店",
@@ -291,13 +367,13 @@ def _format_rest_root_menu(room_state: RoomState) -> list[str]:
     return lines
 
 
-def _format_rest_upgrade_menu(room_state: RoomState) -> list[str]:
+def _format_rest_upgrade_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str]:
     lines = ["可升级卡牌:"]
     options = room_state.payload.get("upgrade_options", [])
     if not isinstance(options, list):
         options = []
     for index, card_instance_id in enumerate(options, start=1):
-        lines.append(f"{index}. {card_instance_id}")
+        lines.append(f"{index}. {_format_card_instance_label(card_instance_id, registry)}")
     base = len(options)
     lines.extend(
         [
@@ -379,6 +455,7 @@ def render_summary_panel(
         Text.assemble(("阶段 ", "summary.label"), _STAGE_LABELS.get(room_state.stage, room_state.stage)),
         Text.assemble(("运行阶段 ", "summary.label"), _RUN_PHASE_LABELS.get(run_phase, run_phase)),
         Text.assemble(("玩家生命 ", "summary.label"), f"{run_state.current_hp}/{run_state.max_hp}"),
+        Text.assemble(("当前金币 ", "summary.label"), str(run_state.gold)),
         Text.assemble(("下一房间 ", "summary.label"), _format_next_nodes(act_state, room_state)),
     ]
     return Panel(Group(*lines), title="房间摘要", box=PANEL_BOX, expand=False)
@@ -393,51 +470,86 @@ def render_event_body(room_state: RoomState, registry: ContentProviderPort) -> P
     if not isinstance(event_id, str):
         return Panel(Group(Text("-")), title="事件正文", box=PANEL_BOX, expand=False)
     event_def = registry.events().get(event_id)
-    return Panel(Group(Text(event_def.text)), title="事件正文", box=PANEL_BOX, expand=False)
+    lines = [event_def.text]
+    result_text = room_state.payload.get("result_text")
+    if isinstance(result_text, str):
+        lines.extend(["", f"结果: {result_text}"])
+    if room_state.stage == "select_event_upgrade_card":
+        lines.extend(["", "可升级卡牌:"])
+        for option in room_state.payload.get("upgrade_options", []) if isinstance(room_state.payload.get("upgrade_options", []), list) else []:
+            lines.append(f"- {_format_card_instance_label(option, registry)}")
+    if room_state.stage == "select_event_remove_card":
+        lines.extend(["", "可移除卡牌:"])
+        for option in room_state.payload.get("remove_candidates", []) if isinstance(room_state.payload.get("remove_candidates", []), list) else []:
+            lines.append(f"- {_format_card_instance_label(option, registry)}")
+    return Panel(Group(*[Text(line) for line in lines]), title="事件正文", box=PANEL_BOX, expand=False)
 
 
-def render_reward_panel(room_state: RoomState) -> Panel:
+def render_reward_panel(room_state: RoomState, registry: ContentProviderPort) -> Panel:
     body: list[RenderableType] = []
     event_result = _format_event_result(room_state) if room_state.room_type == "event" else None
     if event_result is not None:
         body.append(Text.assemble(("结果: ", "summary.label"), event_result))
-    body.extend(Text(line) for line in _format_reward_lines(room_state.rewards))
+    body.extend(Text(line) for line in _format_reward_lines(room_state.rewards, registry))
     return Panel(Group(*body), title="奖励", box=PANEL_BOX, expand=False)
 
 
-def render_shop_panel(room_state: RoomState, registry: ContentProviderPort) -> Panel:
+def render_shop_panel(room_state: RoomState, registry: ContentProviderPort, run_state: RunState) -> Panel:
     cards = room_state.payload.get("cards", [])
     relics = room_state.payload.get("relics", [])
     potions = room_state.payload.get("potions", [])
     remove_price = room_state.payload.get("remove_price", 75)
-    lines = ["卡牌商品:"]
+    lines = [f"当前金币: {run_state.gold}", "", "卡牌商品:"]
     for offer in cards if isinstance(cards, list) else []:
         if isinstance(offer, dict):
             card_id = offer.get("card_id")
             card_name = registry.cards().get(card_id).name if isinstance(card_id, str) else card_id
-            lines.append(f"- {card_name} / {offer.get('price')} 金币")
+            status = _shop_offer_status(
+                price=offer.get("price"),
+                sold=offer.get("sold") is True,
+                current_gold=run_state.gold,
+            )
+            lines.append(f"- {card_name} / {offer.get('price')} 金币 [{status}]")
+    lines.append("")
     lines.append("遗物商品:")
     for offer in relics if isinstance(relics, list) else []:
         if isinstance(offer, dict):
             relic_id = offer.get("relic_id")
             relic_name = registry.relics().get(relic_id).name if isinstance(relic_id, str) else relic_id
-            lines.append(f"- {relic_name} / {offer.get('price')} 金币")
+            status = _shop_offer_status(
+                price=offer.get("price"),
+                sold=offer.get("sold") is True,
+                current_gold=run_state.gold,
+            )
+            lines.append(f"- {relic_name} / {offer.get('price')} 金币 [{status}]")
+    lines.append("")
     lines.append("药水商品:")
     for offer in potions if isinstance(potions, list) else []:
         if isinstance(offer, dict):
             potion_id = offer.get("potion_id")
             potion_name = registry.potions().get(potion_id).name if isinstance(potion_id, str) else potion_id
-            lines.append(f"- {potion_name} / {offer.get('price')} 金币")
-    lines.append(f"删牌服务: {remove_price} 金币")
+            status = _shop_offer_status(
+                price=offer.get("price"),
+                sold=offer.get("sold") is True,
+                current_gold=run_state.gold,
+            )
+            lines.append(f"- {potion_name} / {offer.get('price')} 金币 [{status}]")
+    lines.append("")
+    remove_status = _remove_service_status(
+        remove_used=room_state.payload.get("remove_used") is True,
+        remove_price=remove_price,
+        current_gold=run_state.gold,
+    )
+    lines.append(f"删牌服务: {remove_price} 金币 [{remove_status}]")
     return Panel(Group(*[Text(line) for line in lines]), title="商店", box=PANEL_BOX, expand=False)
 
 
-def render_rest_panel(room_state: RoomState) -> Panel:
+def render_rest_panel(room_state: RoomState, registry: ContentProviderPort) -> Panel:
     if room_state.stage == "select_upgrade_card":
         options = room_state.payload.get("upgrade_options", [])
         lines = ["可升级卡牌:"]
         for option in options if isinstance(options, list) else []:
-            lines.append(f"- {option}")
+            lines.append(f"- {_format_card_instance_label(option, registry)}")
         return Panel(Group(*[Text(line) for line in lines]), title="休息点", box=PANEL_BOX, expand=False)
     lines = ["可用动作:", "- 休息", "- 锻造"]
     return Panel(Group(*[Text(line) for line in lines]), title="休息点", box=PANEL_BOX, expand=False)
@@ -473,11 +585,11 @@ def render_non_combat_screen(
     elif mode == "select_next_room":
         body.append(Panel(Group(*[Text(line) for line in _format_next_room_menu(act_state, room_state)]), title="路径选择", box=PANEL_BOX, expand=False))
     elif room_state.room_type == "shop":
-        body.append(render_shop_panel(room_state, registry))
+        body.append(render_shop_panel(room_state, registry, run_state))
     elif room_state.room_type == "rest":
-        body.append(render_rest_panel(room_state))
+        body.append(render_rest_panel(room_state, registry))
     elif room_state.is_resolved and room_state.rewards:
-        body.append(render_reward_panel(room_state))
+        body.append(render_reward_panel(room_state, registry))
     elif room_state.room_type == "event":
         body.append(render_event_body(room_state, registry))
     else:
@@ -489,16 +601,20 @@ def render_non_combat_screen(
         footer = render_menu(_format_next_room_menu(act_state, room_state))
     elif mode == "select_event_choice":
         footer = render_menu(_format_event_menu(room_state, registry))
+    elif mode == "event_upgrade_card":
+        footer = render_menu(_format_event_upgrade_menu(room_state, registry))
+    elif mode == "event_remove_card":
+        footer = render_menu(_format_event_remove_menu(room_state, registry))
     elif mode == "select_reward":
-        footer = render_menu(_format_reward_menu(room_state))
+        footer = render_menu(_format_reward_menu(room_state, registry))
     elif mode == "shop_root":
-        footer = render_menu(_format_shop_root_menu(room_state, registry))
+        footer = render_menu(_format_shop_root_menu(room_state, registry, run_state))
     elif mode == "shop_remove_card":
         footer = render_menu(_format_shop_remove_menu(room_state))
     elif mode == "rest_root":
         footer = render_menu(_format_rest_root_menu(room_state))
     elif mode == "rest_upgrade_card":
-        footer = render_menu(_format_rest_upgrade_menu(room_state))
+        footer = render_menu(_format_rest_upgrade_menu(room_state, registry))
     else:
         footer = render_menu(_format_default_menu(room_state))
     return build_standard_screen(summary=summary, body=Group(*body), footer=footer)

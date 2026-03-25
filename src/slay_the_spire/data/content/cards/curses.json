@@ -1,0 +1,20 @@
+{
+  "cards": [
+    {
+      "id": "doubt",
+      "name": "疑虑",
+      "cost": -1,
+      "playable": false,
+      "can_appear_in_shop": false,
+      "effects": []
+    },
+    {
+      "id": "injury",
+      "name": "伤口",
+      "cost": -1,
+      "playable": false,
+      "can_appear_in_shop": false,
+      "effects": []
+    }
+  ]
+}

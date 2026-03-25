@@ -6,8 +6,10 @@ from slay_the_spire.shared.types import JsonDict, JsonValue
 
 EFFECT_DAMAGE = "damage"
 EFFECT_BLOCK = "block"
+EFFECT_HEAL = "heal"
 EFFECT_DRAW = "draw"
 EFFECT_VULNERABLE = "vulnerable"
+EFFECT_CREATE_CARD_COPY = "create_card_copy"
 EFFECT_NOOP = "noop"
 EFFECT_EMIT_HOOK = "emit_hook"
 

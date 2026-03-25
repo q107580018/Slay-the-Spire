@@ -12,6 +12,18 @@
           "amount": 6
         }
       ]
+    },
+    {
+      "id": "golden_idol",
+      "name": "金神像",
+      "trigger_hooks": [],
+      "passive_effects": [
+        {
+          "type": "event_gold_bonus",
+          "percent": 25
+        }
+      ],
+      "can_appear_in_shop": false
     }
   ]
 }
