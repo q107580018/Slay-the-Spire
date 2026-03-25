@@ -66,7 +66,8 @@ def test_combat_renderer_shows_deck_list_and_back_choice_in_inspect_mode() -> No
 
 
 def test_combat_renderer_distinguishes_inspect_stats_and_relics_pages() -> None:
-    session = start_session(seed=5)
+    base_session = start_session(seed=5)
+    session = replace(base_session, run_state=replace(base_session.run_state, gold=123))
     stats_output = render_room(
         run_state=session.run_state,
         act_state=session.act_state,
@@ -85,8 +86,12 @@ def test_combat_renderer_distinguishes_inspect_stats_and_relics_pages() -> None:
     )
 
     assert "角色状态" in stats_output
+    assert "当前生命: 80/80" in stats_output
+    assert "金币: 123" in stats_output
     assert "遗物列表" not in stats_output
     assert "遗物列表" in relics_output
+    assert "当前遗物:" in relics_output
+    assert "燃烧之血" in relics_output
     assert "角色状态" not in relics_output
 
 
@@ -152,6 +157,7 @@ def test_shop_renderer_shows_cards_relics_potions_and_remove_service() -> None:
     assert "药水商品" in output
     assert "删牌服务" in output
     assert "当前金币" in output
+    assert "7. 查看资料" in output
     assert "打击" in output
     assert "防御" in output
     assert "火焰药水" in output
@@ -199,6 +205,7 @@ def test_shop_renderer_shows_current_gold_and_affordance_statuses() -> None:
     assert "[可购买]" in output
     assert "[金币不足]" in output
     assert "[已购买]" in output
+    assert "6. 查看资料" in output
 
 
 def test_rest_renderer_shows_root_and_upgrade_selection_states() -> None:
@@ -231,6 +238,7 @@ def test_rest_renderer_shows_root_and_upgrade_selection_states() -> None:
     assert "休息点" in root_output
     assert "休息" in root_output
     assert "锻造" in root_output
+    assert "3. 查看资料" in root_output
     assert "Rest" not in root_output
     assert "Smith" not in root_output
     assert "可升级卡牌" in upgrade_output

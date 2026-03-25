@@ -10,10 +10,19 @@ from slay_the_spire.adapters.terminal.theme import PANEL_BOX
 from slay_the_spire.adapters.terminal.widgets import render_block, render_hp_bar, render_statuses, summarize_card_effects
 from slay_the_spire.content.registries import CardDef, EnemyDef
 from slay_the_spire.domain.combat.turn_flow import preview_enemy_move
+from slay_the_spire.domain.models.act_state import ActState
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import EnemyState
+from slay_the_spire.domain.models.room_state import RoomState
+from slay_the_spire.domain.models.run_state import RunState
 from slay_the_spire.ports.content_provider import ContentProviderPort
+
+
+def _format_node_id(node_id: object) -> str:
+    if str(node_id) == "start":
+        return "起点"
+    return str(node_id)
 
 
 def _card_cost_label(card_def: CardDef) -> str:
@@ -95,6 +104,42 @@ def format_card_instance_menu(title: str, card_instance_ids: list[str], registry
 
 def render_card_pile_panel(title: str, card_instance_ids: list[str], registry: ContentProviderPort) -> Panel:
     return Panel(Group(*[Text(line) for line in format_card_instance_menu(title, card_instance_ids, registry)]), title=title, box=PANEL_BOX, expand=False)
+
+
+def render_shared_stats_panel(
+    *,
+    title: str,
+    run_state: RunState,
+    act_state: ActState,
+    room_state: RoomState,
+) -> Panel:
+    lines = [
+        f"当前生命: {run_state.current_hp}/{run_state.max_hp}",
+        f"金币: {run_state.gold}",
+        f"当前章节: {act_state.act_id}",
+        f"当前房间: {_format_node_id(room_state.payload.get('node_id', act_state.current_node_id))}",
+    ]
+    return Panel(Group(*[Text(line) for line in lines]), title=title, box=PANEL_BOX, expand=False)
+
+
+def render_shared_relics_panel(*, title: str, run_state: RunState, registry: ContentProviderPort) -> Panel:
+    lines = ["当前遗物:"]
+    if not run_state.relics:
+        lines.append("-")
+    else:
+        for relic_id in run_state.relics:
+            lines.append(f"- {registry.relics().get(relic_id).name}")
+    return Panel(Group(*[Text(line) for line in lines]), title=title, box=PANEL_BOX, expand=False)
+
+
+def render_shared_potions_panel(*, title: str, run_state: RunState, registry: ContentProviderPort) -> Panel:
+    lines = ["当前药水:"]
+    if not run_state.potions:
+        lines.append("-")
+    else:
+        for potion_id in run_state.potions:
+            lines.append(f"- {registry.potions().get(potion_id).name}")
+    return Panel(Group(*[Text(line) for line in lines]), title=title, box=PANEL_BOX, expand=False)
 
 
 def format_card_detail_menu() -> list[str]:

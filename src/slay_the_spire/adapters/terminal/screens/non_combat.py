@@ -6,6 +6,11 @@ from rich.console import Group, RenderableType
 from rich.panel import Panel
 from rich.text import Text
 
+from slay_the_spire.adapters.terminal.inspect import (
+    render_shared_potions_panel,
+    render_shared_relics_panel,
+    render_shared_stats_panel,
+)
 from slay_the_spire.adapters.terminal.screens.layout import build_standard_screen
 from slay_the_spire.adapters.terminal.theme import PANEL_BOX
 from slay_the_spire.adapters.terminal.widgets import render_menu
@@ -316,32 +321,14 @@ def render_non_combat_inspect_panel(
 ) -> Panel:
     mode = _menu_mode(menu_state)
     if mode == "inspect_stats":
-        lines = [
-            f"当前生命: {run_state.current_hp}/{run_state.max_hp}",
-            f"金币: {run_state.gold}",
-            f"当前章节: {act_state.act_id}",
-            f"当前房间: {_format_node_id(room_state.payload.get('node_id', act_state.current_node_id))}",
-        ]
-        return Panel(Group(*[Text(line) for line in lines]), title="属性", box=PANEL_BOX, expand=False)
+        return render_shared_stats_panel(title="属性", run_state=run_state, act_state=act_state, room_state=room_state)
     if mode == "inspect_deck":
         lines = [Text(line) for line in _format_non_combat_inspect_deck_menu(run_state, registry)]
         return Panel(Group(*lines), title="牌组", box=PANEL_BOX, expand=False)
     if mode == "inspect_relics":
-        lines = ["当前遗物:"]
-        if not run_state.relics:
-            lines.append("-")
-        else:
-            for relic_id in run_state.relics:
-                lines.append(f"- {registry.relics().get(relic_id).name}")
-        return Panel(Group(*[Text(line) for line in lines]), title="遗物", box=PANEL_BOX, expand=False)
+        return render_shared_relics_panel(title="遗物", run_state=run_state, registry=registry)
     if mode == "inspect_potions":
-        lines = ["当前药水:"]
-        if not run_state.potions:
-            lines.append("-")
-        else:
-            for potion_id in run_state.potions:
-                lines.append(f"- {registry.potions().get(potion_id).name}")
-        return Panel(Group(*[Text(line) for line in lines]), title="药水", box=PANEL_BOX, expand=False)
+        return render_shared_potions_panel(title="药水", run_state=run_state, registry=registry)
     lines = [
         "可查看共享资料页。",
         "包含属性、牌组、遗物和药水。",
@@ -412,9 +399,10 @@ def _format_shop_root_menu(room_state: RoomState, registry: ContentProviderPort,
     lines.extend(
         [
             f"{index}. 离开商店",
-            f"{index + 1}. 保存游戏",
-            f"{index + 2}. 读取存档",
-            f"{index + 3}. 退出游戏",
+            f"{index + 1}. 查看资料",
+            f"{index + 2}. 保存游戏",
+            f"{index + 3}. 读取存档",
+            f"{index + 4}. 退出游戏",
         ]
     )
     return lines
@@ -448,9 +436,10 @@ def _format_rest_root_menu(room_state: RoomState) -> list[str]:
     base = len(actions)
     lines.extend(
         [
-            f"{base + 1}. 保存游戏",
-            f"{base + 2}. 读取存档",
-            f"{base + 3}. 退出游戏",
+            f"{base + 1}. 查看资料",
+            f"{base + 2}. 保存游戏",
+            f"{base + 3}. 读取存档",
+            f"{base + 4}. 退出游戏",
         ]
     )
     return lines

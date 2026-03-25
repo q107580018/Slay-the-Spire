@@ -190,3 +190,39 @@ def test_render_combat_inspect_pages_show_pile_summary_card_detail_and_enemy_det
     assert "招式表预览:" in enemy_output
     assert "tackle" in enemy_output
     assert "返回敌人列表" in enemy_output
+
+
+def test_render_combat_shared_inspect_pages_show_real_stats_and_relics() -> None:
+    base_session = start_session(seed=5)
+    session = replace(
+        base_session,
+        run_state=replace(base_session.run_state, gold=123),
+    )
+
+    stats_output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=_provider(session),
+        menu_state=MenuState(mode="inspect_stats", inspect_parent_mode="root", inspect_item_id="stats"),
+        run_phase=session.run_phase,
+    )
+    relics_output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=_provider(session),
+        menu_state=MenuState(mode="inspect_relics", inspect_parent_mode="root", inspect_item_id="relics"),
+        run_phase=session.run_phase,
+    )
+
+    assert "角色状态" in stats_output
+    assert "当前生命: 80/80" in stats_output
+    assert "金币: 123" in stats_output
+    assert "当前章节: act1" in stats_output
+    assert "当前房间: 起点" in stats_output
+    assert "当前处于角色状态查看。" not in stats_output
+    assert "遗物列表" in relics_output
+    assert "当前遗物:" in relics_output
+    assert "燃烧之血" in relics_output
+    assert "当前处于遗物列表查看。" not in relics_output

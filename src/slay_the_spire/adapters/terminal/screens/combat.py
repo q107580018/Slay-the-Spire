@@ -15,6 +15,9 @@ from slay_the_spire.adapters.terminal.inspect import (
     render_card_pile_panel,
     render_enemy_detail_panel,
     render_enemy_list_panel,
+    render_shared_potions_panel,
+    render_shared_relics_panel,
+    render_shared_stats_panel,
 )
 from slay_the_spire.adapters.terminal.screens.layout import build_standard_screen, build_two_column_body
 from slay_the_spire.adapters.terminal.theme import PANEL_BOX
@@ -359,24 +362,24 @@ def render_menu_panel_for_combat(
     return render_menu(_format_menu(room_state, run_state, combat_state, registry, menu_state))
 
 
-def _inspect_body_panel(menu_state: Any, run_state: RunState, combat_state: CombatState, registry: ContentProviderPort) -> Panel:
+def _inspect_body_panel(
+    menu_state: Any,
+    run_state: RunState,
+    act_state: ActState,
+    room_state: RoomState,
+    combat_state: CombatState,
+    registry: ContentProviderPort,
+) -> Panel:
     mode = _menu_mode(menu_state)
     if mode == "inspect_deck":
         lines = [Text(line) for line in _format_inspect_deck_menu(run_state, registry)]
         return Panel(Group(*lines), title="牌组列表", box=PANEL_BOX, expand=False)
     if mode == "inspect_stats":
-        return Panel(Group(Text("当前处于角色状态查看。")), title="角色状态", box=PANEL_BOX, expand=False)
+        return render_shared_stats_panel(title="角色状态", run_state=run_state, act_state=act_state, room_state=room_state)
     if mode == "inspect_relics":
-        return Panel(Group(Text("当前处于遗物列表查看。")), title="遗物列表", box=PANEL_BOX, expand=False)
+        return render_shared_relics_panel(title="遗物列表", run_state=run_state, registry=registry)
     if mode == "inspect_potions":
-        potions = getattr(run_state, "potions", [])
-        lines = ["当前药水:"]
-        if not potions:
-            lines.append("-")
-        else:
-            for potion_id in potions:
-                lines.append(f"- {registry.potions().get(potion_id).name}")
-        return Panel(Group(*[Text(line) for line in lines]), title="药水", box=PANEL_BOX, expand=False)
+        return render_shared_potions_panel(title="药水", run_state=run_state, registry=registry)
     if mode == "inspect_hand":
         return render_card_pile_panel("手牌列表", combat_state.hand, registry)
     if mode == "inspect_draw_pile":
@@ -426,7 +429,7 @@ def render_combat_screen(
     )
     mode = _menu_mode(menu_state)
     if mode.startswith("inspect_"):
-        body = _inspect_body_panel(menu_state, run_state, combat_state, registry)
+        body = _inspect_body_panel(menu_state, run_state, act_state, room_state, combat_state, registry)
         body_group = [body]
     else:
         body = build_two_column_body(

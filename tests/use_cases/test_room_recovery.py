@@ -385,6 +385,46 @@ def test_shop_menu_returns_prompt_when_item_is_already_purchased() -> None:
     assert "该商品已购买。" in message
 
 
+def test_shop_room_inspect_round_trip_keeps_shop_flow() -> None:
+    session = replace(
+        start_session(seed=7),
+        room_state=RoomState(
+            room_id="act1:shop",
+            room_type="shop",
+            stage="waiting_input",
+            payload={
+                "node_id": "r3c1",
+                "cards": [{"offer_id": "card-1", "card_id": "strike", "price": 50}],
+                "relics": [],
+                "potions": [],
+                "remove_price": 75,
+                "next_node_ids": ["r4c0"],
+            },
+            is_resolved=False,
+            rewards=[],
+        ),
+        menu_state=MenuState(mode="shop_root"),
+    )
+
+    _running, inspect_session, inspect_message = route_menu_choice("4", session=session)
+    _running, stats_session, stats_message = route_menu_choice("1", session=inspect_session)
+    _running, inspect_back_session, inspect_back_message = route_menu_choice("1", session=stats_session)
+    _running, shop_session, shop_message = route_menu_choice("5", session=inspect_back_session)
+    _running, leave_session, leave_message = route_menu_choice("3", session=shop_session)
+
+    assert inspect_session.menu_state.mode == "inspect_root"
+    assert "资料总览" in inspect_message
+    assert stats_session.menu_state.mode == "inspect_stats"
+    assert "角色状态" in stats_message
+    assert inspect_back_session.menu_state.mode == "inspect_root"
+    assert "资料总览" in inspect_back_message
+    assert shop_session.menu_state.mode == "shop_root"
+    assert "商店操作" in shop_message
+    assert leave_session.room_state.is_resolved is True
+    assert leave_session.menu_state.mode == "root"
+    assert "前往下一个房间" in leave_message
+
+
 def test_player_defeat_sets_session_game_over_and_blocks_further_actions(tmp_path: Path) -> None:
     provider = _content_provider()
     run_state = start_new_run("ironclad", seed=53, registry=provider)

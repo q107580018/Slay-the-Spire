@@ -532,6 +532,10 @@ def _root_view_title(session: SessionState) -> str:
         return "战斗"
     if session.room_state.room_type == "event":
         return "查看事件"
+    if session.menu_state.mode == "shop_root" or session.room_state.room_type == "shop":
+        return "商店操作"
+    if session.menu_state.mode == "rest_root" or session.room_state.room_type == "rest":
+        return "休息点操作"
     if session.room_state.is_resolved and session.room_state.rewards:
         return "查看奖励"
     return "查看当前状态"
@@ -1088,7 +1092,7 @@ def _shop_root_actions(room_state: RoomState) -> list[str]:
         if isinstance(offer, dict) and isinstance(offer.get("offer_id"), str):
             actions.append(f"buy_potion:{offer['offer_id']}")
     actions.append("remove")
-    actions.extend(["leave", "__save__", "__load__", "__quit__"])
+    actions.extend(["leave", "__inspect__", "__save__", "__load__", "__quit__"])
     return actions
 
 
@@ -1101,6 +1105,9 @@ def _route_shop_root_menu(choice: str, session: SessionState) -> tuple[bool, Ses
     if index <= 0 or index > len(actions):
         return _invalid_menu_choice(session)
     action_id = actions[index - 1]
+    if action_id == "__inspect__":
+        next_session = _enter_inspect_root(session, parent_mode="shop_root")
+        return True, next_session, _menu_view_message(next_session, "资料总览")
     if action_id == "__save__":
         return _save_current_session(session)
     if action_id == "__load__":
@@ -1148,7 +1155,7 @@ def _route_shop_remove_card_menu(choice: str, session: SessionState) -> tuple[bo
 
 def _route_rest_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
     actions = [action for action in session.room_state.payload.get("actions", []) if isinstance(action, str)]
-    actions.extend(["__save__", "__load__", "__quit__"])
+    actions.extend(["__inspect__", "__save__", "__load__", "__quit__"])
     try:
         index = int(choice)
     except ValueError:
@@ -1156,6 +1163,9 @@ def _route_rest_root_menu(choice: str, session: SessionState) -> tuple[bool, Ses
     if index <= 0 or index > len(actions):
         return _invalid_menu_choice(session)
     action_id = actions[index - 1]
+    if action_id == "__inspect__":
+        next_session = _enter_inspect_root(session, parent_mode="rest_root")
+        return True, next_session, _menu_view_message(next_session, "资料总览")
     if action_id == "__save__":
         return _save_current_session(session)
     if action_id == "__load__":

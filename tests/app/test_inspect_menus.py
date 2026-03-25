@@ -22,6 +22,39 @@ def _event_room() -> RoomState:
     )
 
 
+def _shop_room() -> RoomState:
+    return RoomState(
+        room_id="act1:shop",
+        room_type="shop",
+        stage="waiting_input",
+        payload={
+            "node_id": "r3c1",
+            "cards": [{"offer_id": "card-1", "card_id": "strike", "price": 50}],
+            "relics": [],
+            "potions": [],
+            "remove_price": 75,
+            "next_node_ids": ["r4c0"],
+        },
+        is_resolved=False,
+        rewards=[],
+    )
+
+
+def _rest_room() -> RoomState:
+    return RoomState(
+        room_id="act1:rest",
+        room_type="rest",
+        stage="waiting_input",
+        payload={
+            "node_id": "r5c0",
+            "actions": ["rest", "smith"],
+            "next_node_ids": ["r6c0"],
+        },
+        is_resolved=False,
+        rewards=[],
+    )
+
+
 def test_combat_root_menu_can_enter_inspect_root() -> None:
     session = start_session(seed=5)
 
@@ -200,3 +233,43 @@ def test_non_combat_inspect_root_can_open_potions_and_return() -> None:
     assert back_message.splitlines()[0] == "资料总览"
     assert root_session.menu_state.mode == "root"
     assert "查看事件" in root_message
+
+
+def test_shop_root_menu_can_enter_inspect_and_return_to_shop() -> None:
+    session = replace(start_session(seed=5), room_state=_shop_room(), menu_state=MenuState(mode="shop_root"))
+
+    _running, inspect_session, inspect_message = route_menu_choice("4", session=session)
+    _running, stats_session, stats_message = route_menu_choice("1", session=inspect_session)
+    _running, inspect_back_session, inspect_back_message = route_menu_choice("1", session=stats_session)
+    _running, shop_session, shop_message = route_menu_choice("5", session=inspect_back_session)
+
+    assert inspect_session.menu_state.mode == "inspect_root"
+    assert inspect_session.menu_state.inspect_parent_mode == "shop_root"
+    assert inspect_message.splitlines()[0] == "资料总览"
+    assert stats_session.menu_state.mode == "inspect_stats"
+    assert stats_session.menu_state.inspect_parent_mode == "shop_root"
+    assert stats_message.splitlines()[0] == "角色状态"
+    assert inspect_back_session.menu_state.mode == "inspect_root"
+    assert inspect_back_message.splitlines()[0] == "资料总览"
+    assert shop_session.menu_state.mode == "shop_root"
+    assert "商店操作" in shop_message
+
+
+def test_rest_root_menu_can_enter_inspect_and_return_to_rest() -> None:
+    session = replace(start_session(seed=5), room_state=_rest_room(), menu_state=MenuState(mode="rest_root"))
+
+    _running, inspect_session, inspect_message = route_menu_choice("3", session=session)
+    _running, relics_session, relics_message = route_menu_choice("3", session=inspect_session)
+    _running, inspect_back_session, inspect_back_message = route_menu_choice("1", session=relics_session)
+    _running, rest_session, rest_message = route_menu_choice("5", session=inspect_back_session)
+
+    assert inspect_session.menu_state.mode == "inspect_root"
+    assert inspect_session.menu_state.inspect_parent_mode == "rest_root"
+    assert inspect_message.splitlines()[0] == "资料总览"
+    assert relics_session.menu_state.mode == "inspect_relics"
+    assert relics_session.menu_state.inspect_parent_mode == "rest_root"
+    assert relics_message.splitlines()[0] == "遗物列表"
+    assert inspect_back_session.menu_state.mode == "inspect_root"
+    assert inspect_back_message.splitlines()[0] == "资料总览"
+    assert rest_session.menu_state.mode == "rest_root"
+    assert "休息点操作" in rest_message
