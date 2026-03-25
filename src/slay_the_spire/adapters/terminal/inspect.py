@@ -88,7 +88,7 @@ def _upgrade_target_label(card_def: CardDef, registry: ContentProviderPort) -> s
 
 
 def format_card_instance_menu(title: str, card_instance_ids: list[str], registry: ContentProviderPort) -> list[str]:
-    lines = [f"{title}:"]
+    lines: list[str] = []
     if not card_instance_ids:
         lines.append("-")
     else:
@@ -104,6 +104,13 @@ def format_card_instance_menu(title: str, card_instance_ids: list[str], registry
 
 def render_card_pile_panel(title: str, card_instance_ids: list[str], registry: ContentProviderPort) -> Panel:
     return Panel(Group(*[Text(line) for line in format_card_instance_menu(title, card_instance_ids, registry)]), title=title, box=PANEL_BOX, expand=False)
+
+
+def format_card_list_footer(*, back_choice: int) -> list[str]:
+    return [
+        "输入上方编号查看卡牌详情",
+        f"{back_choice}. 返回资料总览",
+    ]
 
 
 def render_shared_stats_panel(
@@ -143,7 +150,7 @@ def render_shared_potions_panel(*, title: str, run_state: RunState, registry: Co
 
 
 def format_card_detail_menu() -> list[str]:
-    return ["卡牌详情:", "1. 返回卡牌列表", "2. 返回资料总览"]
+    return ["1. 返回卡牌列表", "2. 返回资料总览"]
 
 
 def render_card_detail_panel(card_instance_id: str, registry: ContentProviderPort) -> Panel:
@@ -182,7 +189,7 @@ def _enemy_status_label(enemy: EnemyState) -> str:
 
 
 def format_enemy_list_menu(enemies: list[EnemyState], registry: ContentProviderPort) -> list[str]:
-    lines = ["敌人列表:"]
+    lines: list[str] = []
     if not enemies:
         lines.append("-")
     else:
@@ -210,7 +217,14 @@ def render_enemy_list_panel(combat_state: CombatState, registry: ContentProvider
 
 
 def format_enemy_detail_menu() -> list[str]:
-    return ["敌人详情:", "1. 返回敌人列表", "2. 返回资料总览"]
+    return ["1. 返回敌人列表", "2. 返回资料总览"]
+
+
+def format_enemy_list_footer(*, back_choice: int) -> list[str]:
+    return [
+        "输入上方编号查看敌人详情",
+        f"{back_choice}. 返回资料总览",
+    ]
 
 
 def render_enemy_detail_panel(combat_state: CombatState, enemy: EnemyState, registry: ContentProviderPort) -> Panel:

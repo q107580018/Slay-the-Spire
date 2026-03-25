@@ -8,9 +8,9 @@ from rich.text import Text
 
 from slay_the_spire.adapters.terminal.inspect import (
     format_card_detail_menu,
-    format_card_instance_menu,
+    format_card_list_footer,
     format_enemy_detail_menu,
-    format_enemy_list_menu,
+    format_enemy_list_footer,
     render_card_detail_panel,
     render_card_pile_panel,
     render_enemy_detail_panel,
@@ -151,7 +151,7 @@ def _format_inspect_root_menu() -> list[str]:
 
 
 def _format_inspect_deck_menu(run_state: RunState, registry: ContentProviderPort) -> list[str]:
-    lines = ["牌组列表:"]
+    lines: list[str] = []
     if not run_state.deck:
         lines.append("-")
     else:
@@ -160,6 +160,10 @@ def _format_inspect_deck_menu(run_state: RunState, registry: ContentProviderPort
             lines.append(f"{index}. {card_def.name}")
     lines.append(f"{len(run_state.deck) + 1}. 返回上一步")
     return lines
+
+
+def _format_inspect_deck_footer(run_state: RunState) -> list[str]:
+    return [f"{len(run_state.deck) + 1}. 返回上一步"]
 
 
 def _format_inspect_leaf_menu(title: str) -> list[str]:
@@ -240,7 +244,7 @@ def _format_menu(
     if mode == "inspect_root":
         return _format_inspect_root_menu()
     if mode == "inspect_deck":
-        return _format_inspect_deck_menu(run_state, registry)
+        return _format_inspect_deck_footer(run_state)
     if mode == "inspect_stats":
         return _format_inspect_leaf_menu("角色状态")
     if mode == "inspect_relics":
@@ -248,17 +252,17 @@ def _format_menu(
     if mode == "inspect_potions":
         return _format_inspect_leaf_menu("药水")
     if mode == "inspect_hand":
-        return format_card_instance_menu("手牌列表", combat_state.hand, registry)
+        return format_card_list_footer(back_choice=len(combat_state.hand) + 1)
     if mode == "inspect_draw_pile":
-        return format_card_instance_menu("抽牌堆列表", combat_state.draw_pile, registry)
+        return format_card_list_footer(back_choice=len(combat_state.draw_pile) + 1)
     if mode == "inspect_discard_pile":
-        return format_card_instance_menu("弃牌堆列表", combat_state.discard_pile, registry)
+        return format_card_list_footer(back_choice=len(combat_state.discard_pile) + 1)
     if mode == "inspect_exhaust_pile":
-        return format_card_instance_menu("消耗堆列表", combat_state.exhaust_pile, registry)
+        return format_card_list_footer(back_choice=len(combat_state.exhaust_pile) + 1)
     if mode == "inspect_card_detail":
         return format_card_detail_menu()
     if mode == "inspect_enemy_list":
-        return format_enemy_list_menu(combat_state.enemies, registry)
+        return format_enemy_list_footer(back_choice=len(combat_state.enemies) + 1)
     if mode == "inspect_enemy_detail":
         return format_enemy_detail_menu()
     if mode == "select_card":

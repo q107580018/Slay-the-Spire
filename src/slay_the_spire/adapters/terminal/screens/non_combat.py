@@ -277,7 +277,7 @@ def _format_non_combat_inspect_root_menu() -> list[str]:
 
 
 def _format_non_combat_inspect_deck_menu(run_state: RunState, registry: ContentProviderPort) -> list[str]:
-    lines = ["牌组:"]
+    lines: list[str] = []
     if not run_state.deck:
         lines.append("-")
     else:
@@ -286,6 +286,10 @@ def _format_non_combat_inspect_deck_menu(run_state: RunState, registry: ContentP
             lines.append(f"{index}. {card_def.name}")
     lines.append(f"{len(run_state.deck) + 1}. 返回上一步")
     return lines
+
+
+def _format_non_combat_inspect_deck_footer(run_state: RunState) -> list[str]:
+    return [f"{len(run_state.deck) + 1}. 返回上一步"]
 
 
 def _format_non_combat_inspect_leaf_menu(title: str) -> list[str]:
@@ -302,7 +306,7 @@ def format_non_combat_inspect_menu(
     if mode == "inspect_root":
         return _format_non_combat_inspect_root_menu()
     if mode == "inspect_deck":
-        return _format_non_combat_inspect_deck_menu(run_state, registry)
+        return _format_non_combat_inspect_deck_footer(run_state)
     if mode == "inspect_stats":
         return _format_non_combat_inspect_leaf_menu("属性")
     if mode == "inspect_relics":

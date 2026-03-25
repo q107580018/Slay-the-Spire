@@ -89,6 +89,7 @@ def test_render_non_combat_inspect_pages_show_stats_deck_relics_and_potions() ->
     assert "当前生命" in stats_output
     assert "牌组" in deck_output
     assert "打击" in deck_output
+    assert "牌组:" not in deck_output
     assert "遗物" in relics_output
     assert "燃烧之血" in relics_output
     assert "药水" in potions_output
@@ -226,3 +227,29 @@ def test_render_combat_shared_inspect_pages_show_real_stats_and_relics() -> None
     assert "当前遗物:" in relics_output
     assert "燃烧之血" in relics_output
     assert "当前处于遗物列表查看。" not in relics_output
+
+
+def test_render_combat_inspect_list_pages_do_not_repeat_full_list_in_footer() -> None:
+    session = start_session(seed=5)
+
+    draw_pile_output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=_provider(session),
+        menu_state=MenuState(mode="inspect_draw_pile", inspect_parent_mode="root", inspect_item_id="draw_pile"),
+        run_phase=session.run_phase,
+    )
+    enemy_list_output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=_provider(session),
+        menu_state=MenuState(mode="inspect_enemy_list", inspect_parent_mode="inspect_root", inspect_item_id="enemies"),
+        run_phase=session.run_phase,
+    )
+
+    assert draw_pile_output.count("抽牌堆列表") == 1
+    assert draw_pile_output.count("5. 重击 | 费用 2 | 类型 攻击 | 造成 8 伤害 / 施加 2 易伤") == 1
+    assert enemy_list_output.count("敌人列表") == 1
+    assert enemy_list_output.count("1. 绿史莱姆 | 生命: 12/12 | 格挡: 0 | 状态: 无 | 当前意图: 造成 3 伤害") == 1
