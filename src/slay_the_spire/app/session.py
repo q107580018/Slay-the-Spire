@@ -459,6 +459,10 @@ def _menu_view_message(session: SessionState, title: str) -> str:
     return f"{title}\n\n{render_session(session)}"
 
 
+def _inspect_transition_message(session: SessionState, title: str) -> str:
+    return _menu_view_message(session, title)
+
+
 def _message_with_render(session: SessionState, message: str | None) -> str:
     rendered = render_session(session)
     if not message:
@@ -534,7 +538,7 @@ def _route_inspect_root_menu(choice: str, session: SessionState) -> tuple[bool, 
                 inspect_item_id="stats",
             ),
         )
-        return True, next_session, _menu_view_message(next_session, "资料总览")
+        return True, next_session, _inspect_transition_message(next_session, "角色状态")
     if choice == "2":
         next_session = replace(
             session,
@@ -544,7 +548,7 @@ def _route_inspect_root_menu(choice: str, session: SessionState) -> tuple[bool, 
                 inspect_item_id="deck",
             ),
         )
-        return True, next_session, _menu_view_message(next_session, "牌组列表")
+        return True, next_session, _inspect_transition_message(next_session, "牌组列表")
     if choice == "3":
         next_session = replace(
             session,
@@ -554,10 +558,10 @@ def _route_inspect_root_menu(choice: str, session: SessionState) -> tuple[bool, 
                 inspect_item_id="relics",
             ),
         )
-        return True, next_session, _menu_view_message(next_session, "遗物列表")
+        return True, next_session, _inspect_transition_message(next_session, "遗物列表")
     if choice == "4":
         next_session = _return_from_inspect(session)
-        return True, next_session, render_session(next_session)
+        return True, next_session, _inspect_transition_message(next_session, "战斗")
     return _invalid_menu_choice(session)
 
 
@@ -565,14 +569,14 @@ def _route_inspect_deck_menu(choice: str, session: SessionState) -> tuple[bool, 
     back_choice = str(len(session.run_state.deck) + 1)
     if choice == back_choice:
         next_session = _enter_inspect_root(session, parent_mode=session.menu_state.inspect_parent_mode or "root")
-        return True, next_session, _menu_view_message(next_session, "资料总览")
+        return True, next_session, _inspect_transition_message(next_session, "资料总览")
     return _invalid_menu_choice(session)
 
 
 def _route_inspect_leaf_menu(choice: str, session: SessionState, title: str) -> tuple[bool, SessionState, str]:
     if choice == "1":
         next_session = _enter_inspect_root(session, parent_mode=session.menu_state.inspect_parent_mode or "root")
-        return True, next_session, _menu_view_message(next_session, title)
+        return True, next_session, _inspect_transition_message(next_session, title)
     return _invalid_menu_choice(session)
 
 

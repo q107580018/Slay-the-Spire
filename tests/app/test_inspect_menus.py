@@ -49,3 +49,24 @@ def test_inspect_deck_can_return_to_parent_root_menu() -> None:
     assert back_session.menu_state.inspect_parent_mode == "root"
     assert root_session.menu_state.mode == "root"
     assert "查看战场" in root_message
+
+
+def test_inspect_leaf_pages_keep_transition_messages_consistent() -> None:
+    session = start_session(seed=5)
+
+    _running, inspect_session, _message = route_menu_choice("4", session=session)
+    _running, stats_session, stats_message = route_menu_choice("1", session=inspect_session)
+    _running, stats_back_session, stats_back_message = route_menu_choice("1", session=stats_session)
+    _running, relic_session, relic_message = route_menu_choice("3", session=stats_back_session)
+    _running, relic_back_session, relic_back_message = route_menu_choice("1", session=relic_session)
+
+    assert stats_session.menu_state.mode == "inspect_stats"
+    assert stats_session.menu_state.inspect_item_id == "stats"
+    assert "角色状态" in stats_message
+    assert stats_back_session.menu_state.mode == "inspect_root"
+    assert "资料总览" in stats_back_message
+    assert relic_session.menu_state.mode == "inspect_relics"
+    assert relic_session.menu_state.inspect_item_id == "relics"
+    assert "遗物列表" in relic_message
+    assert relic_back_session.menu_state.mode == "inspect_root"
+    assert "遗物列表" in relic_back_message
