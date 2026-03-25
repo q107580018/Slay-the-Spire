@@ -6,6 +6,16 @@ from rich.console import Group, RenderableType
 from rich.panel import Panel
 from rich.text import Text
 
+from slay_the_spire.adapters.terminal.inspect import (
+    format_card_detail_menu,
+    format_card_instance_menu,
+    format_enemy_detail_menu,
+    format_enemy_list_menu,
+    render_card_detail_panel,
+    render_card_pile_panel,
+    render_enemy_detail_panel,
+    render_enemy_list_panel,
+)
 from slay_the_spire.adapters.terminal.screens.layout import build_standard_screen, build_two_column_body
 from slay_the_spire.adapters.terminal.theme import PANEL_BOX
 from slay_the_spire.adapters.terminal.widgets import (
@@ -128,6 +138,11 @@ def _format_inspect_root_menu() -> list[str]:
         "2. 牌组列表",
         "3. 遗物列表",
         "4. 返回战斗",
+        "5. 手牌",
+        "6. 抽牌堆",
+        "7. 弃牌堆",
+        "8. 消耗堆",
+        "9. 敌人详情",
     ]
 
 
@@ -226,6 +241,20 @@ def _format_menu(
         return _format_inspect_leaf_menu("角色状态")
     if mode == "inspect_relics":
         return _format_inspect_leaf_menu("遗物列表")
+    if mode == "inspect_hand":
+        return format_card_instance_menu("手牌列表", combat_state.hand, registry)
+    if mode == "inspect_draw_pile":
+        return format_card_instance_menu("抽牌堆列表", combat_state.draw_pile, registry)
+    if mode == "inspect_discard_pile":
+        return format_card_instance_menu("弃牌堆列表", combat_state.discard_pile, registry)
+    if mode == "inspect_exhaust_pile":
+        return format_card_instance_menu("消耗堆列表", combat_state.exhaust_pile, registry)
+    if mode == "inspect_card_detail":
+        return format_card_detail_menu()
+    if mode == "inspect_enemy_list":
+        return format_enemy_list_menu(combat_state.enemies, registry)
+    if mode == "inspect_enemy_detail":
+        return format_enemy_detail_menu()
     if mode == "select_card":
         return _format_card_menu(combat_state, registry)
     if mode == "select_target":
@@ -336,10 +365,30 @@ def _inspect_body_panel(menu_state: Any, run_state: RunState, combat_state: Comb
         return Panel(Group(Text("当前处于角色状态查看。")), title="角色状态", box=PANEL_BOX, expand=False)
     if mode == "inspect_relics":
         return Panel(Group(Text("当前处于遗物列表查看。")), title="遗物列表", box=PANEL_BOX, expand=False)
+    if mode == "inspect_hand":
+        return render_card_pile_panel("手牌列表", combat_state.hand, registry)
+    if mode == "inspect_draw_pile":
+        return render_card_pile_panel("抽牌堆列表", combat_state.draw_pile, registry)
+    if mode == "inspect_discard_pile":
+        return render_card_pile_panel("弃牌堆列表", combat_state.discard_pile, registry)
+    if mode == "inspect_exhaust_pile":
+        return render_card_pile_panel("消耗堆列表", combat_state.exhaust_pile, registry)
+    if mode == "inspect_card_detail":
+        card_instance_id = getattr(menu_state, "inspect_item_id", None)
+        if isinstance(card_instance_id, str):
+            return render_card_detail_panel(card_instance_id, registry)
+    if mode == "inspect_enemy_list":
+        return render_enemy_list_panel(combat_state.enemies, registry)
+    if mode == "inspect_enemy_detail":
+        enemy_instance_id = getattr(menu_state, "inspect_item_id", None)
+        if isinstance(enemy_instance_id, str):
+            enemy = next((current for current in combat_state.enemies if current.instance_id == enemy_instance_id), None)
+            if enemy is not None:
+                return render_enemy_detail_panel(enemy, registry)
     return Panel(
         Group(
             Text("当前处于资料总览。"),
-            Text("可查看角色状态、牌组列表和遗物列表。"),
+            Text("可查看角色状态、牌组列表、遗物列表、各牌堆与敌人详情。"),
         ),
         title="资料总览",
         box=PANEL_BOX,

@@ -539,6 +539,59 @@ def _root_view_title(session: SessionState) -> str:
 
 def _route_inspect_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
     parent_mode = session.menu_state.inspect_parent_mode or "root"
+    if session.room_state.room_type in {"combat", "elite", "boss"}:
+        if choice == "1":
+            next_session = replace(
+                session,
+                menu_state=MenuState(
+                    mode="inspect_stats",
+                    inspect_parent_mode=parent_mode,
+                    inspect_item_id="stats",
+                ),
+            )
+            return True, next_session, _inspect_transition_message(next_session, "角色状态")
+        if choice == "2":
+            next_session = replace(
+                session,
+                menu_state=MenuState(
+                    mode="inspect_deck",
+                    inspect_parent_mode=parent_mode,
+                    inspect_item_id="deck",
+                ),
+            )
+            return True, next_session, _inspect_transition_message(next_session, "牌组列表")
+        if choice == "3":
+            next_session = replace(
+                session,
+                menu_state=MenuState(
+                    mode="inspect_relics",
+                    inspect_parent_mode=parent_mode,
+                    inspect_item_id="relics",
+                ),
+            )
+            return True, next_session, _inspect_transition_message(next_session, "遗物列表")
+        if choice == "4":
+            next_session = _return_from_inspect(session)
+            return True, next_session, _inspect_transition_message(next_session, "战斗")
+        combat_inspect_modes = {
+            "5": ("inspect_hand", "hand", "手牌列表"),
+            "6": ("inspect_draw_pile", "draw_pile", "抽牌堆列表"),
+            "7": ("inspect_discard_pile", "discard_pile", "弃牌堆列表"),
+            "8": ("inspect_exhaust_pile", "exhaust_pile", "消耗堆列表"),
+            "9": ("inspect_enemy_list", "enemies", "敌人列表"),
+        }
+        if choice in combat_inspect_modes:
+            mode, item_id, title = combat_inspect_modes[choice]
+            next_session = replace(
+                session,
+                menu_state=MenuState(
+                    mode=mode,
+                    inspect_parent_mode="inspect_root",
+                    inspect_item_id=item_id,
+                ),
+            )
+            return True, next_session, _inspect_transition_message(next_session, title)
+        return _invalid_menu_choice(session)
     if choice == "1":
         next_session = replace(
             session,
@@ -599,6 +652,104 @@ def _route_inspect_deck_menu(choice: str, session: SessionState) -> tuple[bool, 
 def _route_inspect_leaf_menu(choice: str, session: SessionState, title: str) -> tuple[bool, SessionState, str]:
     if choice == "1":
         next_session = _enter_inspect_root(session, parent_mode=session.menu_state.inspect_parent_mode or "root")
+        return True, next_session, _inspect_transition_message(next_session, "资料总览")
+    return _invalid_menu_choice(session)
+
+
+def _inspect_card_items(session: SessionState, mode: str) -> list[str]:
+    combat_state = _combat_state_from_room(session.room_state)
+    if combat_state is None:
+        return []
+    if mode == "inspect_hand":
+        return combat_state.hand
+    if mode == "inspect_draw_pile":
+        return combat_state.draw_pile
+    if mode == "inspect_discard_pile":
+        return combat_state.discard_pile
+    if mode == "inspect_exhaust_pile":
+        return combat_state.exhaust_pile
+    return []
+
+
+def _route_combat_inspect_card_list_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+    card_instance_ids = _inspect_card_items(session, session.menu_state.mode)
+    back_choice = str(len(card_instance_ids) + 1)
+    if choice == back_choice:
+        next_session = _enter_inspect_root(session, parent_mode="root")
+        return True, next_session, _inspect_transition_message(next_session, "资料总览")
+    try:
+        index = int(choice)
+    except ValueError:
+        return _invalid_menu_choice(session)
+    if index <= 0 or index > len(card_instance_ids):
+        return _invalid_menu_choice(session)
+    next_session = replace(
+        session,
+        menu_state=MenuState(
+            mode="inspect_card_detail",
+            inspect_parent_mode=session.menu_state.mode,
+            inspect_item_id=card_instance_ids[index - 1],
+        ),
+    )
+    return True, next_session, _inspect_transition_message(next_session, "卡牌详情")
+
+
+def _route_combat_inspect_enemy_list_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+    combat_state = _combat_state_from_room(session.room_state)
+    if combat_state is None:
+        return True, replace(session, menu_state=MenuState()), "战斗状态不可用。"
+    back_choice = str(len(combat_state.enemies) + 1)
+    if choice == back_choice:
+        next_session = _enter_inspect_root(session, parent_mode="root")
+        return True, next_session, _inspect_transition_message(next_session, "资料总览")
+    try:
+        index = int(choice)
+    except ValueError:
+        return _invalid_menu_choice(session)
+    if index <= 0 or index > len(combat_state.enemies):
+        return _invalid_menu_choice(session)
+    next_session = replace(
+        session,
+        menu_state=MenuState(
+            mode="inspect_enemy_detail",
+            inspect_parent_mode="inspect_enemy_list",
+            inspect_item_id=combat_state.enemies[index - 1].instance_id,
+        ),
+    )
+    return True, next_session, _inspect_transition_message(next_session, "敌人详情")
+
+
+def _route_combat_inspect_card_detail_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+    parent_mode = session.menu_state.inspect_parent_mode or "inspect_hand"
+    if choice == "1":
+        next_session = replace(
+            session,
+            menu_state=MenuState(
+                mode=parent_mode,
+                inspect_parent_mode="inspect_root",
+                inspect_item_id=None,
+            ),
+        )
+        return True, next_session, _inspect_transition_message(next_session, "卡牌列表")
+    if choice == "2":
+        next_session = _enter_inspect_root(session, parent_mode="root")
+        return True, next_session, _inspect_transition_message(next_session, "资料总览")
+    return _invalid_menu_choice(session)
+
+
+def _route_combat_inspect_enemy_detail_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+    if choice == "1":
+        next_session = replace(
+            session,
+            menu_state=MenuState(
+                mode="inspect_enemy_list",
+                inspect_parent_mode="inspect_root",
+                inspect_item_id="enemies",
+            ),
+        )
+        return True, next_session, _inspect_transition_message(next_session, "敌人列表")
+    if choice == "2":
+        next_session = _enter_inspect_root(session, parent_mode="root")
         return True, next_session, _inspect_transition_message(next_session, "资料总览")
     return _invalid_menu_choice(session)
 
@@ -1086,6 +1237,14 @@ def route_menu_choice(choice: str, *, session: SessionState) -> tuple[bool, Sess
         return _route_inspect_leaf_menu(choice.strip(), next_session, "遗物列表")
     if next_session.menu_state.mode == "inspect_potions":
         return _route_inspect_leaf_menu(choice.strip(), next_session, "药水列表")
+    if next_session.menu_state.mode in {"inspect_hand", "inspect_draw_pile", "inspect_discard_pile", "inspect_exhaust_pile"}:
+        return _route_combat_inspect_card_list_menu(choice.strip(), next_session)
+    if next_session.menu_state.mode == "inspect_card_detail":
+        return _route_combat_inspect_card_detail_menu(choice.strip(), next_session)
+    if next_session.menu_state.mode == "inspect_enemy_list":
+        return _route_combat_inspect_enemy_list_menu(choice.strip(), next_session)
+    if next_session.menu_state.mode == "inspect_enemy_detail":
+        return _route_combat_inspect_enemy_detail_menu(choice.strip(), next_session)
     return _invalid_menu_choice(replace(next_session, menu_state=MenuState()))
 
 

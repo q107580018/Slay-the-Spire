@@ -126,3 +126,18 @@ def test_render_room_select_target_menu_uses_shared_hp_bar_contract() -> None:
 
     assert "选择目标" in output
     assert "12/12 12/12" not in output
+
+
+def test_render_room_inspect_enemy_detail_uses_shared_hp_bar_contract() -> None:
+    session = start_session(seed=5)
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=StarterContentProvider(session.content_root),
+        menu_state=MenuState(mode="inspect_enemy_detail", inspect_parent_mode="inspect_enemy_list", inspect_item_id="enemy-1"),
+    )
+
+    assert "敌人详情" in output
+    assert "绿史莱姆" in output
+    assert "12/12 12/12" not in output

@@ -93,3 +93,66 @@ def test_render_non_combat_inspect_pages_show_stats_deck_relics_and_potions() ->
     assert "燃烧之血" in relics_output
     assert "药水" in potions_output
     assert "火焰药水" in potions_output
+
+
+def test_render_combat_inspect_root_includes_piles_and_enemy_details() -> None:
+    session = replace(start_session(seed=5), menu_state=MenuState(mode="inspect_root"))
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=_provider(session),
+        menu_state=session.menu_state,
+        run_phase=session.run_phase,
+    )
+
+    assert "5. 手牌" in output
+    assert "6. 抽牌堆" in output
+    assert "7. 弃牌堆" in output
+    assert "8. 消耗堆" in output
+    assert "9. 敌人详情" in output
+
+
+def test_render_combat_inspect_pages_show_piles_card_detail_and_enemy_detail() -> None:
+    session = start_session(seed=5)
+
+    hand_output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=_provider(session),
+        menu_state=MenuState(mode="inspect_hand", inspect_parent_mode="root", inspect_item_id="hand"),
+        run_phase=session.run_phase,
+    )
+    card_output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=_provider(session),
+        menu_state=MenuState(
+            mode="inspect_card_detail",
+            inspect_parent_mode="inspect_hand",
+            inspect_item_id=session.room_state.payload["combat_state"]["hand"][0],
+        ),
+        run_phase=session.run_phase,
+    )
+    enemy_output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=_provider(session),
+        menu_state=MenuState(mode="inspect_enemy_detail", inspect_parent_mode="inspect_enemy_list", inspect_item_id="enemy-1"),
+        run_phase=session.run_phase,
+    )
+
+    assert "手牌列表" in hand_output
+    assert "打击" in hand_output
+    assert "返回资料总览" in hand_output
+    assert "卡牌详情" in card_output
+    assert "名称: 打击" in card_output
+    assert "返回卡牌列表" in card_output
+    assert "敌人详情" in enemy_output
+    assert "绿史莱姆" in enemy_output
+    assert "意图" in enemy_output
+    assert "返回敌人列表" in enemy_output
