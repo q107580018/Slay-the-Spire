@@ -134,7 +134,7 @@ def test_shop_renderer_shows_current_gold_and_affordance_statuses() -> None:
     assert "60" in output
     assert "[可购买]" in output
     assert "[金币不足]" in output
-    assert "[已售出]" in output
+    assert "[已购买]" in output
 
 
 def test_rest_renderer_shows_root_and_upgrade_selection_states() -> None:
