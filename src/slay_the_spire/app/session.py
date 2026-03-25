@@ -571,8 +571,15 @@ def _route_inspect_root_menu(choice: str, session: SessionState) -> tuple[bool, 
             )
             return True, next_session, _inspect_transition_message(next_session, "遗物列表")
         if choice == "4":
-            next_session = _return_from_inspect(session)
-            return True, next_session, _inspect_transition_message(next_session, "战斗")
+            next_session = replace(
+                session,
+                menu_state=MenuState(
+                    mode="inspect_potions",
+                    inspect_parent_mode=parent_mode,
+                    inspect_item_id="potions",
+                ),
+            )
+            return True, next_session, _inspect_transition_message(next_session, "药水列表")
         combat_inspect_modes = {
             "5": ("inspect_hand", "hand", "手牌列表"),
             "6": ("inspect_draw_pile", "draw_pile", "抽牌堆列表"),
@@ -591,6 +598,9 @@ def _route_inspect_root_menu(choice: str, session: SessionState) -> tuple[bool, 
                 ),
             )
             return True, next_session, _inspect_transition_message(next_session, title)
+        if choice == "10":
+            next_session = _return_from_inspect(session)
+            return True, next_session, _inspect_transition_message(next_session, _root_view_title(next_session))
         return _invalid_menu_choice(session)
     if choice == "1":
         next_session = replace(

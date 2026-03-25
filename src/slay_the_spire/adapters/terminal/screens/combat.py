@@ -137,12 +137,13 @@ def _format_inspect_root_menu() -> list[str]:
         "1. 角色状态",
         "2. 牌组列表",
         "3. 遗物列表",
-        "4. 返回战斗",
+        "4. 药水",
         "5. 手牌",
         "6. 抽牌堆",
         "7. 弃牌堆",
         "8. 消耗堆",
         "9. 敌人详情",
+        "10. 返回上一步",
     ]
 
 
@@ -241,6 +242,8 @@ def _format_menu(
         return _format_inspect_leaf_menu("角色状态")
     if mode == "inspect_relics":
         return _format_inspect_leaf_menu("遗物列表")
+    if mode == "inspect_potions":
+        return _format_inspect_leaf_menu("药水")
     if mode == "inspect_hand":
         return format_card_instance_menu("手牌列表", combat_state.hand, registry)
     if mode == "inspect_draw_pile":
@@ -365,6 +368,15 @@ def _inspect_body_panel(menu_state: Any, run_state: RunState, combat_state: Comb
         return Panel(Group(Text("当前处于角色状态查看。")), title="角色状态", box=PANEL_BOX, expand=False)
     if mode == "inspect_relics":
         return Panel(Group(Text("当前处于遗物列表查看。")), title="遗物列表", box=PANEL_BOX, expand=False)
+    if mode == "inspect_potions":
+        potions = getattr(run_state, "potions", [])
+        lines = ["当前药水:"]
+        if not potions:
+            lines.append("-")
+        else:
+            for potion_id in potions:
+                lines.append(f"- {registry.potions().get(potion_id).name}")
+        return Panel(Group(*[Text(line) for line in lines]), title="药水", box=PANEL_BOX, expand=False)
     if mode == "inspect_hand":
         return render_card_pile_panel("手牌列表", combat_state.hand, registry)
     if mode == "inspect_draw_pile":
@@ -378,17 +390,17 @@ def _inspect_body_panel(menu_state: Any, run_state: RunState, combat_state: Comb
         if isinstance(card_instance_id, str):
             return render_card_detail_panel(card_instance_id, registry)
     if mode == "inspect_enemy_list":
-        return render_enemy_list_panel(combat_state.enemies, registry)
+        return render_enemy_list_panel(combat_state, registry)
     if mode == "inspect_enemy_detail":
         enemy_instance_id = getattr(menu_state, "inspect_item_id", None)
         if isinstance(enemy_instance_id, str):
             enemy = next((current for current in combat_state.enemies if current.instance_id == enemy_instance_id), None)
             if enemy is not None:
-                return render_enemy_detail_panel(enemy, registry)
+                return render_enemy_detail_panel(combat_state, enemy, registry)
     return Panel(
         Group(
             Text("当前处于资料总览。"),
-            Text("可查看角色状态、牌组列表、遗物列表、各牌堆与敌人详情。"),
+            Text("可查看属性、牌组、遗物、药水，以及战斗中的各牌堆与敌人详情。"),
         ),
         title="资料总览",
         box=PANEL_BOX,

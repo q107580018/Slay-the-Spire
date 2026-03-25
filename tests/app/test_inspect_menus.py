@@ -56,7 +56,7 @@ def test_inspect_deck_can_return_to_parent_root_menu() -> None:
     _running, inspect_session, _message = route_menu_choice("4", session=session)
     _running, deck_session, _message = route_menu_choice("2", session=inspect_session)
     _running, back_session, _message = route_menu_choice(str(len(deck_session.run_state.deck) + 1), session=deck_session)
-    _running, root_session, root_message = route_menu_choice("4", session=back_session)
+    _running, root_session, root_message = route_menu_choice("10", session=back_session)
 
     assert inspect_session.menu_state.mode == "inspect_root"
     assert deck_session.menu_state.mode == "inspect_deck"
@@ -87,6 +87,29 @@ def test_inspect_leaf_pages_keep_transition_messages_consistent() -> None:
     assert relic_message.splitlines()[0] == "遗物列表"
     assert relic_back_session.menu_state.mode == "inspect_root"
     assert relic_back_message.splitlines()[0] == "资料总览"
+
+
+def test_combat_inspect_root_includes_potions_hand_enemy_pages_and_back() -> None:
+    base_session = start_session(seed=5)
+    session = replace(
+        base_session,
+        run_state=replace(base_session.run_state, potions=["fire_potion"]),
+        menu_state=MenuState(mode="inspect_root", inspect_parent_mode="root"),
+    )
+
+    _running, potion_session, potion_message = route_menu_choice("4", session=session)
+    _running, hand_session, hand_message = route_menu_choice("5", session=session)
+    _running, enemy_session, enemy_message = route_menu_choice("9", session=session)
+    _running, root_session, root_message = route_menu_choice("10", session=session)
+
+    assert potion_session.menu_state.mode == "inspect_potions"
+    assert potion_message.splitlines()[0] == "药水列表"
+    assert hand_session.menu_state.mode == "inspect_hand"
+    assert hand_message.splitlines()[0] == "手牌列表"
+    assert enemy_session.menu_state.mode == "inspect_enemy_list"
+    assert enemy_message.splitlines()[0] == "敌人列表"
+    assert root_session.menu_state.mode == "root"
+    assert "查看战场" in root_message
 
 
 def test_non_combat_root_menu_can_enter_inspect_root() -> None:

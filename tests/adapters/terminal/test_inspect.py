@@ -107,14 +107,20 @@ def test_render_combat_inspect_root_includes_piles_and_enemy_details() -> None:
         run_phase=session.run_phase,
     )
 
+    assert "1. 角色状态" in output
+    assert "2. 牌组列表" in output
+    assert "3. 遗物列表" in output
+    assert "4. 药水" in output
     assert "5. 手牌" in output
     assert "6. 抽牌堆" in output
     assert "7. 弃牌堆" in output
     assert "8. 消耗堆" in output
     assert "9. 敌人详情" in output
+    assert "10. 返回上一步" in output
+    assert "返回战斗" not in output
 
 
-def test_render_combat_inspect_pages_show_piles_card_detail_and_enemy_detail() -> None:
+def test_render_combat_inspect_pages_show_pile_summary_card_detail_and_enemy_detail() -> None:
     session = start_session(seed=5)
 
     hand_output = render_room(
@@ -137,6 +143,14 @@ def test_render_combat_inspect_pages_show_piles_card_detail_and_enemy_detail() -
         ),
         run_phase=session.run_phase,
     )
+    enemy_list_output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=_provider(session),
+        menu_state=MenuState(mode="inspect_enemy_list", inspect_parent_mode="inspect_root", inspect_item_id="enemies"),
+        run_phase=session.run_phase,
+    )
     enemy_output = render_room(
         run_state=session.run_state,
         act_state=session.act_state,
@@ -148,11 +162,31 @@ def test_render_combat_inspect_pages_show_piles_card_detail_and_enemy_detail() -
 
     assert "手牌列表" in hand_output
     assert "打击" in hand_output
+    assert "费用 1" in hand_output
+    assert "类型 攻击" in hand_output
+    assert "造成 6 伤害" in hand_output
     assert "返回资料总览" in hand_output
     assert "卡牌详情" in card_output
     assert "名称: 打击" in card_output
+    assert "实例 ID: strike#1" in card_output
+    assert "费用: 1" in card_output
+    assert "类型: 攻击" in card_output
+    assert "是否可打出: 是" in card_output
+    assert "完整效果: 造成 6 伤害" in card_output
+    assert "升级目标: -" in card_output
     assert "返回卡牌列表" in card_output
+    assert "敌人列表" in enemy_list_output
+    assert "绿史莱姆" in enemy_list_output
+    assert "生命:" in enemy_list_output
+    assert "格挡:" in enemy_list_output
+    assert "状态:" in enemy_list_output
+    assert "当前意图:" in enemy_list_output
     assert "敌人详情" in enemy_output
     assert "绿史莱姆" in enemy_output
-    assert "意图" in enemy_output
+    assert "当前生命: 12/12" in enemy_output
+    assert "当前格挡: 0" in enemy_output
+    assert "当前状态: 无" in enemy_output
+    assert "当前意图摘要:" in enemy_output
+    assert "招式表预览:" in enemy_output
+    assert "tackle" in enemy_output
     assert "返回敌人列表" in enemy_output

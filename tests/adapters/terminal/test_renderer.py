@@ -44,7 +44,8 @@ def test_combat_renderer_shows_inspect_root_menu_when_in_inspect_mode() -> None:
     assert "资料总览" in output
     assert "查看战场" not in output
     assert "1. 角色状态" in output
-    assert "4. 返回战斗" in output
+    assert "4. 药水" in output
+    assert "10. 返回上一步" in output
 
 
 def test_combat_renderer_shows_deck_list_and_back_choice_in_inspect_mode() -> None:
