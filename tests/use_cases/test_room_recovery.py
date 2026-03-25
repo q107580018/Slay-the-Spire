@@ -251,6 +251,39 @@ def test_event_room_inspect_round_trip_keeps_choice_flow() -> None:
     assert next_session.room_state.is_resolved is True
 
 
+def test_boss_reward_root_inspect_round_trip_keeps_reward_menu_numbering() -> None:
+    session = replace(
+        start_session(seed=7),
+        room_state=RoomState(
+            room_id="act1:boss",
+            room_type="boss",
+            stage="completed",
+            payload={"node_id": "boss", "next_node_ids": []},
+            is_resolved=True,
+            rewards=["gold:99"],
+        ),
+    )
+
+    _running, inspect_session, inspect_message = route_menu_choice("4", session=session)
+    _running, stats_session, stats_message = route_menu_choice("1", session=inspect_session)
+    _running, inspect_back_session, inspect_back_message = route_menu_choice("1", session=stats_session)
+    _running, reward_root_session, reward_root_message = route_menu_choice("10", session=inspect_back_session)
+    _running, select_reward_session, select_reward_message = route_menu_choice("2", session=reward_root_session)
+    _running, claimed_session, claimed_message = route_menu_choice("1", session=select_reward_session)
+
+    assert inspect_session.menu_state.mode == "inspect_root"
+    assert "资料总览" in inspect_message
+    assert stats_session.menu_state.mode == "inspect_stats"
+    assert inspect_back_session.menu_state.mode == "inspect_root"
+    assert reward_root_session.menu_state.mode == "root"
+    assert "查看奖励" in reward_root_message
+    assert reward_root_session.room_state.rewards == ["gold:99"]
+    assert select_reward_session.menu_state.mode == "select_reward"
+    assert claimed_session.run_phase == "victory"
+    assert claimed_session.room_state.rewards == []
+    assert claimed_session.run_state.gold == 198
+
+
 def test_claim_all_rewards_clears_non_boss_room_rewards() -> None:
     session = replace(
         start_session(seed=7),
