@@ -576,7 +576,7 @@ def _route_inspect_deck_menu(choice: str, session: SessionState) -> tuple[bool, 
 def _route_inspect_leaf_menu(choice: str, session: SessionState, title: str) -> tuple[bool, SessionState, str]:
     if choice == "1":
         next_session = _enter_inspect_root(session, parent_mode=session.menu_state.inspect_parent_mode or "root")
-        return True, next_session, _inspect_transition_message(next_session, title)
+        return True, next_session, _inspect_transition_message(next_session, "资料总览")
     return _invalid_menu_choice(session)
 
 

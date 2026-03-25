@@ -62,11 +62,11 @@ def test_inspect_leaf_pages_keep_transition_messages_consistent() -> None:
 
     assert stats_session.menu_state.mode == "inspect_stats"
     assert stats_session.menu_state.inspect_item_id == "stats"
-    assert "角色状态" in stats_message
+    assert stats_message.splitlines()[0] == "角色状态"
     assert stats_back_session.menu_state.mode == "inspect_root"
-    assert "资料总览" in stats_back_message
+    assert stats_back_message.splitlines()[0] == "资料总览"
     assert relic_session.menu_state.mode == "inspect_relics"
     assert relic_session.menu_state.inspect_item_id == "relics"
-    assert "遗物列表" in relic_message
+    assert relic_message.splitlines()[0] == "遗物列表"
     assert relic_back_session.menu_state.mode == "inspect_root"
-    assert "遗物列表" in relic_back_message
+    assert relic_back_message.splitlines()[0] == "资料总览"
