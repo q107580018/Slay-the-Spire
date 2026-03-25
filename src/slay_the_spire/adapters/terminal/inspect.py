@@ -9,6 +9,7 @@ from rich.text import Text
 from slay_the_spire.adapters.terminal.theme import PANEL_BOX
 from slay_the_spire.adapters.terminal.widgets import render_block, render_hp_bar, render_statuses, summarize_card_effects
 from slay_the_spire.content.registries import CardDef, EnemyDef
+from slay_the_spire.domain.combat.turn_flow import preview_enemy_move
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import EnemyState
@@ -114,39 +115,6 @@ def render_card_detail_panel(card_instance_id: str, registry: ContentProviderPor
     return Panel(Group(*[Text(line) for line in lines]), title="卡牌详情", box=PANEL_BOX, expand=False)
 
 
-def _sleeping_stacks(enemy: EnemyState) -> int:
-    for status in enemy.statuses:
-        if status.status_id == "sleeping":
-            return status.stacks
-    return 0
-
-
-def _sleep_turns(enemy_def: EnemyDef) -> int:
-    if not enemy_def.move_table:
-        return 0
-    first_move = enemy_def.move_table[0]
-    if first_move.get("move") != "sleep":
-        return 0
-    sleep_turns = first_move.get("sleep_turns", 0)
-    return sleep_turns if isinstance(sleep_turns, int) and sleep_turns > 0 else 0
-
-
-def _current_enemy_move(combat_state: CombatState, enemy: EnemyState, enemy_def: EnemyDef) -> Mapping[str, object] | None:
-    if enemy.hp <= 0 or not enemy_def.move_table:
-        return None
-    sleeping_stacks = _sleeping_stacks(enemy)
-    if sleeping_stacks > 0:
-        return {"move": "sleep", "sleep_turns": sleeping_stacks}
-    sleep_turns = _sleep_turns(enemy_def)
-    active_moves = enemy_def.move_table[1:] if sleep_turns > 0 else enemy_def.move_table
-    if not active_moves:
-        return None
-    if enemy_def.intent_policy != "scripted":
-        return active_moves[0]
-    move_index = max(combat_state.round_number - sleep_turns - 1, 0) % len(active_moves)
-    return active_moves[move_index]
-
-
 def _move_summary(move: Mapping[str, object], registry: ContentProviderPort) -> str:
     if move.get("move") == "sleep":
         return f"睡眠中 ({move.get('sleep_turns', '?')} 回合)"
@@ -191,7 +159,7 @@ def render_enemy_list_panel(combat_state: CombatState, registry: ContentProvider
         line.append(f" | 生命: {enemy.hp}/{enemy.max_hp}")
         line.append(f" | 格挡: {enemy.block}")
         line.append(f" | 状态: {_enemy_status_label(enemy)}")
-        line.append(f" | 当前意图: {_move_summary(_current_enemy_move(combat_state, enemy, enemy_def) or {}, registry)}")
+        line.append(f" | 当前意图: {_move_summary(preview_enemy_move(combat_state, enemy, enemy_def) or {}, registry)}")
         lines.append(line)
     return Panel(Group(*lines), title="敌人列表", box=PANEL_BOX, expand=False)
 
@@ -202,7 +170,7 @@ def format_enemy_detail_menu() -> list[str]:
 
 def render_enemy_detail_panel(combat_state: CombatState, enemy: EnemyState, registry: ContentProviderPort) -> Panel:
     enemy_def = registry.enemies().get(enemy.enemy_id)
-    current_move = _current_enemy_move(combat_state, enemy, enemy_def)
+    current_move = preview_enemy_move(combat_state, enemy, enemy_def)
     lines = [
         Text.assemble("名称: ", (enemy_def.name, "enemy.name")),
         Text(f"当前生命: {enemy.hp}/{enemy.max_hp}"),

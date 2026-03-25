@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from slay_the_spire.content.registries import CardRegistry, EnemyRegistry
-from slay_the_spire.domain.combat.turn_flow import end_turn, resolve_player_actions
+from slay_the_spire.domain.combat.turn_flow import end_turn, preview_enemy_move, resolve_player_actions
 from slay_the_spire.domain.effects.effect_types import damage_effect
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
@@ -202,3 +202,57 @@ def test_lagavulin_sleeps_for_first_three_enemy_turns_then_attacks() -> None:
 
     assert [effect["type"] for effect in resolved] == ["damage"]
     assert state.player.hp == 62
+
+
+def test_preview_enemy_move_reuses_combat_turn_logic_without_mutating_state() -> None:
+    registry = _Registry()
+    registry.enemies().register(
+        {
+            "id": "lagavulin",
+            "name": "Lagavulin",
+            "hp": 109,
+            "move_table": [
+                {"move": "sleep", "sleep_turns": 3},
+                {"move": "heavy_slam", "effects": [{"type": "damage", "amount": 18}]},
+                {"move": "heavy_slam", "effects": [{"type": "damage", "amount": 18}]},
+            ],
+            "intent_policy": "scripted",
+        }
+    )
+    state = CombatState(
+        round_number=4,
+        energy=3,
+        hand=[],
+        draw_pile=[],
+        discard_pile=[],
+        exhaust_pile=[],
+        player=PlayerCombatState(
+            instance_id="player-1",
+            hp=80,
+            max_hp=80,
+            block=0,
+            statuses=[],
+        ),
+        enemies=[
+            EnemyState(
+                instance_id="enemy-1",
+                enemy_id="lagavulin",
+                hp=109,
+                max_hp=109,
+                block=0,
+                statuses=[StatusState(status_id="sleeping", stacks=2)],
+            )
+        ],
+        effect_queue=[],
+        log=[],
+    )
+
+    sleeping_preview = preview_enemy_move(state, state.enemies[0], registry.enemies().get("lagavulin"))
+    assert sleeping_preview == {"move": "sleep", "sleep_turns": 2}
+    assert [status.stacks for status in state.enemies[0].statuses if status.status_id == "sleeping"] == [2]
+
+    state.enemies[0].statuses.clear()
+    attack_preview = preview_enemy_move(state, state.enemies[0], registry.enemies().get("lagavulin"))
+    assert attack_preview is not None
+    assert attack_preview.get("move") == "heavy_slam"
+    assert attack_preview.get("effects") == [{"type": "damage", "amount": 18}]

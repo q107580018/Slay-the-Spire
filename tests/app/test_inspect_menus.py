@@ -112,6 +112,62 @@ def test_combat_inspect_root_includes_potions_hand_enemy_pages_and_back() -> Non
     assert "查看战场" in root_message
 
 
+def test_combat_inspect_card_branch_round_trip_keeps_mode_and_parent_state() -> None:
+    session = start_session(seed=5)
+
+    _running, inspect_session, inspect_message = route_menu_choice("4", session=session)
+    _running, hand_session, hand_message = route_menu_choice("5", session=inspect_session)
+    _running, detail_session, detail_message = route_menu_choice("1", session=hand_session)
+    _running, back_to_list_session, back_to_list_message = route_menu_choice("1", session=detail_session)
+    _running, back_to_root_session, back_to_root_message = route_menu_choice("2", session=detail_session)
+
+    assert inspect_session.menu_state.mode == "inspect_root"
+    assert inspect_message.splitlines()[0] == "资料总览"
+    assert hand_session.menu_state.mode == "inspect_hand"
+    assert hand_session.menu_state.inspect_parent_mode == "inspect_root"
+    assert hand_session.menu_state.inspect_item_id == "hand"
+    assert hand_message.splitlines()[0] == "手牌列表"
+    assert detail_session.menu_state.mode == "inspect_card_detail"
+    assert detail_session.menu_state.inspect_parent_mode == "inspect_hand"
+    assert detail_session.menu_state.inspect_item_id == "strike#1"
+    assert detail_message.splitlines()[0] == "卡牌详情"
+    assert back_to_list_session.menu_state.mode == "inspect_hand"
+    assert back_to_list_session.menu_state.inspect_parent_mode == "inspect_root"
+    assert back_to_list_session.menu_state.inspect_item_id is None
+    assert back_to_list_message.splitlines()[0] == "卡牌列表"
+    assert back_to_root_session.menu_state.mode == "inspect_root"
+    assert back_to_root_session.menu_state.inspect_parent_mode == "root"
+    assert back_to_root_session.menu_state.inspect_item_id is None
+    assert back_to_root_message.splitlines()[0] == "资料总览"
+
+
+def test_combat_inspect_enemy_branch_round_trip_keeps_mode_and_parent_state() -> None:
+    session = start_session(seed=5)
+
+    _running, inspect_session, _inspect_message = route_menu_choice("4", session=session)
+    _running, enemy_list_session, enemy_list_message = route_menu_choice("9", session=inspect_session)
+    _running, detail_session, detail_message = route_menu_choice("1", session=enemy_list_session)
+    _running, back_to_list_session, back_to_list_message = route_menu_choice("1", session=detail_session)
+    _running, back_to_root_session, back_to_root_message = route_menu_choice("2", session=detail_session)
+
+    assert enemy_list_session.menu_state.mode == "inspect_enemy_list"
+    assert enemy_list_session.menu_state.inspect_parent_mode == "inspect_root"
+    assert enemy_list_session.menu_state.inspect_item_id == "enemies"
+    assert enemy_list_message.splitlines()[0] == "敌人列表"
+    assert detail_session.menu_state.mode == "inspect_enemy_detail"
+    assert detail_session.menu_state.inspect_parent_mode == "inspect_enemy_list"
+    assert detail_session.menu_state.inspect_item_id == "enemy-1"
+    assert detail_message.splitlines()[0] == "敌人详情"
+    assert back_to_list_session.menu_state.mode == "inspect_enemy_list"
+    assert back_to_list_session.menu_state.inspect_parent_mode == "inspect_root"
+    assert back_to_list_session.menu_state.inspect_item_id == "enemies"
+    assert back_to_list_message.splitlines()[0] == "敌人列表"
+    assert back_to_root_session.menu_state.mode == "inspect_root"
+    assert back_to_root_session.menu_state.inspect_parent_mode == "root"
+    assert back_to_root_session.menu_state.inspect_item_id is None
+    assert back_to_root_message.splitlines()[0] == "资料总览"
+
+
 def test_non_combat_root_menu_can_enter_inspect_root() -> None:
     session = replace(start_session(seed=5), room_state=_event_room())
 
