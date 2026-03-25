@@ -1,0 +1,28 @@
+{
+  "potions": [
+    {
+      "id": "fire_potion",
+      "name": "火焰药水",
+      "effect": {
+        "type": "damage",
+        "amount": 20
+      }
+    },
+    {
+      "id": "block_potion",
+      "name": "格挡药水",
+      "effect": {
+        "type": "block",
+        "amount": 12
+      }
+    },
+    {
+      "id": "strength_potion",
+      "name": "力量药水",
+      "effect": {
+        "type": "strength",
+        "amount": 2
+      }
+    }
+  ]
+}

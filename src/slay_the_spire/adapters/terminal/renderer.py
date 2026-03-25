@@ -47,6 +47,7 @@ def render_room_renderable(
     room_state: RoomState,
     registry: ContentProviderPort,
     menu_state: Any,
+    run_phase: str = "active",
 ) -> RenderableType:
     combat_state = _combat_state_from_room(room_state)
     if _menu_mode(menu_state) == "select_next_room":
@@ -56,6 +57,7 @@ def render_room_renderable(
             room_state=room_state,
             registry=registry,
             menu_state=menu_state,
+            run_phase=run_phase,
         )
     if room_state.is_resolved and room_state.rewards:
         return render_non_combat_screen(
@@ -64,8 +66,9 @@ def render_room_renderable(
             room_state=room_state,
             registry=registry,
             menu_state=menu_state,
+            run_phase=run_phase,
         )
-    if combat_state is not None and room_state.room_type in {"combat", "elite", "boss"}:
+    if run_phase == "active" and combat_state is not None and room_state.room_type in {"combat", "elite", "boss"}:
         return render_combat_screen(
             run_state=run_state,
             act_state=act_state,
@@ -80,6 +83,7 @@ def render_room_renderable(
         room_state=room_state,
         registry=registry,
         menu_state=menu_state,
+        run_phase=run_phase,
     )
 
 
@@ -90,6 +94,7 @@ def render_room(
     room_state: RoomState,
     registry: ContentProviderPort,
     menu_state: Any,
+    run_phase: str = "active",
 ) -> str:
     return _render_to_text(
         render_room_renderable(
@@ -98,5 +103,6 @@ def render_room(
             room_state=room_state,
             registry=registry,
             menu_state=menu_state,
+            run_phase=run_phase,
         )
     )

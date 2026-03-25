@@ -50,6 +50,22 @@ def test_starter_catalog_passes_startup_integrity() -> None:
 
     assert catalog.cards.get("strike").name == "打击"
     assert catalog.enemies.get("jaw_worm").id == "jaw_worm"
-    assert catalog.relics.get("burning_blood").name == "Burning Blood"
+    assert catalog.relics.get("burning_blood").name == "燃烧之血"
     assert catalog.events.get("shining_light").id == "shining_light"
     assert catalog.acts.get("act1").id == "act1"
+
+
+def test_content_catalog_loads_potion_pools() -> None:
+    provider = StarterContentProvider(Path(__file__).resolve().parents[2] / "content")
+
+    assert provider.potions().all()
+
+
+def test_act_registry_accepts_map_config_instead_of_static_nodes() -> None:
+    provider = StarterContentProvider(Path(__file__).resolve().parents[2] / "content")
+    act = provider.acts().get("act1")
+
+    assert act.map_config.floor_count == 13
+    assert act.map_config.starting_columns == 1
+    assert act.map_config.boss_room_type == "boss"
+    assert act.map_config.room_rules["min_floor_for_shop"] == 2

@@ -10,7 +10,7 @@ from slay_the_spire.domain.models.run_state import RunState
 from slay_the_spire.ports.save_repository import SaveRepositoryPort
 from slay_the_spire.shared.types import JsonDict
 
-SAVE_SCHEMA_VERSION = 1
+SAVE_SCHEMA_VERSION = 2
 
 
 class LoadedGame(TypedDict):

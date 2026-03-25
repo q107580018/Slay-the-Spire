@@ -6,9 +6,7 @@ from pathlib import Path
 import pytest
 
 from slay_the_spire.adapters.persistence.save_files import JsonFileSaveRepository
-from slay_the_spire.content.provider import StarterContentProvider
-from slay_the_spire.domain.map.map_generator import generate_act_state
-from slay_the_spire.domain.models.act_state import ActState
+from slay_the_spire.domain.models.act_state import ActNodeState, ActState
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
 from slay_the_spire.domain.models.room_state import RoomState
@@ -16,11 +14,6 @@ from slay_the_spire.domain.models.run_state import RunState
 from slay_the_spire.domain.models.statuses import StatusState
 from slay_the_spire.use_cases.load_game import load_game
 from slay_the_spire.use_cases.save_game import SAVE_SCHEMA_VERSION, save_game
-from slay_the_spire.use_cases.start_run import start_new_run
-
-
-def _content_provider() -> StarterContentProvider:
-    return StarterContentProvider(Path(__file__).resolve().parents[2] / "content")
 
 
 def _combat_state() -> CombatState:
@@ -53,10 +46,67 @@ def _combat_state() -> CombatState:
     )
 
 
+def _run_state() -> RunState:
+    return RunState(
+        seed=11,
+        character_id="ironclad",
+        current_act_id="act1",
+        current_hp=68,
+        max_hp=80,
+        gold=123,
+        deck=["strike#1", "defend#1", "bash#1"],
+        relics=["burning_blood"],
+        potions=["fire_potion"],
+        card_removal_count=2,
+    )
+
+
+def _act_state() -> ActState:
+    return ActState(
+        schema_version=1,
+        act_id="act1",
+        current_node_id="start",
+        nodes=[
+            ActNodeState(
+                node_id="start",
+                row=0,
+                col=0,
+                room_type="combat",
+                next_node_ids=["shop-1", "rest-1"],
+            ),
+            ActNodeState(
+                node_id="shop-1",
+                row=1,
+                col=0,
+                room_type="shop",
+                next_node_ids=["boss-1"],
+            ),
+            ActNodeState(
+                node_id="rest-1",
+                row=1,
+                col=1,
+                room_type="rest",
+                next_node_ids=["boss-1"],
+            ),
+            ActNodeState(
+                node_id="boss-1",
+                row=2,
+                col=0,
+                room_type="boss",
+                next_node_ids=[],
+            ),
+        ],
+        visited_node_ids=["start"],
+        enemy_pool_id="act1_basic",
+        elite_pool_id="act1_elites",
+        boss_pool_id="act1_elites",
+        event_pool_id="act1_events",
+    )
+
+
 def test_save_game_persists_json_document_with_schema_version(tmp_path: Path) -> None:
-    provider = _content_provider()
-    run_state = start_new_run("ironclad", seed=11, registry=provider)
-    act_state = generate_act_state("act1", seed=11, registry=provider)
+    run_state = _run_state()
+    act_state = _act_state()
     combat_state = _combat_state()
     room_state = RoomState(
         room_id="act1:hallway",
@@ -90,9 +140,8 @@ def test_save_game_persists_json_document_with_schema_version(tmp_path: Path) ->
 
 
 def test_load_game_restores_map_and_combat_state_from_json_save(tmp_path: Path) -> None:
-    provider = _content_provider()
-    run_state = start_new_run("ironclad", seed=19, registry=provider)
-    act_state = generate_act_state("act1", seed=19, registry=provider)
+    run_state = _run_state()
+    act_state = _act_state()
     combat_state = _combat_state()
     room_state = RoomState(
         room_id="act1:hallway",
@@ -124,9 +173,8 @@ def test_load_game_restores_map_and_combat_state_from_json_save(tmp_path: Path) 
 
 
 def test_save_game_rejects_mismatched_combat_state_sources(tmp_path: Path) -> None:
-    provider = _content_provider()
-    run_state = start_new_run("ironclad", seed=17, registry=provider)
-    act_state = generate_act_state("act1", seed=17, registry=provider)
+    run_state = _run_state()
+    act_state = _act_state()
     combat_state = _combat_state()
     mismatched_combat_state = CombatState(
         round_number=3,
@@ -226,4 +274,43 @@ def test_load_game_rejects_unknown_schema_version(tmp_path: Path) -> None:
     )
 
     with pytest.raises(ValueError, match="unsupported save schema_version: 999"):
+        load_game(repository=repository)
+
+
+def test_save_game_persists_new_run_state_fields(tmp_path: Path) -> None:
+    run_state = _run_state()
+    repository = JsonFileSaveRepository(tmp_path / "save.json")
+
+    save_game(
+        repository=repository,
+        run_state=run_state,
+        act_state=_act_state(),
+        room_state=None,
+    )
+
+    raw_document = json.loads((tmp_path / "save.json").read_text(encoding="utf-8"))
+
+    assert raw_document["run_state"]["gold"] == 123
+    assert raw_document["run_state"]["deck"] == ["strike#1", "defend#1", "bash#1"]
+    assert raw_document["run_state"]["relics"] == ["burning_blood"]
+    assert raw_document["run_state"]["potions"] == ["fire_potion"]
+    assert raw_document["run_state"]["card_removal_count"] == 2
+
+
+def test_load_game_rejects_previous_schema_version_with_clear_error(tmp_path: Path) -> None:
+    repository = JsonFileSaveRepository(tmp_path / "save.json")
+    (tmp_path / "save.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "run_state": None,
+                "act_state": None,
+                "room_state": None,
+                "combat_state": None,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="unsupported save schema_version: 1"):
         load_game(repository=repository)

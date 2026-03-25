@@ -6,7 +6,6 @@ import pytest
 
 from slay_the_spire.app.cli import main
 from slay_the_spire.content.provider import StarterContentProvider
-from slay_the_spire.content.registries import ActRegistry
 from slay_the_spire.domain.map.map_generator import generate_act_state
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.room_state import RoomState
@@ -37,27 +36,37 @@ class _CountingProvider:
     def relics(self):
         return self._delegate.relics()
 
+    def potions(self):
+        return self._delegate.potions()
+
     def events(self):
         return self._delegate.events()
 
     def acts(self):
         return self._delegate.acts()
 
+    def enemy_ids_for_pool(self, pool_id: str):
+        return self._delegate.enemy_ids_for_pool(pool_id)
 
-class _OverrideActProvider(_CountingProvider):
-    def __init__(self, delegate: StarterContentProvider, act_registry: ActRegistry) -> None:
-        super().__init__(delegate)
-        self._act_registry = act_registry
+    def event_ids_for_pool(self, pool_id: str):
+        return self._delegate.event_ids_for_pool(pool_id)
 
-    def acts(self):
-        return self._act_registry
+    def potion_ids_for_pool(self, pool_id: str):
+        return self._delegate.potion_ids_for_pool(pool_id)
+
+
+def _node_id_for_room_type(act_state, room_type: str) -> str:
+    for node in act_state.nodes:
+        if node.room_type == room_type:
+            return node.node_id
+    raise AssertionError(f"room_type {room_type} not found")
 
 
 def test_main_returns_zero_for_stub_argv() -> None:
     assert main(["--help"]) == 0
 
 
-def test_start_new_run_uses_starter_content() -> None:
+def test_start_new_run_populates_gold_deck_relics_and_empty_potions() -> None:
     provider = _content_provider()
 
     run_state = start_new_run("ironclad", seed=7, registry=provider)
@@ -66,6 +75,20 @@ def test_start_new_run_uses_starter_content() -> None:
     assert run_state.seed == 7
     assert run_state.character_id == "ironclad"
     assert run_state.current_act_id == "act1"
+    assert run_state.gold == 99
+    assert run_state.deck == [
+        "strike#1",
+        "strike#2",
+        "strike#3",
+        "strike#4",
+        "defend#5",
+        "defend#6",
+        "defend#7",
+        "defend#8",
+        "bash#9",
+    ]
+    assert run_state.relics == ["burning_blood"]
+    assert run_state.potions == []
 
 
 def test_start_new_run_rejects_unknown_character() -> None:
@@ -84,32 +107,38 @@ def test_start_new_run_loads_character_definitions_through_provider_contract() -
     assert provider.characters_calls >= 1
 
 
-@pytest.mark.parametrize(
-    ("node_id", "expected_room_type"),
-    [
-        ("hallway", "combat"),
-        ("elite", "elite"),
-        ("event", "event"),
-        ("boss", "boss"),
-    ],
-)
-def test_enter_room_returns_room_state_for_node_type(node_id: str, expected_room_type: str) -> None:
+def test_enter_room_marks_selected_node_visited_immediately() -> None:
     provider = _content_provider()
     run_state = start_new_run("ironclad", seed=7, registry=provider)
     act_state = generate_act_state("act1", seed=7, registry=provider)
+    target_node_id = act_state.reachable_node_ids[0]
+
+    room_state = enter_room(run_state, act_state, node_id=target_node_id, registry=provider)
+
+    assert isinstance(room_state, RoomState)
+    assert act_state.current_node_id == target_node_id
+    assert target_node_id in act_state.visited_node_ids
+
+
+@pytest.mark.parametrize("room_type", ["shop", "rest"])
+def test_enter_room_supports_shop_and_rest_room_types(room_type: str) -> None:
+    provider = _content_provider()
+    run_state = start_new_run("ironclad", seed=7, registry=provider)
+    act_state = generate_act_state("act1", seed=7, registry=provider)
+    node_id = _node_id_for_room_type(act_state, room_type)
 
     room_state = enter_room(run_state, act_state, node_id=node_id, registry=provider)
 
-    assert isinstance(room_state, RoomState)
-    assert room_state.room_type == expected_room_type
+    assert room_state.room_type == room_type
+    assert room_state.stage == "waiting_input"
     assert room_state.payload["node_id"] == node_id
-    assert room_state.payload["act_id"] == "act1"
-    assert room_state.payload["room_kind"] == expected_room_type
-
-    if expected_room_type in {"combat", "elite", "boss"}:
-        assert isinstance(CombatState.from_dict(room_state.payload["combat_state"]), CombatState)
+    if room_type == "shop":
+        assert "cards" in room_state.payload
+        assert "relics" in room_state.payload
+        assert "potions" in room_state.payload
+        assert room_state.payload["remove_price"] == 75
     else:
-        assert "combat_state" not in room_state.payload
+        assert room_state.payload["actions"] == ["rest", "smith"]
 
 
 def test_enter_room_builds_playable_combat_state_for_combat_nodes() -> None:
@@ -136,29 +165,3 @@ def test_enter_room_builds_playable_combat_state_for_combat_nodes() -> None:
         "bash#9",
     ]
     assert len(combat_state.enemies) == 1
-    assert combat_state.enemies[0].enemy_id == "slime"
-
-
-def test_enter_room_rejects_unsupported_room_type() -> None:
-    provider = _content_provider()
-    act_registry = ActRegistry()
-    act_registry.register(
-        {
-            "id": "act1",
-            "name": "Act 1",
-            "enemy_pool_id": "act1_basic",
-            "elite_pool_id": "act1_elites",
-            "event_pool_id": "act1_events",
-            "boss_pool_id": "act1_elites",
-            "nodes": [
-                {"id": "start", "room_type": "combat", "next": ["hallway"]},
-                {"id": "hallway", "room_type": "shop", "next": []},
-            ],
-        }
-    )
-    custom_provider = _OverrideActProvider(provider, act_registry)
-    run_state = start_new_run("ironclad", seed=7, registry=provider)
-    act_state = generate_act_state("act1", seed=7, registry=custom_provider)
-
-    with pytest.raises(ValueError, match="unsupported room_type: shop"):
-        enter_room(run_state, act_state, node_id="hallway", registry=custom_provider)

@@ -73,11 +73,28 @@ class RelicDef:
 
 
 @dataclass(slots=True, frozen=True)
+class PotionDef:
+    id: str
+    name: str
+    effect: JsonDict
+
+
+@dataclass(slots=True, frozen=True)
 class EventDef:
     id: str
     text: str
     choices: list[JsonDict]
     outcomes: list[JsonDict]
+
+
+@dataclass(slots=True, frozen=True)
+class ActMapConfig:
+    floor_count: int
+    starting_columns: int
+    min_branch_choices: int
+    max_branch_choices: int
+    boss_room_type: str
+    room_rules: JsonDict
 
 
 @dataclass(slots=True, frozen=True)
@@ -88,7 +105,7 @@ class ActDef:
     elite_pool_id: str
     event_pool_id: str
     boss_pool_id: str
-    nodes: list[JsonDict]
+    map_config: ActMapConfig
 
 
 @dataclass(slots=True, frozen=True)
@@ -201,6 +218,24 @@ class EventRegistry(_BaseRegistry[EventDef]):
         )
 
 
+class PotionRegistry(_BaseRegistry[PotionDef]):
+    def register(self, payload: Mapping[str, object]) -> PotionDef:
+        record = self._build(payload)
+        if record.id in self._items:
+            raise ValueError(f"duplicate potion id: {record.id}")
+        self._items[record.id] = record
+        return record
+
+    def _build(self, payload: Mapping[str, object]) -> PotionDef:
+        data = _require_mapping(payload, "payload")
+        effect = _require_mapping(data.get("effect"), "effect")
+        return PotionDef(
+            id=_require_str(data.get("id"), "id"),
+            name=_require_str(data.get("name"), "name"),
+            effect=dict(effect),
+        )
+
+
 class ActRegistry(_BaseRegistry[ActDef]):
     def register(self, payload: Mapping[str, object]) -> ActDef:
         record = self._build(payload)
@@ -211,7 +246,34 @@ class ActRegistry(_BaseRegistry[ActDef]):
 
     def _build(self, payload: Mapping[str, object]) -> ActDef:
         data = _require_mapping(payload, "payload")
-        nodes = _require_record_list(data.get("nodes"), "nodes")
+        map_config_data = _require_mapping(data.get("map_config"), "map_config")
+        room_rules_data = _require_mapping(map_config_data.get("room_rules"), "map_config.room_rules")
+        room_rules = {
+            "early_floors": [
+                _require_str(item, "map_config.room_rules.early_floors item")
+                for item in _require_list(room_rules_data.get("early_floors"), "map_config.room_rules.early_floors")
+            ],
+            "mid_floors": [
+                _require_str(item, "map_config.room_rules.mid_floors item")
+                for item in _require_list(room_rules_data.get("mid_floors"), "map_config.room_rules.mid_floors")
+            ],
+            "late_floors": [
+                _require_str(item, "map_config.room_rules.late_floors item")
+                for item in _require_list(room_rules_data.get("late_floors"), "map_config.room_rules.late_floors")
+            ],
+            "min_floor_for_elite": _require_int(
+                room_rules_data.get("min_floor_for_elite"),
+                "map_config.room_rules.min_floor_for_elite",
+            ),
+            "min_floor_for_shop": _require_int(
+                room_rules_data.get("min_floor_for_shop"),
+                "map_config.room_rules.min_floor_for_shop",
+            ),
+            "min_floor_for_rest": _require_int(
+                room_rules_data.get("min_floor_for_rest"),
+                "map_config.room_rules.min_floor_for_rest",
+            ),
+        }
         return ActDef(
             id=_require_str(data.get("id"), "id"),
             name=_require_str(data.get("name"), "name"),
@@ -219,7 +281,20 @@ class ActRegistry(_BaseRegistry[ActDef]):
             elite_pool_id=_require_str(data.get("elite_pool_id"), "elite_pool_id"),
             event_pool_id=_require_str(data.get("event_pool_id"), "event_pool_id"),
             boss_pool_id=_require_str(data.get("boss_pool_id"), "boss_pool_id"),
-            nodes=[dict(item) for item in nodes],
+            map_config=ActMapConfig(
+                floor_count=_require_int(map_config_data.get("floor_count"), "map_config.floor_count"),
+                starting_columns=_require_int(map_config_data.get("starting_columns"), "map_config.starting_columns"),
+                min_branch_choices=_require_int(
+                    map_config_data.get("min_branch_choices"),
+                    "map_config.min_branch_choices",
+                ),
+                max_branch_choices=_require_int(
+                    map_config_data.get("max_branch_choices"),
+                    "map_config.max_branch_choices",
+                ),
+                boss_room_type=_require_str(map_config_data.get("boss_room_type"), "map_config.boss_room_type"),
+                room_rules=room_rules,
+            ),
         )
 
 
@@ -252,11 +327,13 @@ def validate_startup_integrity(
     cards: CardRegistry,
     enemies: EnemyRegistry,
     relics: RelicRegistry,
+    potions: PotionRegistry,
     events: EventRegistry,
     acts: ActRegistry,
     card_pool_ids: set[str],
     enemy_pool_ids: set[str],
     relic_pool_ids: set[str],
+    potion_pool_ids: set[str],
     event_pool_ids: set[str],
     character_id: str = "ironclad",
 ) -> None:
@@ -268,6 +345,9 @@ def validate_startup_integrity(
         raise ValueError("starter_card_pool_id must reference a loaded card pool")
     if character.starter_relic_pool_id not in relic_pool_ids:
         raise ValueError("starter_relic_pool_id must reference a loaded relic pool")
+    for potion_pool_id in potion_pool_ids:
+        if not potion_pool_id:
+            raise ValueError("potion_pool_id must not be empty")
     acts.get(character.starting_act_id)
     for card_id in character.starter_deck:
         cards.get(card_id)

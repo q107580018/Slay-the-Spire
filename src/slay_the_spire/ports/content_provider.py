@@ -3,7 +3,15 @@ from __future__ import annotations
 from typing import Protocol, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from slay_the_spire.content.registries import ActRegistry, CardRegistry, CharacterRegistry, EnemyRegistry, EventRegistry, RelicRegistry
+    from slay_the_spire.content.registries import (
+        ActRegistry,
+        CardRegistry,
+        CharacterRegistry,
+        EnemyRegistry,
+        EventRegistry,
+        PotionRegistry,
+        RelicRegistry,
+    )
 
 
 class ContentProviderPort(Protocol):
@@ -15,6 +23,8 @@ class ContentProviderPort(Protocol):
 
     def relics(self) -> "RelicRegistry": ...
 
+    def potions(self) -> "PotionRegistry": ...
+
     def events(self) -> "EventRegistry": ...
 
     def acts(self) -> "ActRegistry": ...
@@ -22,3 +32,5 @@ class ContentProviderPort(Protocol):
     def enemy_ids_for_pool(self, pool_id: str) -> tuple[str, ...]: ...
 
     def event_ids_for_pool(self, pool_id: str) -> tuple[str, ...]: ...
+
+    def potion_ids_for_pool(self, pool_id: str) -> tuple[str, ...]: ...

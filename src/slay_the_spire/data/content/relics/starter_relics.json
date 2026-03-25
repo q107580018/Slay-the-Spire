@@ -2,7 +2,7 @@
   "relics": [
     {
       "id": "burning_blood",
-      "name": "Burning Blood",
+      "name": "燃烧之血",
       "trigger_hooks": [
         "on_combat_end"
       ],

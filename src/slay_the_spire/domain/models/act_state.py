@@ -26,6 +26,12 @@ def _require_str(value: object, field_name: str) -> str:
     return value
 
 
+def _require_int(value: object, field_name: str) -> int:
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise TypeError(f"{field_name} must be an int")
+    return value
+
+
 def _require_mapping_data(value: object) -> Mapping[str, object]:
     if not isinstance(value, Mapping):
         raise TypeError("data must be a mapping")
@@ -48,6 +54,9 @@ def _require_field(data: Mapping[str, object], field_name: str) -> object:
 class ActNodeState:
     schema_version: int = SCHEMA_VERSION
     node_id: str
+    row: int
+    col: int
+    room_type: str
     next_node_ids: list[str] = field(default_factory=list)
 
     def __post_init__(self) -> None:
@@ -55,8 +64,17 @@ class ActNodeState:
         if self.schema_version != SCHEMA_VERSION:
             raise ValueError("unsupported schema_version for ActNodeState")
         self.node_id = _require_str(self.node_id, "node_id")
+        self.row = _require_int(self.row, "row")
+        self.col = _require_int(self.col, "col")
+        self.room_type = _require_str(self.room_type, "room_type")
         if not self.node_id:
             raise ValueError("node_id must not be empty")
+        if self.row < 0:
+            raise ValueError("row must be non-negative")
+        if self.col < 0:
+            raise ValueError("col must be non-negative")
+        if not self.room_type:
+            raise ValueError("room_type must not be empty")
         if not isinstance(self.next_node_ids, list):
             raise TypeError("next_node_ids must be a list")
         self.next_node_ids = [_require_str(item, "next_node_ids item") for item in self.next_node_ids]
@@ -67,6 +85,9 @@ class ActNodeState:
         return {
             "schema_version": self.schema_version,
             "node_id": self.node_id,
+            "row": self.row,
+            "col": self.col,
+            "room_type": self.room_type,
             "next_node_ids": list(self.next_node_ids),
         }
 
@@ -80,6 +101,9 @@ class ActNodeState:
         return cls(
             schema_version=SCHEMA_VERSION,
             node_id=_require_str(data["node_id"], "node_id"),
+            row=_require_int(_require_field(data, "row"), "row"),
+            col=_require_int(_require_field(data, "col"), "col"),
+            room_type=_require_str(_require_field(data, "room_type"), "room_type"),
             next_node_ids=[_require_str(item, "next_node_ids item") for item in next_node_ids],
         )
 
@@ -142,6 +166,19 @@ class ActState:
     @property
     def reachable_node_ids(self) -> list[str]:
         return list(self.get_node(self.current_node_id).next_node_ids)
+
+    def current_coord(self) -> tuple[int, int]:
+        current = self.get_node(self.current_node_id)
+        return current.row, current.col
+
+    def rows_for_display(self) -> tuple[tuple[ActNodeState, ...], ...]:
+        rows: dict[int, list[ActNodeState]] = {}
+        for node in self.nodes:
+            rows.setdefault(node.row, []).append(node)
+        return tuple(
+            tuple(sorted(rows[row], key=lambda node: node.col))
+            for row in sorted(rows)
+        )
 
     def to_dict(self) -> JsonDict:
         return {

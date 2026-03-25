@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from random import Random
 
-from slay_the_spire.content.registries import ActDef
 from slay_the_spire.domain.combat.turn_flow import start_turn
 from slay_the_spire.domain.models.act_state import ActState
 from slay_the_spire.domain.models.combat_state import CombatState
@@ -11,39 +10,14 @@ from slay_the_spire.domain.models.room_state import RoomState
 from slay_the_spire.domain.models.run_state import RunState
 from slay_the_spire.ports.content_provider import ContentProviderPort
 
-_SUPPORTED_ROOM_TYPES = {"combat", "elite", "event", "boss"}
+_SUPPORTED_ROOM_TYPES = {"combat", "elite", "event", "boss", "shop", "rest"}
 
 
-def _require_mapping(value: object, field_name: str) -> Mapping[str, object]:
-    if not isinstance(value, Mapping):
-        raise TypeError(f"{field_name} must be a mapping")
-    return value
-
-
-def _require_str(value: object, field_name: str) -> str:
-    if not isinstance(value, str):
-        raise TypeError(f"{field_name} must be a string")
-    return value
-
-
-def _act_def_from_registry(act_state: ActState, registry: ContentProviderPort) -> ActDef:
-    return registry.acts().get(act_state.act_id)
-
-
-def _room_type_for_node(act_state: ActState, node_id: str, registry: ContentProviderPort) -> str:
-    act_def = _act_def_from_registry(act_state, registry)
-    for raw_node in act_def.nodes:
-        node = _require_mapping(raw_node, "act node")
-        if _require_str(node.get("id"), "node.id") != node_id:
-            continue
-        room_type = node.get("room_type")
-        if room_type is None:
-            raise ValueError("room_type is required for act nodes")
-        room_type = _require_str(room_type, "node.room_type")
-        if room_type not in _SUPPORTED_ROOM_TYPES:
-            raise ValueError(f"unsupported room_type: {room_type}")
-        return room_type
-    raise ValueError(f"node {node_id} not found in act {act_state.act_id}")
+def _room_type_for_node(act_state: ActState, node_id: str) -> str:
+    room_type = act_state.get_node(node_id).room_type
+    if room_type not in _SUPPORTED_ROOM_TYPES:
+        raise ValueError(f"unsupported room_type: {room_type}")
+    return room_type
 
 
 def _build_card_instance_ids(card_ids: list[str]) -> list[str]:
@@ -64,7 +38,7 @@ def _build_enemy_state(enemy_id: str, registry: ContentProviderPort) -> EnemySta
 
 def _build_combat_state(run_state: RunState, *, enemy_pool_id: str, registry: ContentProviderPort) -> CombatState:
     character = registry.characters().get(run_state.character_id)
-    deck_instance_ids = _build_card_instance_ids(character.starter_deck)
+    deck_instance_ids = list(run_state.deck) or _build_card_instance_ids(list(character.starter_deck))
     enemy_ids = registry.enemy_ids_for_pool(enemy_pool_id)
     if not enemy_ids:
         raise ValueError(f"enemy pool {enemy_pool_id} must contain at least one enemy")
@@ -90,9 +64,69 @@ def _build_combat_state(run_state: RunState, *, enemy_pool_id: str, registry: Co
     return start_turn(state)
 
 
+def _offer_rng(run_state: RunState, room_id: str, category: str) -> Random:
+    return Random(f"{run_state.seed}:{room_id}:{category}")
+
+
+def _sample_ids(ids: list[str], *, count: int, rng: Random) -> list[str]:
+    if not ids:
+        return []
+    if len(ids) <= count:
+        return list(ids)
+    working = list(ids)
+    rng.shuffle(working)
+    return working[:count]
+
+
+def _build_shop_payload(run_state: RunState, *, room_id: str, registry: ContentProviderPort) -> dict[str, object]:
+    card_ids = [card.id for card in registry.cards().all()]
+    relic_ids = [relic.id for relic in registry.relics().all()]
+    potion_ids = [potion.id for potion in registry.potions().all()]
+    card_rng = _offer_rng(run_state, room_id, "cards")
+    relic_rng = _offer_rng(run_state, room_id, "relics")
+    potion_rng = _offer_rng(run_state, room_id, "potions")
+
+    card_prices = {"strike": 50, "defend": 50, "bash": 75}
+    cards = [
+        {"offer_id": f"card-{index}", "card_id": card_id, "price": card_prices.get(card_id, 60)}
+        for index, card_id in enumerate(_sample_ids(card_ids, count=3, rng=card_rng), start=1)
+    ]
+    relics = [
+        {"offer_id": f"relic-{index}", "relic_id": relic_id, "price": 150}
+        for index, relic_id in enumerate(_sample_ids(relic_ids, count=1, rng=relic_rng), start=1)
+    ]
+    potions = [
+        {"offer_id": f"potion-{index}", "potion_id": potion_id, "price": 60}
+        for index, potion_id in enumerate(_sample_ids(potion_ids, count=2, rng=potion_rng), start=1)
+    ]
+    return {
+        "cards": cards,
+        "relics": relics,
+        "potions": potions,
+        "remove_price": 75 + (run_state.card_removal_count * 25),
+    }
+
+
+def _build_event_payload(run_state: RunState, *, room_id: str, event_pool_id: str, registry: ContentProviderPort) -> dict[str, object]:
+    event_ids = list(registry.event_ids_for_pool(event_pool_id))
+    if not event_ids:
+        raise ValueError(f"event pool {event_pool_id} must contain at least one event")
+    rng = _offer_rng(run_state, room_id, "event")
+    return {"event_pool_id": event_pool_id, "event_id": rng.choice(event_ids)}
+
+
+def _mark_node_visited(act_state: ActState, node_id: str) -> None:
+    act_state.current_node_id = node_id
+    if node_id not in act_state.visited_node_ids:
+        act_state.visited_node_ids.append(node_id)
+
+
 def enter_room(run_state: RunState, act_state: ActState, node_id: str, registry: ContentProviderPort) -> RoomState:
     current_node = act_state.get_node(node_id)
-    room_kind = _room_type_for_node(act_state, current_node.node_id, registry)
+    room_kind = _room_type_for_node(act_state, current_node.node_id)
+    room_id = f"{act_state.act_id}:{current_node.node_id}"
+    _mark_node_visited(act_state, current_node.node_id)
+
     payload: dict[str, object] = {
         "act_id": act_state.act_id,
         "node_id": current_node.node_id,
@@ -115,14 +149,20 @@ def enter_room(run_state: RunState, act_state: ActState, node_id: str, registry:
             registry=registry,
         ).to_dict()
     elif room_kind == "event":
-        payload["event_pool_id"] = act_state.event_pool_id
         if act_state.event_pool_id is None:
             raise ValueError("event rooms require an event pool id")
-        event_ids = registry.event_ids_for_pool(act_state.event_pool_id)
-        if not event_ids:
-            raise ValueError(f"event pool {act_state.event_pool_id} must contain at least one event")
-        payload["event_id"] = event_ids[0]
-    room_id = f"{act_state.act_id}:{current_node.node_id}"
+        payload.update(
+            _build_event_payload(
+                run_state,
+                room_id=room_id,
+                event_pool_id=act_state.event_pool_id,
+                registry=registry,
+            )
+        )
+    elif room_kind == "shop":
+        payload.update(_build_shop_payload(run_state, room_id=room_id, registry=registry))
+    elif room_kind == "rest":
+        payload["actions"] = ["rest", "smith"]
     return RoomState(
         room_id=room_id,
         room_type=room_kind,

@@ -7,42 +7,21 @@
       "elite_pool_id": "act1_elites",
       "event_pool_id": "act1_events",
       "boss_pool_id": "act1_elites",
-      "nodes": [
-        {
-          "id": "start",
-          "room_type": "combat",
-          "next": [
-            "hallway"
-          ]
-        },
-        {
-          "id": "hallway",
-          "room_type": "combat",
-          "next": [
-            "elite",
-            "event"
-          ]
-        },
-        {
-          "id": "elite",
-          "room_type": "elite",
-          "next": [
-            "boss"
-          ]
-        },
-        {
-          "id": "event",
-          "room_type": "event",
-          "next": [
-            "boss"
-          ]
-        },
-        {
-          "id": "boss",
-          "room_type": "boss",
-          "next": []
+      "map_config": {
+        "floor_count": 13,
+        "starting_columns": 1,
+        "min_branch_choices": 1,
+        "max_branch_choices": 2,
+        "boss_room_type": "boss",
+        "room_rules": {
+          "early_floors": ["combat", "event"],
+          "mid_floors": ["combat", "event", "shop", "rest"],
+          "late_floors": ["combat", "event", "elite", "shop", "rest"],
+          "min_floor_for_elite": 3,
+          "min_floor_for_shop": 2,
+          "min_floor_for_rest": 2
         }
-      ]
+      }
     }
   ]
 }

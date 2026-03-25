@@ -27,10 +27,53 @@ def assert_primitive_tree(value: object) -> None:
     pytest.fail(f"non-primitive value found: {value!r}")
 
 
-def test_run_state_round_trips_to_dict():
-    state = RunState.new(character_id="ironclad", seed=7)
+def test_run_state_round_trips_gold_deck_relics_potions_and_removal_count():
+    state = RunState(
+        seed=7,
+        character_id="ironclad",
+        current_act_id="act1",
+        current_hp=60,
+        max_hp=80,
+        gold=99,
+        deck=["strike#1", "bash#2"],
+        relics=["burning_blood"],
+        potions=["fire_potion"],
+        card_removal_count=1,
+    )
     restored = RunState.from_dict(state.to_dict())
     assert restored.to_dict() == state.to_dict()
+
+
+def test_act_node_state_round_trips_row_col_room_type():
+    node = ActNodeState(
+        node_id="node-1",
+        row=3,
+        col=1,
+        room_type="shop",
+        next_node_ids=["node-2"],
+    )
+
+    assert ActNodeState.from_dict(node.to_dict()).to_dict() == node.to_dict()
+
+
+def test_room_state_payload_round_trips_shop_inventory_fields():
+    room_state = RoomState(
+        schema_version=1,
+        room_id="shop-1",
+        room_type="shop",
+        stage="waiting_input",
+        payload={
+            "cards": [{"offer_id": "card-1", "card_id": "strike", "price": 50}],
+            "relics": [{"offer_id": "relic-1", "relic_id": "burning_blood", "price": 150}],
+            "potions": [{"offer_id": "potion-1", "potion_id": "fire_potion", "price": 60}],
+            "remove_price": 75,
+            "remove_candidates": ["strike#1", "defend#2"],
+        },
+        is_resolved=False,
+        rewards=[],
+    )
+
+    assert RoomState.from_dict(room_state.to_dict()).to_dict() == room_state.to_dict()
 
 
 def test_room_and_combat_state_round_trip_without_python_object_refs():
@@ -103,13 +146,13 @@ def test_room_state_to_dict_returns_deep_snapshot():
 def test_act_state_constructor_rejects_dangling_next_node_edges():
     with pytest.raises(ValueError, match="next_node_ids"):
         ActState(
-            schema_version=1,
-            act_id="act-1",
-            current_node_id="node-1",
-            nodes=[
-                ActNodeState(node_id="node-1", next_node_ids=["node-2"]),
-            ],
-            visited_node_ids=[],
+                schema_version=1,
+                act_id="act-1",
+                current_node_id="node-1",
+                nodes=[
+                ActNodeState(node_id="node-1", row=0, col=0, room_type="combat", next_node_ids=["node-2"]),
+                ],
+                visited_node_ids=[],
         )
 
 
@@ -242,7 +285,7 @@ def test_run_state_constructor_rejects_empty_optional_identity(kwargs, field_nam
                 "schema_version": 1,
                 "act_id": 1,
                 "current_node_id": "node-1",
-                "nodes": [ActNodeState(node_id="node-1", next_node_ids=[])],
+                "nodes": [ActNodeState(node_id="node-1", row=0, col=0, room_type="combat", next_node_ids=[])],
                 "visited_node_ids": [],
             },
             TypeError,
@@ -254,7 +297,7 @@ def test_run_state_constructor_rejects_empty_optional_identity(kwargs, field_nam
                 "schema_version": 1,
                 "act_id": "act-1",
                 "current_node_id": 1,
-                "nodes": [ActNodeState(node_id="node-1", next_node_ids=[])],
+                "nodes": [ActNodeState(node_id="node-1", row=0, col=0, room_type="combat", next_node_ids=[])],
                 "visited_node_ids": [],
             },
             TypeError,
@@ -266,7 +309,7 @@ def test_run_state_constructor_rejects_empty_optional_identity(kwargs, field_nam
                 "schema_version": 1,
                 "act_id": "",
                 "current_node_id": "node-1",
-                "nodes": [ActNodeState(node_id="node-1", next_node_ids=[])],
+                "nodes": [ActNodeState(node_id="node-1", row=0, col=0, room_type="combat", next_node_ids=[])],
                 "visited_node_ids": [],
             },
             ValueError,
@@ -278,7 +321,7 @@ def test_run_state_constructor_rejects_empty_optional_identity(kwargs, field_nam
                 "schema_version": 1,
                 "act_id": "act-1",
                 "current_node_id": "",
-                "nodes": [ActNodeState(node_id="node-1", next_node_ids=[])],
+                "nodes": [ActNodeState(node_id="node-1", row=0, col=0, room_type="combat", next_node_ids=[])],
                 "visited_node_ids": [],
             },
             ValueError,
@@ -431,6 +474,9 @@ def test_numeric_fields_reject_bool_on_direct_construction(factory, kwargs, fiel
             {
                 "schema_version": 1,
                 "node_id": "node-1",
+                "row": 0,
+                "col": 0,
+                "room_type": "combat",
                 "next_node_ids": "node-2",
             },
             "next_node_ids",
@@ -439,6 +485,9 @@ def test_numeric_fields_reject_bool_on_direct_construction(factory, kwargs, fiel
             {
                 "schema_version": 1,
                 "node_id": "node-1",
+                "row": 0,
+                "col": 0,
+                "room_type": "combat",
                 "next_node_ids": [2],
             },
             "next_node_ids item",
@@ -748,6 +797,9 @@ def test_act_state_from_dict_rejects_dangling_next_node_edges():
                     {
                         "schema_version": 1,
                         "node_id": "node-1",
+                        "row": 0,
+                        "col": 0,
+                        "room_type": "combat",
                         "next_node_ids": ["node-2"],
                     }
                 ],
@@ -766,6 +818,9 @@ def test_act_node_state_from_dict_requires_next_node_ids():
             {
                 "schema_version": 1,
                 "node_id": "node-1",
+                "row": 0,
+                "col": 0,
+                "room_type": "combat",
             }
         )
 
@@ -781,6 +836,9 @@ def test_act_state_from_dict_requires_visited_node_ids():
                     {
                         "schema_version": 1,
                         "node_id": "node-1",
+                        "row": 0,
+                        "col": 0,
+                        "room_type": "combat",
                         "next_node_ids": [],
                     }
                 ],
@@ -919,7 +977,17 @@ def test_entity_from_dict_requires_statuses(factory, payload):
 @pytest.mark.parametrize(
     ("factory", "kwargs"),
     [
-        (ActNodeState, {"schema_version": True, "node_id": "node-1", "next_node_ids": []}),
+        (
+            ActNodeState,
+            {
+                "schema_version": True,
+                "node_id": "node-1",
+                "row": 0,
+                "col": 0,
+                "room_type": "combat",
+                "next_node_ids": [],
+            },
+        ),
         (
             RoomState,
             {
@@ -999,7 +1067,14 @@ def test_act_state_from_dict_rejects_string_lists(field, value):
         "act_id": "act-1",
         "current_node_id": "node-1",
         "nodes": [
-            {"schema_version": 1, "node_id": "node-1", "next_node_ids": []}
+            {
+                "schema_version": 1,
+                "node_id": "node-1",
+                "row": 0,
+                "col": 0,
+                "room_type": "combat",
+                "next_node_ids": [],
+            }
         ],
         "visited_node_ids": [],
         "enemy_pool_id": None,
@@ -1165,9 +1240,9 @@ def test_act_state_rebuilds_derived_node_index_on_load():
         act_id="act-1",
         current_node_id="node-2",
         nodes=[
-            ActNodeState(node_id="node-1", next_node_ids=["node-2"]),
-            ActNodeState(node_id="node-2", next_node_ids=["node-3"]),
-            ActNodeState(node_id="node-3", next_node_ids=[]),
+            ActNodeState(node_id="node-1", row=0, col=0, room_type="combat", next_node_ids=["node-2"]),
+            ActNodeState(node_id="node-2", row=1, col=0, room_type="event", next_node_ids=["node-3"]),
+            ActNodeState(node_id="node-3", row=2, col=0, room_type="boss", next_node_ids=[]),
         ],
         visited_node_ids=["node-1"],
         enemy_pool_id="basic",

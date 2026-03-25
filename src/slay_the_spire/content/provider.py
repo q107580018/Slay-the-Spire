@@ -3,7 +3,15 @@ from __future__ import annotations
 from pathlib import Path
 
 from slay_the_spire.content.catalog import ContentCatalog
-from slay_the_spire.content.registries import ActRegistry, CardRegistry, CharacterRegistry, EnemyRegistry, EventRegistry, RelicRegistry
+from slay_the_spire.content.registries import (
+    ActRegistry,
+    CardRegistry,
+    CharacterRegistry,
+    EnemyRegistry,
+    EventRegistry,
+    PotionRegistry,
+    RelicRegistry,
+)
 from slay_the_spire.ports.content_provider import ContentProviderPort
 
 
@@ -23,6 +31,9 @@ class StarterContentProvider(ContentProviderPort):
     def relics(self) -> RelicRegistry:
         return self._catalog.relics
 
+    def potions(self) -> PotionRegistry:
+        return self._catalog.potions
+
     def events(self) -> EventRegistry:
         return self._catalog.events
 
@@ -34,3 +45,6 @@ class StarterContentProvider(ContentProviderPort):
 
     def event_ids_for_pool(self, pool_id: str) -> tuple[str, ...]:
         return self._catalog.event_ids_for_pool(pool_id)
+
+    def potion_ids_for_pool(self, pool_id: str) -> tuple[str, ...]:
+        return self._catalog.potion_ids_for_pool(pool_id)

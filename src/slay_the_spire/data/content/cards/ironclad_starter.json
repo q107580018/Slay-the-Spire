@@ -26,6 +26,7 @@
       "id": "bash",
       "name": "重击",
       "cost": 2,
+      "upgrades_to": "bash_plus",
       "effects": [
         {
           "type": "damage",
@@ -34,6 +35,21 @@
         {
           "type": "vulnerable",
           "stacks": 2
+        }
+      ]
+    },
+    {
+      "id": "bash_plus",
+      "name": "重击+",
+      "cost": 2,
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 10
+        },
+        {
+          "type": "vulnerable",
+          "stacks": 3
         }
       ]
     }
