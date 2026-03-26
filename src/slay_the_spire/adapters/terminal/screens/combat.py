@@ -22,12 +22,12 @@ from slay_the_spire.adapters.terminal.inspect import (
 from slay_the_spire.adapters.terminal.screens.layout import build_standard_screen, build_two_column_body
 from slay_the_spire.adapters.terminal.theme import PANEL_BOX
 from slay_the_spire.adapters.terminal.widgets import (
-    preview_enemy_intent,
     render_block,
     render_hp_bar,
     render_menu,
     render_statuses,
     summarize_card_effects,
+    summarize_enemy_move,
 )
 from slay_the_spire.app.menu_definitions import (
     build_event_choice_menu,
@@ -46,6 +46,7 @@ from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.room_state import RoomState
 from slay_the_spire.domain.models.run_state import RunState
+from slay_the_spire.domain.combat.turn_flow import preview_enemy_move
 from slay_the_spire.ports.content_provider import ContentProviderPort
 
 _ROOM_TYPE_LABELS = {
@@ -304,8 +305,9 @@ def render_enemy_panel(combat_state: CombatState, registry: ContentProviderPort)
         line.append_text(render_block(enemy.block))
         line.append(" 状态: ")
         line.append_text(render_statuses(enemy.statuses))
-        intent_preview = preview_enemy_intent(enemy_def)
-        if intent_preview != "-":
+        current_move = preview_enemy_move(combat_state, enemy, enemy_def)
+        if current_move is not None:
+            intent_preview = summarize_enemy_move(current_move)
             line.append(f" 意图: {intent_preview}")
         lines.append(line)
     return Panel(Group(*lines), title="敌人意图", box=PANEL_BOX, expand=False)

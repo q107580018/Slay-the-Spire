@@ -3,11 +3,43 @@ from dataclasses import replace
 from slay_the_spire.app.session import MenuState, start_session
 from slay_the_spire.adapters.terminal.renderer import render_room
 from slay_the_spire.content.provider import StarterContentProvider
+from slay_the_spire.domain.models.combat_state import CombatState
+from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
 from slay_the_spire.domain.models.room_state import RoomState
 
 
 def _provider(session):
     return StarterContentProvider(session.content_root)
+
+
+def _hexaghost_combat_state(*, round_number: int) -> CombatState:
+    return CombatState(
+        round_number=round_number,
+        energy=3,
+        hand=[],
+        draw_pile=[],
+        discard_pile=[],
+        exhaust_pile=[],
+        player=PlayerCombatState(
+            instance_id="player",
+            hp=80,
+            max_hp=80,
+            block=0,
+            statuses=[],
+        ),
+        enemies=[
+            EnemyState(
+                instance_id="enemy-1",
+                enemy_id="hexaghost",
+                hp=250,
+                max_hp=250,
+                block=0,
+                statuses=[],
+            ),
+        ],
+        effect_queue=[],
+        log=[],
+    )
 
 
 def test_combat_root_screen_keeps_full_context_and_hand_panel() -> None:
@@ -28,6 +60,36 @@ def test_combat_root_screen_keeps_full_context_and_hand_panel() -> None:
     assert "5. 保存游戏" in output
     assert "6. 读取存档" in output
     assert "7. 退出游戏" in output
+
+
+def test_combat_root_screen_uses_current_round_enemy_intent() -> None:
+    session = start_session(seed=5)
+    combat_state = _hexaghost_combat_state(round_number=2)
+    room_state = replace(
+        session.room_state,
+        room_type="boss",
+        stage="waiting_input",
+        payload={
+            "node_id": "r12c0",
+            "room_kind": "boss",
+            "next_node_ids": [],
+            "combat_state": combat_state.to_dict(),
+        },
+        is_resolved=False,
+        rewards=[],
+    )
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=room_state,
+        registry=_provider(session),
+        menu_state=MenuState(),
+        run_phase=session.run_phase,
+    )
+
+    assert "6 段攻击（每段伤害随生命变化）" not in output
+    assert "造成 6 伤害" in output
 
 
 def test_combat_renderer_shows_inspect_root_menu_when_in_inspect_mode() -> None:

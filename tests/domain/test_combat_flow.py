@@ -323,6 +323,63 @@ def test_hexaghost_divider_scales_damage_by_player_hp(starting_hp: int, expected
     assert state.player.hp == max(starting_hp - expected_total_damage, 0)
 
 
+def test_hexaghost_divider_only_occurs_on_opening_turn_then_loops_without_it() -> None:
+    registry = _Registry()
+    registry.enemies().register(
+        {
+            "id": "hexaghost",
+            "name": "Hexaghost",
+            "hp": 250,
+            "move_table": [
+                {"move": "divider", "effects": [], "once": True},
+                {"move": "sear", "effects": [{"type": "damage", "amount": 6}]},
+                {"move": "tackle", "effects": [{"type": "damage", "amount": 14}]},
+                {"move": "inferno", "effects": [{"type": "add_card_to_discard", "card_id": "burn", "count": 2}]},
+                {"move": "tackle", "effects": [{"type": "damage", "amount": 14}]},
+            ],
+            "intent_policy": "scripted",
+        }
+    )
+    state = CombatState(
+        round_number=6,
+        energy=3,
+        hand=[],
+        draw_pile=[],
+        discard_pile=[],
+        exhaust_pile=[],
+        player=PlayerCombatState(
+            instance_id="player-1",
+            hp=80,
+            max_hp=80,
+            block=0,
+            statuses=[],
+        ),
+        enemies=[
+            EnemyState(
+                instance_id="enemy-1",
+                enemy_id="hexaghost",
+                hp=250,
+                max_hp=250,
+                block=0,
+                statuses=[],
+            )
+        ],
+        effect_queue=[],
+        log=[],
+    )
+
+    preview = preview_enemy_move(state, state.enemies[0], registry.enemies().get("hexaghost"))
+
+    assert preview is not None
+    assert preview.get("move") == "sear"
+
+    resolved = end_turn(state, registry)
+
+    assert [effect["type"] for effect in resolved] == ["damage"]
+    assert int(resolved[0]["amount"]) == 6
+    assert state.player.hp == 74
+
+
 def test_end_turn_resolves_burn_before_enemy_attack_and_discards_it() -> None:
     registry = _enemy_registry()
     state = _combat_state()

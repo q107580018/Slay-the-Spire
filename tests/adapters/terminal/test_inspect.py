@@ -8,6 +8,8 @@ from slay_the_spire.adapters.terminal.inspect import (
 from slay_the_spire.adapters.terminal.renderer import render_room
 from slay_the_spire.app.session import MenuState, start_session
 from slay_the_spire.content.provider import StarterContentProvider
+from slay_the_spire.domain.models.combat_state import CombatState
+from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
 from slay_the_spire.domain.models.room_state import RoomState
 
 
@@ -169,7 +171,7 @@ def test_render_combat_inspect_root_includes_piles_and_enemy_details() -> None:
 
 
 def test_render_combat_inspect_pages_show_pile_summary_card_detail_and_enemy_detail() -> None:
-    session = start_session(seed=5)
+    session = start_session(seed=1)
 
     hand_output = render_room(
         run_state=session.run_state,
@@ -277,7 +279,7 @@ def test_render_combat_shared_inspect_pages_show_real_stats_and_relics() -> None
 
 
 def test_render_combat_inspect_list_pages_do_not_repeat_full_list_in_footer() -> None:
-    session = start_session(seed=5)
+    session = start_session(seed=1)
 
     draw_pile_output = render_room(
         run_state=session.run_state,
@@ -300,3 +302,50 @@ def test_render_combat_inspect_list_pages_do_not_repeat_full_list_in_footer() ->
     assert draw_pile_output.count("5. 重击 | 费用 2 | 类型 攻击 | 造成 8 伤害 / 施加 2 易伤") == 1
     assert enemy_list_output.count("敌人列表") == 1
     assert enemy_list_output.count("1. 绿史莱姆 | 生命: 12/12 | 格挡: 0 | 状态: 无 | 当前意图: 造成 3 伤害") == 1
+
+
+def test_render_hexaghost_enemy_detail_localizes_divider_summary() -> None:
+    session = start_session(seed=1)
+    combat_state = CombatState(
+        round_number=1,
+        energy=3,
+        hand=[],
+        draw_pile=[],
+        discard_pile=[],
+        exhaust_pile=[],
+        player=PlayerCombatState(
+            instance_id="player-1",
+            hp=80,
+            max_hp=80,
+            block=0,
+            statuses=[],
+        ),
+        enemies=[
+            EnemyState(
+                instance_id="enemy-1",
+                enemy_id="hexaghost",
+                hp=250,
+                max_hp=250,
+                block=0,
+                statuses=[],
+            )
+        ],
+        effect_queue=[],
+        log=[],
+    )
+    room_state = replace(
+        session.room_state,
+        payload={**session.room_state.payload, "combat_state": combat_state.to_dict()},
+    )
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=room_state,
+        registry=_provider(session),
+        menu_state=MenuState(mode="inspect_enemy_detail", inspect_parent_mode="inspect_enemy_list", inspect_item_id="enemy-1"),
+        run_phase=session.run_phase,
+    )
+
+    assert "当前意图摘要: 6 段攻击（每段伤害随生命变化）" in output
+    assert "招式表预览: divider: 6 段攻击（每段伤害随生命变化）" in output

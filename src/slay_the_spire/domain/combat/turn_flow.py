@@ -65,6 +65,13 @@ def _sleep_turns(enemy_def: EnemyDef) -> int:
     return max(sleep_turns, 0)
 
 
+def _is_once_move(move: Mapping[str, object]) -> bool:
+    once = move.get("once", False)
+    if not isinstance(once, bool):
+        raise TypeError("once must be a bool")
+    return once
+
+
 def _active_enemy_move(state: CombatState, enemy_def: EnemyDef) -> Mapping[str, object] | None:
     if not enemy_def.move_table:
         return None
@@ -76,7 +83,18 @@ def _active_enemy_move(state: CombatState, enemy_def: EnemyDef) -> Mapping[str, 
     if enemy_def.intent_policy != "scripted":
         return _require_mapping(active_moves[0], "move_table item")
 
-    move_index = max(state.round_number - sleep_turns - 1, 0) % len(active_moves)
+    normalized_round = max(state.round_number - sleep_turns, 1)
+    first_move = _require_mapping(active_moves[0], "move_table item")
+    if _is_once_move(first_move):
+        if normalized_round == 1:
+            return first_move
+        looping_moves = active_moves[1:]
+        if not looping_moves:
+            return first_move
+        move_index = (normalized_round - 2) % len(looping_moves)
+        return _require_mapping(looping_moves[move_index], "move_table item")
+
+    move_index = (normalized_round - 1) % len(active_moves)
     return _require_mapping(active_moves[move_index], "move_table item")
 
 

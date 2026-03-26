@@ -77,6 +77,8 @@ def render_menu(options: list[str | Text], *, title: str | None = None) -> Panel
 
 def summarize_effect(effect: Mapping[str, object]) -> str:
     effect_type = effect.get("type")
+    if effect.get("move") == "divider":
+        return "6 段攻击（每段伤害随生命变化）"
     if effect_type == "damage":
         return f"造成 {int(effect.get('amount', 0))} 伤害"
     if effect_type == "block":
@@ -122,6 +124,15 @@ def summarize_relic_effects(effects: Sequence[Mapping[str, object]]) -> str:
     return " / ".join(summary for summary in summaries if summary) or "-"
 
 
+def summarize_enemy_move(move: Mapping[str, object]) -> str:
+    effects = move.get("effects")
+    if isinstance(effects, Sequence) and not isinstance(effects, (str, bytes)):
+        filtered_effects = [effect for effect in effects if isinstance(effect, Mapping)]
+        if filtered_effects:
+            return summarize_card_effects(filtered_effects)
+    return summarize_effect(move)
+
+
 def summarize_trigger_hooks(trigger_hooks: Sequence[str]) -> str:
     hook_labels = {
         "on_combat_end": "战斗结束后",
@@ -140,10 +151,5 @@ def preview_enemy_intent(enemy_def: EnemyDef) -> str:
     for move in enemy_def.move_table:
         if not isinstance(move, Mapping):
             continue
-        effects = move.get("effects")
-        if isinstance(effects, Sequence) and not isinstance(effects, (str, bytes)):
-            move_summary = summarize_card_effects([effect for effect in effects if isinstance(effect, Mapping)])
-        else:
-            move_summary = summarize_effect(move)
-        return move_summary
+        return summarize_enemy_move(move)
     return "-"

@@ -212,7 +212,7 @@ def _move_summary(move: Mapping[str, object], registry: ContentProviderPort) -> 
     effects = move.get("effects")
     if isinstance(effects, list) and effects:
         return " / ".join(_effect_description(effect, registry) for effect in effects if isinstance(effect, Mapping))
-    return "-"
+    return summarize_effect(move)
 
 
 def _move_preview(enemy_def: EnemyDef, registry: ContentProviderPort) -> str:

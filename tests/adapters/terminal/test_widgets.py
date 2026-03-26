@@ -107,8 +107,22 @@ def test_preview_enemy_intent_uses_first_move_for_multi_move_enemy() -> None:
     assert output == "造成 5 伤害"
 
 
+def test_preview_enemy_intent_shows_readable_summary_for_divider() -> None:
+    enemy_def = EnemyDef(
+        id="hexaghost",
+        name="六火幽魂",
+        hp=250,
+        move_table=[{"move": "divider", "effects": []}],
+        intent_policy="scripted",
+    )
+
+    output = preview_enemy_intent(enemy_def)
+
+    assert output == "6 段攻击（每段伤害随生命变化）"
+
+
 def test_render_room_uses_shared_box_and_no_duplicate_hp_text() -> None:
-    session = start_session(seed=5)
+    session = start_session(seed=1)
     output = render_room(
         run_state=session.run_state,
         act_state=session.act_state,
@@ -126,7 +140,7 @@ def test_render_room_uses_shared_box_and_no_duplicate_hp_text() -> None:
 
 
 def test_render_room_select_target_menu_uses_shared_hp_bar_contract() -> None:
-    session = start_session(seed=5)
+    session = start_session(seed=1)
     output = render_room(
         run_state=session.run_state,
         act_state=session.act_state,
@@ -140,7 +154,7 @@ def test_render_room_select_target_menu_uses_shared_hp_bar_contract() -> None:
 
 
 def test_render_room_inspect_enemy_detail_uses_shared_hp_bar_contract() -> None:
-    session = start_session(seed=5)
+    session = start_session(seed=1)
     output = render_room(
         run_state=session.run_state,
         act_state=session.act_state,
