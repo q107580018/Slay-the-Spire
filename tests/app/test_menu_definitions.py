@@ -199,7 +199,7 @@ def test_build_reward_menu_lists_skip_card_rewards_when_card_offers_exist() -> N
         "1. 金币 +11",
         "2. 卡牌 愤怒",
         "3. 卡牌 柄击",
-        "4. 卡牌 不屈意志",
+        "4. 卡牌 耸肩无视",
         "5. 跳过卡牌奖励",
         "6. 全部领取",
         "7. 返回上一步",
