@@ -95,6 +95,54 @@ def test_combat_renderer_distinguishes_inspect_stats_and_relics_pages() -> None:
     assert "角色状态" not in relics_output
 
 
+def test_combat_renderer_shows_inspect_slot_after_resolved_combat_with_rewards() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=replace(start_session(seed=5).room_state, stage="completed", is_resolved=True, rewards=["gold:99"]),
+    )
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=_provider(session),
+        menu_state=MenuState(),
+        run_phase=session.run_phase,
+    )
+
+    assert "1. 查看奖励" in output
+    assert "2. 领取奖励" in output
+    assert "3. 前往下一个房间" in output
+    assert "4. 查看资料" in output
+    assert "5. 保存游戏" in output
+    assert "6. 读取存档" in output
+    assert "7. 退出游戏" in output
+    assert "4. 保存游戏" not in output
+
+
+def test_combat_renderer_shows_inspect_slot_after_resolved_combat_without_rewards() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=replace(start_session(seed=5).room_state, stage="completed", is_resolved=True, rewards=[]),
+    )
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=_provider(session),
+        menu_state=MenuState(),
+        run_phase=session.run_phase,
+    )
+
+    assert "1. 前往下一个房间" in output
+    assert "2. 查看资料" in output
+    assert "3. 保存游戏" in output
+    assert "4. 读取存档" in output
+    assert "5. 退出游戏" in output
+    assert "2. 保存游戏" not in output
+
+
 def test_non_combat_renderer_shows_full_map_rows_and_current_position() -> None:
     session = start_session(seed=5)
     room_state = RoomState(

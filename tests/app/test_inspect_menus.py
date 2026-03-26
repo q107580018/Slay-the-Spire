@@ -67,6 +67,21 @@ def test_combat_root_menu_can_enter_inspect_root() -> None:
     assert "资料总览" in message
 
 
+def test_resolved_combat_without_rewards_can_enter_inspect_root_from_choice_two() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=replace(start_session(seed=5).room_state, stage="completed", is_resolved=True, rewards=[]),
+    )
+
+    running, next_session, message = route_menu_choice("2", session=session)
+
+    assert running is True
+    assert next_session.menu_state.mode == "inspect_root"
+    assert next_session.menu_state.inspect_parent_mode == "root"
+    assert next_session.menu_state.inspect_item_id is None
+    assert "资料总览" in message
+
+
 def test_inspect_root_can_open_deck_and_return() -> None:
     session = replace(start_session(seed=5), menu_state=MenuState(mode="inspect_root"))
 
