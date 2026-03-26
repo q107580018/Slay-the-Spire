@@ -101,6 +101,32 @@ def test_inspect_deck_can_return_to_parent_root_menu() -> None:
     assert "查看战场" in root_message
 
 
+def test_non_combat_inspect_deck_can_open_card_detail_and_return() -> None:
+    session = replace(start_session(seed=5), room_state=_event_room(), menu_state=MenuState(mode="inspect_root", inspect_parent_mode="root"))
+
+    _running, deck_session, deck_message = route_menu_choice("2", session=session)
+    _running, detail_session, detail_message = route_menu_choice("1", session=deck_session)
+    _running, back_to_list_session, back_to_list_message = route_menu_choice("1", session=detail_session)
+    _running, back_to_root_session, back_to_root_message = route_menu_choice("2", session=detail_session)
+
+    assert deck_session.menu_state.mode == "inspect_deck"
+    assert deck_session.menu_state.inspect_parent_mode == "root"
+    assert deck_session.menu_state.inspect_item_id == "deck"
+    assert deck_message.splitlines()[0] == "牌组列表"
+    assert detail_session.menu_state.mode == "inspect_card_detail"
+    assert detail_session.menu_state.inspect_parent_mode == "inspect_deck"
+    assert detail_session.menu_state.inspect_item_id == "strike#1"
+    assert detail_message.splitlines()[0] == "卡牌详情"
+    assert back_to_list_session.menu_state.mode == "inspect_deck"
+    assert back_to_list_session.menu_state.inspect_parent_mode == "root"
+    assert back_to_list_session.menu_state.inspect_item_id == "deck"
+    assert back_to_list_message.splitlines()[0] == "牌组列表"
+    assert back_to_root_session.menu_state.mode == "inspect_root"
+    assert back_to_root_session.menu_state.inspect_parent_mode == "root"
+    assert back_to_root_session.menu_state.inspect_item_id is None
+    assert back_to_root_message.splitlines()[0] == "资料总览"
+
+
 def test_inspect_leaf_pages_keep_transition_messages_consistent() -> None:
     session = start_session(seed=5)
 

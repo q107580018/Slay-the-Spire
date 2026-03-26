@@ -163,7 +163,10 @@ def _format_inspect_deck_menu(run_state: RunState, registry: ContentProviderPort
 
 
 def _format_inspect_deck_footer(run_state: RunState) -> list[str]:
-    return [f"{len(run_state.deck) + 1}. 返回上一步"]
+    return [
+        "输入上方编号查看卡牌详情",
+        f"{len(run_state.deck) + 1}. 返回上一步",
+    ]
 
 
 def _format_inspect_leaf_menu(title: str) -> list[str]:

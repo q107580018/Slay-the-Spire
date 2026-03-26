@@ -658,11 +658,30 @@ def _route_inspect_root_menu(choice: str, session: SessionState) -> tuple[bool, 
 
 
 def _route_inspect_deck_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+    deck = session.run_state.deck
     back_choice = str(len(session.run_state.deck) + 1)
     if choice == back_choice:
         next_session = _enter_inspect_root(session, parent_mode=session.menu_state.inspect_parent_mode or "root")
         return True, next_session, _inspect_transition_message(next_session, "资料总览")
-    return _invalid_menu_choice(session)
+    try:
+        index = int(choice)
+    except ValueError:
+        return _invalid_menu_choice(session)
+    if index <= 0 or index > len(deck):
+        return _invalid_menu_choice(session)
+    next_session = replace(
+        session,
+        menu_state=MenuState(
+            mode="inspect_card_detail",
+            inspect_parent_mode="inspect_deck",
+            inspect_item_id=deck[index - 1],
+        ),
+    )
+    return True, next_session, _inspect_transition_message(next_session, "卡牌详情")
+ 
+ 
+def _inspect_root_parent_mode_for_room(session: SessionState) -> str:
+    return _menu_state_for_room(session.room_state).mode or "root"
 
 
 def _route_inspect_leaf_menu(choice: str, session: SessionState, title: str) -> tuple[bool, SessionState, str]:
@@ -738,6 +757,16 @@ def _route_combat_inspect_enemy_list_menu(choice: str, session: SessionState) ->
 def _route_combat_inspect_card_detail_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
     parent_mode = session.menu_state.inspect_parent_mode or "inspect_hand"
     if choice == "1":
+        if parent_mode == "inspect_deck":
+            next_session = replace(
+                session,
+                menu_state=MenuState(
+                    mode="inspect_deck",
+                    inspect_parent_mode=_inspect_root_parent_mode_for_room(session),
+                    inspect_item_id="deck",
+                ),
+            )
+            return True, next_session, _inspect_transition_message(next_session, "牌组列表")
         next_session = replace(
             session,
             menu_state=MenuState(
@@ -748,7 +777,10 @@ def _route_combat_inspect_card_detail_menu(choice: str, session: SessionState) -
         )
         return True, next_session, _inspect_transition_message(next_session, "卡牌列表")
     if choice == "2":
-        next_session = _enter_inspect_root(session, parent_mode="root")
+        next_session = _enter_inspect_root(
+            session,
+            parent_mode="root" if parent_mode != "inspect_deck" else _inspect_root_parent_mode_for_room(session),
+        )
         return True, next_session, _inspect_transition_message(next_session, "资料总览")
     return _invalid_menu_choice(session)
 
