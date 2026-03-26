@@ -7,6 +7,7 @@
       "elite_pool_id": "act1_elites",
       "event_pool_id": "act1_events",
       "boss_pool_id": "act1_bosses",
+      "next_act_id": "act2",
       "map_config": {
         "floor_count": 13,
         "starting_columns": 1,

@@ -82,7 +82,7 @@ def test_main_new_run_renders_first_room(capsys, monkeypatch) -> None:
     assert "7. 退出游戏" in output
 
 
-def test_single_act_smoke_simulates_map_shop_rest_and_boss_victory_flow() -> None:
+def test_single_act_smoke_simulates_map_shop_rest_and_boss_reward_transition_into_act2() -> None:
     session = start_session(seed=1)
     _running, session, _message = route_menu_choice("4", session=session)
     _running, session, _message = route_menu_choice("5", session=session)
@@ -153,7 +153,11 @@ def test_single_act_smoke_simulates_map_shop_rest_and_boss_victory_flow() -> Non
 
     assert "shop" in visited_types
     assert "rest" in visited_types
-    assert session.run_phase == "victory"
+    assert session.run_phase == "active"
+    assert session.run_state.current_act_id == "act2"
+    assert session.act_state.act_id == "act2"
+    assert session.room_state.payload["act_id"] == "act2"
+    assert session.room_state.room_type == "combat"
     assert session.run_state.gold == 198
     assert "black_blood" in session.run_state.relics
     assert "bash_plus#10" in session.run_state.deck

@@ -138,13 +138,20 @@ def _combat_state_from_room(room_state: RoomState) -> CombatState | None:
     return CombatState.from_dict(combat_state)
 
 
-def _derive_run_phase(run_state: RunState, room_state: RoomState) -> str:
+def _derive_run_phase(
+    run_state: RunState,
+    act_state: ActState,
+    room_state: RoomState,
+    *,
+    registry: StarterContentProvider,
+) -> str:
     if run_state.current_hp <= 0:
         return "game_over"
     if room_state.stage == "defeated":
         return "game_over"
     if room_state.room_type == "boss" and _boss_rewards_complete(room_state):
-        return "victory"
+        if registry.acts().get(act_state.act_id).next_act_id is None:
+            return "victory"
     return "active"
 
 
@@ -214,17 +221,18 @@ def _has_pending_boss_rewards(room_state: RoomState) -> bool:
 
 
 def _claim_session_reward(session: SessionState, reward_id: str) -> SessionState:
+    provider = _content_provider(session)
     updated_run_state = apply_reward(
         run_state=session.run_state,
         reward_id=reward_id,
-        registry=_content_provider(session),
+        registry=provider,
     )
     updated_room_state = _room_with_rewards_claimed(session.room_state, reward_id)
     return replace(
         session,
         run_state=updated_run_state,
         room_state=updated_room_state,
-        run_phase=_derive_run_phase(updated_run_state, updated_room_state),
+        run_phase=_derive_run_phase(updated_run_state, session.act_state, updated_room_state, registry=provider),
         menu_state=MenuState(),
     )
 
@@ -251,10 +259,11 @@ def _claim_boss_gold(session: SessionState) -> SessionState:
     gold_reward = boss_rewards.get("gold_reward")
     if not isinstance(gold_reward, int) or isinstance(gold_reward, bool):
         return replace(session, menu_state=MenuState())
+    provider = _content_provider(session)
     updated_run_state = apply_reward(
         run_state=session.run_state,
         reward_id=f"gold:{gold_reward}",
-        registry=_content_provider(session),
+        registry=provider,
     )
     updated_boss_rewards = dict(boss_rewards)
     updated_boss_rewards["claimed_gold"] = True
@@ -262,13 +271,14 @@ def _claim_boss_gold(session: SessionState) -> SessionState:
         session.room_state,
         payload={**session.room_state.payload, "boss_rewards": updated_boss_rewards},
     )
-    return replace(
+    updated_session = replace(
         session,
         run_state=updated_run_state,
         room_state=updated_room_state,
-        run_phase=_derive_run_phase(updated_run_state, updated_room_state),
+        run_phase=_derive_run_phase(updated_run_state, session.act_state, updated_room_state, registry=provider),
         menu_state=MenuState(),
     )
+    return _resolve_boss_reward_completion(updated_session, registry=provider)
 
 
 def _claim_boss_relic(session: SessionState, relic_id: str) -> SessionState:
@@ -281,10 +291,11 @@ def _claim_boss_relic(session: SessionState, relic_id: str) -> SessionState:
     claimed_relic_id = boss_rewards.get("claimed_relic_id")
     if isinstance(claimed_relic_id, str) and claimed_relic_id:
         return replace(session, menu_state=MenuState())
+    provider = _content_provider(session)
     updated_run_state = apply_reward(
         run_state=session.run_state,
         reward_id=f"relic:{relic_id}",
-        registry=_content_provider(session),
+        registry=provider,
     )
     updated_boss_rewards = dict(boss_rewards)
     updated_boss_rewards["claimed_relic_id"] = relic_id
@@ -292,12 +303,42 @@ def _claim_boss_relic(session: SessionState, relic_id: str) -> SessionState:
         session.room_state,
         payload={**session.room_state.payload, "boss_rewards": updated_boss_rewards},
     )
-    return replace(
+    updated_session = replace(
         session,
         run_state=updated_run_state,
         room_state=updated_room_state,
-        run_phase=_derive_run_phase(updated_run_state, updated_room_state),
+        run_phase=_derive_run_phase(updated_run_state, session.act_state, updated_room_state, registry=provider),
         menu_state=MenuState(),
+    )
+    return _resolve_boss_reward_completion(updated_session, registry=provider)
+
+
+def _resolve_boss_reward_completion(
+    session: SessionState,
+    *,
+    registry: StarterContentProvider,
+) -> SessionState:
+    if not _boss_rewards_complete(session.room_state):
+        return session
+    current_act = registry.acts().get(session.act_state.act_id)
+    if current_act.next_act_id is None:
+        return replace(session, run_phase="victory", menu_state=MenuState())
+    next_act_id = current_act.next_act_id
+    updated_run_state = replace(session.run_state, current_act_id=next_act_id)
+    next_act_state = generate_act_state(next_act_id, seed=updated_run_state.seed, registry=registry)
+    next_room_state = enter_room(
+        updated_run_state,
+        next_act_state,
+        node_id=next_act_state.current_node_id,
+        registry=registry,
+    )
+    return replace(
+        session,
+        run_state=updated_run_state,
+        act_state=next_act_state,
+        room_state=next_room_state,
+        run_phase="active",
+        menu_state=_menu_state_for_room(next_room_state),
     )
 
 
@@ -373,7 +414,7 @@ def _session_with_combat_state(session: SessionState, combat_state: CombatState)
             session,
             run_state=updated_run_state,
             room_state=room_state,
-            run_phase=_derive_run_phase(updated_run_state, room_state),
+            run_phase=_derive_run_phase(updated_run_state, session.act_state, room_state, registry=_content_provider(session)),
         )
     room_state = _room_with_combat_state(
         session.room_state,
@@ -497,15 +538,21 @@ def load_session(
     loaded = load_game(repository=repository)
     if loaded["run_state"] is None or loaded["act_state"] is None or loaded["room_state"] is None:
         raise FileNotFoundError(f"save file is empty or incomplete: {resolved_save_path}")
-    return SessionState(
+    session = SessionState(
         run_state=loaded["run_state"],
         act_state=loaded["act_state"],
         room_state=loaded["room_state"],
         content_root=resolved_content_root,
         save_path=resolved_save_path,
-        run_phase=_derive_run_phase(loaded["run_state"], loaded["room_state"]),
+        run_phase=_derive_run_phase(
+            loaded["run_state"],
+            loaded["act_state"],
+            loaded["room_state"],
+            registry=StarterContentProvider(resolved_content_root),
+        ),
         menu_state=_menu_state_for_room(loaded["room_state"]),
     )
+    return _resolve_boss_reward_completion(session, registry=StarterContentProvider(resolved_content_root))
 
 
 def render_session(session: SessionState) -> str:
@@ -1060,7 +1107,7 @@ def _route_event_choice_menu(choice: str, session: SessionState) -> tuple[bool, 
         session,
         run_state=result.run_state,
         room_state=result.room_state,
-        run_phase=_derive_run_phase(result.run_state, result.room_state),
+        run_phase=_derive_run_phase(result.run_state, session.act_state, result.room_state, registry=_content_provider(session)),
         menu_state=_menu_state_for_room(result.room_state),
     )
     return True, next_session, _message_with_render(next_session, result.message)
@@ -1094,7 +1141,7 @@ def _route_event_upgrade_card_menu(choice: str, session: SessionState) -> tuple[
         session,
         run_state=result.run_state,
         room_state=result.room_state,
-        run_phase=_derive_run_phase(result.run_state, result.room_state),
+        run_phase=_derive_run_phase(result.run_state, session.act_state, result.room_state, registry=_content_provider(session)),
         menu_state=_menu_state_for_room(result.room_state),
     )
     return True, next_session, _message_with_render(next_session, result.message)
@@ -1128,7 +1175,7 @@ def _route_event_remove_card_menu(choice: str, session: SessionState) -> tuple[b
         session,
         run_state=result.run_state,
         room_state=result.room_state,
-        run_phase=_derive_run_phase(result.run_state, result.room_state),
+        run_phase=_derive_run_phase(result.run_state, session.act_state, result.room_state, registry=_content_provider(session)),
         menu_state=_menu_state_for_room(result.room_state),
     )
     return True, next_session, _message_with_render(next_session, result.message)

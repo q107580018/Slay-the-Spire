@@ -124,6 +124,7 @@ class ActDef:
     event_pool_id: str
     boss_pool_id: str
     map_config: ActMapConfig
+    next_act_id: str | None = None
 
 
 @dataclass(slots=True, frozen=True)
@@ -353,6 +354,7 @@ class ActRegistry(_BaseRegistry[ActDef]):
                 boss_room_type=_require_str(map_config_data.get("boss_room_type"), "map_config.boss_room_type"),
                 room_rules=room_rules,
             ),
+            next_act_id=_require_optional_str(data.get("next_act_id"), "next_act_id"),
         )
 
 
@@ -420,3 +422,5 @@ def validate_startup_integrity(
         raise ValueError("event_pool_id must reference a loaded event pool")
     if act.boss_pool_id not in enemy_pool_ids:
         raise ValueError("boss_pool_id must reference a loaded enemy pool")
+    if act.next_act_id is not None:
+        acts.get(act.next_act_id)

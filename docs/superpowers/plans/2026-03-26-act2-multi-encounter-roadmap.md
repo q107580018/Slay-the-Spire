@@ -67,7 +67,7 @@
 - Create: `content/acts/act2_map.json`
 - Mirror packaged copies under `src/slay_the_spire/data/content/acts/`
 
-- [ ] **Step 1: 写失败测试，锁定 Boss 奖励后进入下一幕而不是直接 victory**
+- [x] **Step 1: 写失败测试，锁定 Boss 奖励后进入下一幕而不是直接 victory**
 
 在 `tests/use_cases/test_room_recovery.py` 增加一个场景：
 
@@ -100,7 +100,7 @@ def test_act1_boss_reward_transitions_into_act2_start_room() -> None:
     assert session.room_state.room_type == "combat"
 ```
 
-- [ ] **Step 2: 运行测试，确认当前失败**
+- [x] **Step 2: 运行测试，确认当前失败**
 
 Run: `uv run pytest tests/use_cases/test_room_recovery.py tests/e2e/test_two_act_smoke.py -v`
 
@@ -108,7 +108,7 @@ Expected:
 - 当前逻辑会把 Boss 奖励领完直接置成 `victory`
 - `act2` 内容文件不存在时，相关断言或内容加载失败
 
-- [ ] **Step 3: 最小实现跨幕骨架**
+- [x] **Step 3: 最小实现跨幕骨架**
 
 实现方向：
 
@@ -119,13 +119,13 @@ Expected:
   - 若当前幕有 `next_act_id`，生成下一幕 `act_state`、更新 `run_state.current_act_id`、进入下一幕起点房间
   - 仅当没有 `next_act_id` 时才进入 `victory`
 
-- [ ] **Step 4: 运行测试，确认跨幕骨架通过**
+- [x] **Step 4: 运行测试，确认跨幕骨架通过**
 
 Run: `uv run pytest tests/use_cases/test_room_recovery.py tests/e2e/test_two_act_smoke.py -v`
 
 Expected: PASS
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add tests/use_cases/test_room_recovery.py \
