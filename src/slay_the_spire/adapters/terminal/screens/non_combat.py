@@ -113,6 +113,14 @@ def _format_node_choice(act_state: ActState, node_id: object) -> str:
     return f"{marker} {node.node_id} ({node.row},{node.col})"
 
 
+def _format_reachable_node_summary(act_state: ActState, node_id: object) -> str:
+    node = _node_lookup(act_state, node_id)
+    if node is None:
+        return _format_node_id(node_id)
+    label = _MAP_ROOM_TYPE_LABELS.get(node.room_type, node.room_type)
+    return f"[{label}] {node.node_id} ({node.row},{node.col})"
+
+
 def _format_next_nodes(act_state: ActState, room_state: RoomState) -> str:
     next_node_ids = room_state.payload.get("next_node_ids", [])
     if not isinstance(next_node_ids, list) or not next_node_ids:
@@ -358,6 +366,10 @@ def _metric_line(label: str, value: str) -> Text:
     return Text.assemble((label, "map.metric.label"), ("  ", "map.metric.sep"), (value, "map.metric.value"))
 
 
+def _tip_line(message: str) -> Text:
+    return Text.assemble(("TIP", "map.legend.label"), (" | ", "map.legend.sep"), (message, "map.legend.value"))
+
+
 def _legend_line(label: str, entries: list[tuple[str, str, str | None]]) -> Text:
     line = Text()
     line.append(label, style="map.legend.label")
@@ -393,18 +405,19 @@ def _status_legend_line() -> Text:
     line = Text()
     line.append("STAT", style="map.legend.label")
     line.append(" | ", style="map.legend.sep")
-    line.append(">房间<", style="map.node.current")
-    line.append(" 当前 ", style="map.legend.value")
-    line.append("[房间]", style="map.node.reachable")
-    line.append(" 可达  ", style="map.legend.value")
-    line.append("房间", style="map.node.default")
-    line.append("  其他", style="map.legend.value")
+    line.append(">当前<", style="map.node.current")
+    line.append(" 所在 ", style="map.legend.value")
+    line.append("[可达]", style="map.node.reachable")
+    line.append(" 下一步 ", style="map.legend.value")
+    line.append("节点", style="map.node.default")
+    line.append(" 其他", style="map.legend.value")
     return line
 
 
 def _full_map_lines(act_state: ActState) -> list[Text]:
     current_row, current_col = act_state.current_coord()
     row_numbers = sorted({node.row for node in act_state.nodes})
+    next_nodes = ", ".join(_format_reachable_node_summary(act_state, node_id) for node_id in act_state.reachable_node_ids) or "-"
     total_cols = max(node.col for node in act_state.nodes) + 1
     col_spacing = 14
     row_spacing = 4
@@ -432,6 +445,7 @@ def _full_map_lines(act_state: ActState) -> list[Text]:
     lines: list[Text] = [
         _metric_line("POS", f"({current_row}, {current_col})"),
         _metric_line("ROW", f"L{row_numbers[0]:02d}..L{row_numbers[-1]:02d}"),
+        _metric_line("NEXT", next_nodes),
         Text(""),
     ]
 
@@ -466,6 +480,7 @@ def _full_map_lines(act_state: ActState) -> list[Text]:
     lines.extend(
         [
             Text(""),
+            _tip_line("只有 [可达] 节点可以作为下一步；线条只表示整张地图的连接关系。"),
             _type_legend_line(),
             _status_legend_line(),
         ]
