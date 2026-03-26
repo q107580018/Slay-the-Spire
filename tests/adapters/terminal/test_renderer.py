@@ -66,6 +66,21 @@ def test_combat_root_screen_keeps_full_context_and_hand_panel() -> None:
     assert "7. 退出游戏" in output
 
 
+def test_select_card_menu_shows_current_energy_in_menu_title() -> None:
+    session = start_session(seed=5)
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=_provider(session),
+        menu_state=MenuState(mode="select_card"),
+        run_phase=session.run_phase,
+    )
+
+    assert "手牌（当前能量 3）:" in output
+    assert "1. 打击 费用1 - 造成 6 伤害" in output
+
+
 def test_combat_root_screen_uses_current_round_enemy_intent() -> None:
     session = start_session(seed=5)
     combat_state = _hexaghost_combat_state(round_number=2)

@@ -393,7 +393,7 @@ def build_select_card_menu(*, combat_state: CombatState, registry: ContentProvid
         effect_summary = summarize_card_definition(card_def)
         options.append((f"play_card:{index}", f"{card_def.name} {cost_label} - {effect_summary}"))
     options.append(("back", "返回上一步"))
-    return build_menu(title="手牌", options=options)
+    return build_menu(title=f"手牌（当前能量 {combat_state.energy}）", options=options)
 
 
 def build_target_menu(
