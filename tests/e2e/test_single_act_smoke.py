@@ -140,17 +140,22 @@ def test_single_act_smoke_simulates_map_shop_rest_and_boss_victory_flow() -> Non
     _running, session, _message = route_menu_choice("2", session=session)
     _running, session, _message = route_menu_choice("1", session=session)
     assert session.run_phase == "active"
+    assert session.menu_state.mode == "root"
     assert session.room_state.rewards == []
+    assert session.room_state.payload["boss_rewards"]["claimed_gold"] is True
     assert "boss_rewards" in session.room_state.payload
 
     _running, session, _message = route_menu_choice("2", session=session)
+    assert session.menu_state.mode == "select_boss_reward"
     _running, session, _message = route_menu_choice("2", session=session)
+    assert session.menu_state.mode == "select_boss_relic"
     _running, session, _message = route_menu_choice("1", session=session)
 
     assert "shop" in visited_types
     assert "rest" in visited_types
     assert session.run_phase == "victory"
     assert session.run_state.gold == 198
+    assert "black_blood" in session.run_state.relics
     assert "bash_plus#10" in session.run_state.deck
 
 

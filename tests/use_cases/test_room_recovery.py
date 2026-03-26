@@ -302,14 +302,17 @@ def test_partial_boss_reward_progress_survives_load_session(tmp_path: Path) -> N
 
     assert claimed_gold_session.run_phase == "active"
     assert claimed_gold_session.room_state.payload["boss_rewards"]["claimed_gold"] is True
+    assert restored_session.run_state.gold == claimed_gold_session.run_state.gold
     assert restored_session.run_phase == "active"
     assert restored_session.menu_state.mode == "root"
     assert restored_session.room_state.payload["boss_rewards"]["claimed_gold"] is True
     assert restored_session.room_state.payload["boss_rewards"]["claimed_relic_id"] is None
+    assert "black_blood" not in restored_session.run_state.relics
     assert reward_menu_session.menu_state.mode == "select_boss_reward"
     assert relic_menu_session.menu_state.mode == "select_boss_relic"
     assert victory_session.run_phase == "victory"
     assert victory_session.room_state.payload["boss_rewards"]["claimed_relic_id"] == "black_blood"
+    assert "black_blood" in victory_session.run_state.relics
 
 
 def test_non_boss_reward_claim_returns_to_map_selection() -> None:
