@@ -1,0 +1,30 @@
+{
+  "encounters": [
+    {
+      "id": "book_of_stabbing",
+      "name": "穿刺之书",
+      "enemy_ids": [
+        "book_of_stabbing"
+      ],
+      "pool_weight": 3
+    },
+    {
+      "id": "gremlin_leader",
+      "name": "地精首领",
+      "enemy_ids": [
+        "gremlin_leader"
+      ],
+      "pool_weight": 2
+    },
+    {
+      "id": "slavers",
+      "name": "奴隶贩子三人组",
+      "enemy_ids": [
+        "taskmaster",
+        "slaver_red",
+        "slaver_blue"
+      ],
+      "pool_weight": 3
+    }
+  ]
+}

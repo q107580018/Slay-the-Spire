@@ -83,3 +83,13 @@ def test_generate_act_state_limits_special_room_streaks_across_sampled_seeds() -
         act_state = generate_act_state("act1", seed=seed, registry=provider)
 
         assert _longest_special_streak(act_state) <= 2
+
+
+def test_generate_act2_state_guarantees_two_elites_across_sampled_seeds() -> None:
+    provider = _content_provider()
+
+    for seed in range(1, 21):
+        act_state = generate_act_state("act2", seed=seed, registry=provider)
+        room_counts = Counter(node.room_type for node in act_state.nodes)
+
+        assert room_counts["elite"] >= 2

@@ -66,6 +66,15 @@ def test_provider_exposes_registry_accessors(content_root: Path) -> None:
 
 
 @pytest.mark.parametrize("content_root", _content_roots())
+def test_registry_loads_act2_definition(content_root: Path) -> None:
+    provider = StarterContentProvider(content_root)
+    act = provider.acts().get("act2")
+
+    assert act.name == "第二幕"
+    assert act.event_pool_id == "act2_events"
+
+
+@pytest.mark.parametrize("content_root", _content_roots())
 def test_boss_relic_catalog_exposes_black_blood_anchor_and_lantern(content_root: Path) -> None:
     provider = StarterContentProvider(content_root)
 
@@ -190,6 +199,14 @@ def test_provider_exposes_event_pool_entry_metadata(content_root: Path) -> None:
     assert entries
     assert all(entry.member_id for entry in entries)
     assert all(entry.weight > 0 for entry in entries)
+
+
+@pytest.mark.parametrize("content_root", _content_roots())
+def test_act2_event_pool_contains_multiple_distinct_events(content_root: Path) -> None:
+    provider = StarterContentProvider(content_root)
+    event_ids = {entry.member_id for entry in provider.event_pool_entries("act2_events")}
+
+    assert {"ancient_writing", "masked_bandits", "forgotten_altar"}.issubset(event_ids)
 
 
 @pytest.mark.parametrize("content_root", _content_roots())

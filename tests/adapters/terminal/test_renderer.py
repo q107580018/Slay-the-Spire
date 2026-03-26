@@ -1,7 +1,10 @@
 from dataclasses import replace
 
+from rich.console import Console
+
 from slay_the_spire.app.session import MenuState, start_session
 from slay_the_spire.adapters.terminal.renderer import render_room
+from slay_the_spire.adapters.terminal.theme import TERMINAL_THEME
 from slay_the_spire.adapters.terminal.screens.non_combat import render_full_map_panel
 from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.domain.models.act_state import ActNodeState, ActState
@@ -13,6 +16,18 @@ from slay_the_spire.domain.models.statuses import StatusState
 
 def _provider(session):
     return StarterContentProvider(session.content_root)
+
+
+def _export(renderable) -> str:
+    console = Console(
+        width=100,
+        record=True,
+        force_terminal=False,
+        color_system=None,
+        theme=TERMINAL_THEME,
+    )
+    console.print(renderable)
+    return console.export_text(clear=False)
 
 
 def _hexaghost_combat_state(*, round_number: int) -> CombatState:
@@ -134,6 +149,37 @@ def test_combat_renderer_shows_recent_battle_log_entries() -> None:
     assert "战斗记录" in output
     assert "你打出 打击，对 绿史莱姆 造成 6 伤害。" in output
     assert "绿史莱姆攻击你 3，实际受到 3。" in output
+
+
+def test_non_combat_renderer_shows_act2_masked_bandits_copy() -> None:
+    session = start_session(seed=5)
+    room_state = RoomState(
+        room_id="act2:event",
+        room_type="event",
+        stage="waiting_input",
+        payload={
+            "act_id": "act2",
+            "node_id": "r3c1",
+            "room_kind": "event",
+            "event_id": "masked_bandits",
+            "next_node_ids": ["r4c0"],
+        },
+        is_resolved=False,
+        rewards=[],
+    )
+    act_state = replace(session.act_state, act_id="act2")
+
+    output = render_room(
+        run_state=replace(session.run_state, current_act_id="act2"),
+        act_state=act_state,
+        room_state=room_state,
+        registry=_provider(session),
+        menu_state=MenuState(mode="select_event_choice"),
+        run_phase="active",
+    )
+
+    assert "蒙面强盗" in output
+    assert "交出 75 金币" in output
 
 
 def test_combat_renderer_uses_dynamic_enemy_intent_for_sleeping_enemy() -> None:
@@ -534,9 +580,37 @@ def test_non_combat_renderer_shows_full_map_rows_and_current_position() -> None:
     assert "完整地图" in output
     assert "POS" in output
     assert "ROW" in output
+    assert "NEXT" in output
     assert "L00 |" in output
     assert "L12 |" in output
     assert "当前金币" in output
+
+
+def test_full_map_panel_lists_reachable_nodes_and_topology_hint() -> None:
+    act_state = ActState(
+        act_id="act1",
+        current_node_id="r2c0",
+        nodes=[
+            ActNodeState(node_id="start", row=0, col=0, room_type="combat", next_node_ids=["r1c0"]),
+            ActNodeState(node_id="r1c0", row=1, col=0, room_type="event", next_node_ids=["r2c0", "r2c1"]),
+            ActNodeState(node_id="r2c0", row=2, col=0, room_type="event", next_node_ids=["r3c1", "r3c2"]),
+            ActNodeState(node_id="r2c1", row=2, col=1, room_type="combat", next_node_ids=["r3c0", "r3c1"]),
+            ActNodeState(node_id="r3c0", row=3, col=0, room_type="shop", next_node_ids=[]),
+            ActNodeState(node_id="r3c1", row=3, col=1, room_type="combat", next_node_ids=[]),
+            ActNodeState(node_id="r3c2", row=3, col=2, room_type="combat", next_node_ids=[]),
+        ],
+        visited_node_ids=["start", "r1c0", "r2c0"],
+        enemy_pool_id="act1_basic",
+        elite_pool_id="act1_elites",
+        boss_pool_id="act1_bosses",
+        event_pool_id="act1_events",
+    )
+
+    output = _export(render_full_map_panel(act_state))
+
+    assert "NEXT  [战斗] r3c1 (3,1), [战斗] r3c2 (3,2)" in output
+    assert "TIP | 只有 [可达] 节点可以作为下一步" in output
+    assert "线条只表示整张地图的连接关系" in output
 
 
 def test_shop_renderer_shows_cards_relics_potions_and_remove_service() -> None:
@@ -865,7 +939,7 @@ def test_map_renderer_uses_terminal_ruler_and_legend_layout() -> None:
     assert "L02 |" in output
     assert "L00 |" in output
     assert "TYPE | 战斗 精英 Boss 事件 商店 休息" in output
-    assert "STAT | >房间< 当前 [房间] 可达  房间  其他" in output
+    assert "STAT | >当前< 所在 [可达] 下一步 节点 其他" in output
     assert "[精英]" in output
     assert "Boss" in output
 
@@ -900,7 +974,11 @@ def test_map_renderer_applies_light_rich_styles_to_priority_tokens() -> None:
     assert "map.node.current" in current_line_styles
     assert "map.room.combat" in current_line_styles
 
-    reachable_line_styles = next(styles for line, styles in styled_lines.items() if "[事件]" in line and "[精英]" in line)
+    reachable_line_styles = next(
+        styles
+        for line, styles in styled_lines.items()
+        if line.startswith("L01 |") and "[事件]" in line and "[精英]" in line
+    )
     assert "map.node.reachable" in reachable_line_styles
     assert "map.room.event" in reachable_line_styles
     assert "map.room.elite" in reachable_line_styles

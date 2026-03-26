@@ -307,7 +307,7 @@ git commit -m "feat: migrate act1 battles to encounter pools"
 - Create: `content/acts/act2_map.json`
 - Create: `src/slay_the_spire/data/content/acts/act2_map.json`
 
-- [ ] **Step 1: 写失败测试，锁定 Act 2 可加载且地图压力高于 Act 1**
+- [x] **Step 1: 写失败测试，锁定 Act 2 可加载且地图压力高于 Act 1**
 
 在 `tests/content/test_registry_validation.py` 增加：
 
@@ -332,7 +332,7 @@ def test_generate_act2_state_guarantees_two_elites_across_sampled_seeds() -> Non
         assert elite_count >= 2
 ```
 
-- [ ] **Step 2: 运行测试，确认当前失败**
+- [x] **Step 2: 运行测试，确认当前失败**
 
 Run: `uv run pytest tests/content/test_registry_validation.py tests/domain/test_map_generator.py -v`
 
@@ -340,7 +340,7 @@ Expected:
 - `act2` 尚未注册
 - 采样生成找不到 `act2`
 
-- [ ] **Step 3: 最小实现 Act 2 地图配置**
+- [x] **Step 3: 最小实现 Act 2 地图配置**
 
 在 `content/acts/act2_map.json` 与打包副本新增：
 
@@ -354,7 +354,7 @@ Expected:
   - 更低 `event` 权重
   - 更高 `elite`、`shop`、`rest` 中后段权重
 
-- [ ] **Step 4: 运行测试，确认 Act 2 地图规则通过**
+- [x] **Step 4: 运行测试，确认 Act 2 地图规则通过**
 
 Run: `uv run pytest tests/content/test_registry_validation.py tests/domain/test_map_generator.py -v`
 
@@ -380,7 +380,7 @@ git commit -m "feat: add act2 map and room ecology"
 - Create: `content/encounters/act2_basic.json`
 - Create: `src/slay_the_spire/data/content/encounters/act2_basic.json`
 
-- [ ] **Step 1: 写失败测试，锁定 Act 2 普通房可抽到原版风格多怪**
+- [x] **Step 1: 写失败测试，锁定 Act 2 普通房可抽到原版风格多怪**
 
 在 `tests/use_cases/test_start_run.py` 增加：
 
@@ -400,13 +400,13 @@ def test_enter_act2_combat_room_uses_act2_basic_encounters() -> None:
     assert len(combat_state.enemies) >= 2
 ```
 
-- [ ] **Step 2: 运行测试，确认当前失败**
+- [x] **Step 2: 运行测试，确认当前失败**
 
 Run: `uv run pytest tests/use_cases/test_start_run.py tests/use_cases/test_enter_room.py -v`
 
 Expected: FAIL because `act2_basic` content and encounter pool do not exist
 
-- [ ] **Step 3: 最小实现 Act 2 普通怪与遭遇**
+- [x] **Step 3: 最小实现 Act 2 普通怪与遭遇**
 
 内容建议优先级：
 
@@ -424,7 +424,7 @@ Expected: FAIL because `act2_basic` content and encounter pool do not exist
 - 易伤 / 虚弱
 - 睡眠 / 蓄力这类已有状态
 
-- [ ] **Step 4: 运行测试，确认 Act 2 普通遭遇通过**
+- [x] **Step 4: 运行测试，确认 Act 2 普通遭遇通过**
 
 Run: `uv run pytest tests/use_cases/test_start_run.py tests/use_cases/test_enter_room.py -v`
 
@@ -456,7 +456,7 @@ git commit -m "feat: add act2 basic enemies and encounters"
 - Create: `content/encounters/act2_bosses.json`
 - Create: `src/slay_the_spire/data/content/encounters/act2_bosses.json`
 
-- [ ] **Step 1: 写失败测试，锁定第二幕精英和 Boss 池可真实进入**
+- [x] **Step 1: 写失败测试，锁定第二幕精英和 Boss 池可真实进入**
 
 在 `tests/e2e/test_two_act_smoke.py` 增加：
 
@@ -472,13 +472,13 @@ def test_act2_boss_room_uses_act2_boss_encounters() -> None:
     }
 ```
 
-- [ ] **Step 2: 运行测试，确认当前失败**
+- [x] **Step 2: 运行测试，确认当前失败**
 
 Run: `uv run pytest tests/domain/test_combat_flow.py tests/e2e/test_two_act_smoke.py -v`
 
 Expected: FAIL because `act2_elites` and `act2_bosses` content are missing
 
-- [ ] **Step 3: 最小实现精英与 Boss 内容**
+- [x] **Step 3: 最小实现精英与 Boss 内容**
 
 建议优先落地：
 
@@ -498,7 +498,7 @@ Expected: FAIL because `act2_elites` and `act2_bosses` content are missing
 
 对当前引擎暂不支持的高保真机制，在 JSON 中先做低保真替代，并在文档顶部注记“后续细化”。
 
-- [ ] **Step 4: 运行测试，确认精英与 Boss 池通过**
+- [x] **Step 4: 运行测试，确认精英与 Boss 池通过**
 
 Run: `uv run pytest tests/domain/test_combat_flow.py tests/e2e/test_two_act_smoke.py -v`
 
@@ -529,7 +529,7 @@ git commit -m "feat: add act2 elite and boss content"
 - Create: `content/events/act2_events.json`
 - Create: `src/slay_the_spire/data/content/events/act2_events.json`
 
-- [ ] **Step 1: 写失败测试，锁定 Act 2 事件池可进入且文案中文化**
+- [x] **Step 1: 写失败测试，锁定 Act 2 事件池可进入且文案中文化**
 
 在 `tests/use_cases/test_event_actions.py` 增加：
 
@@ -552,13 +552,13 @@ def test_act2_event_screen_uses_chinese_player_copy() -> None:
     assert "付钱" in _strip_ansi(rendered)
 ```
 
-- [ ] **Step 2: 运行测试，确认当前失败**
+- [x] **Step 2: 运行测试，确认当前失败**
 
 Run: `uv run pytest tests/use_cases/test_event_actions.py tests/adapters/terminal/test_renderer.py tests/content/test_registry_validation.py -v`
 
 Expected: FAIL because `act2_events` does not exist
 
-- [ ] **Step 3: 最小实现 Act 2 事件池**
+- [x] **Step 3: 最小实现 Act 2 事件池**
 
 首批建议事件：
 
@@ -574,7 +574,7 @@ Expected: FAIL because `act2_events` does not exist
 - 事件结果优先复用现有能力：金币变化、加牌、删牌、升级牌、掉血、获得遗物
 - 暂不支持的复杂分支先省掉，不单独为单个事件扩一套系统
 
-- [ ] **Step 4: 运行测试，确认 Act 2 事件通过**
+- [x] **Step 4: 运行测试，确认 Act 2 事件通过**
 
 Run: `uv run pytest tests/use_cases/test_event_actions.py tests/adapters/terminal/test_renderer.py tests/content/test_registry_validation.py -v`
 
@@ -600,7 +600,7 @@ git commit -m "feat: add act2 event pool"
 - Modify: `tests/adapters/terminal/test_renderer.py`
 - Modify: `src/slay_the_spire/app/session.py`
 
-- [ ] **Step 1: 写失败测试，锁定两幕长流程与恢复**
+- [x] **Step 1: 写失败测试，锁定两幕长流程与恢复**
 
 在 `tests/e2e/test_two_act_smoke.py` 增加：
 
@@ -625,7 +625,7 @@ def test_save_load_preserves_act2_progress_and_multi_enemy_room(tmp_path) -> Non
     assert len(combat_state.enemies) >= 2
 ```
 
-- [ ] **Step 2: 运行测试，确认当前失败**
+- [x] **Step 2: 运行测试，确认当前失败**
 
 Run: `uv run pytest tests/e2e/test_two_act_smoke.py tests/use_cases/test_save_load.py tests/use_cases/test_room_recovery.py tests/adapters/terminal/test_renderer.py -v`
 
@@ -633,7 +633,7 @@ Expected:
 - 路径推进或跨幕恢复在某个环节失败
 - 某些终端面板对第二幕或多敌人显示不稳定
 
-- [ ] **Step 3: 最小修复两幕回归缺口**
+- [x] **Step 3: 最小修复两幕回归缺口**
 
 重点检查：
 
@@ -641,7 +641,7 @@ Expected:
 - `render_room` 是否能正确渲染第二幕标题、多敌人列表、路径选择
 - `save_game` / `load_game` 是否完整保存 Act 2 的 `act_state` 与多敌人 `combat_state`
 
-- [ ] **Step 4: 跑完整回归**
+- [x] **Step 4: 跑完整回归**
 
 Run: `uv run pytest`
 
@@ -670,8 +670,8 @@ git commit -m "test: cover two-act progression and multi-encounter recovery"
 - [ ] Task 1: 跨幕推进骨架
 - [ ] Task 2: encounter 内容类型
 - [ ] Task 3: Act 1 迁移到 encounter
-- [ ] Task 4: Act 2 地图与生态
-- [ ] Task 5: Act 2 普通怪与多怪遭遇
-- [ ] Task 6: Act 2 精英与 Boss
-- [ ] Task 7: Act 2 事件池
-- [ ] Task 8: 两幕 E2E / 存读档 / 终端回归
+- [x] Task 4: Act 2 地图与生态
+- [x] Task 5: Act 2 普通怪与多怪遭遇
+- [x] Task 6: Act 2 精英与 Boss
+- [x] Task 7: Act 2 事件池
+- [x] Task 8: 两幕 E2E / 存读档 / 终端回归

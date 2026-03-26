@@ -1,0 +1,41 @@
+{
+  "encounters": [
+    {
+      "id": "chosen_plus_byrd",
+      "name": "天择者与鸟妖",
+      "enemy_ids": [
+        "chosen",
+        "byrd"
+      ],
+      "pool_weight": 3
+    },
+    {
+      "id": "double_chosen",
+      "name": "双天择者",
+      "enemy_ids": [
+        "chosen",
+        "chosen"
+      ],
+      "pool_weight": 2
+    },
+    {
+      "id": "spheric_guardian_plus_slaver",
+      "name": "球形守护者与红色奴隶贩子",
+      "enemy_ids": [
+        "spheric_guardian",
+        "slaver_red"
+      ],
+      "pool_weight": 3
+    },
+    {
+      "id": "triple_byrd",
+      "name": "三只鸟妖",
+      "enemy_ids": [
+        "byrd",
+        "byrd",
+        "byrd"
+      ],
+      "pool_weight": 2
+    }
+  ]
+}

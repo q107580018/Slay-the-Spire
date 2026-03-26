@@ -1,0 +1,138 @@
+{
+  "enemies": [
+    {
+      "id": "book_of_stabbing",
+      "pool_weight": 1,
+      "name": "穿刺之书",
+      "hp": 168,
+      "move_table": [
+        {
+          "move": "multi_stab",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 7
+            },
+            {
+              "type": "damage",
+              "amount": 7
+            },
+            {
+              "type": "damage",
+              "amount": 7
+            }
+          ]
+        },
+        {
+          "move": "heavy_stab",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 18
+            }
+          ]
+        }
+      ],
+      "intent_policy": "cycle"
+    },
+    {
+      "id": "gremlin_leader",
+      "pool_weight": 1,
+      "name": "地精首领",
+      "hp": 145,
+      "move_table": [
+        {
+          "move": "rally",
+          "effects": [
+            {
+              "type": "weak",
+              "stacks": 1
+            }
+          ]
+        },
+        {
+          "move": "slash",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 10
+            }
+          ]
+        },
+        {
+          "move": "crush",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 16
+            }
+          ]
+        }
+      ],
+      "intent_policy": "cycle"
+    },
+    {
+      "id": "slaver_blue",
+      "pool_weight": 1,
+      "name": "蓝色奴隶贩子",
+      "hp": 50,
+      "move_table": [
+        {
+          "move": "stab",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 11
+            }
+          ]
+        },
+        {
+          "move": "snare",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 7
+            },
+            {
+              "type": "weak",
+              "stacks": 1
+            }
+          ]
+        }
+      ],
+      "intent_policy": "cycle"
+    },
+    {
+      "id": "taskmaster",
+      "pool_weight": 1,
+      "name": "监工",
+      "hp": 56,
+      "move_table": [
+        {
+          "move": "burning_whip",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 7
+            },
+            {
+              "type": "add_card_to_discard",
+              "card_id": "burn",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "move": "lash",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 9
+            }
+          ]
+        }
+      ],
+      "intent_policy": "cycle"
+    }
+  ]
+}

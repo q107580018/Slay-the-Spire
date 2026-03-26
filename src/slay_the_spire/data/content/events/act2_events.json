@@ -1,0 +1,146 @@
+{
+  "events": [
+    {
+      "id": "ancient_writing",
+      "pool_weight": 1,
+      "text": "一本古老的手稿静静悬在空中，字迹会随着你的注视不断重组。",
+      "choices": [
+        {
+          "id": "study",
+          "label": "研读手稿，选择 1 张牌升级"
+        },
+        {
+          "id": "erase",
+          "label": "撕去一页，移除 1 张牌"
+        },
+        {
+          "id": "leave",
+          "label": "合上手稿，离开"
+        }
+      ],
+      "outcomes": [
+        {
+          "choice_id": "study",
+          "result": "ancient_writing_study",
+          "result_text": "你从古老的字句里提炼出一段更锋利的战斗技巧。",
+          "effect": {
+            "type": "upgrade_card_selection"
+          }
+        },
+        {
+          "choice_id": "erase",
+          "result": "ancient_writing_erase",
+          "result_text": "你撕下一页，连同牌组里的一段累赘一起抹去。",
+          "effect": {
+            "type": "remove_card_selection",
+            "gold_cost": 0
+          }
+        },
+        {
+          "choice_id": "leave",
+          "result": "nothing",
+          "result_text": "你决定不再窥探这些会改变命运的文字。",
+          "effect": {
+            "type": "nothing"
+          }
+        }
+      ]
+    },
+    {
+      "id": "masked_bandits",
+      "pool_weight": 2,
+      "text": "三名蒙面强盗从废墟后现身，笑着让你把钱袋交出来。",
+      "choices": [
+        {
+          "id": "pay",
+          "label": "交出 75 金币"
+        },
+        {
+          "id": "fight",
+          "label": "强行杀出去，失去 10 点生命，夺回 110 金币"
+        },
+        {
+          "id": "leave",
+          "label": "后退离开"
+        }
+      ],
+      "outcomes": [
+        {
+          "choice_id": "pay",
+          "result": "masked_bandits_pay",
+          "result_text": "你咬牙把钱袋丢了过去，强盗们大笑着离开了。",
+          "effect": {
+            "type": "lose_gold",
+            "lose_gold": 75
+          }
+        },
+        {
+          "choice_id": "fight",
+          "result": "masked_bandits_fight",
+          "result_text": "你冲散了强盗的包围，也付出了不轻的代价。",
+          "effect": {
+            "type": "gain_gold_and_lose_hp",
+            "gain_gold": 110,
+            "lose_hp": 10
+          }
+        },
+        {
+          "choice_id": "leave",
+          "result": "nothing",
+          "result_text": "你判断局势不妙，谨慎地拉开了距离。",
+          "effect": {
+            "type": "nothing"
+          }
+        }
+      ]
+    },
+    {
+      "id": "forgotten_altar",
+      "pool_weight": 1,
+      "text": "一座被遗忘的祭坛矗立在废墟深处，石面上的凹槽里还残留着暗红色痕迹。",
+      "choices": [
+        {
+          "id": "offer_blood",
+          "label": "献上鲜血，失去 12 点生命，获得金色神像"
+        },
+        {
+          "id": "kneel",
+          "label": "静心祈祷，最大生命 +5"
+        },
+        {
+          "id": "leave",
+          "label": "离开祭坛"
+        }
+      ],
+      "outcomes": [
+        {
+          "choice_id": "offer_blood",
+          "result": "forgotten_altar_blood",
+          "result_text": "祭坛吞下鲜血后吐出一尊沉重的神像。",
+          "effect": {
+            "type": "gain_relic_and_lose_hp",
+            "relic_id": "golden_idol",
+            "lose_hp": 12
+          }
+        },
+        {
+          "choice_id": "kneel",
+          "result": "forgotten_altar_kneel",
+          "result_text": "你从祭坛前起身时，感到身体比之前更坚韧了一些。",
+          "effect": {
+            "type": "increase_max_hp",
+            "amount": 5
+          }
+        },
+        {
+          "choice_id": "leave",
+          "result": "nothing",
+          "result_text": "你没有惊动祭坛，安静地退开了。",
+          "effect": {
+            "type": "nothing"
+          }
+        }
+      ]
+    }
+  ]
+}
