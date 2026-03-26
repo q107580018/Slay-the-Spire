@@ -12,10 +12,21 @@ from slay_the_spire.adapters.persistence.save_files import JsonFileSaveRepositor
 from slay_the_spire.app.menu_definitions import (
     build_card_detail_menu,
     build_enemy_detail_menu,
+    build_event_choice_menu,
+    build_event_remove_menu,
+    build_event_upgrade_menu,
     build_inspect_root_menu,
     build_leaf_menu,
+    build_next_room_menu,
     build_reward_menu,
+    build_rest_root_menu,
+    build_rest_upgrade_menu,
     build_root_menu,
+    build_select_card_menu,
+    build_shop_remove_menu,
+    build_shop_root_menu,
+    build_target_menu,
+    build_terminal_phase_menu,
     resolve_menu_action,
 )
 from slay_the_spire.content.provider import StarterContentProvider
@@ -499,13 +510,14 @@ def _load_current_session(session: SessionState) -> tuple[bool, SessionState, st
 
 
 def _route_terminal_phase_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
-    if choice == "1":
+    action_id = resolve_menu_action(choice, build_terminal_phase_menu(run_phase=session.run_phase))
+    if action_id == "view_terminal":
         return True, replace(session, menu_state=MenuState()), render_session(replace(session, menu_state=MenuState()))
-    if choice == "2":
+    if action_id == "save":
         return _save_current_session(session)
-    if choice == "3":
+    if action_id == "load":
         return _load_current_session(session)
-    if choice == "4":
+    if action_id == "quit":
         return False, replace(session, menu_state=MenuState()), "已退出游戏。"
     return _invalid_menu_choice(session)
 
@@ -818,12 +830,15 @@ def _route_card_menu(choice: str, session: SessionState) -> tuple[bool, SessionS
     combat_state = _combat_state_from_room(session.room_state)
     if combat_state is None:
         return True, replace(session, menu_state=MenuState()), "战斗状态不可用。"
-    back_choice = str(len(combat_state.hand) + 1)
-    if choice == back_choice:
+    action_id = resolve_menu_action(choice, build_select_card_menu(combat_state=combat_state, registry=_content_provider(session)))
+    if action_id == "back":
         next_session = replace(session, menu_state=MenuState())
         return True, next_session, render_session(next_session)
+    if action_id is None or not action_id.startswith("play_card:"):
+        return _invalid_menu_choice(session)
+    choice_index = action_id.split(":", 1)[1]
     try:
-        card_instance_id = _resolve_hand_card(combat_state, choice)
+        card_instance_id = _resolve_hand_card(combat_state, choice_index)
     except ValueError:
         return _invalid_menu_choice(session)
     if _card_requires_target(card_instance_id, session) and len(_combat_target_ids(combat_state)) > 1:
@@ -833,7 +848,7 @@ def _route_card_menu(choice: str, session: SessionState) -> tuple[bool, SessionS
         )
         return True, next_session, render_session(next_session)
     running, next_session, message = route_command(
-        f"play {choice}",
+        f"play {choice_index}",
         session=replace(session, menu_state=MenuState()),
     )
     next_session = _preserve_menu_history(next_session, history_session=session)
@@ -849,12 +864,20 @@ def _route_target_menu(choice: str, session: SessionState) -> tuple[bool, Sessio
         next_session = replace(session, menu_state=MenuState(mode="select_card"))
         return True, next_session, render_session(next_session)
     targets = _combat_target_ids(combat_state)
-    back_choice = str(len(targets) + 1)
-    if choice == back_choice:
+    action_id = resolve_menu_action(
+        choice,
+        build_target_menu(
+            enemy_options=[(f"target:{index}", target_id) for index, target_id in enumerate(targets, start=1)],
+            current_card_name=None,
+        ),
+    )
+    if action_id == "back":
         next_session = replace(session, menu_state=MenuState(mode="select_card"))
         return True, next_session, render_session(next_session)
+    if action_id is None or not action_id.startswith("target:"):
+        return _invalid_menu_choice(session)
     try:
-        target_index = int(choice)
+        target_index = int(action_id.split(":", 1)[1])
     except ValueError:
         return _invalid_menu_choice(session)
     if target_index <= 0 or target_index > len(targets):
@@ -876,17 +899,16 @@ def _route_next_room_menu(choice: str, session: SessionState) -> tuple[bool, Ses
     next_node_ids = session.room_state.payload.get("next_node_ids", [])
     if not isinstance(next_node_ids, list):
         return _invalid_menu_choice(session)
-    back_choice = str(len(next_node_ids) + 1)
-    if choice == back_choice:
+    action_id = resolve_menu_action(
+        choice,
+        build_next_room_menu(options=[(f"next_node:{node_id}", str(node_id)) for node_id in next_node_ids]),
+    )
+    if action_id == "back":
         next_session = replace(session, menu_state=MenuState())
         return True, next_session, render_session(next_session)
-    try:
-        index = int(choice)
-    except ValueError:
+    if action_id is None or not action_id.startswith("next_node:"):
         return _invalid_menu_choice(session)
-    if index <= 0 or index > len(next_node_ids):
-        return _invalid_menu_choice(session)
-    next_node_id = next_node_ids[index - 1]
+    next_node_id = action_id.split(":", 1)[1]
     if not isinstance(next_node_id, str):
         return _invalid_menu_choice(session)
     next_session = _advance_to_node(replace(session, menu_state=MenuState()), next_node_id)
@@ -898,17 +920,18 @@ def _route_event_choice_menu(choice: str, session: SessionState) -> tuple[bool, 
     if not isinstance(event_id, str):
         return True, replace(session, menu_state=MenuState()), "当前事件不可用。"
     event_def = _content_provider(session).events().get(event_id)
-    back_choice = str(len(event_def.choices) + 1)
-    if choice == back_choice:
+    action_id = resolve_menu_action(
+        choice,
+        build_event_choice_menu(
+            options=[(f"choice:{choice_def.get('id')}", str(choice_def.get("label"))) for choice_def in event_def.choices]
+        ),
+    )
+    if action_id == "back":
         next_session = replace(session, menu_state=MenuState())
         return True, next_session, render_session(next_session)
-    try:
-        index = int(choice)
-    except ValueError:
+    if action_id is None or not action_id.startswith("choice:"):
         return _invalid_menu_choice(session)
-    if index <= 0 or index > len(event_def.choices):
-        return _invalid_menu_choice(session)
-    choice_id = event_def.choices[index - 1].get("id")
+    choice_id = action_id.split(":", 1)[1]
     if not isinstance(choice_id, str):
         return True, replace(session, menu_state=MenuState()), "事件选项无效。"
     result = event_action(
@@ -931,8 +954,11 @@ def _route_event_upgrade_card_menu(choice: str, session: SessionState) -> tuple[
     options = session.room_state.payload.get("upgrade_options", [])
     if not isinstance(options, list):
         return _invalid_menu_choice(session)
-    back_choice = str(len(options) + 1)
-    if choice == back_choice:
+    action_id = resolve_menu_action(
+        choice,
+        build_event_upgrade_menu(options=[(f"upgrade_card:{card_instance_id}", str(card_instance_id)) for card_instance_id in options]),
+    )
+    if action_id == "cancel":
         result = event_action(
             run_state=session.run_state,
             room_state=session.room_state,
@@ -940,16 +966,12 @@ def _route_event_upgrade_card_menu(choice: str, session: SessionState) -> tuple[
             registry=_content_provider(session),
         )
     else:
-        try:
-            index = int(choice)
-        except ValueError:
-            return _invalid_menu_choice(session)
-        if index <= 0 or index > len(options):
+        if action_id is None or not action_id.startswith("upgrade_card:"):
             return _invalid_menu_choice(session)
         result = event_action(
             run_state=session.run_state,
             room_state=session.room_state,
-            action_id=f"upgrade_card:{options[index - 1]}",
+            action_id=action_id,
             registry=_content_provider(session),
         )
     next_session = replace(
@@ -966,8 +988,11 @@ def _route_event_remove_card_menu(choice: str, session: SessionState) -> tuple[b
     candidates = session.room_state.payload.get("remove_candidates", [])
     if not isinstance(candidates, list):
         return _invalid_menu_choice(session)
-    back_choice = str(len(candidates) + 1)
-    if choice == back_choice:
+    action_id = resolve_menu_action(
+        choice,
+        build_event_remove_menu(options=[(f"remove_card:{card_instance_id}", str(card_instance_id)) for card_instance_id in candidates]),
+    )
+    if action_id == "cancel":
         result = event_action(
             run_state=session.run_state,
             room_state=session.room_state,
@@ -975,16 +1000,12 @@ def _route_event_remove_card_menu(choice: str, session: SessionState) -> tuple[b
             registry=_content_provider(session),
         )
     else:
-        try:
-            index = int(choice)
-        except ValueError:
-            return _invalid_menu_choice(session)
-        if index <= 0 or index > len(candidates):
+        if action_id is None or not action_id.startswith("remove_card:"):
             return _invalid_menu_choice(session)
         result = event_action(
             run_state=session.run_state,
             room_state=session.room_state,
-            action_id=f"remove_card:{candidates[index - 1]}",
+            action_id=action_id,
             registry=_content_provider(session),
         )
     next_session = replace(
@@ -1013,39 +1034,21 @@ def _route_reward_menu(choice: str, session: SessionState) -> tuple[bool, Sessio
     return _invalid_menu_choice(session)
 
 
-def _shop_root_actions(room_state: RoomState) -> list[str]:
-    actions: list[str] = []
-    for offer in room_state.payload.get("cards", []):
-        if isinstance(offer, dict) and isinstance(offer.get("offer_id"), str):
-            actions.append(f"buy_card:{offer['offer_id']}")
-    for offer in room_state.payload.get("relics", []):
-        if isinstance(offer, dict) and isinstance(offer.get("offer_id"), str):
-            actions.append(f"buy_relic:{offer['offer_id']}")
-    for offer in room_state.payload.get("potions", []):
-        if isinstance(offer, dict) and isinstance(offer.get("offer_id"), str):
-            actions.append(f"buy_potion:{offer['offer_id']}")
-    actions.append("remove")
-    actions.extend(["leave", "__inspect__", "__save__", "__load__", "__quit__"])
-    return actions
-
-
 def _route_shop_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
-    actions = _shop_root_actions(session.room_state)
-    try:
-        index = int(choice)
-    except ValueError:
+    action_id = resolve_menu_action(
+        choice,
+        build_shop_root_menu(run_state=session.run_state, room_state=session.room_state, registry=_content_provider(session)),
+    )
+    if action_id is None:
         return _invalid_menu_choice(session)
-    if index <= 0 or index > len(actions):
-        return _invalid_menu_choice(session)
-    action_id = actions[index - 1]
-    if action_id == "__inspect__":
+    if action_id == "inspect":
         next_session = _enter_inspect_root(session, parent_mode="shop_root")
         return True, next_session, _menu_view_message(next_session, "资料总览")
-    if action_id == "__save__":
+    if action_id == "save":
         return _save_current_session(session)
-    if action_id == "__load__":
+    if action_id == "load":
         return _load_current_session(session)
-    if action_id == "__quit__":
+    if action_id == "quit":
         return False, replace(session, menu_state=MenuState()), "已退出游戏。"
     result = shop_action(run_state=session.run_state, room_state=session.room_state, action_id=action_id)
     next_session = replace(
@@ -1058,23 +1061,17 @@ def _route_shop_root_menu(choice: str, session: SessionState) -> tuple[bool, Ses
 
 
 def _route_shop_remove_card_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
-    candidates = session.room_state.payload.get("remove_candidates", [])
-    if not isinstance(candidates, list):
+    action_id = resolve_menu_action(
+        choice,
+        build_shop_remove_menu(room_state=session.room_state, registry=_content_provider(session)),
+    )
+    if action_id is None:
         return _invalid_menu_choice(session)
-    extra_actions = ["cancel", "__save__", "__load__", "__quit__"]
-    actions = [f"remove_card:{candidate}" for candidate in candidates if isinstance(candidate, str)] + extra_actions
-    try:
-        index = int(choice)
-    except ValueError:
-        return _invalid_menu_choice(session)
-    if index <= 0 or index > len(actions):
-        return _invalid_menu_choice(session)
-    action_id = actions[index - 1]
-    if action_id == "__save__":
+    if action_id == "save":
         return _save_current_session(session)
-    if action_id == "__load__":
+    if action_id == "load":
         return _load_current_session(session)
-    if action_id == "__quit__":
+    if action_id == "quit":
         return False, replace(session, menu_state=MenuState()), "已退出游戏。"
     result = shop_action(run_state=session.run_state, room_state=session.room_state, action_id=action_id)
     next_session = replace(
@@ -1087,23 +1084,17 @@ def _route_shop_remove_card_menu(choice: str, session: SessionState) -> tuple[bo
 
 
 def _route_rest_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
-    actions = [action for action in session.room_state.payload.get("actions", []) if isinstance(action, str)]
-    actions.extend(["__inspect__", "__save__", "__load__", "__quit__"])
-    try:
-        index = int(choice)
-    except ValueError:
+    action_id = resolve_menu_action(choice, build_rest_root_menu(room_state=session.room_state))
+    if action_id is None:
         return _invalid_menu_choice(session)
-    if index <= 0 or index > len(actions):
-        return _invalid_menu_choice(session)
-    action_id = actions[index - 1]
-    if action_id == "__inspect__":
+    if action_id == "inspect":
         next_session = _enter_inspect_root(session, parent_mode="rest_root")
         return True, next_session, _menu_view_message(next_session, "资料总览")
-    if action_id == "__save__":
+    if action_id == "save":
         return _save_current_session(session)
-    if action_id == "__load__":
+    if action_id == "load":
         return _load_current_session(session)
-    if action_id == "__quit__":
+    if action_id == "quit":
         return False, replace(session, menu_state=MenuState()), "已退出游戏。"
     result = rest_action(
         run_state=session.run_state,
@@ -1121,23 +1112,17 @@ def _route_rest_root_menu(choice: str, session: SessionState) -> tuple[bool, Ses
 
 
 def _route_rest_upgrade_card_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
-    options = session.room_state.payload.get("upgrade_options", [])
-    if not isinstance(options, list):
+    action_id = resolve_menu_action(
+        choice,
+        build_rest_upgrade_menu(room_state=session.room_state, registry=_content_provider(session)),
+    )
+    if action_id is None:
         return _invalid_menu_choice(session)
-    actions = [f"upgrade_card:{card_instance_id}" for card_instance_id in options if isinstance(card_instance_id, str)]
-    actions.extend(["cancel", "__save__", "__load__", "__quit__"])
-    try:
-        index = int(choice)
-    except ValueError:
-        return _invalid_menu_choice(session)
-    if index <= 0 or index > len(actions):
-        return _invalid_menu_choice(session)
-    action_id = actions[index - 1]
-    if action_id == "__save__":
+    if action_id == "save":
         return _save_current_session(session)
-    if action_id == "__load__":
+    if action_id == "load":
         return _load_current_session(session)
-    if action_id == "__quit__":
+    if action_id == "quit":
         return False, replace(session, menu_state=MenuState()), "已退出游戏。"
     result = rest_action(
         run_state=session.run_state,

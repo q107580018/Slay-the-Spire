@@ -30,9 +30,15 @@ from slay_the_spire.adapters.terminal.widgets import (
     summarize_card_effects,
 )
 from slay_the_spire.app.menu_definitions import (
+    build_event_choice_menu,
     build_inspect_root_menu,
     build_leaf_menu,
+    build_next_room_menu,
+    build_reward_menu,
     build_root_menu,
+    build_select_card_menu,
+    build_target_menu,
+    format_menu_entries,
     format_menu_lines,
 )
 from slay_the_spire.domain.models.act_state import ActState
@@ -141,63 +147,55 @@ def _format_inspect_leaf_menu(title: str) -> list[str]:
 
 
 def _format_next_room_menu(room_state: RoomState) -> list[str]:
-    lines = ["请选择下一个房间:"]
     next_node_ids = room_state.payload.get("next_node_ids", [])
     if not isinstance(next_node_ids, list):
         next_node_ids = []
-    for index, node_id in enumerate(next_node_ids, start=1):
-        lines.append(f"{index}. {_format_node(node_id)}")
-    lines.append(f"{len(next_node_ids) + 1}. 返回上一步")
-    return lines
+    return format_menu_lines(
+        build_next_room_menu(
+            options=[(f"next_node:{node_id}", _format_node(node_id)) for node_id in next_node_ids],
+        )
+    )
 
 
 def _format_event_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str]:
     event_id = room_state.payload.get("event_id")
     if not isinstance(event_id, str):
-        return ["事件选项:", "1. 返回上一步"]
+        return format_menu_lines(build_event_choice_menu(options=[]))
     event_def = registry.events().get(event_id)
-    lines = ["事件选项:"]
-    for index, choice in enumerate(event_def.choices, start=1):
-        lines.append(f"{index}. {choice.get('label')}")
-    lines.append(f"{len(event_def.choices) + 1}. 返回上一步")
-    return lines
+    return format_menu_lines(
+        build_event_choice_menu(
+            options=[
+                (f"choice:{choice.get('id')}", str(choice.get("label")))
+                for choice in event_def.choices
+            ]
+        )
+    )
 
 
 def _format_reward_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str]:
-    lines = ["奖励:"]
-    lines.extend(_format_reward_lines(room_state.rewards, registry))
-    lines.append(f"{len(room_state.rewards) + 1}. 返回上一步")
-    return lines
+    return format_menu_lines(build_reward_menu(room_state=room_state, registry=registry))
 
 
 def _format_card_menu(combat_state: CombatState, registry: ContentProviderPort) -> list[str]:
-    if not combat_state.hand:
-        return ["手牌:", "1. 返回上一步"]
-    lines = ["手牌:"]
-    for index, card_instance_id in enumerate(combat_state.hand, start=1):
-        card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
-        cost_label = "无法打出" if not getattr(card_def, "playable", True) or card_def.cost < 0 else f"费用{card_def.cost}"
-        effect_summary = summarize_card_effects(card_def.effects) if card_def.effects else "无效果"
-        lines.append(f"{index}. {card_def.name} {cost_label} - {effect_summary}")
-    lines.append(f"{len(combat_state.hand) + 1}. 返回上一步")
-    return lines
+    return format_menu_lines(build_select_card_menu(combat_state=combat_state, registry=registry))
 
 
-def _format_target_menu(combat_state: CombatState, registry: ContentProviderPort, selected_card: str | None) -> list[str]:
-    lines = ["选择目标:"]
+def _format_target_menu(combat_state: CombatState, registry: ContentProviderPort, selected_card: str | None) -> list[str | Text]:
+    current_card_name: str | None = None
     if selected_card is not None:
         card_def = registry.cards().get(card_id_from_instance_id(selected_card))
-        lines.append(f"当前卡牌: {card_def.name}")
+        current_card_name = card_def.name
+    enemy_options: list[tuple[str, Text]] = []
     living_enemies = [enemy for enemy in combat_state.enemies if enemy.hp > 0]
     for index, enemy in enumerate(living_enemies, start=1):
         enemy_def = registry.enemies().get(enemy.enemy_id)
-        line = Text(f"{index}. ")
-        line.append(enemy_def.name, style="enemy.name")
-        line.append(" 生命: ")
-        line.append_text(render_hp_bar(enemy.hp, enemy.max_hp))
-        lines.append(line)
-    lines.append(f"{len(living_enemies) + 1}. 返回上一步")
-    return lines
+        label = Text()
+        label.append(enemy_def.name, style="enemy.name")
+        label.append(" 生命: ")
+        label.append_text(render_hp_bar(enemy.hp, enemy.max_hp))
+        enemy_options.append((f"target:{index}", label))
+    menu = build_target_menu(enemy_options=enemy_options, current_card_name=current_card_name)
+    return format_menu_entries(menu)
 
 
 def _format_menu(
