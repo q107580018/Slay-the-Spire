@@ -41,6 +41,7 @@ def end_turn(
                 enemy_previews=enemy_previews,
                 resolved_effects=resolved_effects,
                 entities=snapshots_before,
+                registry=registry,
             ),
         ),
     )

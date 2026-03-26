@@ -71,6 +71,16 @@ def test_format_relic_detail_lines_translate_gold_bonus_effect() -> None:
     assert all("event_gold_bonus" not in line.plain for line in lines)
 
 
+def test_format_card_detail_lines_explain_burn_end_turn_penalty() -> None:
+    session = start_session(seed=5)
+    registry = StarterContentProvider(session.content_root)
+
+    lines = format_card_detail_lines("burn#1", registry)
+
+    assert any("灼伤" in line.plain for line in lines)
+    assert any("回合结束时若仍在手中，失去 2 点生命" in line.plain for line in lines)
+
+
 def test_inspect_module_does_not_define_heal_specific_localization() -> None:
     inspect_source = Path(__file__).resolve().parents[3] / "src" / "slay_the_spire" / "adapters" / "terminal" / "inspect.py"
 

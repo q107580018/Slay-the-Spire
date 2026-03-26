@@ -7,7 +7,7 @@ from rich.panel import Panel
 from rich.text import Text
 
 from slay_the_spire.adapters.terminal.theme import HP_BAR_WIDTH, PANEL_BOX
-from slay_the_spire.content.registries import EnemyDef
+from slay_the_spire.content.registries import CardDef, EnemyDef
 from slay_the_spire.domain.models.statuses import StatusState
 
 _STATUS_LABELS: dict[str, tuple[str, str]] = {
@@ -16,6 +16,14 @@ _STATUS_LABELS: dict[str, tuple[str, str]] = {
     "strength": ("力量", "status.buff"),
     "dexterity": ("敏捷", "status.buff"),
     "artifact": ("人工制品", "status.buff"),
+}
+
+_SPECIAL_CARD_RULE_TEXT: dict[str, str] = {
+    "burn": "回合结束时若仍在手中，失去 2 点生命",
+}
+
+_SPECIAL_CARD_LABELS: dict[str, str] = {
+    "burn": "灼伤",
 }
 
 
@@ -75,7 +83,15 @@ def render_menu(options: list[str | Text], *, title: str | None = None) -> Panel
     return Panel(body, title=title or None, box=PANEL_BOX, border_style="menu.border", expand=False)
 
 
-def summarize_effect(effect: Mapping[str, object]) -> str:
+def special_card_rule_text(card_id: str) -> str | None:
+    return _SPECIAL_CARD_RULE_TEXT.get(card_id)
+
+
+def card_label(card_id: str) -> str:
+    return _SPECIAL_CARD_LABELS.get(card_id, card_id)
+
+
+def summarize_effect(effect: Mapping[str, object], *, detailed_status_cards: bool = False) -> str:
     effect_type = effect.get("type")
     if effect.get("move") == "divider":
         return "6 段攻击（每段伤害随生命变化）"
@@ -101,15 +117,37 @@ def summarize_effect(effect: Mapping[str, object]) -> str:
         zone = zone_labels.get(str(effect.get("zone")), str(effect.get("zone")))
         return f"复制一张卡牌放入{zone}"
     if effect_type == "add_card_to_discard":
-        return f"向弃牌堆加入 {int(effect.get('count', 1))} 张牌"
+        count = int(effect.get("count", 1))
+        raw_card_id = effect.get("card_id")
+        card_name = card_label(raw_card_id) if isinstance(raw_card_id, str) else "牌"
+        summary = f"向弃牌堆加入 {count} 张{card_name}"
+        if detailed_status_cards and isinstance(raw_card_id, str):
+            rule_text = special_card_rule_text(raw_card_id)
+            if rule_text is not None:
+                summary += f"（{rule_text}）"
+        return summary
     if isinstance(effect_type, str):
         return effect_type
     return "-"
 
 
-def summarize_card_effects(effects: Sequence[Mapping[str, object]]) -> str:
-    summaries = [summarize_effect(effect) for effect in effects]
+def summarize_card_effects(
+    effects: Sequence[Mapping[str, object]],
+    *,
+    detailed_status_cards: bool = False,
+) -> str:
+    summaries = [summarize_effect(effect, detailed_status_cards=detailed_status_cards) for effect in effects]
     return " / ".join(summary for summary in summaries if summary) or "-"
+
+
+def summarize_card_definition(card_def: CardDef) -> str:
+    summary = summarize_card_effects(card_def.effects)
+    if summary != "-":
+        return summary
+    special_rule = special_card_rule_text(card_def.id)
+    if special_rule is not None:
+        return special_rule
+    return "无效果"
 
 
 def summarize_relic_effect(effect: Mapping[str, object]) -> str:
@@ -163,5 +201,8 @@ def summarize_enemy_move_preview(move: Mapping[str, object] | None) -> str:
         return f"沉睡 {sleep_turns} 回合"
     effects = move.get("effects")
     if isinstance(effects, Sequence) and not isinstance(effects, (str, bytes)):
-        return summarize_card_effects([effect for effect in effects if isinstance(effect, Mapping)])
-    return summarize_effect(move)
+        return summarize_card_effects(
+            [effect for effect in effects if isinstance(effect, Mapping)],
+            detailed_status_cards=True,
+        )
+    return summarize_effect(move, detailed_status_cards=True)

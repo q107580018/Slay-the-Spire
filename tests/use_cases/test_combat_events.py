@@ -118,6 +118,7 @@ def test_build_enemy_turn_events_adds_sleep_event_without_damage_recomputation()
         enemy_previews=[(state.enemies[0], {"move": "sleep", "sleep_turns": 2})],
         resolved_effects=[],
         entities=snapshots,
+        registry=_provider(),
     )
 
     assert events == [

@@ -280,6 +280,72 @@ def test_end_turn_log_reports_sleeping_enemy() -> None:
     assert state.log == ["Lagavulin沉睡，暂不行动。"]
 
 
+def test_end_turn_log_reports_burn_trigger_and_enemy_adding_burn() -> None:
+    registry = _Registry()
+    registry.cards().register(
+        {
+            "id": "burn",
+            "name": "灼伤",
+            "cost": -1,
+            "playable": False,
+            "can_appear_in_shop": False,
+            "effects": [],
+        }
+    )
+    registry.enemies().register(
+        {
+            "id": "hexaghost",
+            "name": "Hexaghost",
+            "hp": 250,
+            "move_table": [
+                {"move": "divider", "effects": []},
+                {
+                    "move": "sear",
+                    "effects": [
+                        {"type": "damage", "amount": 6},
+                        {"type": "add_card_to_discard", "card_id": "burn", "count": 1},
+                    ],
+                },
+            ],
+            "intent_policy": "scripted",
+        }
+    )
+    state = CombatState(
+        round_number=2,
+        energy=3,
+        hand=["burn#1", "strike#1"],
+        draw_pile=["strike#2", "defend#2", "strike#3", "defend#3", "strike#4"],
+        discard_pile=[],
+        exhaust_pile=[],
+        player=PlayerCombatState(
+            instance_id="player-1",
+            hp=20,
+            max_hp=20,
+            block=0,
+            statuses=[],
+        ),
+        enemies=[
+            EnemyState(
+                instance_id="enemy-1",
+                enemy_id="hexaghost",
+                hp=250,
+                max_hp=250,
+                block=0,
+                statuses=[],
+            )
+        ],
+        effect_queue=[],
+        log=[],
+    )
+
+    run_end_turn(state, registry)
+
+    assert state.log == [
+        "灼伤在回合结束时触发，对你造成 2，实际受到 2。",
+        "Hexaghost攻击你 6，实际受到 6，并向你的弃牌堆加入 1 张灼伤。",
+    ]
+
+
 def test_preview_enemy_move_reuses_combat_turn_logic_without_mutating_state() -> None:
     registry = _Registry()
     registry.enemies().register(

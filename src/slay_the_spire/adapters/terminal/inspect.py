@@ -8,8 +8,11 @@ from rich.text import Text
 
 from slay_the_spire.adapters.terminal.theme import PANEL_BOX
 from slay_the_spire.adapters.terminal.widgets import (
+    card_label,
     format_card_cost,
     render_statuses,
+    special_card_rule_text,
+    summarize_card_definition,
     summarize_card_effects,
     summarize_effect,
     summarize_relic_effects,
@@ -79,14 +82,17 @@ def _effect_description(effect: Mapping[str, object], registry: ContentProviderP
             try:
                 card_name = registry.cards().get(card_id).name
             except KeyError:
-                card_name = card_id
+                card_name = card_label(card_id)
+            rule_text = special_card_rule_text(card_id)
+            if rule_text is not None:
+                return f"向弃牌堆加入 {int(effect.get('count', 1))} 张 {card_name}（{rule_text}）"
         return f"向弃牌堆加入 {int(effect.get('count', 1))} 张 {card_name}"
-    return summarize_effect(effect)
+    return summarize_effect(effect, detailed_status_cards=True)
 
 
 def _full_effect_summary(card_def: CardDef, registry: ContentProviderPort) -> str:
     if not card_def.effects:
-        return "无效果"
+        return special_card_rule_text(card_def.id) or "无效果"
     return "；".join(_effect_description(effect, registry) for effect in card_def.effects)
 
 
@@ -105,7 +111,7 @@ def format_card_detail_lines(card_instance_id: str, registry: ContentProviderPor
         Text.assemble(("名称 ", "summary.label"), card_def.name),
         Text.assemble(("实例 ", "summary.label"), card_instance_id),
         Text.assemble(("费用 ", "summary.label"), format_card_cost(card_def.cost)),
-        Text.assemble(("效果 ", "summary.label"), summarize_card_effects(card_def.effects)),
+        Text.assemble(("效果 ", "summary.label"), summarize_card_definition(card_def)),
     ]
     if card_def.upgrades_to is not None:
         upgraded = registry.cards().get(card_def.upgrades_to)
@@ -133,7 +139,7 @@ def format_card_instance_menu(title: str, card_instance_ids: list[str], registry
     else:
         for index, card_instance_id in enumerate(card_instance_ids, start=1):
             card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
-            effect_summary = summarize_card_effects(card_def.effects) if card_def.effects else "无效果"
+            effect_summary = summarize_card_definition(card_def)
             lines.append(
                 f"{index}. {card_def.name} | 费用 {_card_cost_label(card_def)} | 类型 {_card_type_label(card_def)} | {effect_summary}"
             )

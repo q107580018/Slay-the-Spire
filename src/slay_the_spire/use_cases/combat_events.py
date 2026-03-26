@@ -3,7 +3,9 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
+from slay_the_spire.adapters.terminal.widgets import card_label
 from slay_the_spire.domain.models.combat_state import CombatState
+from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.entities import EnemyState
 from slay_the_spire.ports.content_provider import ContentProviderPort
 from slay_the_spire.shared.types import JsonDict
@@ -26,6 +28,7 @@ class CombatEvent:
     actual_damage: int = 0
     status_id: str | None = None
     stacks: int = 0
+    count: int = 0
 
 
 def capture_entity_snapshots(
@@ -111,6 +114,7 @@ def build_enemy_turn_events(
     enemy_previews: Sequence[tuple[EnemyState, Mapping[str, object] | None]],
     resolved_effects: Sequence[JsonDict],
     entities: Mapping[str, EntitySnapshot],
+    registry: ContentProviderPort,
 ) -> list[CombatEvent]:
     events: list[CombatEvent] = []
     for enemy, preview in enemy_previews:
@@ -128,27 +132,32 @@ def build_enemy_turn_events(
 
     for effect in resolved_effects:
         source_id = effect.get("source_instance_id")
-        if not isinstance(source_id, str):
-            continue
-        source_snapshot = entities.get(source_id)
-        if source_snapshot is None or source_snapshot.kind != "enemy":
-            continue
         effect_type = effect.get("type")
         result = _result_mapping(effect)
+        source_snapshot = entities.get(source_id) if isinstance(source_id, str) else None
         if effect_type == "damage":
             target_name = _target_name(entities, effect)
             if target_name is None:
                 continue
+            actor_name = _effect_actor_name(
+                source_id=source_id,
+                source_snapshot=source_snapshot,
+                registry=registry,
+            )
+            if actor_name is None:
+                continue
             events.append(
                 CombatEvent(
                     event_type="damage",
-                    actor_name=source_snapshot.name,
+                    actor_name=actor_name,
                     target_name=target_name,
                     amount=_result_int(result, "applied_amount"),
                     blocked=_result_int(result, "blocked"),
                     actual_damage=_result_int(result, "actual_damage"),
                 )
             )
+            continue
+        if source_snapshot is None or source_snapshot.kind != "enemy":
             continue
         if effect_type == "block":
             events.append(
@@ -172,7 +181,42 @@ def build_enemy_turn_events(
                     stacks=_result_int(result, "applied_stacks"),
                 )
             )
+            continue
+        if effect_type == "add_card_to_discard":
+            events.append(
+                CombatEvent(
+                    event_type="add_card_to_discard",
+                    actor_name=source_snapshot.name,
+                    card_name=_card_name(effect.get("card_id"), registry),
+                    count=_safe_int(effect.get("count")) or 1,
+                )
+            )
     return events
+
+
+def _effect_actor_name(
+    *,
+    source_id: object,
+    source_snapshot: EntitySnapshot | None,
+    registry: ContentProviderPort,
+) -> str | None:
+    if source_snapshot is not None and source_snapshot.kind == "enemy":
+        return source_snapshot.name
+    if not isinstance(source_id, str):
+        return None
+    try:
+        return _card_name(card_id_from_instance_id(source_id), registry)
+    except (TypeError, ValueError):
+        return None
+
+
+def _card_name(card_id: object, registry: ContentProviderPort) -> str:
+    if not isinstance(card_id, str):
+        return str(card_id)
+    try:
+        return registry.cards().get(card_id).name
+    except KeyError:
+        return card_label(card_id)
 
 
 def _target_name(entities: Mapping[str, EntitySnapshot], effect: Mapping[str, object]) -> str | None:

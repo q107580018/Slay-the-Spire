@@ -71,6 +71,18 @@ def describe_enemy_turn(*, events: Sequence[CombatEvent]) -> list[str]:
             entries.append(f"{actor_name}沉睡，暂不行动。")
             continue
 
+        if all(event.event_type == "damage" and event.target_name == "你" for event in actor_events):
+            if actor_name == "灼伤":
+                total_amount = sum(event.amount for event in actor_events)
+                total_blocked = sum(event.blocked for event in actor_events)
+                total_actual = sum(event.actual_damage for event in actor_events)
+                line = f"灼伤在回合结束时触发，对你造成 {total_amount}"
+                if total_blocked > 0:
+                    line += f"，格挡抵消 {total_blocked}"
+                line += f"，实际受到 {total_actual}。"
+                entries.append(line)
+                continue
+
         parts: list[str] = []
         for event in actor_events:
             if event.event_type == "damage" and event.target_name == "你":
@@ -79,6 +91,9 @@ def describe_enemy_turn(*, events: Sequence[CombatEvent]) -> list[str]:
                     damage_line += f"，格挡抵消 {event.blocked}"
                 damage_line += f"，实际受到 {event.actual_damage}"
                 parts.append(damage_line)
+                continue
+            if event.event_type == "add_card_to_discard" and event.card_name is not None and event.count > 0:
+                parts.append(f"向你的弃牌堆加入 {event.count} 张{event.card_name}")
                 continue
             if event.event_type == "status_applied" and event.status_id == "vulnerable" and event.stacks > 0:
                 parts.append(f"施加 {event.stacks} 层易伤")

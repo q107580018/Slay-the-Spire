@@ -5,7 +5,7 @@ from typing import Any
 
 from rich.text import Text
 
-from slay_the_spire.adapters.terminal.widgets import summarize_card_effects
+from slay_the_spire.adapters.terminal.widgets import summarize_card_definition
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.room_state import RoomState
@@ -330,7 +330,7 @@ def build_select_card_menu(*, combat_state: CombatState, registry: ContentProvid
     for index, card_instance_id in enumerate(combat_state.hand, start=1):
         card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
         cost_label = "无法打出" if not getattr(card_def, "playable", True) or card_def.cost < 0 else f"费用{card_def.cost}"
-        effect_summary = summarize_card_effects(card_def.effects) if card_def.effects else "无效果"
+        effect_summary = summarize_card_definition(card_def)
         options.append((f"play_card:{index}", f"{card_def.name} {cost_label} - {effect_summary}"))
     options.append(("back", "返回上一步"))
     return build_menu(title="手牌", options=options)

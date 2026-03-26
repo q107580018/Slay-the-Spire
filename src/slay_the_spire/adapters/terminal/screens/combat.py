@@ -27,7 +27,7 @@ from slay_the_spire.adapters.terminal.widgets import (
     render_hp_bar,
     render_menu,
     render_statuses,
-    summarize_card_effects,
+    summarize_card_definition,
     summarize_enemy_move_preview,
 )
 from slay_the_spire.app.menu_definitions import (
@@ -318,7 +318,7 @@ def render_hand_panel(combat_state: CombatState, registry: ContentProviderPort) 
     lines: list[RenderableType] = []
     for index, card_instance_id in enumerate(combat_state.hand, start=1):
         card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
-        lines.append(f"{index}. {card_def.name} ({card_def.cost}) - {summarize_card_effects(card_def.effects)}")
+        lines.append(f"{index}. {card_def.name} ({card_def.cost}) - {summarize_card_definition(card_def)}")
     return Panel(Group(*lines), title="手牌", box=PANEL_BOX, expand=False)
 
 

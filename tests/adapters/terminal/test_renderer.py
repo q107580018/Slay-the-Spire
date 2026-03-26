@@ -92,6 +92,8 @@ def test_combat_root_screen_uses_current_round_enemy_intent() -> None:
 
     assert "6 段攻击（每段伤害随生命变化）" not in output
     assert "造成 6 伤害" in output
+    assert "向弃牌堆加" in output
+    assert "1 张灼伤（回合结束时若仍在手中，失去 2 点生命）" in output
 
 
 def test_combat_renderer_shows_recent_battle_log_entries() -> None:
