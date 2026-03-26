@@ -1,0 +1,158 @@
+{
+  "enemies": [
+    {
+      "id": "champ",
+      "pool_weight": 1,
+      "name": "冠军",
+      "hp": 250,
+      "move_table": [
+        {
+          "move": "taunt",
+          "effects": [
+            {
+              "type": "weak",
+              "stacks": 1
+            }
+          ]
+        },
+        {
+          "move": "heavy_slam",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 18
+            }
+          ]
+        },
+        {
+          "move": "execute",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 24
+            }
+          ]
+        }
+      ],
+      "intent_policy": "cycle"
+    },
+    {
+      "id": "bronze_automaton",
+      "pool_weight": 1,
+      "name": "青铜自动机",
+      "hp": 300,
+      "move_table": [
+        {
+          "move": "stomp",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 12
+            }
+          ]
+        },
+        {
+          "move": "flare",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 16
+            }
+          ]
+        },
+        {
+          "move": "hyper_beam",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 28
+            }
+          ]
+        }
+      ],
+      "intent_policy": "cycle"
+    },
+    {
+      "id": "bronze_orb",
+      "pool_weight": 1,
+      "name": "青铜球",
+      "hp": 52,
+      "move_table": [
+        {
+          "move": "beam",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 7
+            }
+          ]
+        },
+        {
+          "move": "glare",
+          "effects": [
+            {
+              "type": "vulnerable",
+              "stacks": 1
+            }
+          ]
+        }
+      ],
+      "intent_policy": "cycle"
+    },
+    {
+      "id": "the_collector",
+      "pool_weight": 1,
+      "name": "收藏家",
+      "hp": 270,
+      "move_table": [
+        {
+          "move": "fireball",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 16
+            }
+          ]
+        },
+        {
+          "move": "hex",
+          "effects": [
+            {
+              "type": "weak",
+              "stacks": 1
+            }
+          ]
+        },
+        {
+          "move": "curse_flame",
+          "effects": [
+            {
+              "type": "add_card_to_discard",
+              "card_id": "burn",
+              "count": 2
+            }
+          ]
+        }
+      ],
+      "intent_policy": "cycle"
+    },
+    {
+      "id": "torch_head",
+      "pool_weight": 1,
+      "name": "火炬头",
+      "hp": 40,
+      "move_table": [
+        {
+          "move": "jab",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 6
+            }
+          ]
+        }
+      ],
+      "intent_policy": "cycle"
+    }
+  ]
+}

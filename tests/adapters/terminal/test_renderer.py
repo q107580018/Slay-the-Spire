@@ -136,6 +136,37 @@ def test_combat_renderer_shows_recent_battle_log_entries() -> None:
     assert "绿史莱姆攻击你 3，实际受到 3。" in output
 
 
+def test_non_combat_renderer_shows_act2_masked_bandits_copy() -> None:
+    session = start_session(seed=5)
+    room_state = RoomState(
+        room_id="act2:event",
+        room_type="event",
+        stage="waiting_input",
+        payload={
+            "act_id": "act2",
+            "node_id": "r3c1",
+            "room_kind": "event",
+            "event_id": "masked_bandits",
+            "next_node_ids": ["r4c0"],
+        },
+        is_resolved=False,
+        rewards=[],
+    )
+    act_state = replace(session.act_state, act_id="act2")
+
+    output = render_room(
+        run_state=replace(session.run_state, current_act_id="act2"),
+        act_state=act_state,
+        room_state=room_state,
+        registry=_provider(session),
+        menu_state=MenuState(mode="select_event_choice"),
+        run_phase="active",
+    )
+
+    assert "蒙面强盗" in output
+    assert "交出 75 金币" in output
+
+
 def test_combat_renderer_uses_dynamic_enemy_intent_for_sleeping_enemy() -> None:
     session = start_session(seed=5)
     combat_state = CombatState(

@@ -122,6 +122,17 @@ def test_golden_shrine_pray_grants_gold_without_other_side_effects() -> None:
     assert session.run_state.current_hp == 80
 
 
+def test_masked_bandits_pay_spends_gold_without_other_side_effects() -> None:
+    session = _event_session("masked_bandits")
+
+    _running, session, _message = route_menu_choice("2", session=session)
+    _running, session, _message = route_menu_choice("1", session=session)
+
+    assert session.room_state.is_resolved is True
+    assert session.run_state.gold == 24
+    assert session.run_state.current_hp == 80
+
+
 def test_ssssserpent_agree_grants_gold_and_adds_doubt_curse() -> None:
     session = _event_session("the_ssssserpent")
 

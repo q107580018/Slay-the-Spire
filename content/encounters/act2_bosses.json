@@ -1,0 +1,32 @@
+{
+  "encounters": [
+    {
+      "id": "bronze_automaton",
+      "name": "青铜自动机",
+      "enemy_ids": [
+        "bronze_automaton",
+        "bronze_orb",
+        "bronze_orb"
+      ],
+      "pool_weight": 2
+    },
+    {
+      "id": "champ",
+      "name": "冠军",
+      "enemy_ids": [
+        "champ"
+      ],
+      "pool_weight": 2
+    },
+    {
+      "id": "the_collector",
+      "name": "收藏家",
+      "enemy_ids": [
+        "the_collector",
+        "torch_head",
+        "torch_head"
+      ],
+      "pool_weight": 2
+    }
+  ]
+}

@@ -1,0 +1,134 @@
+{
+  "enemies": [
+    {
+      "id": "chosen",
+      "pool_weight": 1,
+      "name": "天择者",
+      "hp": 42,
+      "move_table": [
+        {
+          "move": "hex",
+          "effects": [
+            {
+              "type": "weak",
+              "stacks": 2
+            }
+          ]
+        },
+        {
+          "move": "poke",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 9
+            }
+          ]
+        },
+        {
+          "move": "drain",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 11
+            }
+          ]
+        }
+      ],
+      "intent_policy": "cycle"
+    },
+    {
+      "id": "byrd",
+      "pool_weight": 1,
+      "name": "鸟妖",
+      "hp": 28,
+      "move_table": [
+        {
+          "move": "peck",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 4
+            }
+          ]
+        },
+        {
+          "move": "peck",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 4
+            }
+          ]
+        },
+        {
+          "move": "swoop",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 12
+            }
+          ]
+        }
+      ],
+      "intent_policy": "cycle"
+    },
+    {
+      "id": "spheric_guardian",
+      "pool_weight": 1,
+      "name": "球形守护者",
+      "hp": 44,
+      "move_table": [
+        {
+          "move": "beam",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 10
+            }
+          ]
+        },
+        {
+          "move": "slam",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 13
+            }
+          ]
+        }
+      ],
+      "intent_policy": "cycle"
+    },
+    {
+      "id": "slaver_red",
+      "pool_weight": 1,
+      "name": "红色奴隶贩子",
+      "hp": 48,
+      "move_table": [
+        {
+          "move": "stab",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 12
+            }
+          ]
+        },
+        {
+          "move": "rake",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 8
+            },
+            {
+              "type": "vulnerable",
+              "stacks": 1
+            }
+          ]
+        }
+      ],
+      "intent_policy": "cycle"
+    }
+  ]
+}
