@@ -52,6 +52,7 @@ class RunState:
     deck: list[str] = field(default_factory=list)
     relics: list[str] = field(default_factory=list)
     potions: list[str] = field(default_factory=list)
+    seen_event_ids: list[str] = field(default_factory=list)
     card_removal_count: int = 0
 
     def __post_init__(self) -> None:
@@ -78,6 +79,7 @@ class RunState:
         self.deck = _require_str_list(self.deck, "deck")
         self.relics = _require_str_list(self.relics, "relics")
         self.potions = _require_str_list(self.potions, "potions")
+        self.seen_event_ids = _require_str_list(self.seen_event_ids, "seen_event_ids")
 
     @classmethod
     def new(cls, *, character_id: str, seed: int) -> RunState:
@@ -95,6 +97,7 @@ class RunState:
             "deck": list(self.deck),
             "relics": list(self.relics),
             "potions": list(self.potions),
+            "seen_event_ids": list(self.seen_event_ids),
             "card_removal_count": self.card_removal_count,
         }
 
@@ -117,5 +120,6 @@ class RunState:
             deck=_require_str_list(data.get("deck", []), "deck"),
             relics=_require_str_list(data.get("relics", []), "relics"),
             potions=_require_str_list(data.get("potions", []), "potions"),
+            seen_event_ids=_require_str_list(data.get("seen_event_ids", []), "seen_event_ids"),
             card_removal_count=_require_int(data.get("card_removal_count", 0), "card_removal_count"),
         )
