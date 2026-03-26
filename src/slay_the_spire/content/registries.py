@@ -54,6 +54,12 @@ def _require_optional_bool(value: object, field_name: str, *, default: bool) -> 
     return value
 
 
+def _require_optional_mapping(value: object, field_name: str) -> Mapping[str, object] | None:
+    if value is None:
+        return None
+    return _require_mapping(value, field_name)
+
+
 @dataclass(slots=True, frozen=True)
 class CardDef:
     id: str
@@ -270,6 +276,11 @@ class ActRegistry(_BaseRegistry[ActDef]):
         data = _require_mapping(payload, "payload")
         map_config_data = _require_mapping(data.get("map_config"), "map_config")
         room_rules_data = _require_mapping(map_config_data.get("room_rules"), "map_config.room_rules")
+        room_weights_data = _require_optional_mapping(room_rules_data.get("room_weights"), "map_config.room_rules.room_weights")
+        minimum_counts_data = _require_optional_mapping(
+            room_rules_data.get("minimum_counts"),
+            "map_config.room_rules.minimum_counts",
+        )
         room_rules = {
             "early_floors": [
                 _require_str(item, "map_config.room_rules.early_floors item")
@@ -295,7 +306,30 @@ class ActRegistry(_BaseRegistry[ActDef]):
                 room_rules_data.get("min_floor_for_rest"),
                 "map_config.room_rules.min_floor_for_rest",
             ),
+            "max_path_special_streak": _require_int(
+                room_rules_data.get("max_path_special_streak", 99),
+                "map_config.room_rules.max_path_special_streak",
+            ),
         }
+        if room_weights_data is not None:
+            room_rules["room_weights"] = {
+                key: {
+                    _require_str(room_type, f"map_config.room_rules.room_weights.{key} key"): _require_int(
+                        weight,
+                        f"map_config.room_rules.room_weights.{key}.{room_type}",
+                    )
+                    for room_type, weight in _require_mapping(value, f"map_config.room_rules.room_weights.{key}").items()
+                }
+                for key, value in room_weights_data.items()
+            }
+        if minimum_counts_data is not None:
+            room_rules["minimum_counts"] = {
+                _require_str(room_type, "map_config.room_rules.minimum_counts key"): _require_int(
+                    count,
+                    f"map_config.room_rules.minimum_counts.{room_type}",
+                )
+                for room_type, count in minimum_counts_data.items()
+            }
         return ActDef(
             id=_require_str(data.get("id"), "id"),
             name=_require_str(data.get("name"), "name"),
