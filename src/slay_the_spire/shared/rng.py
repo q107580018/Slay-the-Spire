@@ -36,3 +36,18 @@ def rng_for_run(*, seed: int, category: str) -> random.Random:
 
 def rng_for_room(*, seed: int, room_id: str, category: str) -> random.Random:
     return random.Random(_seed_key(seed, room_id, category))
+
+
+def weighted_choice(options: list[tuple[T, int]], *, rng: random.Random) -> T:
+    total_weight = sum(weight for _member_id, weight in options if weight > 0)
+    if total_weight <= 0:
+        raise ValueError("weighted_choice requires positive total weight")
+    roll = rng.randint(1, total_weight)
+    running_weight = 0
+    for member_id, weight in options:
+        if weight <= 0:
+            continue
+        running_weight += weight
+        if roll <= running_weight:
+            return member_id
+    raise AssertionError("weighted_choice failed to select an option")
