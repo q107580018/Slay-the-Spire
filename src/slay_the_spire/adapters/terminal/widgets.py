@@ -98,6 +98,8 @@ def summarize_effect(effect: Mapping[str, object]) -> str:
         }
         zone = zone_labels.get(str(effect.get("zone")), str(effect.get("zone")))
         return f"复制一张卡牌放入{zone}"
+    if effect_type == "add_card_to_discard":
+        return f"向弃牌堆加入 {int(effect.get('count', 1))} 张牌"
     if isinstance(effect_type, str):
         return effect_type
     return "-"

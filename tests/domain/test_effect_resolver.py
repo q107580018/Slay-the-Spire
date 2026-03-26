@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from slay_the_spire.domain.effects.effect_resolver import resolve_next_effect
+from slay_the_spire.domain.effects.effect_resolver import resolve_effect_queue, resolve_next_effect
 from slay_the_spire.domain.effects.effect_types import (
     EFFECT_EMIT_HOOK,
     EFFECT_NOOP,
@@ -173,3 +173,21 @@ def test_on_combat_end_fires_once_even_if_multiple_enemies_die():
     assert [effect.get("hook_name") for effect in state.effect_queue] == [
         "on_combat_end",
     ]
+
+
+def test_add_card_to_discard_creates_new_instance_ids() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 3)],
+        effect_queue=[
+            {
+                "type": "add_card_to_discard",
+                "card_id": "burn",
+                "count": 2,
+            }
+        ],
+    )
+
+    resolved = resolve_effect_queue(state)
+
+    assert [effect["type"] for effect in resolved] == ["add_card_to_discard"]
+    assert state.discard_pile == ["burn#1", "burn#2"]

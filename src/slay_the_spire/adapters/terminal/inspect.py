@@ -72,6 +72,15 @@ def _effect_description(effect: Mapping[str, object], registry: ContentProviderP
             except KeyError:
                 card_name = card_id
         return f"复制一张 {card_name} 放入{_zone_label(effect.get('zone'))}"
+    if effect.get("type") == "add_card_to_discard":
+        card_id = effect.get("card_id")
+        card_name = str(card_id)
+        if isinstance(card_id, str):
+            try:
+                card_name = registry.cards().get(card_id).name
+            except KeyError:
+                card_name = card_id
+        return f"向弃牌堆加入 {int(effect.get('count', 1))} 张 {card_name}"
     return summarize_effect(effect)
 
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from slay_the_spire.domain.effects.effect_types import (
+    EFFECT_ADD_CARD_TO_DISCARD,
     EFFECT_BLOCK,
     EFFECT_CREATE_CARD_COPY,
     EFFECT_DAMAGE,
@@ -66,7 +67,11 @@ def _heal_target(target: PlayerCombatState | EnemyState, amount: int) -> None:
 def _next_card_instance_id(state: CombatState, card_id: str) -> str:
     highest_suffix = 0
     for card_instance_id in [*state.hand, *state.draw_pile, *state.discard_pile, *state.exhaust_pile]:
-        if card_id_from_instance_id(card_instance_id) != card_id:
+        try:
+            existing_card_id = card_id_from_instance_id(card_instance_id)
+        except (TypeError, ValueError):
+            continue
+        if existing_card_id != card_id:
             continue
         _existing_card_id, suffix = card_instance_id.split("#", 1)
         if suffix.isdigit():
@@ -192,6 +197,15 @@ def resolve_next_effect(
             zone=zone,
             card_instance_id=_next_card_instance_id(state, card_id),
         )
+        return effect
+
+    if effect_type == EFFECT_ADD_CARD_TO_DISCARD:
+        card_id = effect.get("card_id")
+        if not isinstance(card_id, str):
+            raise TypeError("card_id must be a string")
+        count = max(int(effect.get("count", 1)), 0)
+        for _ in range(count):
+            state.discard_pile.append(_next_card_instance_id(state, card_id))
         return effect
 
     if effect_type == EFFECT_EMIT_HOOK:
