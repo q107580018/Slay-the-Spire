@@ -307,7 +307,9 @@ def test_partial_boss_reward_progress_survives_load_session(tmp_path: Path) -> N
     assert restored_session.menu_state.mode == "root"
     assert restored_session.room_state.payload["boss_rewards"]["claimed_gold"] is True
     assert restored_session.room_state.payload["boss_rewards"]["claimed_relic_id"] is None
-    assert "black_blood" not in restored_session.run_state.relics
+    assert set(restored_session.room_state.payload["boss_rewards"]["boss_relic_offers"]).isdisjoint(
+        restored_session.run_state.relics
+    )
     assert reward_menu_session.menu_state.mode == "select_boss_reward"
     assert relic_menu_session.menu_state.mode == "select_boss_relic"
     assert victory_session.run_phase == "victory"
