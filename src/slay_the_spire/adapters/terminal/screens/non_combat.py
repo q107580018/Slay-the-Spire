@@ -125,6 +125,10 @@ def _reward_card_id(reward_name: str) -> str:
 def _format_reward_label(reward_id: str, registry: ContentProviderPort) -> str:
     if reward_id.startswith("gold:"):
         return f"金币 +{reward_id.split(':', 1)[1]}"
+    if reward_id.startswith("card_offer:"):
+        reward_name = reward_id.split(":", 1)[1]
+        card_def = registry.cards().get(_reward_card_id(reward_name))
+        return f"卡牌 {card_def.name}"
     if reward_id.startswith("card:"):
         reward_name = reward_id.split(":", 1)[1]
         card_def = registry.cards().get(_reward_card_id(reward_name))

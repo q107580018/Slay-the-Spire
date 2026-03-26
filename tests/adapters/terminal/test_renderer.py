@@ -701,6 +701,32 @@ def test_reward_renderer_uses_concrete_gold_and_card_labels() -> None:
     assert "卡牌 不屈意志" in output
 
 
+def test_reward_renderer_uses_concrete_card_offer_labels() -> None:
+    session = start_session(seed=5)
+    reward_room = RoomState(
+        room_id="act1:hallway",
+        room_type="combat",
+        stage="completed",
+        payload={"node_id": "r1c0", "next_node_ids": ["r2c0"]},
+        is_resolved=True,
+        rewards=["card_offer:pommel_strike", "card_offer:bash", "card_offer:anger"],
+    )
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=reward_room,
+        registry=_provider(session),
+        menu_state=MenuState(),
+        run_phase="active",
+    )
+
+    assert "卡牌 柄击" in output
+    assert "卡牌 重击" in output
+    assert "卡牌 愤怒" in output
+    assert "card_offer:" not in output
+
+
 def test_event_upgrade_menu_shows_card_name_with_instance_id() -> None:
     session = start_session(seed=5)
     room_state = RoomState(
