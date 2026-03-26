@@ -1,0 +1,125 @@
+from __future__ import annotations
+
+from slay_the_spire.content.registries import EnemyRegistry
+from slay_the_spire.domain.models.combat_state import CombatState
+from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
+from slay_the_spire.use_cases.combat_events import (
+    CombatEvent,
+    build_enemy_turn_events,
+    build_player_action_events,
+    capture_entity_snapshots,
+)
+
+
+class _Provider:
+    def __init__(self) -> None:
+        self._enemies = EnemyRegistry()
+
+    def characters(self):
+        raise NotImplementedError
+
+    def cards(self):
+        raise NotImplementedError
+
+    def enemies(self) -> EnemyRegistry:
+        return self._enemies
+
+    def relics(self):
+        raise NotImplementedError
+
+    def potions(self):
+        raise NotImplementedError
+
+    def events(self):
+        raise NotImplementedError
+
+    def acts(self):
+        raise NotImplementedError
+
+
+def _combat_state() -> CombatState:
+    return CombatState(
+        round_number=1,
+        energy=3,
+        hand=[],
+        draw_pile=[],
+        discard_pile=[],
+        exhaust_pile=[],
+        player=PlayerCombatState(
+            instance_id="player-1",
+            hp=40,
+            max_hp=40,
+            block=0,
+            statuses=[],
+        ),
+        enemies=[
+            EnemyState(
+                instance_id="enemy-1",
+                enemy_id="training_dummy",
+                hp=10,
+                max_hp=10,
+                block=0,
+                statuses=[],
+            )
+        ],
+        effect_queue=[],
+        log=[],
+    )
+
+
+def _provider() -> _Provider:
+    provider = _Provider()
+    provider.enemies().register(
+        {
+            "id": "training_dummy",
+            "name": "Training Dummy",
+            "hp": 10,
+            "move_table": [],
+            "intent_policy": "scripted",
+        }
+    )
+    return provider
+
+
+def test_build_player_action_events_uses_structured_effect_results() -> None:
+    state = _combat_state()
+    snapshots = capture_entity_snapshots(state, _provider())
+    resolved_effects = [
+        {
+            "type": "damage",
+            "target_instance_id": "enemy-1",
+            "result": {"applied_amount": 6, "blocked": 2, "actual_damage": 4, "target_defeated": False},
+        },
+        {
+            "type": "vulnerable",
+            "target_instance_id": "enemy-1",
+            "result": {"applied_stacks": 2},
+        },
+    ]
+
+    events = build_player_action_events(
+        card_name="重击",
+        resolved_effects=resolved_effects,
+        entities=snapshots,
+    )
+
+    assert events == [
+        CombatEvent(event_type="card_played", actor_name="你", card_name="重击"),
+        CombatEvent(event_type="damage", actor_name="你", target_name="Training Dummy", amount=6, blocked=2, actual_damage=4),
+        CombatEvent(event_type="status_applied", actor_name="你", target_name="Training Dummy", status_id="vulnerable", stacks=2),
+    ]
+
+
+def test_build_enemy_turn_events_adds_sleep_event_without_damage_recomputation() -> None:
+    state = _combat_state()
+    snapshots = capture_entity_snapshots(state, _provider())
+
+    events = build_enemy_turn_events(
+        enemy_previews=[(state.enemies[0], {"move": "sleep", "sleep_turns": 2})],
+        resolved_effects=[],
+        entities=snapshots,
+    )
+
+    assert events == [
+        CombatEvent(event_type="sleep", actor_name="Training Dummy", amount=2),
+    ]

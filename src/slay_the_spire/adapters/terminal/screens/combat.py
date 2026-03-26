@@ -19,15 +19,16 @@ from slay_the_spire.adapters.terminal.inspect import (
     render_shared_relics_panel,
     render_shared_stats_panel,
 )
+from slay_the_spire.adapters.terminal.inspect_registry import format_shared_inspect_menu, render_shared_inspect_panel
 from slay_the_spire.adapters.terminal.screens.layout import build_standard_screen, build_two_column_body
 from slay_the_spire.adapters.terminal.theme import PANEL_BOX
 from slay_the_spire.adapters.terminal.widgets import (
-    preview_enemy_intent,
     render_block,
     render_hp_bar,
     render_menu,
     render_statuses,
     summarize_card_effects,
+    summarize_enemy_move_preview,
 )
 from slay_the_spire.app.menu_definitions import (
     build_event_choice_menu,
@@ -41,6 +42,7 @@ from slay_the_spire.app.menu_definitions import (
     format_menu_entries,
     format_menu_lines,
 )
+from slay_the_spire.domain.combat.turn_flow import preview_enemy_move
 from slay_the_spire.domain.models.act_state import ActState
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
@@ -206,16 +208,15 @@ def _format_menu(
     menu_state: Any,
 ) -> list[str | Text]:
     mode = _menu_mode(menu_state)
-    if mode == "inspect_root":
-        return _format_inspect_root_menu(room_state)
-    if mode == "inspect_deck":
-        return _format_inspect_deck_footer(run_state)
-    if mode == "inspect_stats":
-        return _format_inspect_leaf_menu("角色状态")
-    if mode == "inspect_relics":
-        return _format_inspect_leaf_menu("遗物列表")
-    if mode == "inspect_potions":
-        return _format_inspect_leaf_menu("药水")
+    shared_menu = format_shared_inspect_menu(
+        mode=mode,
+        context="combat",
+        run_state=run_state,
+        room_state=room_state,
+        registry=registry,
+    )
+    if shared_menu is not None:
+        return shared_menu
     if mode == "inspect_hand":
         return format_card_list_footer(back_choice=len(combat_state.hand) + 1)
     if mode == "inspect_draw_pile":
@@ -304,7 +305,7 @@ def render_enemy_panel(combat_state: CombatState, registry: ContentProviderPort)
         line.append_text(render_block(enemy.block))
         line.append(" 状态: ")
         line.append_text(render_statuses(enemy.statuses))
-        intent_preview = preview_enemy_intent(enemy_def)
+        intent_preview = summarize_enemy_move_preview(preview_enemy_move(combat_state, enemy, enemy_def))
         if intent_preview != "-":
             line.append(f" 意图: {intent_preview}")
         lines.append(line)
@@ -331,6 +332,15 @@ def render_menu_panel_for_combat(
     return render_menu(_format_menu(room_state, run_state, combat_state, registry, menu_state))
 
 
+def render_battle_log_panel(combat_state: CombatState) -> Panel:
+    entries = combat_state.log[-5:]
+    if not entries:
+        body: list[RenderableType] = [Text("当前还没有新的战斗记录。")]
+    else:
+        body = [Text(entry) for entry in entries]
+    return Panel(Group(*body), title="战斗记录", box=PANEL_BOX, expand=False)
+
+
 def _inspect_body_panel(
     menu_state: Any,
     run_state: RunState,
@@ -340,15 +350,17 @@ def _inspect_body_panel(
     registry: ContentProviderPort,
 ) -> Panel:
     mode = _menu_mode(menu_state)
-    if mode == "inspect_deck":
-        lines = [Text(line) for line in _format_inspect_deck_menu(run_state, registry)]
-        return Panel(Group(*lines), title="牌组列表", box=PANEL_BOX, expand=False)
-    if mode == "inspect_stats":
-        return render_shared_stats_panel(title="角色状态", run_state=run_state, act_state=act_state, room_state=room_state)
-    if mode == "inspect_relics":
-        return render_shared_relics_panel(title="遗物列表", run_state=run_state, registry=registry)
-    if mode == "inspect_potions":
-        return render_shared_potions_panel(title="药水", run_state=run_state, registry=registry)
+    shared_panel = render_shared_inspect_panel(
+        mode=mode,
+        context="combat",
+        run_state=run_state,
+        act_state=act_state,
+        room_state=room_state,
+        registry=registry,
+        card_instance_id=getattr(menu_state, "inspect_item_id", None),
+    )
+    if shared_panel is not None:
+        return shared_panel
     if mode == "inspect_hand":
         return render_card_pile_panel("手牌列表", combat_state.hand, registry)
     if mode == "inspect_draw_pile":
@@ -357,10 +369,6 @@ def _inspect_body_panel(
         return render_card_pile_panel("弃牌堆列表", combat_state.discard_pile, registry)
     if mode == "inspect_exhaust_pile":
         return render_card_pile_panel("消耗堆列表", combat_state.exhaust_pile, registry)
-    if mode == "inspect_card_detail":
-        card_instance_id = getattr(menu_state, "inspect_item_id", None)
-        if isinstance(card_instance_id, str):
-            return render_card_detail_panel(card_instance_id, registry)
     if mode == "inspect_enemy_list":
         return render_enemy_list_panel(combat_state, registry)
     if mode == "inspect_enemy_detail":
@@ -406,6 +414,7 @@ def render_combat_screen(
             right=render_enemy_panel(combat_state, registry),
         )
         hand_panel = render_hand_panel(combat_state, registry)
-        body_group = [body, hand_panel]
+        battle_log_panel = render_battle_log_panel(combat_state)
+        body_group = [body, hand_panel, battle_log_panel]
     footer = render_menu_panel_for_combat(room_state, run_state, combat_state, registry, menu_state)
     return build_standard_screen(summary=summary, body=Group(*body_group), footer=footer)

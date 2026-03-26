@@ -145,3 +145,15 @@ def preview_enemy_intent(enemy_def: EnemyDef) -> str:
             move_summary = summarize_effect(move)
         return move_summary
     return "-"
+
+
+def summarize_enemy_move_preview(move: Mapping[str, object] | None) -> str:
+    if move is None:
+        return "-"
+    if move.get("move") == "sleep":
+        sleep_turns = int(move.get("sleep_turns", 0))
+        return f"沉睡 {sleep_turns} 回合"
+    effects = move.get("effects")
+    if isinstance(effects, Sequence) and not isinstance(effects, (str, bytes)):
+        return summarize_card_effects([effect for effect in effects if isinstance(effect, Mapping)])
+    return summarize_effect(move)

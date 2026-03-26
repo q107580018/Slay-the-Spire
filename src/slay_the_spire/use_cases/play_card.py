@@ -9,6 +9,8 @@ from slay_the_spire.domain.models.cards import CombatActionResult, card_id_from_
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.ports.content_provider import ContentProviderPort
 from slay_the_spire.shared.types import JsonDict
+from slay_the_spire.use_cases.combat_events import build_player_action_events, capture_entity_snapshots
+from slay_the_spire.use_cases.combat_log import append_log_entries, describe_player_action
 
 _TARGETED_EFFECT_TYPES = {EFFECT_DAMAGE, EFFECT_VULNERABLE}
 
@@ -60,6 +62,7 @@ def play_card(
         source_instance_id=combat_state.player.instance_id,
         target_id=target_id,
     )
+    snapshots_before = capture_entity_snapshots(combat_state, registry)
 
     combat_state.energy -= card_def.cost
     combat_state.hand.remove(card_instance_id)
@@ -68,6 +71,16 @@ def play_card(
     resolved_effects = resolve_player_actions(
         combat_state,
         hook_registrations=hook_registrations,
+    )
+    append_log_entries(
+        combat_state,
+        describe_player_action(
+            events=build_player_action_events(
+                card_name=card_def.name,
+                resolved_effects=resolved_effects,
+                entities=snapshots_before,
+            ),
+        ),
     )
     return CombatActionResult(
         combat_state=combat_state,

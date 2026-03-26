@@ -11,6 +11,7 @@ from slay_the_spire.domain.effects.effect_types import (
     EFFECT_HEAL,
     EFFECT_NOOP,
     EFFECT_VULNERABLE,
+    copy_effect,
     emit_hook_effect,
     noop_effect,
 )
@@ -36,13 +37,15 @@ def _is_dead(target: PlayerCombatState | EnemyState | None) -> bool:
     return target is None or target.hp <= 0
 
 
-def _damage_target(target: PlayerCombatState | EnemyState, amount: int) -> None:
+def _damage_target(target: PlayerCombatState | EnemyState, amount: int) -> tuple[int, int]:
     remaining = max(amount, 0)
     blocked = min(target.block, remaining)
     target.block -= blocked
     remaining -= blocked
+    actual_damage = min(target.hp, remaining)
     if remaining > 0:
         target.hp = max(target.hp - remaining, 0)
+    return blocked, actual_damage
 
 
 def _vulnerable_bonus(target: PlayerCombatState | EnemyState) -> int:
@@ -59,8 +62,16 @@ def _damage_amount(target: PlayerCombatState | EnemyState, base_amount: int) -> 
     return amount
 
 
-def _heal_target(target: PlayerCombatState | EnemyState, amount: int) -> None:
+def _heal_target(target: PlayerCombatState | EnemyState, amount: int) -> int:
+    healed = min(target.max_hp - target.hp, max(amount, 0))
     target.hp = min(target.max_hp, target.hp + max(amount, 0))
+    return healed
+
+
+def _with_result(effect: JsonDict, **result: JsonValue) -> JsonDict:
+    resolved = copy_effect(effect)
+    resolved["result"] = result
+    return resolved
 
 
 def _next_card_instance_id(state: CombatState, card_id: str) -> str:
@@ -88,6 +99,19 @@ def _append_card_to_zone(state: CombatState, *, zone: str, card_instance_id: str
         state.exhaust_pile.append(card_instance_id)
         return
     raise ValueError(f"unsupported card copy zone: {zone}")
+
+
+def _draw_cards(state: CombatState, *, amount: int) -> int:
+    drawn_count = 0
+    for _ in range(max(amount, 0)):
+        if not state.draw_pile:
+            if not state.discard_pile:
+                break
+            state.draw_pile.extend(state.discard_pile)
+            state.discard_pile.clear()
+        state.hand.append(state.draw_pile.pop(0))
+        drawn_count += 1
+    return drawn_count
 
 
 def _apply_status(
@@ -136,49 +160,57 @@ def resolve_next_effect(
         if _is_dead(target):
             return noop_effect(reason="dead_target")
         was_alive = target.hp > 0
-        _damage_target(target, _damage_amount(target, int(effect.get("amount", 0))))
-        if isinstance(target, EnemyState) and was_alive and target.hp == 0:
+        applied_amount = _damage_amount(target, int(effect.get("amount", 0)))
+        blocked, actual_damage = _damage_target(target, applied_amount)
+        target_defeated = isinstance(target, EnemyState) and was_alive and target.hp == 0
+        if target_defeated:
             state.effect_queue.append(
                 emit_hook_effect(
                     hook_name="on_enemy_defeated",
                     payload={"target_instance_id": target.instance_id},
                 )
             )
-        return effect
+        return _with_result(
+            effect,
+            applied_amount=applied_amount,
+            blocked=blocked,
+            actual_damage=actual_damage,
+            target_defeated=target_defeated,
+        )
 
     if effect_type == EFFECT_BLOCK:
         target = _get_target(state, effect.get("target_instance_id"))
         if _is_dead(target):
             return noop_effect(reason="dead_target")
-        target.block += max(int(effect.get("amount", 0)), 0)
-        return effect
+        gained_block = max(int(effect.get("amount", 0)), 0)
+        target.block += gained_block
+        return _with_result(effect, gained_block=gained_block)
 
     if effect_type == EFFECT_HEAL:
         target = _get_target(state, effect.get("target_instance_id"))
         if _is_dead(target):
             return noop_effect(reason="dead_target")
-        _heal_target(target, int(effect.get("amount", 0)))
-        return effect
+        healed = _heal_target(target, int(effect.get("amount", 0)))
+        return _with_result(effect, actual_healed=healed)
 
     if effect_type == EFFECT_DRAW:
         target = _get_target(state, effect.get("target_instance_id"))
         if _is_dead(target):
             return noop_effect(reason="dead_target")
-        draw_count = min(max(int(effect.get("amount", 0)), 0), len(state.draw_pile))
-        for _ in range(draw_count):
-            state.hand.append(state.draw_pile.pop(0))
-        return effect
+        draw_count = _draw_cards(state, amount=int(effect.get("amount", 0)))
+        return _with_result(effect, drawn_count=draw_count)
 
     if effect_type == EFFECT_VULNERABLE:
         target = _get_target(state, effect.get("target_instance_id"))
         if _is_dead(target):
             return noop_effect(reason="dead_target")
+        applied_stacks = max(int(effect.get("stacks", 0)), 0)
         _apply_status(
             target,
             status_id="vulnerable",
-            stacks=int(effect.get("stacks", 0)),
+            stacks=applied_stacks,
         )
-        return effect
+        return _with_result(effect, applied_stacks=applied_stacks)
 
     if effect_type == EFFECT_CREATE_CARD_COPY:
         card_id = effect.get("card_id")
@@ -187,12 +219,13 @@ def resolve_next_effect(
             raise TypeError("card_id must be a string")
         if not isinstance(zone, str):
             raise TypeError("zone must be a string")
+        card_instance_id = _next_card_instance_id(state, card_id)
         _append_card_to_zone(
             state,
             zone=zone,
-            card_instance_id=_next_card_instance_id(state, card_id),
+            card_instance_id=card_instance_id,
         )
-        return effect
+        return _with_result(effect, created_card_instance_id=card_instance_id)
 
     if effect_type == EFFECT_EMIT_HOOK:
         hook_name = effect.get("hook_name")

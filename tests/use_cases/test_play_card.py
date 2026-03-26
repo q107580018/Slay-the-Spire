@@ -74,6 +74,15 @@ def _provider_with_card(*, card_id: str = "custom_strike", cost: int = 1, effect
             "effects": effects or [{"type": "damage", "amount": 4}],
         }
     )
+    provider.enemies().register(
+        {
+            "id": "training_dummy",
+            "name": "Training Dummy",
+            "hp": 10,
+            "move_table": [],
+            "intent_policy": "scripted",
+        }
+    )
     return provider
 
 
@@ -190,6 +199,7 @@ def test_play_card_applies_vulnerable_status_effects() -> None:
     assert len(state.enemies[0].statuses) == 1
     assert state.enemies[0].statuses[0].status_id == "vulnerable"
     assert state.enemies[0].statuses[0].stacks == 2
+    assert state.log == ["你打出 Custom Strike，对 Training Dummy 造成 8 伤害，并施加 2 层易伤。"]
 
 
 def test_play_card_rejects_unplayable_cards() -> None:
@@ -207,3 +217,39 @@ def test_play_card_rejects_unplayable_cards() -> None:
 
     with pytest.raises(ValueError, match="无法打出"):
         play_card(state, "doubt#1", None, provider)
+
+
+def test_play_card_appends_damage_log_entry() -> None:
+    state = _combat_state(hand=["custom_strike#1"])
+    provider = _provider_with_card(effects=[{"type": "damage", "amount": 4}])
+
+    play_card(state, "custom_strike#1", "enemy-1", provider)
+
+    assert state.log == ["你打出 Custom Strike，对 Training Dummy 造成 4 伤害。"]
+
+
+def test_play_card_appends_block_log_entry() -> None:
+    state = _combat_state(hand=["guard#1"])
+    provider = _provider_with_card(card_id="guard", effects=[{"type": "block", "amount": 5}])
+
+    play_card(state, "guard#1", None, provider)
+
+    assert state.log == ["你打出 Custom Strike，获得 5 格挡。"]
+
+
+def test_play_card_draw_log_uses_refilled_discard_cards() -> None:
+    state = _combat_state(hand=["pommel_strike_plus#1"])
+    state.draw_pile = ["bonus_a#1"]
+    state.discard_pile = ["bonus_b#1"]
+    provider = _provider_with_card(
+        card_id="pommel_strike_plus",
+        effects=[
+            {"type": "damage", "amount": 10},
+            {"type": "draw", "amount": 2},
+        ],
+    )
+
+    play_card(state, "pommel_strike_plus#1", "enemy-1", provider)
+
+    assert state.hand == ["bonus_a#1", "bonus_b#1"]
+    assert state.log == ["你打出 Custom Strike，对 Training Dummy 造成 10 伤害，并抽 2 张牌。"]

@@ -4,12 +4,14 @@ from slay_the_spire.domain.effects.effect_resolver import resolve_next_effect
 from slay_the_spire.domain.effects.effect_types import (
     EFFECT_EMIT_HOOK,
     EFFECT_NOOP,
+    draw_effect,
     damage_effect,
     noop_effect,
 )
 from slay_the_spire.domain.hooks.hook_types import HookRegistration
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
+from slay_the_spire.domain.models.statuses import StatusState
 
 
 def make_combat_state(*, enemies: list[EnemyState], effect_queue: list[dict[str, object]] | None = None) -> CombatState:
@@ -173,3 +175,43 @@ def test_on_combat_end_fires_once_even_if_multiple_enemies_die():
     assert [effect.get("hook_name") for effect in state.effect_queue] == [
         "on_combat_end",
     ]
+
+
+def test_damage_effect_reports_structured_resolution_details():
+    enemy = make_enemy("enemy-1", 10)
+    enemy.block = 2
+    enemy.statuses.append(StatusState(status_id="vulnerable", stacks=1))
+    state = make_combat_state(
+        enemies=[enemy],
+        effect_queue=[
+            damage_effect(source_instance_id="player-1", target_instance_id="enemy-1", amount=4),
+        ],
+    )
+
+    resolved = resolve_next_effect(state)
+
+    assert resolved["type"] == "damage"
+    assert resolved["result"] == {
+        "applied_amount": 6,
+        "blocked": 2,
+        "actual_damage": 4,
+        "target_defeated": False,
+    }
+
+
+def test_draw_effect_refills_from_discard_pile_when_draw_pile_runs_out():
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 10)],
+        effect_queue=[draw_effect(target_instance_id="player-1", amount=2)],
+    )
+    state.hand = []
+    state.draw_pile = ["pommel_a#1"]
+    state.discard_pile = ["pommel_b#1"]
+
+    resolved = resolve_next_effect(state)
+
+    assert resolved["type"] == "draw"
+    assert resolved["result"] == {"drawn_count": 2}
+    assert state.hand == ["pommel_a#1", "pommel_b#1"]
+    assert state.draw_pile == []
+    assert state.discard_pile == []

@@ -3,8 +3,10 @@ from pathlib import Path
 
 from slay_the_spire.adapters.terminal.inspect import (
     format_card_detail_lines,
+    format_card_detail_menu,
     format_relic_detail_lines,
 )
+from slay_the_spire.adapters.terminal.inspect_registry import format_shared_inspect_menu
 from slay_the_spire.adapters.terminal.renderer import render_room
 from slay_the_spire.app.session import MenuState, start_session
 from slay_the_spire.content.provider import StarterContentProvider
@@ -92,6 +94,37 @@ def test_render_non_combat_inspect_root_shows_shared_sections() -> None:
     assert "4. 药水" in output
 
 
+def test_shared_inspect_menu_registry_formats_shared_modes_for_both_contexts() -> None:
+    session = replace(start_session(seed=5), room_state=_event_room())
+    registry = _provider(session)
+
+    combat_card_detail_menu = format_shared_inspect_menu(
+        mode="inspect_card_detail",
+        context="combat",
+        run_state=session.run_state,
+        room_state=session.room_state,
+        registry=registry,
+    )
+    non_combat_card_detail_menu = format_shared_inspect_menu(
+        mode="inspect_card_detail",
+        context="non_combat",
+        run_state=session.run_state,
+        room_state=session.room_state,
+        registry=registry,
+    )
+    deck_menu = format_shared_inspect_menu(
+        mode="inspect_deck",
+        context="combat",
+        run_state=session.run_state,
+        room_state=session.room_state,
+        registry=registry,
+    )
+
+    assert combat_card_detail_menu == format_card_detail_menu()
+    assert non_combat_card_detail_menu == format_card_detail_menu()
+    assert deck_menu == ["输入上方编号查看卡牌详情", f"{len(session.run_state.deck) + 1}. 返回上一步"]
+
+
 def test_render_non_combat_inspect_pages_show_stats_deck_relics_and_potions() -> None:
     base_session = replace(start_session(seed=5), room_state=_event_room())
     session = replace(
@@ -141,6 +174,24 @@ def test_render_non_combat_inspect_pages_show_stats_deck_relics_and_potions() ->
     assert "燃烧之血" in relics_output
     assert "药水" in potions_output
     assert "火焰药水" in potions_output
+
+
+def test_render_non_combat_card_detail_does_not_fall_back_to_root_menu() -> None:
+    session = replace(start_session(seed=5), room_state=_event_room())
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=_provider(session),
+        menu_state=MenuState(mode="inspect_card_detail", inspect_parent_mode="inspect_deck", inspect_item_id="strike#1"),
+        run_phase=session.run_phase,
+    )
+
+    assert "卡牌详情" in output
+    assert "名称: 打击" in output
+    assert "返回卡牌列表" in output
+    assert "前往下一个房间" not in output
 
 
 def test_render_combat_inspect_root_includes_piles_and_enemy_details() -> None:
