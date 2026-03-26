@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from slay_the_spire.content.registries import CardRegistry, EnemyRegistry
 from slay_the_spire.domain.combat.turn_flow import end_turn, preview_enemy_move, resolve_player_actions
 from slay_the_spire.domain.effects.effect_types import damage_effect
@@ -75,6 +77,22 @@ def _enemy_registry() -> _Registry:
                     "move": "tackle",
                     "effects": [{"type": "damage", "amount": 5}],
                 }
+            ],
+            "intent_policy": "scripted",
+        }
+    )
+    return registry
+
+
+def _hexaghost_registry() -> _Registry:
+    registry = _Registry()
+    registry.enemies().register(
+        {
+            "id": "hexaghost",
+            "name": "Hexaghost",
+            "hp": 250,
+            "move_table": [
+                {"move": "divider", "effects": []},
             ],
             "intent_policy": "scripted",
         }
@@ -256,3 +274,83 @@ def test_preview_enemy_move_reuses_combat_turn_logic_without_mutating_state() ->
     assert attack_preview is not None
     assert attack_preview.get("move") == "heavy_slam"
     assert attack_preview.get("effects") == [{"type": "damage", "amount": 18}]
+
+
+@pytest.mark.parametrize(
+    ("starting_hp", "expected_total_damage"),
+    [
+        (24, 6),
+        (25, 12),
+        (49, 18),
+        (73, 24),
+    ],
+)
+def test_hexaghost_divider_scales_damage_by_player_hp(starting_hp: int, expected_total_damage: int) -> None:
+    registry = _hexaghost_registry()
+    state = CombatState(
+        round_number=1,
+        energy=3,
+        hand=[],
+        draw_pile=[],
+        discard_pile=[],
+        exhaust_pile=[],
+        player=PlayerCombatState(
+            instance_id="player-1",
+            hp=starting_hp,
+            max_hp=80,
+            block=0,
+            statuses=[],
+        ),
+        enemies=[
+            EnemyState(
+                instance_id="enemy-1",
+                enemy_id="hexaghost",
+                hp=250,
+                max_hp=250,
+                block=0,
+                statuses=[],
+            )
+        ],
+        effect_queue=[],
+        log=[],
+    )
+
+    resolved = end_turn(state, registry)
+
+    assert len(resolved) == 6
+    assert [effect["type"] for effect in resolved] == ["damage"] * 6
+    assert sum(int(effect["amount"]) for effect in resolved) == expected_total_damage
+    assert state.player.hp == max(starting_hp - expected_total_damage, 0)
+
+
+def test_end_turn_resolves_burn_before_enemy_attack_and_discards_it() -> None:
+    registry = _enemy_registry()
+    state = _combat_state()
+    state.player.hp = 20
+    state.hand = ["burn#1", "strike#1"]
+    state.draw_pile = ["strike#2", "defend#2", "strike#3", "defend#3", "strike#4"]
+    state.discard_pile = []
+
+    resolved = end_turn(state, registry)
+
+    assert [effect["type"] for effect in resolved] == ["damage", "damage"]
+    assert [int(effect["amount"]) for effect in resolved] == [2, 5]
+    assert state.player.hp == 13
+    assert "burn#1" in state.discard_pile
+    assert "burn#1" not in state.hand
+    assert state.round_number == 2
+
+
+def test_end_turn_stops_before_enemy_turn_when_burn_kills_player() -> None:
+    registry = _enemy_registry()
+    state = _combat_state()
+    state.player.hp = 2
+    state.hand = ["burn#1", "strike#1"]
+    state.draw_pile = ["strike#2", "defend#2"]
+
+    resolved = end_turn(state, registry)
+
+    assert [effect["type"] for effect in resolved] == ["damage"]
+    assert [int(effect["amount"]) for effect in resolved] == [2]
+    assert state.player.hp == 0
+    assert state.round_number == 1

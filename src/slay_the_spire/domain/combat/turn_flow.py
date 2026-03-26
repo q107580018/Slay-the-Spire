@@ -4,8 +4,9 @@ from collections.abc import Mapping, Sequence
 
 from slay_the_spire.content.registries import EnemyDef
 from slay_the_spire.domain.effects.effect_resolver import resolve_effect_queue
-from slay_the_spire.domain.effects.effect_types import copy_effect
+from slay_the_spire.domain.effects.effect_types import copy_effect, damage_effect
 from slay_the_spire.domain.hooks.hook_types import HookRegistration
+from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import EnemyState
 from slay_the_spire.domain.models.statuses import StatusState
@@ -128,6 +129,31 @@ def _effects_from_payload(
     return materialized
 
 
+def _divider_damage_per_hit(player_hp: int) -> int:
+    if player_hp <= 24:
+        return 1
+    if player_hp <= 48:
+        return 2
+    if player_hp <= 72:
+        return 3
+    return 4
+
+
+def _burn_end_turn_effects(state: CombatState) -> list[JsonDict]:
+    effects: list[JsonDict] = []
+    for card_instance_id in state.hand:
+        if card_id_from_instance_id(card_instance_id) != "burn":
+            continue
+        effects.append(
+            damage_effect(
+                source_instance_id=card_instance_id,
+                target_instance_id=state.player.instance_id,
+                amount=2,
+            )
+        )
+    return effects
+
+
 def start_turn(
     state: CombatState,
     *,
@@ -160,6 +186,19 @@ def run_enemy_turn(
         move = _select_enemy_move(state, enemy, enemy_def)
         if move is None:
             continue
+        if move.get("move") == "divider":
+            divider_damage = _divider_damage_per_hit(state.player.hp)
+            state.effect_queue.extend(
+                [
+                    damage_effect(
+                        source_instance_id=enemy.instance_id,
+                        target_instance_id=state.player.instance_id,
+                        amount=divider_damage,
+                    )
+                    for _ in range(6)
+                ]
+            )
+            continue
         state.effect_queue.extend(
             _effects_from_payload(
                 move,
@@ -178,13 +217,20 @@ def end_turn(
     hand_size: int = DEFAULT_HAND_SIZE,
     energy_per_turn: int = DEFAULT_ENERGY_PER_TURN,
 ) -> list[JsonDict]:
+    resolved = []
+    state.effect_queue.extend(_burn_end_turn_effects(state))
+    if state.effect_queue:
+        resolved.extend(resolve_effect_queue(state, hook_registrations=hook_registrations))
     state.discard_pile.extend(state.hand)
     state.hand.clear()
-
-    resolved = run_enemy_turn(
+    if state.player.hp <= 0:
+        return resolved
+    resolved.extend(
+        run_enemy_turn(
         state,
         registry,
         hook_registrations=hook_registrations,
+    )
     )
     if state.player.hp <= 0:
         return resolved
