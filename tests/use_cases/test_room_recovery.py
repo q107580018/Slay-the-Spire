@@ -145,7 +145,7 @@ def test_reward_claim_is_not_reapplied_after_load(tmp_path: Path) -> None:
     assert retried_room.is_resolved is True
     assert retried_room.payload["claimed_reward_ids"] == [generated_rewards[0]]
     assert retried_room.payload["generated_by"] == "combat_reward_generator"
-    assert retried_room.rewards == [generated_rewards[1]]
+    assert retried_room.rewards == generated_rewards[1:]
 
 
 def test_claim_reward_marks_room_completed_immediately() -> None:
@@ -164,13 +164,31 @@ def test_claim_reward_marks_room_completed_immediately() -> None:
     assert claimed_room.stage == "completed"
     assert claimed_room.is_resolved is True
     assert claimed_room.payload["claimed_reward_ids"] == [generated_rewards[0]]
-    assert claimed_room.rewards == [generated_rewards[1]]
+    assert claimed_room.rewards == generated_rewards[1:]
+
+
+def test_claiming_card_offer_removes_other_card_offers() -> None:
+    generated_rewards = generate_combat_rewards(room_id="act1:reward", seed=43)
+    room_state = RoomState(
+        room_id="act1:reward",
+        room_type="reward",
+        stage="waiting_input",
+        payload={"generated_by": "combat_reward_generator"},
+        is_resolved=False,
+        rewards=generated_rewards,
+    )
+
+    claimed_room = claim_reward(room_state=room_state, reward_id=generated_rewards[1])
+
+    assert claimed_room.payload["claimed_reward_ids"] == [generated_rewards[1]]
+    assert all(not reward.startswith("card_offer:") for reward in claimed_room.rewards)
 
 
 def test_generate_combat_rewards_feeds_reward_room_claim_flow() -> None:
     rewards = generate_combat_rewards(room_id="act1:hallway_reward", seed=41)
 
-    assert rewards == ["gold:11", "card:pommel_strike"]
+    assert rewards[0] == "gold:11"
+    assert len([reward for reward in rewards if reward.startswith("card_offer:")]) == 3
 
 
 def test_boss_victory_generates_payload_boss_rewards_instead_of_room_rewards() -> None:

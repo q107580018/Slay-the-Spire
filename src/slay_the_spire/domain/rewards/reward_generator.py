@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from slay_the_spire.domain.models.run_state import RunState
 from slay_the_spire.ports.content_provider import ContentProviderPort
+from slay_the_spire.shared.rng import rng_for_room
 
 _IRONCLAD_EARLY_REWARD_CARDS = (
+    "bash",
     "anger",
     "pommel_strike",
     "shrug_it_off",
@@ -26,12 +28,18 @@ def _require_seed(seed: object) -> int:
     return seed
 
 
+def _sample_unique_card_offers(*, room_id: str, seed: int) -> list[str]:
+    rng = rng_for_room(seed=seed, room_id=room_id, category="reward:card")
+    card_ids = list(_IRONCLAD_EARLY_REWARD_CARDS)
+    rng.shuffle(card_ids)
+    return card_ids[:3]
+
+
 def generate_combat_rewards(*, room_id: str, seed: int) -> list[str]:
     normalized_seed = _require_seed(seed)
-    base = _room_hash(room_id) + normalized_seed
     gold_amount = 10 + (normalized_seed % 10)
-    card_id = _IRONCLAD_EARLY_REWARD_CARDS[base % len(_IRONCLAD_EARLY_REWARD_CARDS)]
-    return [f"gold:{gold_amount}", f"card:{card_id}"]
+    card_offers = _sample_unique_card_offers(room_id=room_id, seed=normalized_seed)
+    return [f"gold:{gold_amount}", *[f"card_offer:{card_id}" for card_id in card_offers]]
 
 
 def generate_boss_rewards(

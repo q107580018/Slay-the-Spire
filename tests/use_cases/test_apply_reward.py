@@ -5,7 +5,7 @@ from pathlib import Path
 
 from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.domain.models.run_state import RunState
-from slay_the_spire.domain.rewards.reward_generator import generate_boss_rewards
+from slay_the_spire.domain.rewards.reward_generator import generate_boss_rewards, generate_combat_rewards
 from slay_the_spire.use_cases.apply_reward import apply_reward
 
 
@@ -46,6 +46,12 @@ def test_apply_reward_preserves_card_id_with_underscores() -> None:
     assert updated.deck[-1] == "pommel_strike#10"
 
 
+def test_apply_reward_accepts_card_offer_reward_ids() -> None:
+    updated = apply_reward(run_state=_run_state(), reward_id="card_offer:anger", registry=_content_provider())
+
+    assert updated.deck[-1] == "anger#10"
+
+
 def test_apply_reward_gold_uses_golden_idol_bonus() -> None:
     run_state = _run_state()
     run_state = RunState(
@@ -79,6 +85,15 @@ def test_generate_boss_rewards_returns_high_gold_and_three_unique_relics() -> No
     assert rewards["boss_relic_offers"] == ["black_blood", "anchor", "lantern"]
     assert rewards["claimed_gold"] is False
     assert rewards["claimed_relic_id"] is None
+
+
+def test_generate_combat_rewards_returns_gold_and_three_unique_card_offers() -> None:
+    rewards = generate_combat_rewards(room_id="act1:hallway_reward", seed=41)
+
+    assert rewards[0].startswith("gold:")
+    card_rewards = [reward for reward in rewards if reward.startswith("card_offer:")]
+    assert len(card_rewards) == 3
+    assert len(set(card_rewards)) == 3
 
 
 def test_generate_boss_rewards_filters_owned_relics() -> None:

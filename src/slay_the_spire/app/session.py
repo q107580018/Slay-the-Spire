@@ -172,7 +172,10 @@ def _room_with_rewards_claimed(room_state: RoomState, reward_id: str) -> RoomSta
     claimed_reward_ids = list(payload.get("claimed_reward_ids", []))
     claimed_reward_ids.append(reward_id)
     payload["claimed_reward_ids"] = claimed_reward_ids
-    remaining_rewards = [reward for reward in room_state.rewards if reward != reward_id]
+    if reward_id.startswith("card_offer:"):
+        remaining_rewards = [reward for reward in room_state.rewards if not reward.startswith("card_offer:")]
+    else:
+        remaining_rewards = [reward for reward in room_state.rewards if reward != reward_id]
     return RoomState(
         schema_version=room_state.schema_version,
         room_id=room_state.room_id,
@@ -228,9 +231,15 @@ def _claim_session_reward(session: SessionState, reward_id: str) -> SessionState
 
 def _claim_all_session_rewards(session: SessionState) -> SessionState:
     updated_session = session
-    for reward_id in list(session.room_state.rewards):
+    for reward_id in [reward for reward in session.room_state.rewards if not reward.startswith("card_offer:")]:
         updated_session = _claim_session_reward(updated_session, reward_id)
     return updated_session
+
+
+def _skip_card_offer_rewards(session: SessionState) -> SessionState:
+    remaining_rewards = [reward for reward in session.room_state.rewards if not reward.startswith("card_offer:")]
+    updated_room_state = replace(session.room_state, rewards=remaining_rewards)
+    return replace(session, room_state=updated_room_state, menu_state=MenuState())
 
 
 def _claim_boss_gold(session: SessionState) -> SessionState:
@@ -1097,6 +1106,9 @@ def _route_reward_menu(choice: str, session: SessionState) -> tuple[bool, Sessio
         return True, next_session, render_session(next_session)
     if action_id == "claim_all":
         next_session = _claim_all_session_rewards(session)
+        return True, next_session, render_session(next_session)
+    if action_id == "skip_card_rewards":
+        next_session = _skip_card_offer_rewards(session)
         return True, next_session, render_session(next_session)
     if action_id.startswith("claim_reward:"):
         next_session = _claim_session_reward(session, action_id.split(":", 1)[1])

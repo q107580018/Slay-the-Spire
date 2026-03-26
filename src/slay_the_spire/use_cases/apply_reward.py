@@ -43,6 +43,10 @@ def apply_reward(*, run_state: RunState, reward_id: str, registry: ContentProvid
     if reward_id == "card:reward_defend":
         registry.cards().get("defend_plus")
         return replace(run_state, deck=[*run_state.deck, _next_instance_id(run_state.deck, "defend_plus")])
+    if reward_id.startswith("card_offer:"):
+        card_id = reward_id.split(":", 1)[1]
+        registry.cards().get(card_id)
+        return replace(run_state, deck=[*run_state.deck, _next_instance_id(run_state.deck, card_id)])
     if reward_id.startswith("card:"):
         card_id = reward_id.split(":", 1)[1]
         registry.cards().get(card_id)

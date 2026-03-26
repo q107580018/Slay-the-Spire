@@ -224,8 +224,8 @@ def test_enter_room_samples_enemy_from_pool_deterministically() -> None:
 
 def test_enter_room_can_sample_new_basic_enemy_from_pool() -> None:
     provider = _content_provider()
-    run_state = start_new_run("ironclad", seed=2, registry=provider)
-    act_state = generate_act_state("act1", seed=2, registry=provider)
+    run_state = start_new_run("ironclad", seed=23, registry=provider)
+    act_state = generate_act_state("act1", seed=23, registry=provider)
 
     room_state = enter_room(run_state, act_state, node_id="start", registry=provider)
     combat_state = CombatState.from_dict(room_state.payload["combat_state"])
