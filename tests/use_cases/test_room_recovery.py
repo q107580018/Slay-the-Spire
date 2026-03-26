@@ -258,6 +258,60 @@ def test_claiming_boss_gold_only_does_not_enter_victory() -> None:
     assert next_session.run_state.gold == 198
 
 
+def test_partial_boss_reward_progress_survives_load_session(tmp_path: Path) -> None:
+    provider = _content_provider()
+    initial_session = replace(
+        start_session(seed=7),
+        room_state=RoomState(
+            room_id="act1:boss",
+            room_type="boss",
+            stage="completed",
+            payload={
+                "node_id": "boss",
+                "next_node_ids": [],
+                "boss_rewards": {
+                    "generated_by": "boss_reward_generator",
+                    "gold_reward": 99,
+                    "claimed_gold": False,
+                    "boss_relic_offers": ["black_blood", "anchor", "lantern"],
+                    "claimed_relic_id": None,
+                },
+            },
+            is_resolved=True,
+            rewards=[],
+        ),
+        menu_state=MenuState(mode="select_boss_reward"),
+    )
+
+    _running, claimed_gold_session, _message = route_menu_choice("1", session=initial_session)
+    repository = JsonFileSaveRepository(tmp_path / "boss_reward.json")
+    save_game(
+        repository=repository,
+        run_state=claimed_gold_session.run_state,
+        act_state=generate_act_state("act1", seed=7, registry=provider),
+        room_state=claimed_gold_session.room_state,
+    )
+
+    restored_session = load_session(
+        save_path=tmp_path / "boss_reward.json",
+        content_root=Path(__file__).resolve().parents[2] / "content",
+    )
+    _running, reward_menu_session, _message = route_menu_choice("2", session=restored_session)
+    _running, relic_menu_session, _message = route_menu_choice("2", session=reward_menu_session)
+    _running, victory_session, _message = route_menu_choice("1", session=relic_menu_session)
+
+    assert claimed_gold_session.run_phase == "active"
+    assert claimed_gold_session.room_state.payload["boss_rewards"]["claimed_gold"] is True
+    assert restored_session.run_phase == "active"
+    assert restored_session.menu_state.mode == "root"
+    assert restored_session.room_state.payload["boss_rewards"]["claimed_gold"] is True
+    assert restored_session.room_state.payload["boss_rewards"]["claimed_relic_id"] is None
+    assert reward_menu_session.menu_state.mode == "select_boss_reward"
+    assert relic_menu_session.menu_state.mode == "select_boss_relic"
+    assert victory_session.run_phase == "victory"
+    assert victory_session.room_state.payload["boss_rewards"]["claimed_relic_id"] == "black_blood"
+
+
 def test_non_boss_reward_claim_returns_to_map_selection() -> None:
     session = replace(
         start_session(seed=7),

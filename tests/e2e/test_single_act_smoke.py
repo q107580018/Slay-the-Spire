@@ -120,8 +120,30 @@ def test_single_act_smoke_simulates_map_shop_rest_and_boss_victory_flow() -> Non
     # 不是在验证完整的真实 Boss 战斗胜利流程。
     session = replace(
         session,
-        room_state=replace(session.room_state, stage="completed", is_resolved=True, rewards=["gold:99"]),
+        room_state=replace(
+            session.room_state,
+            stage="completed",
+            is_resolved=True,
+            rewards=[],
+            payload={
+                **session.room_state.payload,
+                "boss_rewards": {
+                    "generated_by": "boss_reward_generator",
+                    "gold_reward": 99,
+                    "claimed_gold": False,
+                    "boss_relic_offers": ["black_blood", "anchor", "lantern"],
+                    "claimed_relic_id": None,
+                },
+            },
+        ),
     )
+    _running, session, _message = route_menu_choice("2", session=session)
+    _running, session, _message = route_menu_choice("1", session=session)
+    assert session.run_phase == "active"
+    assert session.room_state.rewards == []
+    assert "boss_rewards" in session.room_state.payload
+
+    _running, session, _message = route_menu_choice("2", session=session)
     _running, session, _message = route_menu_choice("2", session=session)
     _running, session, _message = route_menu_choice("1", session=session)
 
