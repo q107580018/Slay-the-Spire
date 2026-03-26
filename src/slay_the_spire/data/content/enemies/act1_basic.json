@@ -45,6 +45,32 @@
         }
       ],
       "intent_policy": "cycle"
+    },
+    {
+      "id": "acid_slime",
+      "name": "酸液史莱姆",
+      "hp": 10,
+      "move_table": [
+        {
+          "move": "corrosive_lick",
+          "effects": [
+            {
+              "type": "weak",
+              "stacks": 1
+            }
+          ]
+        },
+        {
+          "move": "tackle",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 3
+            }
+          ]
+        }
+      ],
+      "intent_policy": "scripted"
     }
   ]
 }

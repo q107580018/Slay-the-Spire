@@ -55,7 +55,7 @@ def test_combat_root_screen_keeps_full_context_and_hand_panel() -> None:
     )
 
     assert "当前能量" in output
-    assert "手牌" in output
+    assert "手牌（能量 3）" in output
     assert "敌人意图" in output
     assert "战斗记录" in output
     assert "4. 查看资料" in output

@@ -280,6 +280,66 @@ def test_end_turn_log_reports_sleeping_enemy() -> None:
     assert state.log == ["Lagavulin沉睡，暂不行动。"]
 
 
+def test_enemy_weak_move_targets_player_by_default() -> None:
+    registry = _Registry()
+    registry.enemies().register(
+        {
+            "id": "acid_slime",
+            "name": "Acid Slime",
+            "hp": 15,
+            "move_table": [
+                {"move": "corrosive_lick", "effects": [{"type": "weak", "stacks": 1}]},
+                {"move": "tackle", "effects": [{"type": "damage", "amount": 4}]},
+            ],
+            "intent_policy": "scripted",
+        }
+    )
+    state = CombatState(
+        round_number=1,
+        energy=3,
+        hand=[],
+        draw_pile=[],
+        discard_pile=[],
+        exhaust_pile=[],
+        player=PlayerCombatState(
+            instance_id="player-1",
+            hp=30,
+            max_hp=30,
+            block=0,
+            statuses=[],
+        ),
+        enemies=[
+            EnemyState(
+                instance_id="enemy-1",
+                enemy_id="acid_slime",
+                hp=15,
+                max_hp=15,
+                block=0,
+                statuses=[],
+            )
+        ],
+        effect_queue=[],
+        log=[],
+    )
+
+    resolved = end_turn(state, registry)
+
+    assert [effect["type"] for effect in resolved] == ["weak"]
+    assert state.player.statuses == [StatusState(status_id="weak", stacks=1)]
+
+
+def test_end_turn_consumes_existing_temporary_statuses_on_both_sides() -> None:
+    registry = _enemy_registry()
+    state = _combat_state()
+    state.player.statuses.append(StatusState(status_id="weak", stacks=1))
+    state.enemies[0].statuses.append(StatusState(status_id="vulnerable", stacks=1))
+
+    end_turn(state, registry)
+
+    assert state.player.statuses == []
+    assert state.enemies[0].statuses == []
+
+
 def test_end_turn_log_reports_burn_trigger_and_enemy_adding_burn() -> None:
     registry = _Registry()
     registry.cards().register(

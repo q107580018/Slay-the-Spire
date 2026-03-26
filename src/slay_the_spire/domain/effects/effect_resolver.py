@@ -12,6 +12,7 @@ from slay_the_spire.domain.effects.effect_types import (
     EFFECT_HEAL,
     EFFECT_NOOP,
     EFFECT_VULNERABLE,
+    EFFECT_WEAK,
     copy_effect,
     emit_hook_effect,
     noop_effect,
@@ -56,8 +57,20 @@ def _vulnerable_bonus(target: PlayerCombatState | EnemyState) -> int:
     return 0
 
 
-def _damage_amount(target: PlayerCombatState | EnemyState, base_amount: int) -> int:
+def _is_weak(source: PlayerCombatState | EnemyState | None) -> bool:
+    if source is None:
+        return False
+    return any(status.status_id == "weak" and status.stacks > 0 for status in source.statuses)
+
+
+def _damage_amount(
+    source: PlayerCombatState | EnemyState | None,
+    target: PlayerCombatState | EnemyState,
+    base_amount: int,
+) -> int:
     amount = max(base_amount, 0)
+    if _is_weak(source):
+        amount = (amount * 3) // 4
     if _vulnerable_bonus(target):
         amount += amount // 2
     return amount
@@ -165,7 +178,8 @@ def resolve_next_effect(
         if _is_dead(target):
             return noop_effect(reason="dead_target")
         was_alive = target.hp > 0
-        applied_amount = _damage_amount(target, int(effect.get("amount", 0)))
+        source = _get_target(state, effect.get("source_instance_id"))
+        applied_amount = _damage_amount(source, target, int(effect.get("amount", 0)))
         blocked, actual_damage = _damage_target(target, applied_amount)
         target_defeated = isinstance(target, EnemyState) and was_alive and target.hp == 0
         if target_defeated:
@@ -213,6 +227,18 @@ def resolve_next_effect(
         _apply_status(
             target,
             status_id="vulnerable",
+            stacks=applied_stacks,
+        )
+        return _with_result(effect, applied_stacks=applied_stacks)
+
+    if effect_type == EFFECT_WEAK:
+        target = _get_target(state, effect.get("target_instance_id"))
+        if _is_dead(target):
+            return noop_effect(reason="dead_target")
+        applied_stacks = max(int(effect.get("stacks", 0)), 0)
+        _apply_status(
+            target,
+            status_id="weak",
             stacks=applied_stacks,
         )
         return _with_result(effect, applied_stacks=applied_stacks)

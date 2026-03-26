@@ -313,13 +313,14 @@ def render_enemy_panel(combat_state: CombatState, registry: ContentProviderPort)
 
 
 def render_hand_panel(combat_state: CombatState, registry: ContentProviderPort) -> Panel:
+    title = f"手牌（能量 {combat_state.energy}）"
     if not combat_state.hand:
-        return Panel(Group(Text("-")), title="手牌", box=PANEL_BOX, expand=False)
+        return Panel(Group(Text("-")), title=title, box=PANEL_BOX, expand=False)
     lines: list[RenderableType] = []
     for index, card_instance_id in enumerate(combat_state.hand, start=1):
         card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
         lines.append(f"{index}. {card_def.name} ({card_def.cost}) - {summarize_card_definition(card_def)}")
-    return Panel(Group(*lines), title="手牌", box=PANEL_BOX, expand=False)
+    return Panel(Group(*lines), title=title, box=PANEL_BOX, expand=False)
 
 
 def render_menu_panel_for_combat(

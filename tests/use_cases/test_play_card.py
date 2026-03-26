@@ -5,6 +5,7 @@ import pytest
 from slay_the_spire.content.registries import CardRegistry, EnemyRegistry
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
+from slay_the_spire.domain.models.statuses import StatusState
 from slay_the_spire.use_cases.play_card import play_card
 
 
@@ -200,6 +201,19 @@ def test_play_card_applies_vulnerable_status_effects() -> None:
     assert state.enemies[0].statuses[0].status_id == "vulnerable"
     assert state.enemies[0].statuses[0].stacks == 2
     assert state.log == ["你打出 Custom Strike，对 Training Dummy 造成 8 伤害，并施加 2 层易伤。"]
+
+
+def test_play_card_damage_is_reduced_while_player_is_weak() -> None:
+    state = _combat_state(hand=["custom_strike#1"])
+    state.player.statuses.append(StatusState(status_id="weak", stacks=1))
+    provider = _provider_with_card(effects=[{"type": "damage", "amount": 6}])
+
+    result = play_card(state, "custom_strike#1", "enemy-1", provider)
+
+    assert result.combat_state is state
+    assert [effect["type"] for effect in result.resolved_effects] == ["damage"]
+    assert state.enemies[0].hp == 6
+    assert state.log == ["你打出 Custom Strike，对 Training Dummy 造成 4 伤害。"]
 
 
 def test_play_card_rejects_unplayable_cards() -> None:

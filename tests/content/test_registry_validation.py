@@ -46,6 +46,7 @@ def test_provider_exposes_registry_accessors(content_root: Path) -> None:
     assert provider.characters().get("ironclad").name == "铁甲战士"
     assert provider.cards().get("bash").name == "重击"
     assert provider.enemies().get("slime").name == "绿史莱姆"
+    assert provider.enemies().get("acid_slime").name == "酸液史莱姆"
     assert provider.enemies().get("hexaghost").name == "六火幽魂"
     assert provider.cards().get("burn").playable is False
     assert provider.cards().get("burn").can_appear_in_shop is False
