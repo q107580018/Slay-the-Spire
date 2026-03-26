@@ -15,6 +15,7 @@ from slay_the_spire.shared.types import JsonDict
 
 DEFAULT_ENERGY_PER_TURN = 3
 DEFAULT_HAND_SIZE = 5
+_TEMPORARY_STATUS_IDS = {"vulnerable", "weak"}
 
 
 def _require_mapping(value: object, field_name: str) -> Mapping[str, object]:
@@ -51,6 +52,25 @@ def _set_status_stacks(enemy: EnemyState, status_id: str, stacks: int) -> None:
         return
     if stacks > 0:
         enemy.statuses.append(StatusState(status_id=status_id, stacks=stacks))
+
+
+def _tick_temporary_statuses(entity: PlayerCombatState | EnemyState) -> None:
+    next_statuses: list[StatusState] = []
+    for status in entity.statuses:
+        if status.status_id not in _TEMPORARY_STATUS_IDS:
+            next_statuses.append(status)
+            continue
+        remaining_stacks = status.stacks - 1
+        if remaining_stacks <= 0:
+            continue
+        next_statuses.append(
+            StatusState(
+                status_id=status.status_id,
+                stacks=remaining_stacks,
+                duration=None if status.duration is None else max(status.duration - 1, 1),
+            )
+        )
+    entity.statuses = next_statuses
 
 
 def _sleep_turns(enemy_def: EnemyDef) -> int:
@@ -139,7 +159,7 @@ def _effects_from_payload(
             raise TypeError("effect type must be a string")
         if "source_instance_id" not in effect:
             effect["source_instance_id"] = source_instance_id
-        if effect_type in {"damage", "block", "draw"} and "target_instance_id" not in effect:
+        if effect_type in {"damage", "block", "draw", "vulnerable", "weak"} and "target_instance_id" not in effect:
             if default_target_id is None:
                 raise ValueError(f"{effect_type} effect requires a target")
             effect["target_instance_id"] = default_target_id
@@ -243,6 +263,7 @@ def end_turn(
     state.hand.clear()
     if state.player.hp <= 0:
         return resolved
+    _tick_temporary_statuses(state.player)
     resolved.extend(
         run_enemy_turn(
         state,
@@ -252,6 +273,8 @@ def end_turn(
     )
     if state.player.hp <= 0:
         return resolved
+    for enemy in state.enemies:
+        _tick_temporary_statuses(enemy)
     state.round_number += 1
     start_turn(
         state,

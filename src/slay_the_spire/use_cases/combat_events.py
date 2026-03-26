@@ -106,6 +106,20 @@ def build_player_action_events(
                     stacks=_result_int(result, "applied_stacks"),
                 )
             )
+            continue
+        if effect_type == "weak":
+            target_name = _target_name(entities, effect)
+            if target_name is None:
+                continue
+            events.append(
+                CombatEvent(
+                    event_type="status_applied",
+                    actor_name="你",
+                    target_name=target_name,
+                    status_id="weak",
+                    stacks=_result_int(result, "applied_stacks"),
+                )
+            )
     return events
 
 
@@ -178,6 +192,20 @@ def build_enemy_turn_events(
                     actor_name=source_snapshot.name,
                     target_name=target_name,
                     status_id="vulnerable",
+                    stacks=_result_int(result, "applied_stacks"),
+                )
+            )
+            continue
+        if effect_type == "weak":
+            target_name = _target_name(entities, effect)
+            if target_name is None:
+                continue
+            events.append(
+                CombatEvent(
+                    event_type="status_applied",
+                    actor_name=source_snapshot.name,
+                    target_name=target_name,
+                    status_id="weak",
                     stacks=_result_int(result, "applied_stacks"),
                 )
             )

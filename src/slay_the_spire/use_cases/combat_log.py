@@ -27,12 +27,16 @@ def describe_player_action(*, events: Sequence[CombatEvent]) -> list[str]:
 
     for event in events:
         if event.event_type == "damage" and event.target_name is not None and event.actual_damage > 0:
-            part = target_parts.setdefault(event.target_name, {"damage": 0, "vulnerable": 0})
+            part = target_parts.setdefault(event.target_name, {"damage": 0, "vulnerable": 0, "weak": 0})
             part["damage"] += event.actual_damage
             continue
         if event.event_type == "status_applied" and event.status_id == "vulnerable" and event.target_name is not None and event.stacks > 0:
-            part = target_parts.setdefault(event.target_name, {"damage": 0, "vulnerable": 0})
+            part = target_parts.setdefault(event.target_name, {"damage": 0, "vulnerable": 0, "weak": 0})
             part["vulnerable"] += event.stacks
+            continue
+        if event.event_type == "status_applied" and event.status_id == "weak" and event.target_name is not None and event.stacks > 0:
+            part = target_parts.setdefault(event.target_name, {"damage": 0, "vulnerable": 0, "weak": 0})
+            part["weak"] += event.stacks
             continue
         if event.event_type == "block_gained" and event.amount > 0:
             self_parts.append(f"获得 {event.amount} 格挡")
@@ -48,6 +52,9 @@ def describe_player_action(*, events: Sequence[CombatEvent]) -> list[str]:
         if values["vulnerable"] > 0:
             vulnerable_line = f"施加 {values['vulnerable']} 层易伤"
             target_line = f"{target_line}，并{vulnerable_line}" if target_line else f"对 {target_name}{vulnerable_line}"
+        if values["weak"] > 0:
+            weak_line = f"施加 {values['weak']} 层虚弱"
+            target_line = f"{target_line}，并{weak_line}" if target_line else f"对 {target_name}{weak_line}"
         if target_line:
             parts.append(target_line)
     parts.extend(self_parts)
@@ -97,6 +104,9 @@ def describe_enemy_turn(*, events: Sequence[CombatEvent]) -> list[str]:
                 continue
             if event.event_type == "status_applied" and event.status_id == "vulnerable" and event.stacks > 0:
                 parts.append(f"施加 {event.stacks} 层易伤")
+                continue
+            if event.event_type == "status_applied" and event.status_id == "weak" and event.stacks > 0:
+                parts.append(f"施加 {event.stacks} 层虚弱")
                 continue
             if event.event_type == "block_gained" and event.amount > 0:
                 parts.append(f"获得 {event.amount} 格挡")
