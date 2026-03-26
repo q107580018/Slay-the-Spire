@@ -216,6 +216,154 @@ def test_non_boss_reward_claim_returns_to_map_selection() -> None:
     assert next_session.run_state.gold == 110
 
 
+def test_event_room_inspect_round_trip_keeps_choice_flow() -> None:
+    session = replace(
+        start_session(seed=7),
+        room_state=RoomState(
+            room_id="act1:event",
+            room_type="event",
+            stage="waiting_input",
+            payload={
+                "node_id": "r1c1",
+                "room_kind": "event",
+                "event_id": "golden_shrine",
+                "next_node_ids": ["r2c0"],
+            },
+            is_resolved=False,
+            rewards=[],
+        ),
+    )
+
+    _running, inspect_session, inspect_message = route_menu_choice("3", session=session)
+    _running, stats_session, stats_message = route_menu_choice("1", session=inspect_session)
+    _running, inspect_back_session, inspect_back_message = route_menu_choice("1", session=stats_session)
+    _running, root_session, root_message = route_menu_choice("5", session=inspect_back_session)
+    _running, choice_menu_session, _choice_menu_message = route_menu_choice("2", session=root_session)
+    _running, next_session, _message = route_menu_choice("1", session=choice_menu_session)
+
+    assert inspect_session.menu_state.mode == "inspect_root"
+    assert "资料总览" in inspect_message
+    assert stats_session.menu_state.mode == "inspect_stats"
+    assert inspect_back_session.menu_state.mode == "inspect_root"
+    assert root_session.menu_state.mode == "root"
+    assert "查看事件" in root_message
+    assert choice_menu_session.menu_state.mode == "select_event_choice"
+    assert next_session.room_state.is_resolved is True
+
+
+def test_boss_reward_root_inspect_round_trip_keeps_reward_menu_numbering() -> None:
+    session = replace(
+        start_session(seed=7),
+        room_state=RoomState(
+            room_id="act1:boss",
+            room_type="boss",
+            stage="completed",
+            payload={"node_id": "boss", "next_node_ids": []},
+            is_resolved=True,
+            rewards=["gold:99"],
+        ),
+    )
+
+    _running, inspect_session, inspect_message = route_menu_choice("4", session=session)
+    _running, stats_session, stats_message = route_menu_choice("1", session=inspect_session)
+    _running, inspect_back_session, inspect_back_message = route_menu_choice("1", session=stats_session)
+    _running, reward_root_session, reward_root_message = route_menu_choice("5", session=inspect_back_session)
+    _running, select_reward_session, select_reward_message = route_menu_choice("2", session=reward_root_session)
+    _running, claimed_session, claimed_message = route_menu_choice("1", session=select_reward_session)
+
+    assert inspect_session.menu_state.mode == "inspect_root"
+    assert "资料总览" in inspect_message
+    assert stats_session.menu_state.mode == "inspect_stats"
+    assert inspect_back_session.menu_state.mode == "inspect_root"
+    assert reward_root_session.menu_state.mode == "root"
+    assert "查看奖励" in reward_root_message
+    assert reward_root_session.room_state.rewards == ["gold:99"]
+    assert select_reward_session.menu_state.mode == "select_reward"
+    assert claimed_session.run_phase == "victory"
+    assert claimed_session.room_state.rewards == []
+    assert claimed_session.run_state.gold == 198
+
+
+def test_combat_reward_root_inspect_uses_visible_back_choice_before_claim_flow() -> None:
+    session = replace(
+        start_session(seed=7),
+        room_state=RoomState(
+            room_id="act1:hallway",
+            room_type="combat",
+            stage="completed",
+            payload={"node_id": "r1c0", "next_node_ids": ["r2c0"]},
+            is_resolved=True,
+            rewards=["gold:11"],
+        ),
+    )
+
+    _running, inspect_session, inspect_message = route_menu_choice("4", session=session)
+    _running, stats_session, stats_message = route_menu_choice("1", session=inspect_session)
+    _running, inspect_back_session, inspect_back_message = route_menu_choice("1", session=stats_session)
+    _running, reward_root_session, reward_root_message = route_menu_choice("5", session=inspect_back_session)
+    _running, select_reward_session, select_reward_message = route_menu_choice("2", session=reward_root_session)
+    _running, claimed_session, claimed_message = route_menu_choice("1", session=select_reward_session)
+
+    assert inspect_session.menu_state.mode == "inspect_root"
+    assert inspect_session.menu_state.inspect_parent_mode == "root"
+    assert "资料总览" in inspect_message
+    assert stats_session.menu_state.mode == "inspect_stats"
+    assert "角色状态" in stats_message
+    assert inspect_back_session.menu_state.mode == "inspect_root"
+    assert inspect_back_session.menu_state.inspect_parent_mode == "root"
+    assert "资料总览" in inspect_back_message
+    assert reward_root_session.menu_state.mode == "root"
+    assert "查看奖励" in reward_root_message
+    assert reward_root_session.room_state.rewards == ["gold:11"]
+    assert select_reward_session.menu_state.mode == "select_reward"
+    assert "奖励" in select_reward_message
+    assert claimed_session.menu_state.mode == "root"
+    assert claimed_session.room_state.rewards == []
+    assert claimed_session.run_state.gold == 110
+    assert "前往下一个房间" in claimed_message
+
+
+def test_combat_reward_root_inspect_potions_follow_visible_menu_numbering() -> None:
+    base_session = start_session(seed=7)
+    session = replace(
+        base_session,
+        run_state=replace(base_session.run_state, potions=["fire_potion"]),
+        room_state=RoomState(
+            room_id="act1:hallway",
+            room_type="combat",
+            stage="completed",
+            payload={"node_id": "r1c0", "next_node_ids": ["r2c0"]},
+            is_resolved=True,
+            rewards=["gold:11"],
+        ),
+    )
+
+    _running, inspect_session, inspect_message = route_menu_choice("4", session=session)
+    _running, potions_session, potions_message = route_menu_choice("4", session=inspect_session)
+    _running, inspect_back_session, inspect_back_message = route_menu_choice("1", session=potions_session)
+    _running, reward_root_session, reward_root_message = route_menu_choice("5", session=inspect_back_session)
+    _running, select_reward_session, select_reward_message = route_menu_choice("2", session=reward_root_session)
+    _running, claimed_session, claimed_message = route_menu_choice("1", session=select_reward_session)
+
+    assert inspect_session.menu_state.mode == "inspect_root"
+    assert inspect_session.menu_state.inspect_parent_mode == "root"
+    assert "资料总览" in inspect_message
+    assert potions_session.menu_state.mode == "inspect_potions"
+    assert potions_session.menu_state.inspect_parent_mode == "root"
+    assert potions_session.menu_state.inspect_item_id == "potions"
+    assert "药水列表" in potions_message
+    assert inspect_back_session.menu_state.mode == "inspect_root"
+    assert inspect_back_session.menu_state.inspect_parent_mode == "root"
+    assert "资料总览" in inspect_back_message
+    assert reward_root_session.menu_state.mode == "root"
+    assert "查看奖励" in reward_root_message
+    assert select_reward_session.menu_state.mode == "select_reward"
+    assert "奖励" in select_reward_message
+    assert claimed_session.room_state.rewards == []
+    assert claimed_session.run_state.gold == 110
+    assert "前往下一个房间" in claimed_message
+
+
 def test_claim_all_rewards_clears_non_boss_room_rewards() -> None:
     session = replace(
         start_session(seed=7),
@@ -315,6 +463,46 @@ def test_shop_menu_returns_prompt_when_item_is_already_purchased() -> None:
     _running, _next_session, message = route_menu_choice("1", session=session)
 
     assert "该商品已购买。" in message
+
+
+def test_shop_room_inspect_round_trip_keeps_shop_flow() -> None:
+    session = replace(
+        start_session(seed=7),
+        room_state=RoomState(
+            room_id="act1:shop",
+            room_type="shop",
+            stage="waiting_input",
+            payload={
+                "node_id": "r3c1",
+                "cards": [{"offer_id": "card-1", "card_id": "strike", "price": 50}],
+                "relics": [],
+                "potions": [],
+                "remove_price": 75,
+                "next_node_ids": ["r4c0"],
+            },
+            is_resolved=False,
+            rewards=[],
+        ),
+        menu_state=MenuState(mode="shop_root"),
+    )
+
+    _running, inspect_session, inspect_message = route_menu_choice("4", session=session)
+    _running, stats_session, stats_message = route_menu_choice("1", session=inspect_session)
+    _running, inspect_back_session, inspect_back_message = route_menu_choice("1", session=stats_session)
+    _running, shop_session, shop_message = route_menu_choice("5", session=inspect_back_session)
+    _running, leave_session, leave_message = route_menu_choice("3", session=shop_session)
+
+    assert inspect_session.menu_state.mode == "inspect_root"
+    assert "资料总览" in inspect_message
+    assert stats_session.menu_state.mode == "inspect_stats"
+    assert "角色状态" in stats_message
+    assert inspect_back_session.menu_state.mode == "inspect_root"
+    assert "资料总览" in inspect_back_message
+    assert shop_session.menu_state.mode == "shop_root"
+    assert "商店操作" in shop_message
+    assert leave_session.room_state.is_resolved is True
+    assert leave_session.menu_state.mode == "root"
+    assert "前往下一个房间" in leave_message
 
 
 def test_player_defeat_sets_session_game_over_and_blocks_further_actions(tmp_path: Path) -> None:

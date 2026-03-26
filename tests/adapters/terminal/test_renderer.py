@@ -24,6 +24,123 @@ def test_combat_root_screen_keeps_full_context_and_hand_panel() -> None:
     assert "当前能量" in output
     assert "手牌" in output
     assert "敌人意图" in output
+    assert "4. 查看资料" in output
+    assert "5. 保存游戏" in output
+    assert "6. 读取存档" in output
+    assert "7. 退出游戏" in output
+
+
+def test_combat_renderer_shows_inspect_root_menu_when_in_inspect_mode() -> None:
+    session = start_session(seed=5)
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=_provider(session),
+        menu_state=MenuState(mode="inspect_root", inspect_parent_mode="root"),
+        run_phase=session.run_phase,
+    )
+
+    assert "资料总览" in output
+    assert "查看战场" not in output
+    assert "1. 角色状态" in output
+    assert "4. 药水" in output
+    assert "10. 返回上一步" in output
+
+
+def test_combat_renderer_shows_deck_list_and_back_choice_in_inspect_mode() -> None:
+    session = start_session(seed=5)
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=_provider(session),
+        menu_state=MenuState(mode="inspect_deck", inspect_parent_mode="root", inspect_item_id="deck"),
+        run_phase=session.run_phase,
+    )
+
+    assert "牌组列表" in output
+    assert "查看战场" not in output
+    assert "打击" in output
+    assert "返回上一步" in output
+
+
+def test_combat_renderer_distinguishes_inspect_stats_and_relics_pages() -> None:
+    base_session = start_session(seed=5)
+    session = replace(base_session, run_state=replace(base_session.run_state, gold=123))
+    stats_output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=_provider(session),
+        menu_state=MenuState(mode="inspect_stats", inspect_parent_mode="root", inspect_item_id="stats"),
+        run_phase=session.run_phase,
+    )
+    relics_output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=_provider(session),
+        menu_state=MenuState(mode="inspect_relics", inspect_parent_mode="root", inspect_item_id="relics"),
+        run_phase=session.run_phase,
+    )
+
+    assert "角色状态" in stats_output
+    assert "当前生命: 80/80" in stats_output
+    assert "金币: 123" in stats_output
+    assert "遗物列表" not in stats_output
+    assert "遗物列表" in relics_output
+    assert "当前遗物:" in relics_output
+    assert "燃烧之血" in relics_output
+    assert "角色状态" not in relics_output
+
+
+def test_combat_renderer_shows_inspect_slot_after_resolved_combat_with_rewards() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=replace(start_session(seed=5).room_state, stage="completed", is_resolved=True, rewards=["gold:99"]),
+    )
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=_provider(session),
+        menu_state=MenuState(),
+        run_phase=session.run_phase,
+    )
+
+    assert "1. 查看奖励" in output
+    assert "2. 领取奖励" in output
+    assert "3. 前往下一个房间" in output
+    assert "4. 查看资料" in output
+    assert "5. 保存游戏" in output
+    assert "6. 读取存档" in output
+    assert "7. 退出游戏" in output
+    assert "4. 保存游戏" not in output
+
+
+def test_combat_renderer_shows_inspect_slot_after_resolved_combat_without_rewards() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=replace(start_session(seed=5).room_state, stage="completed", is_resolved=True, rewards=[]),
+    )
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=_provider(session),
+        menu_state=MenuState(),
+        run_phase=session.run_phase,
+    )
+
+    assert "1. 前往下一个房间" in output
+    assert "2. 查看资料" in output
+    assert "3. 保存游戏" in output
+    assert "4. 读取存档" in output
+    assert "5. 退出游戏" in output
+    assert "2. 保存游戏" not in output
 
 
 def test_non_combat_renderer_shows_full_map_rows_and_current_position() -> None:
@@ -88,6 +205,7 @@ def test_shop_renderer_shows_cards_relics_potions_and_remove_service() -> None:
     assert "药水商品" in output
     assert "删牌服务" in output
     assert "当前金币" in output
+    assert "7. 查看资料" in output
     assert "打击" in output
     assert "防御" in output
     assert "火焰药水" in output
@@ -135,6 +253,38 @@ def test_shop_renderer_shows_current_gold_and_affordance_statuses() -> None:
     assert "[可购买]" in output
     assert "[金币不足]" in output
     assert "[已购买]" in output
+    assert "6. 查看资料" in output
+
+
+def test_shop_remove_renderer_uses_localized_card_labels() -> None:
+    session = start_session(seed=5)
+    room_state = RoomState(
+        room_id="act1:shop",
+        room_type="shop",
+        stage="select_remove_card",
+        payload={
+            "node_id": "r3c1",
+            "remove_candidates": ["strike#1", "defend#2"],
+            "next_node_ids": ["r4c0"],
+        },
+        is_resolved=False,
+        rewards=[],
+    )
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=room_state,
+        registry=_provider(session),
+        menu_state=MenuState(mode="shop_remove_card"),
+        run_phase="active",
+    )
+
+    assert "选择要移除的卡牌" in output
+    assert "打击 (strike#1)" in output
+    assert "防御 (defend#2)" in output
+    assert "1. strike#1" not in output
+    assert "2. defend#2" not in output
 
 
 def test_rest_renderer_shows_root_and_upgrade_selection_states() -> None:
@@ -167,6 +317,7 @@ def test_rest_renderer_shows_root_and_upgrade_selection_states() -> None:
     assert "休息点" in root_output
     assert "休息" in root_output
     assert "锻造" in root_output
+    assert "3. 查看资料" in root_output
     assert "Rest" not in root_output
     assert "Smith" not in root_output
     assert "可升级卡牌" in upgrade_output

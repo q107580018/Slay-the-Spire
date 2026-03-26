@@ -73,6 +73,17 @@ def test_summarize_card_effects_compacts_damage_and_block() -> None:
     assert output == "造成 6 伤害 / 获得 5 格挡"
 
 
+def test_summarize_card_effects_localizes_card_copy_effect() -> None:
+    output = summarize_card_effects(
+        [
+            {"type": "damage", "amount": 6},
+            {"type": "create_card_copy", "card_id": "anger", "zone": "discard_pile"},
+        ]
+    )
+
+    assert output == "造成 6 伤害 / 复制一张卡牌放入弃牌堆"
+
+
 def test_preview_enemy_intent_uses_move_table_without_state() -> None:
     enemy_def = EnemyDef(
         id="slime",
@@ -125,4 +136,19 @@ def test_render_room_select_target_menu_uses_shared_hp_bar_contract() -> None:
     )
 
     assert "选择目标" in output
+    assert "12/12 12/12" not in output
+
+
+def test_render_room_inspect_enemy_detail_uses_shared_hp_bar_contract() -> None:
+    session = start_session(seed=5)
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=StarterContentProvider(session.content_root),
+        menu_state=MenuState(mode="inspect_enemy_detail", inspect_parent_mode="inspect_enemy_list", inspect_item_id="enemy-1"),
+    )
+
+    assert "敌人详情" in output
+    assert "绿史莱姆" in output
     assert "12/12 12/12" not in output

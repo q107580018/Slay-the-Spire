@@ -45,11 +45,11 @@ def _printed_text(rendered: object | None) -> str:
 
 def test_run_terminal_session_clears_before_first_frame_and_after_each_command() -> None:
     session = start_session(seed=5)
-    terminal = _FakeTerminal(["6"])
+    terminal = _FakeTerminal(["7"])
 
     result = run_terminal_session(session=session, terminal=terminal)
 
-    assert result.final_session.command_history == ["6"]
+    assert result.final_session.command_history == ["7"]
     assert terminal.calls[0] == ("clear", None)
     assert terminal.calls[1][0] == "print"
     assert "房间: 起点" in _printed_text(terminal.calls[1][1])
@@ -62,7 +62,7 @@ def test_run_terminal_session_clears_before_first_frame_and_after_each_command()
 
 def test_run_terminal_session_redraws_current_frame_before_flash_message() -> None:
     session = start_session(seed=5)
-    terminal = _FakeTerminal(["9", "6"])
+    terminal = _FakeTerminal(["9", "7"])
 
     run_terminal_session(session=session, terminal=terminal)
 
@@ -82,7 +82,7 @@ def test_rich_terminal_uses_project_theme_by_default() -> None:
 
 def test_run_terminal_session_prints_rich_frame_instead_of_plain_text() -> None:
     session = start_session(seed=5)
-    terminal = _FakeTerminal(["6"])
+    terminal = _FakeTerminal(["7"])
 
     run_terminal_session(session=session, terminal=terminal)
 

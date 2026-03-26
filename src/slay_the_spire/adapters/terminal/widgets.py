@@ -89,6 +89,15 @@ def summarize_effect(effect: Mapping[str, object]) -> str:
         return f"施加 {int(effect.get('stacks', 0))} 易伤"
     if effect_type == "weak":
         return f"施加 {int(effect.get('stacks', 0))} 虚弱"
+    if effect_type == "create_card_copy":
+        zone_labels = {
+            "hand": "手牌",
+            "draw_pile": "抽牌堆",
+            "discard_pile": "弃牌堆",
+            "exhaust_pile": "消耗堆",
+        }
+        zone = zone_labels.get(str(effect.get("zone")), str(effect.get("zone")))
+        return f"复制一张卡牌放入{zone}"
     if isinstance(effect_type, str):
         return effect_type
     return "-"

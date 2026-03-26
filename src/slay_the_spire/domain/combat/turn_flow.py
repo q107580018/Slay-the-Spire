@@ -64,13 +64,8 @@ def _sleep_turns(enemy_def: EnemyDef) -> int:
     return max(sleep_turns, 0)
 
 
-def _select_enemy_move(state: CombatState, enemy: EnemyState, enemy_def: EnemyDef) -> Mapping[str, object] | None:
+def _active_enemy_move(state: CombatState, enemy_def: EnemyDef) -> Mapping[str, object] | None:
     if not enemy_def.move_table:
-        return None
-
-    sleeping_stacks = _status_stacks(enemy, "sleeping")
-    if sleeping_stacks > 0:
-        _set_status_stacks(enemy, "sleeping", sleeping_stacks - 1)
         return None
 
     sleep_turns = _sleep_turns(enemy_def)
@@ -82,6 +77,25 @@ def _select_enemy_move(state: CombatState, enemy: EnemyState, enemy_def: EnemyDe
 
     move_index = max(state.round_number - sleep_turns - 1, 0) % len(active_moves)
     return _require_mapping(active_moves[move_index], "move_table item")
+
+
+def preview_enemy_move(state: CombatState, enemy: EnemyState, enemy_def: EnemyDef) -> Mapping[str, object] | None:
+    if enemy.hp <= 0 or not enemy_def.move_table:
+        return None
+    sleeping_stacks = _status_stacks(enemy, "sleeping")
+    if sleeping_stacks > 0:
+        return {"move": "sleep", "sleep_turns": sleeping_stacks}
+    return _active_enemy_move(state, enemy_def)
+
+
+def _select_enemy_move(state: CombatState, enemy: EnemyState, enemy_def: EnemyDef) -> Mapping[str, object] | None:
+    preview = preview_enemy_move(state, enemy, enemy_def)
+    if preview is None:
+        return None
+    if preview.get("move") == "sleep":
+        _set_status_stacks(enemy, "sleeping", _status_stacks(enemy, "sleeping") - 1)
+        return None
+    return preview
 
 
 def _effects_from_payload(
