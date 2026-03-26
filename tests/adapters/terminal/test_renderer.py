@@ -347,8 +347,9 @@ def test_boss_reward_renderer_shows_reward_actions_on_root_screen() -> None:
     assert "Boss奖励" in output
     assert "1. 查看奖励" in output
     assert "2. 领取奖励" in output
-    assert "3. 前往下一个房间" in output
-    assert "4. 查看资料" in output
+    assert "3. 查看资料" in output
+    assert "4. 保存游戏" in output
+    assert "前往下一个房间" not in output
 
 
 def test_boss_reward_renderer_shows_boss_reward_menu() -> None:
@@ -430,6 +431,45 @@ def test_boss_reward_renderer_shows_boss_relic_menu() -> None:
     assert "2. 锚" in output
     assert "3. 灯笼" in output
     assert "4. 返回上一步" in output
+
+
+def test_boss_reward_renderer_shows_claimed_status_labels() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=RoomState(
+            room_id="act1:boss",
+            room_type="boss",
+            stage="completed",
+            payload={
+                "node_id": "boss",
+                "room_kind": "boss",
+                "next_node_ids": [],
+                "boss_rewards": {
+                    "generated_by": "boss_reward_generator",
+                    "gold_reward": 99,
+                    "claimed_gold": True,
+                    "boss_relic_offers": ["black_blood", "anchor", "lantern"],
+                    "claimed_relic_id": "black_blood",
+                },
+            },
+            is_resolved=True,
+            rewards=[],
+        ),
+    )
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=_provider(session),
+        menu_state=MenuState(mode="select_boss_reward"),
+        run_phase=session.run_phase,
+    )
+
+    assert "金币领取状态：已领取" in output
+    assert "已选遗物：黑色之血" in output
+    assert "1. 已领取金币" in output
+    assert "2. 已选择遗物" in output
 
 
 def test_combat_renderer_shows_inspect_slot_after_resolved_combat_without_rewards() -> None:

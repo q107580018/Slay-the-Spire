@@ -338,7 +338,7 @@ def test_boss_reward_root_inspect_round_trip_keeps_reward_menu_numbering() -> No
         ),
     )
 
-    _running, inspect_session, inspect_message = route_menu_choice("4", session=session)
+    _running, inspect_session, inspect_message = route_menu_choice("3", session=session)
     _running, stats_session, stats_message = route_menu_choice("1", session=inspect_session)
     _running, inspect_back_session, inspect_back_message = route_menu_choice("1", session=stats_session)
     _running, reward_root_session, reward_root_message = route_menu_choice("5", session=inspect_back_session)
@@ -355,6 +355,38 @@ def test_boss_reward_root_inspect_round_trip_keeps_reward_menu_numbering() -> No
     assert claimed_session.run_phase == "active"
     assert claimed_session.room_state.payload["boss_rewards"]["claimed_gold"] is True
     assert claimed_session.run_state.gold == 198
+
+
+def test_claiming_already_claimed_boss_gold_stays_in_menu_with_message() -> None:
+    session = replace(
+        start_session(seed=7),
+        room_state=RoomState(
+            room_id="act1:boss",
+            room_type="boss",
+            stage="completed",
+            payload={
+                "node_id": "boss",
+                "next_node_ids": [],
+                "boss_rewards": {
+                    "generated_by": "boss_reward_generator",
+                    "gold_reward": 99,
+                    "claimed_gold": True,
+                    "boss_relic_offers": ["black_blood", "anchor", "lantern"],
+                    "claimed_relic_id": None,
+                },
+            },
+            is_resolved=True,
+            rewards=[],
+        ),
+        menu_state=MenuState(mode="select_boss_reward"),
+    )
+
+    _running, next_session, message = route_menu_choice("1", session=session)
+
+    assert next_session.menu_state.mode == "select_boss_reward"
+    assert next_session.run_state.gold == session.run_state.gold
+    assert next_session.room_state.payload["boss_rewards"]["claimed_gold"] is True
+    assert "金币已领取" in message
 
 
 def test_combat_reward_root_inspect_uses_visible_back_choice_before_claim_flow() -> None:

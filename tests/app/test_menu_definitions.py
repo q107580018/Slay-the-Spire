@@ -68,15 +68,15 @@ def test_build_root_menu_binds_pending_boss_rewards_to_reward_actions() -> None:
         "可选操作:",
         "1. 查看奖励",
         "2. 领取奖励",
-        "3. 前往下一个房间",
-        "4. 查看资料",
-        "5. 保存游戏",
-        "6. 读取存档",
-        "7. 退出游戏",
+        "3. 查看资料",
+        "4. 保存游戏",
+        "5. 读取存档",
+        "6. 退出游戏",
     ]
     assert resolve_menu_action("1", menu) == "view_rewards"
     assert resolve_menu_action("2", menu) == "claim_rewards"
-    assert resolve_menu_action("4", menu) == "inspect"
+    assert resolve_menu_action("3", menu) == "inspect"
+    assert "前往下一个房间" not in format_menu_lines(menu)
 
 
 def test_build_inspect_root_menu_binds_combat_choices_to_actions() -> None:
@@ -200,6 +200,48 @@ def test_build_boss_reward_menu_binds_gold_relic_and_back_actions() -> None:
     assert resolve_menu_action("1", menu) == "claim_boss_gold"
     assert resolve_menu_action("2", menu) == "choose_boss_relic"
     assert resolve_menu_action("3", menu) == "back"
+
+
+def test_build_boss_reward_menu_marks_claimed_gold_as_completed() -> None:
+    menu = build_boss_reward_menu(
+        {
+            "generated_by": "boss_reward_generator",
+            "gold_reward": 99,
+            "claimed_gold": True,
+            "boss_relic_offers": ["black_blood", "anchor", "lantern"],
+            "claimed_relic_id": None,
+        }
+    )
+
+    assert format_menu_lines(menu) == [
+        "Boss奖励:",
+        "1. 已领取金币",
+        "2. 选择遗物",
+        "3. 返回上一步",
+    ]
+    assert resolve_menu_action("1", menu) == "claimed_boss_gold"
+    assert resolve_menu_action("2", menu) == "choose_boss_relic"
+
+
+def test_build_boss_reward_menu_marks_claimed_relic_as_completed() -> None:
+    menu = build_boss_reward_menu(
+        {
+            "generated_by": "boss_reward_generator",
+            "gold_reward": 99,
+            "claimed_gold": True,
+            "boss_relic_offers": ["black_blood", "anchor", "lantern"],
+            "claimed_relic_id": "black_blood",
+        }
+    )
+
+    assert format_menu_lines(menu) == [
+        "Boss奖励:",
+        "1. 已领取金币",
+        "2. 已选择遗物",
+        "3. 返回上一步",
+    ]
+    assert resolve_menu_action("1", menu) == "claimed_boss_gold"
+    assert resolve_menu_action("2", menu) == "claimed_boss_relic"
 
 
 def test_build_boss_relic_menu_binds_three_relic_choices_and_back() -> None:

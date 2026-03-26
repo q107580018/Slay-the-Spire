@@ -1114,6 +1114,10 @@ def _route_boss_reward_menu(choice: str, session: SessionState) -> tuple[bool, S
     if action_id == "back":
         next_session = replace(session, menu_state=MenuState())
         return True, next_session, render_session(next_session)
+    if action_id == "claimed_boss_gold":
+        return True, session, _message_with_render(session, "Boss金币已领取。")
+    if action_id == "claimed_boss_relic":
+        return True, session, _message_with_render(session, "Boss遗物已选择。")
     if action_id == "choose_boss_relic":
         next_session = replace(session, menu_state=MenuState(mode="select_boss_relic"))
         return True, next_session, render_session(next_session)

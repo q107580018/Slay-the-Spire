@@ -91,7 +91,19 @@ def _has_pending_boss_rewards(room_state: RoomState) -> bool:
 
 def build_root_menu(*, room_state: RoomState) -> MenuDefinition:
     if room_state.is_resolved:
-        if room_state.rewards or _has_pending_boss_rewards(room_state):
+        if _has_pending_boss_rewards(room_state):
+            return build_menu(
+                title="可选操作",
+                options=[
+                    ("view_rewards", "查看奖励"),
+                    ("claim_rewards", "领取奖励"),
+                    ("inspect", "查看资料"),
+                    ("save", "保存游戏"),
+                    ("load", "读取存档"),
+                    ("quit", "退出游戏"),
+                ],
+            )
+        if room_state.rewards:
             return build_menu(
                 title="可选操作",
                 options=[
@@ -224,12 +236,17 @@ def build_reward_menu(*, room_state: RoomState, registry: ContentProviderPort) -
 
 def build_boss_reward_menu(boss_rewards: Mapping[str, object]) -> MenuDefinition:
     gold_reward = boss_rewards.get("gold_reward")
-    gold_label = f"领取金币 +{gold_reward}" if isinstance(gold_reward, int) and not isinstance(gold_reward, bool) else "领取金币"
+    claimed_gold = boss_rewards.get("claimed_gold") is True
+    claimed_relic_id = boss_rewards.get("claimed_relic_id")
+    gold_label = "已领取金币" if claimed_gold else f"领取金币 +{gold_reward}" if isinstance(gold_reward, int) and not isinstance(gold_reward, bool) else "领取金币"
+    gold_action = "claimed_boss_gold" if claimed_gold else "claim_boss_gold"
+    relic_label = "已选择遗物" if isinstance(claimed_relic_id, str) and claimed_relic_id else "选择遗物"
+    relic_action = "claimed_boss_relic" if isinstance(claimed_relic_id, str) and claimed_relic_id else "choose_boss_relic"
     return build_menu(
         title="Boss奖励",
         options=[
-            ("claim_boss_gold", gold_label),
-            ("choose_boss_relic", "选择遗物"),
+            (gold_action, gold_label),
+            (relic_action, relic_label),
             ("back", "返回上一步"),
         ],
     )
