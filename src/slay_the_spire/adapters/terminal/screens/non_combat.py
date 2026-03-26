@@ -11,6 +11,13 @@ from slay_the_spire.adapters.terminal.inspect import (
     render_shared_relics_panel,
     render_shared_stats_panel,
 )
+from slay_the_spire.app.menu_definitions import (
+    build_inspect_root_menu,
+    build_leaf_menu,
+    build_reward_menu,
+    build_root_menu,
+    format_menu_lines,
+)
 from slay_the_spire.adapters.terminal.screens.layout import build_standard_screen
 from slay_the_spire.adapters.terminal.theme import PANEL_BOX
 from slay_the_spire.adapters.terminal.widgets import render_menu
@@ -258,22 +265,7 @@ def _format_event_remove_menu(room_state: RoomState, registry: ContentProviderPo
 
 
 def _format_reward_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str]:
-    lines = ["奖励:"]
-    lines.extend(_format_reward_lines(room_state.rewards, registry))
-    lines.append(f"{len(room_state.rewards) + 1}. 全部领取")
-    lines.append(f"{len(room_state.rewards) + 2}. 返回上一步")
-    return lines
-
-
-def _format_non_combat_inspect_root_menu() -> list[str]:
-    return [
-        "资料总览:",
-        "1. 属性",
-        "2. 牌组",
-        "3. 遗物",
-        "4. 药水",
-        "5. 返回上一步",
-    ]
+    return format_menu_lines(build_reward_menu(room_state=room_state, registry=registry))
 
 
 def _format_non_combat_inspect_deck_menu(run_state: RunState, registry: ContentProviderPort) -> list[str]:
@@ -296,7 +288,7 @@ def _format_non_combat_inspect_deck_footer(run_state: RunState) -> list[str]:
 
 
 def _format_non_combat_inspect_leaf_menu(title: str) -> list[str]:
-    return [f"{title}:", "1. 返回上一步"]
+    return format_menu_lines(build_leaf_menu(title=title))
 
 
 def format_non_combat_inspect_menu(
@@ -307,7 +299,7 @@ def format_non_combat_inspect_menu(
 ) -> list[str]:
     mode = _menu_mode(menu_state)
     if mode == "inspect_root":
-        return _format_non_combat_inspect_root_menu()
+        return format_menu_lines(build_inspect_root_menu(room_state=room_state))
     if mode == "inspect_deck":
         return _format_non_combat_inspect_deck_footer(run_state)
     if mode == "inspect_stats":
@@ -478,45 +470,7 @@ def _format_terminal_phase_menu(run_phase: str) -> list[str]:
 
 
 def _format_default_menu(room_state: RoomState) -> list[str]:
-    if room_state.is_resolved:
-        if room_state.rewards:
-            return [
-                "可选操作:",
-                "1. 查看奖励",
-                "2. 领取奖励",
-                "3. 前往下一个房间",
-                "4. 查看资料",
-                "5. 保存游戏",
-                "6. 读取存档",
-                "7. 退出游戏",
-            ]
-        return [
-            "可选操作:",
-            "1. 前往下一个房间",
-            "2. 查看资料",
-            "3. 保存游戏",
-            "4. 读取存档",
-            "5. 退出游戏",
-        ]
-    if room_state.room_type == "event":
-        return [
-            "可选操作:",
-            "1. 查看事件",
-            "2. 进行选择",
-            "3. 查看资料",
-            "4. 保存游戏",
-            "5. 读取存档",
-            "6. 退出游戏",
-        ]
-    return [
-        "可选操作:",
-        "1. 查看当前状态",
-        "2. 前往下一个房间",
-        "3. 查看资料",
-        "4. 保存游戏",
-        "5. 读取存档",
-        "6. 退出游戏",
-    ]
+    return format_menu_lines(build_root_menu(room_state=room_state))
 
 
 def render_summary_panel(

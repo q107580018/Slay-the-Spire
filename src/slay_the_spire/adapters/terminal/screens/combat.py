@@ -29,6 +29,12 @@ from slay_the_spire.adapters.terminal.widgets import (
     render_statuses,
     summarize_card_effects,
 )
+from slay_the_spire.app.menu_definitions import (
+    build_inspect_root_menu,
+    build_leaf_menu,
+    build_root_menu,
+    format_menu_lines,
+)
 from slay_the_spire.domain.models.act_state import ActState
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
@@ -104,51 +110,11 @@ def _format_reward_lines(rewards: list[str], registry: ContentProviderPort) -> l
 
 
 def _format_root_menu(room_state: RoomState) -> list[str]:
-    if room_state.is_resolved:
-        if room_state.rewards:
-            return [
-                "可选操作:",
-                "1. 查看奖励",
-                "2. 领取奖励",
-                "3. 前往下一个房间",
-                "4. 保存游戏",
-                "5. 读取存档",
-                "6. 退出游戏",
-            ]
-        return [
-            "可选操作:",
-            "1. 前往下一个房间",
-            "2. 查看资料",
-            "3. 保存游戏",
-            "4. 读取存档",
-            "5. 退出游戏",
-        ]
-    return [
-        "可选操作:",
-        "1. 查看战场",
-        "2. 出牌",
-        "3. 结束回合",
-        "4. 查看资料",
-        "5. 保存游戏",
-        "6. 读取存档",
-        "7. 退出游戏",
-    ]
+    return format_menu_lines(build_root_menu(room_state=room_state))
 
 
-def _format_inspect_root_menu() -> list[str]:
-    return [
-        "资料总览:",
-        "1. 角色状态",
-        "2. 牌组列表",
-        "3. 遗物列表",
-        "4. 药水",
-        "5. 手牌",
-        "6. 抽牌堆",
-        "7. 弃牌堆",
-        "8. 消耗堆",
-        "9. 敌人详情",
-        "10. 返回上一步",
-    ]
+def _format_inspect_root_menu(room_state: RoomState) -> list[str]:
+    return format_menu_lines(build_inspect_root_menu(room_state=room_state))
 
 
 def _format_inspect_deck_menu(run_state: RunState, registry: ContentProviderPort) -> list[str]:
@@ -171,10 +137,7 @@ def _format_inspect_deck_footer(run_state: RunState) -> list[str]:
 
 
 def _format_inspect_leaf_menu(title: str) -> list[str]:
-    return [
-        f"{title}:",
-        "1. 返回上一步",
-    ]
+    return format_menu_lines(build_leaf_menu(title=title))
 
 
 def _format_next_room_menu(room_state: RoomState) -> list[str]:
@@ -246,7 +209,7 @@ def _format_menu(
 ) -> list[str | Text]:
     mode = _menu_mode(menu_state)
     if mode == "inspect_root":
-        return _format_inspect_root_menu()
+        return _format_inspect_root_menu(room_state)
     if mode == "inspect_deck":
         return _format_inspect_deck_footer(run_state)
     if mode == "inspect_stats":

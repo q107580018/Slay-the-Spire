@@ -8,6 +8,11 @@ from rich.text import Text
 
 from slay_the_spire.adapters.terminal.theme import PANEL_BOX
 from slay_the_spire.adapters.terminal.widgets import render_block, render_hp_bar, render_statuses, summarize_card_effects
+from slay_the_spire.app.menu_definitions import (
+    build_card_detail_menu,
+    build_enemy_detail_menu,
+    format_menu_lines,
+)
 from slay_the_spire.content.registries import CardDef, EnemyDef
 from slay_the_spire.domain.combat.turn_flow import preview_enemy_move
 from slay_the_spire.domain.models.act_state import ActState
@@ -150,7 +155,7 @@ def render_shared_potions_panel(*, title: str, run_state: RunState, registry: Co
 
 
 def format_card_detail_menu() -> list[str]:
-    return ["1. 返回卡牌列表", "2. 返回资料总览"]
+    return format_menu_lines(build_card_detail_menu())
 
 
 def render_card_detail_panel(card_instance_id: str, registry: ContentProviderPort) -> Panel:
@@ -217,7 +222,7 @@ def render_enemy_list_panel(combat_state: CombatState, registry: ContentProvider
 
 
 def format_enemy_detail_menu() -> list[str]:
-    return ["1. 返回敌人列表", "2. 返回资料总览"]
+    return format_menu_lines(build_enemy_detail_menu())
 
 
 def format_enemy_list_footer(*, back_choice: int) -> list[str]:
