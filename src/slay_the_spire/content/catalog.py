@@ -44,6 +44,13 @@ def _load_list_payload(path: Path, key: str) -> object:
     return payload[key]
 
 
+@dataclass(slots=True, frozen=True)
+class WeightedPoolEntry:
+    member_id: str
+    weight: int
+    once_per_run: bool = False
+
+
 @dataclass(slots=True)
 class ContentCatalog:
     characters: CharacterRegistry = field(default_factory=CharacterRegistry)
@@ -61,6 +68,8 @@ class ContentCatalog:
     enemy_pool_members: dict[str, tuple[str, ...]] = field(default_factory=dict)
     potion_pool_members: dict[str, tuple[str, ...]] = field(default_factory=dict)
     event_pool_members: dict[str, tuple[str, ...]] = field(default_factory=dict)
+    enemy_pool_entries: dict[str, tuple[WeightedPoolEntry, ...]] = field(default_factory=dict)
+    event_pool_entries: dict[str, tuple[WeightedPoolEntry, ...]] = field(default_factory=dict)
 
     @classmethod
     def from_content_root(cls, content_root: str | Path) -> ContentCatalog:
@@ -89,20 +98,31 @@ class ContentCatalog:
         for path in sorted(directory.glob("*.json")):
             self.enemy_pool_ids.add(path.stem)
             enemy_records = _require_list(_load_list_payload(path, "enemies"), "enemies")
-            self.enemy_pool_members[path.stem] = tuple(
-                _require_str(_require_mapping(record, "enemy").get("id"), "enemy.id")
+            entries = tuple(
+                WeightedPoolEntry(
+                    member_id=_require_str(_require_mapping(record, "enemy").get("id"), "enemy.id"),
+                    weight=int(_require_mapping(record, "enemy").get("pool_weight", 1)),
+                )
                 for record in enemy_records
             )
+            self.enemy_pool_entries[path.stem] = entries
+            self.enemy_pool_members[path.stem] = tuple(entry.member_id for entry in entries)
             self.enemies.register_many(enemy_records)
 
     def _load_event_pools(self, directory: Path) -> None:
         for path in sorted(directory.glob("*.json")):
             self.event_pool_ids.add(path.stem)
             event_records = _require_list(_load_list_payload(path, "events"), "events")
-            self.event_pool_members[path.stem] = tuple(
-                _require_str(_require_mapping(record, "event").get("id"), "event.id")
+            entries = tuple(
+                WeightedPoolEntry(
+                    member_id=_require_str(_require_mapping(record, "event").get("id"), "event.id"),
+                    weight=int(_require_mapping(record, "event").get("pool_weight", 1)),
+                    once_per_run=bool(_require_mapping(record, "event").get("once_per_run", False)),
+                )
                 for record in event_records
             )
+            self.event_pool_entries[path.stem] = entries
+            self.event_pool_members[path.stem] = tuple(entry.member_id for entry in entries)
             self.events.register_many(event_records)
 
     def _load_relic_pools(self, directory: Path) -> None:
@@ -149,6 +169,16 @@ class ContentCatalog:
         if pool_id not in self.event_pool_members:
             raise KeyError(pool_id)
         return self.event_pool_members[pool_id]
+
+    def enemy_pool_entries_for_pool(self, pool_id: str) -> tuple[WeightedPoolEntry, ...]:
+        if pool_id not in self.enemy_pool_entries:
+            raise KeyError(pool_id)
+        return self.enemy_pool_entries[pool_id]
+
+    def event_pool_entries_for_pool(self, pool_id: str) -> tuple[WeightedPoolEntry, ...]:
+        if pool_id not in self.event_pool_entries:
+            raise KeyError(pool_id)
+        return self.event_pool_entries[pool_id]
 
     def potion_ids_for_pool(self, pool_id: str) -> tuple[str, ...]:
         if pool_id not in self.potion_pool_members:

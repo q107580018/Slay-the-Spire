@@ -2,6 +2,7 @@
   "enemies": [
     {
       "id": "lagavulin",
+      "pool_weight": 1,
       "name": "沉睡巨像",
       "hp": 109,
       "move_table": [

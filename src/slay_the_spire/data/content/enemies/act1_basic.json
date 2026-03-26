@@ -2,6 +2,7 @@
   "enemies": [
     {
       "id": "slime",
+      "pool_weight": 3,
       "name": "绿史莱姆",
       "hp": 12,
       "move_table": [
@@ -20,6 +21,7 @@
     },
     {
       "id": "jaw_worm",
+      "pool_weight": 4,
       "name": "颚虫",
       "hp": 16,
       "move_table": [
@@ -48,6 +50,7 @@
     },
     {
       "id": "acid_slime",
+      "pool_weight": 2,
       "name": "酸液史莱姆",
       "hp": 10,
       "move_table": [

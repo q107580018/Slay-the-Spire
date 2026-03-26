@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from slay_the_spire.content.catalog import ContentCatalog
+from slay_the_spire.content.catalog import ContentCatalog, WeightedPoolEntry
 from slay_the_spire.content.registries import (
     ActRegistry,
     CardRegistry,
@@ -43,8 +43,14 @@ class StarterContentProvider(ContentProviderPort):
     def enemy_ids_for_pool(self, pool_id: str) -> tuple[str, ...]:
         return self._catalog.enemy_ids_for_pool(pool_id)
 
+    def enemy_pool_entries(self, pool_id: str) -> tuple[WeightedPoolEntry, ...]:
+        return self._catalog.enemy_pool_entries_for_pool(pool_id)
+
     def event_ids_for_pool(self, pool_id: str) -> tuple[str, ...]:
         return self._catalog.event_ids_for_pool(pool_id)
+
+    def event_pool_entries(self, pool_id: str) -> tuple[WeightedPoolEntry, ...]:
+        return self._catalog.event_pool_entries_for_pool(pool_id)
 
     def potion_ids_for_pool(self, pool_id: str) -> tuple[str, ...]:
         return self._catalog.potion_ids_for_pool(pool_id)

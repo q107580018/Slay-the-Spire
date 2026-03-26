@@ -2,6 +2,8 @@
   "events": [
     {
       "id": "shining_light",
+      "pool_weight": 2,
+      "once_per_run": true,
       "text": "一道圣洁的光照在你身上，墙壁上的符文开始发热。",
       "choices": [
         {
@@ -34,6 +36,7 @@
     },
     {
       "id": "the_cleric",
+      "pool_weight": 2,
       "text": "一名神职者向你伸出手，表示他既能医治伤口，也能净化牌组。",
       "choices": [
         {
@@ -81,6 +84,7 @@
     },
     {
       "id": "world_of_goop",
+      "pool_weight": 3,
       "text": "你踩进了一滩黏糊糊的污泥，闪闪发亮的金币正沉在里面。",
       "choices": [
         {
@@ -116,6 +120,7 @@
     },
     {
       "id": "living_wall",
+      "pool_weight": 2,
       "text": "一面会呼吸的墙在你面前蠕动，仿佛能吞噬或重塑你的牌组。",
       "choices": [
         {
@@ -149,6 +154,7 @@
     },
     {
       "id": "big_fish",
+      "pool_weight": 2,
       "text": "走廊上方垂下三样诱人的东西：香蕉、甜甜圈，还有一个神秘盒子。",
       "choices": [
         {
@@ -195,6 +201,7 @@
     },
     {
       "id": "golden_shrine",
+      "pool_weight": 2,
       "text": "你面前是一座镀金神龛，空气中弥漫着古老而诱人的财富气息。",
       "choices": [
         {
@@ -228,6 +235,7 @@
     },
     {
       "id": "the_ssssserpent",
+      "pool_weight": 1,
       "text": "一条蜿蜒的蛇人从阴影中现身，承诺只要你点头，就会赐予你财富。",
       "choices": [
         {
@@ -262,6 +270,8 @@
     },
     {
       "id": "golden_idol",
+      "pool_weight": 1,
+      "once_per_run": true,
       "text": "一座古旧祭坛上摆着一尊金神像。你知道，想拿走它总得付出点代价。",
       "choices": [
         {

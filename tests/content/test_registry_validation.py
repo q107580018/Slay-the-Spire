@@ -112,6 +112,28 @@ def test_content_catalog_loads_potion_pools(content_root: Path) -> None:
 
 
 @pytest.mark.parametrize("content_root", _content_roots())
+def test_provider_exposes_enemy_pool_entry_weights(content_root: Path) -> None:
+    provider = StarterContentProvider(content_root)
+
+    entries = provider.enemy_pool_entries("act1_basic")
+
+    assert entries
+    assert all(entry.member_id for entry in entries)
+    assert all(entry.weight > 0 for entry in entries)
+
+
+@pytest.mark.parametrize("content_root", _content_roots())
+def test_provider_exposes_event_pool_entry_metadata(content_root: Path) -> None:
+    provider = StarterContentProvider(content_root)
+
+    entries = provider.event_pool_entries("act1_events")
+
+    assert entries
+    assert all(entry.member_id for entry in entries)
+    assert all(entry.weight > 0 for entry in entries)
+
+
+@pytest.mark.parametrize("content_root", _content_roots())
 def test_act_registry_accepts_map_config_instead_of_static_nodes(content_root: Path) -> None:
     provider = StarterContentProvider(content_root)
     act = provider.acts().get("act1")

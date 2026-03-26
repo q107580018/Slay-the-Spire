@@ -2,6 +2,7 @@
   "enemies": [
     {
       "id": "hexaghost",
+      "pool_weight": 1,
       "name": "六火幽魂",
       "hp": 250,
       "move_table": [
