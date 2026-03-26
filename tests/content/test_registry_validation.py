@@ -55,16 +55,28 @@ def test_provider_exposes_registry_accessors(content_root: Path) -> None:
     assert provider.acts().get("act1").boss_pool_id == "act1_bosses"
 
 
-def test_boss_relic_catalog_exposes_black_blood_anchor_and_lantern() -> None:
-    provider = StarterContentProvider(Path(__file__).resolve().parents[2] / "content")
+@pytest.mark.parametrize("content_root", _content_roots())
+def test_boss_relic_catalog_exposes_black_blood_anchor_and_lantern(content_root: Path) -> None:
+    provider = StarterContentProvider(content_root)
 
-    assert provider.relics().get("black_blood").name == "黑色之血"
-    assert provider.relics().get("anchor").name == "锚"
-    assert provider.relics().get("lantern").name == "灯笼"
+    black_blood = provider.relics().get("black_blood")
+    anchor = provider.relics().get("anchor")
+    lantern = provider.relics().get("lantern")
+
+    assert black_blood.name == "黑色之血"
+    assert black_blood.trigger_hooks == ["on_combat_end"]
+    assert black_blood.passive_effects == [{"type": "heal", "amount": 12}]
+    assert anchor.name == "锚"
+    assert anchor.trigger_hooks == ["on_combat_start"]
+    assert anchor.passive_effects == [{"type": "block", "amount": 10}]
+    assert lantern.name == "灯笼"
+    assert lantern.trigger_hooks == ["on_combat_start"]
+    assert lantern.passive_effects == [{"type": "gain_energy", "amount": 1}]
 
 
-def test_boss_relics_do_not_appear_in_shop_pool() -> None:
-    provider = StarterContentProvider(Path(__file__).resolve().parents[2] / "content")
+@pytest.mark.parametrize("content_root", _content_roots())
+def test_boss_relics_do_not_appear_in_shop_pool(content_root: Path) -> None:
+    provider = StarterContentProvider(content_root)
 
     assert provider.relics().get("black_blood").can_appear_in_shop is False
     assert provider.relics().get("anchor").can_appear_in_shop is False
