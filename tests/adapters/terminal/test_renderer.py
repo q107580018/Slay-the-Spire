@@ -208,6 +208,37 @@ def test_shop_renderer_shows_current_gold_and_affordance_statuses() -> None:
     assert "6. 查看资料" in output
 
 
+def test_shop_remove_renderer_uses_localized_card_labels() -> None:
+    session = start_session(seed=5)
+    room_state = RoomState(
+        room_id="act1:shop",
+        room_type="shop",
+        stage="select_remove_card",
+        payload={
+            "node_id": "r3c1",
+            "remove_candidates": ["strike#1", "defend#2"],
+            "next_node_ids": ["r4c0"],
+        },
+        is_resolved=False,
+        rewards=[],
+    )
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=room_state,
+        registry=_provider(session),
+        menu_state=MenuState(mode="shop_remove_card"),
+        run_phase="active",
+    )
+
+    assert "选择要移除的卡牌" in output
+    assert "打击 (strike#1)" in output
+    assert "防御 (defend#2)" in output
+    assert "1. strike#1" not in output
+    assert "2. defend#2" not in output
+
+
 def test_rest_renderer_shows_root_and_upgrade_selection_states() -> None:
     session = start_session(seed=5)
     root_room = RoomState(

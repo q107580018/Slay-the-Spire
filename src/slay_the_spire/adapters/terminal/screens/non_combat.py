@@ -415,13 +415,13 @@ def _format_shop_root_menu(room_state: RoomState, registry: ContentProviderPort,
     return lines
 
 
-def _format_shop_remove_menu(room_state: RoomState) -> list[str]:
+def _format_shop_remove_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str]:
     lines = ["选择要移除的卡牌:"]
     candidates = room_state.payload.get("remove_candidates", [])
     if not isinstance(candidates, list):
         candidates = []
     for index, card_instance_id in enumerate(candidates, start=1):
-        lines.append(f"{index}. {card_instance_id}")
+        lines.append(f"{index}. {_format_card_instance_label(card_instance_id, registry)}")
     base = len(candidates)
     lines.extend(
         [
@@ -703,7 +703,7 @@ def render_non_combat_screen(
     elif mode == "shop_root":
         footer = render_menu(_format_shop_root_menu(room_state, registry, run_state))
     elif mode == "shop_remove_card":
-        footer = render_menu(_format_shop_remove_menu(room_state))
+        footer = render_menu(_format_shop_remove_menu(room_state, registry))
     elif mode == "rest_root":
         footer = render_menu(_format_rest_root_menu(room_state))
     elif mode == "rest_upgrade_card":
