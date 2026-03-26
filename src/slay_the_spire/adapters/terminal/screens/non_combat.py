@@ -125,6 +125,10 @@ def _reward_card_id(reward_name: str) -> str:
 def _format_reward_label(reward_id: str, registry: ContentProviderPort) -> str:
     if reward_id.startswith("gold:"):
         return f"金币 +{reward_id.split(':', 1)[1]}"
+    if reward_id.startswith("card_offer:"):
+        reward_name = reward_id.split(":", 1)[1]
+        card_def = registry.cards().get(_reward_card_id(reward_name))
+        return f"卡牌 {card_def.name}"
     if reward_id.startswith("card:"):
         reward_name = reward_id.split(":", 1)[1]
         card_def = registry.cards().get(_reward_card_id(reward_name))
@@ -186,15 +190,137 @@ def _draw_conn(buf: list[str], from_col: int, to_col: int, cell_width: int) -> N
         buf[mid] = "/" if from_col < to_col else "\\"
 
 
+_DIR_TO_CHAR = {
+    frozenset({"N", "S"}): "│",
+    frozenset({"E", "W"}): "─",
+    frozenset({"S", "E"}): "┌",
+    frozenset({"S", "W"}): "┐",
+    frozenset({"N", "E"}): "└",
+    frozenset({"N", "W"}): "┘",
+    frozenset({"N", "S", "E"}): "├",
+    frozenset({"N", "S", "W"}): "┤",
+    frozenset({"E", "W", "S"}): "┬",
+    frozenset({"E", "W", "N"}): "┴",
+    frozenset({"N", "S", "E", "W"}): "┼",
+}
+
+_DIR_VECTORS = {
+    "N": (0, -1),
+    "S": (0, 1),
+    "E": (1, 0),
+    "W": (-1, 0),
+}
+
+_OPPOSITE_DIR = {
+    "N": "S",
+    "S": "N",
+    "E": "W",
+    "W": "E",
+}
+
+
+def _node_token(act_state: ActState, node: ActNodeState) -> str:
+    marker = _ROOM_TYPE_MARKERS.get(node.room_type, node.room_type[:1].upper())
+    if node.node_id == act_state.current_node_id:
+        return f"[{marker}]"
+    if node.node_id in act_state.reachable_node_ids:
+        return f"({marker})"
+    return f" {marker} "
+
+
+def _map_positions(act_state: ActState, *, col_spacing: int, row_spacing: int, margin_x: int) -> dict[str, tuple[int, int]]:
+    last_row = max(node.row for node in act_state.nodes)
+    return {
+        node.node_id: (margin_x + (node.col * col_spacing), (last_row - node.row) * row_spacing)
+        for node in act_state.nodes
+    }
+
+
+def _blank_direction_canvas(width: int, height: int) -> list[list[set[str]]]:
+    return [[set() for _ in range(width)] for _ in range(height)]
+
+
+def _add_step(canvas: list[list[set[str]]], x: int, y: int, direction: str) -> None:
+    if 0 <= y < len(canvas) and 0 <= x < len(canvas[y]):
+        canvas[y][x].add(direction)
+
+
+def _add_segment(canvas: list[list[set[str]]], start: tuple[int, int], end: tuple[int, int]) -> None:
+    x, y = start
+    end_x, end_y = end
+    if x != end_x and y != end_y:
+        raise ValueError("segments must be orthogonal")
+    if x == end_x and y == end_y:
+        return
+    if x == end_x:
+        step = 1 if end_y > y else -1
+        direction = "S" if step > 0 else "N"
+        while y != end_y:
+            next_y = y + step
+            _add_step(canvas, x, y, direction)
+            _add_step(canvas, x, next_y, _OPPOSITE_DIR[direction])
+            y = next_y
+        return
+    step = 1 if end_x > x else -1
+    direction = "E" if step > 0 else "W"
+    while x != end_x:
+        next_x = x + step
+        _add_step(canvas, x, y, direction)
+        _add_step(canvas, next_x, y, _OPPOSITE_DIR[direction])
+        x = next_x
+
+
+def _draw_edge(
+    canvas: list[list[set[str]]],
+    *,
+    from_pos: tuple[int, int],
+    to_pos: tuple[int, int],
+) -> None:
+    from_x, from_y = from_pos
+    to_x, to_y = to_pos
+    start = (from_x, from_y - 1)
+    end = (to_x, to_y + 1)
+    if from_x == to_x:
+        _add_segment(canvas, start, end)
+        return
+    mid_y = (from_y + to_y) // 2
+    _add_segment(canvas, start, (from_x, mid_y))
+    _add_segment(canvas, (from_x, mid_y), (to_x, mid_y))
+    _add_segment(canvas, (to_x, mid_y), end)
+
+
+def _render_direction_canvas(direction_canvas: list[list[set[str]]]) -> list[list[str]]:
+    rendered: list[list[str]] = []
+    for row in direction_canvas:
+        rendered.append([_DIR_TO_CHAR.get(frozenset(cell), " ") for cell in row])
+    return rendered
+
+
 def _full_map_lines(act_state: ActState) -> list[str]:
     current_row, current_col = act_state.current_coord()
-    choice_indices = {node_id: index for index, node_id in enumerate(act_state.reachable_node_ids, start=1)}
-    node_map = {(node.col, node.row): node for node in act_state.nodes}
     row_numbers = sorted({node.row for node in act_state.nodes})
-    rows_by_number = {row_nodes[0].row: row_nodes for row_nodes in act_state.rows_for_display()}
     total_cols = max(node.col for node in act_state.nodes) + 1
-    cell_width = 4
-    grid_width = total_cols * cell_width
+    col_spacing = 10
+    row_spacing = 4
+    margin_x = 4
+    positions = _map_positions(act_state, col_spacing=col_spacing, row_spacing=row_spacing, margin_x=margin_x)
+    grid_width = margin_x * 2 + max(1, total_cols - 1) * col_spacing + 3
+    grid_height = max(row_numbers) * row_spacing + 1
+    direction_canvas = _blank_direction_canvas(grid_width, grid_height)
+
+    for node in act_state.nodes:
+        from_pos = positions[node.node_id]
+        for next_node_id in node.next_node_ids:
+            _draw_edge(direction_canvas, from_pos=from_pos, to_pos=positions[next_node_id])
+
+    rendered_canvas = _render_direction_canvas(direction_canvas)
+    for node in act_state.nodes:
+        x, y = positions[node.node_id]
+        token = _node_token(act_state, node)
+        for offset, char in enumerate(token):
+            target_x = x - 1 + offset
+            if 0 <= y < len(rendered_canvas) and 0 <= target_x < len(rendered_canvas[y]):
+                rendered_canvas[y][target_x] = char
 
     lines = [
         f"当前坐标: ({current_row}, {current_col})",
@@ -202,46 +328,13 @@ def _full_map_lines(act_state: ActState) -> list[str]:
         "",
     ]
 
-    for index in range(len(row_numbers) - 1, -1, -1):
-        row_number = row_numbers[index]
-        row_buf = list(" " * grid_width)
-        annotation_buf = list(" " * grid_width)
-        has_annotation = False
+    last_row = max(row_numbers)
+    for display_y, row_chars in enumerate(rendered_canvas):
+        logical_row = last_row - (display_y // row_spacing)
+        prefix = f"第 {logical_row} 层 | " if display_y % row_spacing == 0 else "       | "
+        lines.append(f"{prefix}{''.join(row_chars).rstrip()}")
 
-        for col in range(total_cols):
-            node = node_map.get((col, row_number))
-            if node is None:
-                continue
-            center = col * cell_width + cell_width // 2
-            marker = _ROOM_TYPE_MARKERS.get(node.room_type, node.room_type[:1].upper())
-            choice_idx = choice_indices.get(node.node_id)
-            if node.node_id == act_state.current_node_id and center - 1 >= 0 and center + 1 < len(row_buf):
-                row_buf[center - 1 : center + 2] = list(f"[{marker}]")
-            else:
-                row_buf[center] = marker
-            if choice_idx is not None:
-                label = f"[{choice_idx}]"
-                start = max(0, center - 1)
-                for offset, char in enumerate(label):
-                    if start + offset < len(annotation_buf):
-                        annotation_buf[start + offset] = char
-                        has_annotation = True
-
-        lines.append(f"第 {row_number} 层 | {''.join(row_buf).rstrip()}")
-        if has_annotation:
-            lines.append(f"       | {''.join(annotation_buf).rstrip()}")
-
-        if index > 0:
-            lower_row = row_numbers[index - 1]
-            conn_buf = list(" " * grid_width)
-            for node in rows_by_number[lower_row]:
-                for next_node_id in node.next_node_ids:
-                    child = act_state.get_node(next_node_id)
-                    if child.row == row_number:
-                        _draw_conn(conn_buf, node.col, child.col, cell_width)
-            lines.append(f"       | {''.join(conn_buf).rstrip()}")
-
-    legend = "图例: 战=战斗 精=精英 王=Boss 事=事件 店=商店 休=休息 [x]=当前 [n]=可选"
+    legend = "图例: 战=战斗 精=精英 王=Boss 事=事件 店=商店 休=休息 [x]=当前 (x)=可选"
     lines.extend(["", legend])
     return lines
 

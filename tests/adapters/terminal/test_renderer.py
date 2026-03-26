@@ -3,6 +3,7 @@ from dataclasses import replace
 from slay_the_spire.app.session import MenuState, start_session
 from slay_the_spire.adapters.terminal.renderer import render_room
 from slay_the_spire.content.provider import StarterContentProvider
+from slay_the_spire.domain.models.act_state import ActNodeState, ActState
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
 from slay_the_spire.domain.models.room_state import RoomState
@@ -699,6 +700,98 @@ def test_reward_renderer_uses_concrete_gold_and_card_labels() -> None:
 
     assert "金币 +11" in output
     assert "卡牌 耸肩无视" in output
+
+
+def test_reward_renderer_uses_concrete_card_offer_labels() -> None:
+    session = start_session(seed=5)
+    reward_room = RoomState(
+        room_id="act1:hallway",
+        room_type="combat",
+        stage="completed",
+        payload={"node_id": "r1c0", "next_node_ids": ["r2c0"]},
+        is_resolved=True,
+        rewards=["card_offer:pommel_strike", "card_offer:bash", "card_offer:anger"],
+    )
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=reward_room,
+        registry=_provider(session),
+        menu_state=MenuState(),
+        run_phase="active",
+    )
+
+    assert "卡牌 柄击" in output
+    assert "卡牌 重击" in output
+    assert "卡牌 愤怒" in output
+    assert "card_offer:" not in output
+
+
+def test_map_renderer_marks_current_and_reachable_nodes_inline() -> None:
+    session = start_session(seed=5)
+    act_state = ActState(
+        act_id="act1",
+        current_node_id="start",
+        nodes=[
+            ActNodeState(node_id="start", row=0, col=0, room_type="combat", next_node_ids=["r1c0", "r1c1"]),
+            ActNodeState(node_id="r1c0", row=1, col=0, room_type="event", next_node_ids=["r2c0"]),
+            ActNodeState(node_id="r1c1", row=1, col=1, room_type="shop", next_node_ids=["r2c0"]),
+            ActNodeState(node_id="r2c0", row=2, col=0, room_type="boss", next_node_ids=[]),
+        ],
+        visited_node_ids=["start"],
+        enemy_pool_id="act1_basic",
+        elite_pool_id="act1_elites",
+        boss_pool_id="act1_bosses",
+        event_pool_id="act1_events",
+    )
+    room_state = replace(session.room_state, payload={"node_id": "start", "next_node_ids": ["r1c0", "r1c1"]})
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=act_state,
+        room_state=room_state,
+        registry=_provider(session),
+        menu_state=MenuState(),
+        run_phase="active",
+    )
+
+    assert "[战]" in output
+    assert "(事)" in output
+    assert "(店)" in output
+    assert "[1]" not in output
+
+
+def test_map_renderer_draws_continuous_connectors_for_branch_and_merge() -> None:
+    session = start_session(seed=5)
+    act_state = ActState(
+        act_id="act1",
+        current_node_id="start",
+        nodes=[
+            ActNodeState(node_id="start", row=0, col=1, room_type="combat", next_node_ids=["r1c0", "r1c2"]),
+            ActNodeState(node_id="r1c0", row=1, col=0, room_type="event", next_node_ids=["r2c1"]),
+            ActNodeState(node_id="r1c2", row=1, col=2, room_type="shop", next_node_ids=["r2c1"]),
+            ActNodeState(node_id="r2c1", row=2, col=1, room_type="boss", next_node_ids=[]),
+        ],
+        visited_node_ids=["start"],
+        enemy_pool_id="act1_basic",
+        elite_pool_id="act1_elites",
+        boss_pool_id="act1_bosses",
+        event_pool_id="act1_events",
+    )
+    room_state = replace(session.room_state, payload={"node_id": "start", "next_node_ids": ["r1c0", "r1c2"]})
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=act_state,
+        room_state=room_state,
+        registry=_provider(session),
+        menu_state=MenuState(),
+        run_phase="active",
+    )
+
+    assert "─" in output or "|" in output
+    assert any(char in output for char in ("┌", "┐", "└", "┘", "┼", "├", "┤"))
 
 
 def test_event_upgrade_menu_shows_card_name_with_instance_id() -> None:

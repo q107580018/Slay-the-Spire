@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import Counter
 from pathlib import Path
 
 from slay_the_spire.content.provider import StarterContentProvider
@@ -47,3 +48,38 @@ def test_generate_act_state_is_deterministic_for_same_seed() -> None:
     right = generate_act_state("act1", seed=42, registry=provider)
 
     assert left.to_dict() == right.to_dict()
+
+
+def _longest_special_streak(act_state) -> int:
+    best = 0
+    special_room_types = {"event", "elite", "shop", "rest"}
+
+    def dfs(node_id: str, streak: int) -> None:
+        nonlocal best
+        node = act_state.get_node(node_id)
+        next_streak = streak + 1 if node.room_type in special_room_types else 0
+        best = max(best, next_streak)
+        for next_node_id in node.next_node_ids:
+            dfs(next_node_id, next_streak)
+
+    dfs(act_state.current_node_id, 0)
+    return best
+
+
+def test_generate_act_state_guarantees_at_least_one_elite_across_sampled_seeds() -> None:
+    provider = _content_provider()
+
+    for seed in range(1, 11):
+        act_state = generate_act_state("act1", seed=seed, registry=provider)
+        room_counts = Counter(node.room_type for node in act_state.nodes)
+
+        assert room_counts["elite"] >= 1
+
+
+def test_generate_act_state_limits_special_room_streaks_across_sampled_seeds() -> None:
+    provider = _content_provider()
+
+    for seed in range(1, 11):
+        act_state = generate_act_state("act1", seed=seed, registry=provider)
+
+        assert _longest_special_streak(act_state) <= 2

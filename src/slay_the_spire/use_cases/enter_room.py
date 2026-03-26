@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from random import Random
-
 from slay_the_spire.domain.combat.turn_flow import start_turn
 from slay_the_spire.domain.effects.effect_resolver import resolve_effect_queue
 from slay_the_spire.domain.hooks.hook_dispatcher import dispatch_hook
@@ -13,6 +11,7 @@ from slay_the_spire.domain.models.room_state import RoomState
 from slay_the_spire.domain.models.run_state import RunState
 from slay_the_spire.domain.models.statuses import StatusState
 from slay_the_spire.ports.content_provider import ContentProviderPort
+from slay_the_spire.shared.rng import rng_for_room, weighted_choice
 
 _SUPPORTED_ROOM_TYPES = {"combat", "elite", "event", "boss", "shop", "rest"}
 
@@ -58,11 +57,14 @@ def _build_combat_state(
 ) -> CombatState:
     character = registry.characters().get(run_state.character_id)
     deck_instance_ids = list(run_state.deck) or _build_card_instance_ids(list(character.starter_deck))
-    enemy_ids = registry.enemy_ids_for_pool(enemy_pool_id)
-    if not enemy_ids:
+    enemy_entries = list(registry.enemy_pool_entries(enemy_pool_id))
+    if not enemy_entries:
         raise ValueError(f"enemy pool {enemy_pool_id} must contain at least one enemy")
     enemy_rng = _offer_rng(run_state, room_id, "enemy")
-    enemy_id = enemy_rng.choice(enemy_ids)
+    enemy_id = weighted_choice(
+        [(entry.member_id, entry.weight) for entry in enemy_entries],
+        rng=enemy_rng,
+    )
 
     state = CombatState(
         round_number=1,
@@ -89,11 +91,11 @@ def _build_combat_state(
     return state
 
 
-def _offer_rng(run_state: RunState, room_id: str, category: str) -> Random:
-    return Random(f"{run_state.seed}:{room_id}:{category}")
+def _offer_rng(run_state: RunState, room_id: str, category: str):
+    return rng_for_room(seed=run_state.seed, room_id=room_id, category=category)
 
 
-def _sample_ids(ids: list[str], *, count: int, rng: Random) -> list[str]:
+def _sample_ids(ids: list[str], *, count: int, rng) -> list[str]:
     if not ids:
         return []
     if len(ids) <= count:
@@ -133,11 +135,21 @@ def _build_shop_payload(run_state: RunState, *, room_id: str, registry: ContentP
 
 
 def _build_event_payload(run_state: RunState, *, room_id: str, event_pool_id: str, registry: ContentProviderPort) -> dict[str, object]:
-    event_ids = list(registry.event_ids_for_pool(event_pool_id))
-    if not event_ids:
+    event_entries = [
+        entry
+        for entry in registry.event_pool_entries(event_pool_id)
+        if not (entry.once_per_run and entry.member_id in run_state.seen_event_ids)
+    ]
+    if not event_entries:
         raise ValueError(f"event pool {event_pool_id} must contain at least one event")
     rng = _offer_rng(run_state, room_id, "event")
-    return {"event_pool_id": event_pool_id, "event_id": rng.choice(event_ids)}
+    event_id = weighted_choice(
+        [(entry.member_id, entry.weight) for entry in event_entries],
+        rng=rng,
+    )
+    if event_id not in run_state.seen_event_ids:
+        run_state.seen_event_ids.append(event_id)
+    return {"event_pool_id": event_pool_id, "event_id": event_id}
 
 
 def _mark_node_visited(act_state: ActState, node_id: str) -> None:

@@ -6,6 +6,7 @@ from random import Random
 from slay_the_spire.content.registries import ActDef, ActMapConfig
 from slay_the_spire.domain.models.act_state import ActNodeState, ActState
 from slay_the_spire.ports.content_provider import ContentProviderPort
+from slay_the_spire.shared.rng import rng_for_run, weighted_choice
 
 _MAX_WIDTH = 3
 _MAX_GENERATION_ATTEMPTS = 50
@@ -106,6 +107,88 @@ def _allowed_room_types(row: int, config: ActMapConfig) -> list[str]:
     return list(rules["late_floors"])
 
 
+def _room_weight_map(row: int, config: ActMapConfig) -> dict[str, int]:
+    rules = config.room_rules
+    weight_groups = rules.get("room_weights")
+    if not isinstance(weight_groups, dict):
+        return {room_type: 1 for room_type in _allowed_room_types(row, config)}
+    min_shop = int(rules["min_floor_for_shop"])
+    min_rest = int(rules["min_floor_for_rest"])
+    min_elite = int(rules["min_floor_for_elite"])
+    if row < min(min_shop, min_rest, min_elite):
+        key = "early"
+    elif row < min_elite:
+        key = "mid"
+    else:
+        key = "late"
+    weights = weight_groups.get(key)
+    if not isinstance(weights, dict):
+        return {room_type: 1 for room_type in _allowed_room_types(row, config)}
+    return {str(room_type): int(weight) for room_type, weight in weights.items()}
+
+
+def _parent_coords(
+    topology: dict[tuple[int, int], list[tuple[int, int]]],
+) -> dict[tuple[int, int], list[tuple[int, int]]]:
+    parents: dict[tuple[int, int], list[tuple[int, int]]] = defaultdict(list)
+    for coord, targets in topology.items():
+        for target in targets:
+            parents[target].append(coord)
+    return parents
+
+
+def _longest_special_streak(nodes_by_coord: dict[tuple[int, int], ActNodeState]) -> int:
+    best = 0
+    cache: dict[tuple[int, int], int] = {}
+
+    def streak(coord: tuple[int, int]) -> int:
+        nonlocal best
+        if coord in cache:
+            return cache[coord]
+        node = nodes_by_coord[coord]
+        parent_values = [
+            streak(parent_coord)
+            for parent_coord, parent_node in nodes_by_coord.items()
+            if node.node_id in parent_node.next_node_ids
+        ]
+        next_value = (max(parent_values, default=0) + 1) if node.room_type in {"event", "elite", "shop", "rest"} else 0
+        cache[coord] = next_value
+        best = max(best, next_value)
+        return next_value
+
+    for coord in sorted(nodes_by_coord):
+        streak(coord)
+    return best
+
+
+def _replacement_respects_special_streak(
+    nodes_by_coord: dict[tuple[int, int], ActNodeState],
+    *,
+    coord: tuple[int, int],
+    room_type: str,
+    max_streak: int,
+) -> bool:
+    node = nodes_by_coord[coord]
+    original = node.room_type
+    nodes_by_coord[coord] = ActNodeState(
+        node_id=node.node_id,
+        row=node.row,
+        col=node.col,
+        room_type=room_type,
+        next_node_ids=list(node.next_node_ids),
+    )
+    try:
+        return _longest_special_streak(nodes_by_coord) <= max_streak
+    finally:
+        nodes_by_coord[coord] = node if original == node.room_type else ActNodeState(
+            node_id=node.node_id,
+            row=node.row,
+            col=node.col,
+            room_type=original,
+            next_node_ids=list(node.next_node_ids),
+        )
+
+
 def _assign_room_types(
     topology: dict[tuple[int, int], list[tuple[int, int]]],
     *,
@@ -114,6 +197,9 @@ def _assign_room_types(
 ) -> list[ActNodeState]:
     nodes_by_coord: dict[tuple[int, int], ActNodeState] = {}
     last_row = config.floor_count - 1
+    parents = _parent_coords(topology)
+    max_special_streak = int(config.room_rules.get("max_path_special_streak", 99))
+    special_streaks: dict[tuple[int, int], int] = {}
 
     for (row, col), next_coords in sorted(topology.items()):
         if row == 0:
@@ -121,7 +207,13 @@ def _assign_room_types(
         elif row == last_row:
             room_type = config.boss_room_type
         else:
-            room_type = rng.choice(_allowed_room_types(row, config))
+            weights = _room_weight_map(row, config)
+            candidate_room_type = weighted_choice(list(weights.items()), rng=rng)
+            parent_streak = max((special_streaks[parent_coord] for parent_coord in parents.get((row, col), [])), default=0)
+            if candidate_room_type in {"event", "elite", "shop", "rest"} and parent_streak >= max_special_streak:
+                room_type = "combat"
+            else:
+                room_type = candidate_room_type
         nodes_by_coord[(row, col)] = ActNodeState(
             node_id=_node_id(row, col),
             row=row,
@@ -129,38 +221,84 @@ def _assign_room_types(
             room_type=room_type,
             next_node_ids=[_node_id(target_row, target_col) for target_row, target_col in next_coords],
         )
+        special_streaks[(row, col)] = (
+            parent_streak + 1
+            if room_type in {"event", "elite", "shop", "rest"}
+            else 0
+        ) if row > 0 else 0
 
-    _ensure_required_room_type(nodes_by_coord, room_type="shop", min_row=int(config.room_rules["min_floor_for_shop"]), rng=rng)
-    _ensure_required_room_type(nodes_by_coord, room_type="rest", min_row=int(config.room_rules["min_floor_for_rest"]), rng=rng)
+    minimum_counts = config.room_rules.get("minimum_counts", {})
+    _ensure_minimum_room_count(
+        nodes_by_coord,
+        room_type="shop",
+        minimum_count=int(minimum_counts.get("shop", 1)),
+        min_row=int(config.room_rules["min_floor_for_shop"]),
+        max_special_streak=max_special_streak,
+        rng=rng,
+    )
+    _ensure_minimum_room_count(
+        nodes_by_coord,
+        room_type="rest",
+        minimum_count=int(minimum_counts.get("rest", 1)),
+        min_row=int(config.room_rules["min_floor_for_rest"]),
+        max_special_streak=max_special_streak,
+        rng=rng,
+    )
+    _ensure_minimum_room_count(
+        nodes_by_coord,
+        room_type="elite",
+        minimum_count=int(minimum_counts.get("elite", 0)),
+        min_row=int(config.room_rules["min_floor_for_elite"]),
+        max_special_streak=max_special_streak,
+        rng=rng,
+    )
+    _ensure_minimum_room_count(
+        nodes_by_coord,
+        room_type="event",
+        minimum_count=int(minimum_counts.get("event", 0)),
+        min_row=1,
+        max_special_streak=max_special_streak,
+        rng=rng,
+    )
 
     return [nodes_by_coord[coord] for coord in sorted(nodes_by_coord)]
 
 
-def _ensure_required_room_type(
+def _ensure_minimum_room_count(
     nodes_by_coord: dict[tuple[int, int], ActNodeState],
     *,
     room_type: str,
+    minimum_count: int,
     min_row: int,
+    max_special_streak: int,
     rng: Random,
 ) -> None:
-    if any(node.room_type == room_type for node in nodes_by_coord.values()):
-        return
-    candidates = [
-        coord
-        for coord, node in nodes_by_coord.items()
-        if node.row >= min_row and node.row > 0 and not node.next_node_ids == [] and node.room_type not in {"shop", "rest", "boss"}
-    ]
-    if not candidates:
-        raise ValueError(f"map generation could not place required room_type: {room_type}")
-    coord = rng.choice(sorted(candidates))
-    node = nodes_by_coord[coord]
-    nodes_by_coord[coord] = ActNodeState(
-        node_id=node.node_id,
-        row=node.row,
-        col=node.col,
-        room_type=room_type,
-        next_node_ids=list(node.next_node_ids),
-    )
+    while sum(1 for node in nodes_by_coord.values() if node.room_type == room_type) < minimum_count:
+        candidates = [
+            coord
+            for coord, node in nodes_by_coord.items()
+            if node.row >= min_row
+            and node.row > 0
+            and node.next_node_ids
+            and node.room_type not in {"boss", room_type}
+            and _replacement_respects_special_streak(
+                nodes_by_coord,
+                coord=coord,
+                room_type=room_type,
+                max_streak=max_special_streak,
+            )
+        ]
+        if not candidates:
+            raise ValueError(f"map generation could not place required room_type: {room_type}")
+        coord = rng.choice(sorted(candidates))
+        node = nodes_by_coord[coord]
+        nodes_by_coord[coord] = ActNodeState(
+            node_id=node.node_id,
+            row=node.row,
+            col=node.col,
+            room_type=room_type,
+            next_node_ids=list(node.next_node_ids),
+        )
 
 
 def _validate_generated_nodes(nodes: list[ActNodeState], *, config: ActMapConfig) -> None:
@@ -180,7 +318,7 @@ def _validate_generated_nodes(nodes: list[ActNodeState], *, config: ActMapConfig
 def generate_act_state(act_id: str, seed: int, registry: ContentProviderPort) -> ActState:
     act_def = _act_def_from_registry(act_id, registry)
     for attempt in range(_MAX_GENERATION_ATTEMPTS):
-        rng = Random(seed + attempt)
+        rng = rng_for_run(seed=seed, category=f"map:{act_id}:{attempt}")
         topology = _build_layered_topology(act_def.map_config, rng)
         typed_nodes = _assign_room_types(topology, config=act_def.map_config, rng=rng)
         try:

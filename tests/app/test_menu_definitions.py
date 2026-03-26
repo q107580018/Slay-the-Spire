@@ -181,6 +181,33 @@ def test_build_reward_menu_binds_labels_and_claim_actions() -> None:
     assert resolve_menu_action("3", menu) == "back"
 
 
+def test_build_reward_menu_lists_skip_card_rewards_when_card_offers_exist() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=replace(
+            start_session(seed=5).room_state,
+            is_resolved=True,
+            rewards=["gold:11", "card_offer:anger", "card_offer:pommel_strike", "card_offer:shrug_it_off"],
+        ),
+    )
+    registry = StarterContentProvider(session.content_root)
+
+    menu = build_reward_menu(room_state=session.room_state, registry=registry)
+
+    assert format_menu_lines(menu) == [
+        "奖励:",
+        "1. 金币 +11",
+        "2. 卡牌 愤怒",
+        "3. 卡牌 柄击",
+        "4. 卡牌 不屈意志",
+        "5. 跳过卡牌奖励",
+        "6. 全部领取",
+        "7. 返回上一步",
+    ]
+    assert resolve_menu_action("2", menu) == "claim_reward:card_offer:anger"
+    assert resolve_menu_action("5", menu) == "skip_card_rewards"
+
+
 def test_build_boss_reward_menu_binds_gold_relic_and_back_actions() -> None:
     menu = build_boss_reward_menu(
         {

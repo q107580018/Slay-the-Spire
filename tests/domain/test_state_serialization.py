@@ -44,6 +44,19 @@ def test_run_state_round_trips_gold_deck_relics_potions_and_removal_count():
     assert restored.to_dict() == state.to_dict()
 
 
+def test_run_state_round_trips_seen_event_ids() -> None:
+    state = RunState(
+        seed=7,
+        character_id="ironclad",
+        current_act_id="act1",
+        seen_event_ids=["shining_light", "golden_idol"],
+    )
+
+    restored = RunState.from_dict(state.to_dict())
+
+    assert restored.to_dict() == state.to_dict()
+
+
 def test_act_node_state_round_trips_row_col_room_type():
     node = ActNodeState(
         node_id="node-1",

@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Protocol, TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from slay_the_spire.content.catalog import WeightedPoolEntry
     from slay_the_spire.content.registries import (
         ActRegistry,
         CardRegistry,
@@ -31,6 +32,10 @@ class ContentProviderPort(Protocol):
 
     def enemy_ids_for_pool(self, pool_id: str) -> tuple[str, ...]: ...
 
+    def enemy_pool_entries(self, pool_id: str) -> tuple["WeightedPoolEntry", ...]: ...
+
     def event_ids_for_pool(self, pool_id: str) -> tuple[str, ...]: ...
+
+    def event_pool_entries(self, pool_id: str) -> tuple["WeightedPoolEntry", ...]: ...
 
     def potion_ids_for_pool(self, pool_id: str) -> tuple[str, ...]: ...

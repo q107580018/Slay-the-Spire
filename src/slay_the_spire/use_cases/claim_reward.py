@@ -14,7 +14,10 @@ def claim_reward(*, room_state: RoomState, reward_id: str) -> RoomState:
     payload = dict(room_state.payload)
     payload["claimed_reward_ids"] = [reward_id]
     payload["action_committed"] = True
-    remaining_rewards = [reward for reward in room_state.rewards if reward != reward_id]
+    if reward_id.startswith("card_offer:"):
+        remaining_rewards = [reward for reward in room_state.rewards if not reward.startswith("card_offer:")]
+    else:
+        remaining_rewards = [reward for reward in room_state.rewards if reward != reward_id]
     return RoomState(
         schema_version=room_state.schema_version,
         room_id=room_state.room_id,

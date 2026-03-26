@@ -17,9 +17,21 @@
           "early_floors": ["combat", "event"],
           "mid_floors": ["combat", "event", "shop", "rest"],
           "late_floors": ["combat", "event", "elite", "shop", "rest"],
+          "room_weights": {
+            "early": {"combat": 7, "event": 3},
+            "mid": {"combat": 6, "event": 2, "shop": 1, "rest": 1},
+            "late": {"combat": 5, "event": 2, "elite": 2, "shop": 1, "rest": 1}
+          },
+          "minimum_counts": {
+            "event": 0,
+            "shop": 1,
+            "rest": 1,
+            "elite": 1
+          },
           "min_floor_for_elite": 3,
           "min_floor_for_shop": 2,
-          "min_floor_for_rest": 2
+          "min_floor_for_rest": 2,
+          "max_path_special_streak": 2
         }
       }
     }

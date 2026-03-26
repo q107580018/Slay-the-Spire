@@ -172,6 +172,28 @@ def test_load_game_restores_map_and_combat_state_from_json_save(tmp_path: Path) 
     assert restored["room_state"].payload["combat_state"] == combat_state.to_dict()
 
 
+def test_load_game_restores_run_state_seen_event_ids(tmp_path: Path) -> None:
+    run_state = RunState(
+        seed=11,
+        character_id="ironclad",
+        current_act_id="act1",
+        seen_event_ids=["shining_light", "golden_idol"],
+    )
+    repository = JsonFileSaveRepository(tmp_path / "save.json")
+
+    save_game(
+        repository=repository,
+        run_state=run_state,
+        act_state=None,
+        room_state=None,
+        combat_state=None,
+    )
+
+    restored = load_game(repository=repository)
+
+    assert restored["run_state"].seen_event_ids == ["shining_light", "golden_idol"]
+
+
 def test_save_game_rejects_mismatched_combat_state_sources(tmp_path: Path) -> None:
     run_state = _run_state()
     act_state = _act_state()
