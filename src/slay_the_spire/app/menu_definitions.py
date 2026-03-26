@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Mapping
 
 from rich.text import Text
 
@@ -74,9 +74,24 @@ def resolve_menu_action(choice: str, menu: MenuDefinition) -> str | None:
     return menu.options[index - 1].action_id
 
 
+def _boss_rewards(room_state: RoomState) -> Mapping[str, object] | None:
+    boss_rewards = room_state.payload.get("boss_rewards")
+    if not isinstance(boss_rewards, Mapping):
+        return None
+    return boss_rewards
+
+
+def _has_pending_boss_rewards(room_state: RoomState) -> bool:
+    boss_rewards = _boss_rewards(room_state)
+    if not room_state.is_resolved or room_state.room_type != "boss" or boss_rewards is None:
+        return False
+    claimed_relic_id = boss_rewards.get("claimed_relic_id")
+    return not (boss_rewards.get("claimed_gold") is True and isinstance(claimed_relic_id, str) and bool(claimed_relic_id))
+
+
 def build_root_menu(*, room_state: RoomState) -> MenuDefinition:
     if room_state.is_resolved:
-        if room_state.rewards:
+        if room_state.rewards or _has_pending_boss_rewards(room_state):
             return build_menu(
                 title="可选操作",
                 options=[
@@ -138,7 +153,7 @@ def build_root_menu(*, room_state: RoomState) -> MenuDefinition:
 
 
 def build_inspect_root_menu(*, room_state: RoomState) -> MenuDefinition:
-    reward_room_inspect = room_state.is_resolved and bool(room_state.rewards)
+    reward_room_inspect = room_state.is_resolved and (bool(room_state.rewards) or _has_pending_boss_rewards(room_state))
     if room_state.room_type in {"combat", "elite", "boss"} and not reward_room_inspect:
         return build_menu(
             title="资料总览",
@@ -202,6 +217,29 @@ def build_reward_menu(*, room_state: RoomState, registry: ContentProviderPort) -
         options=[
             *[(f"claim_reward:{reward_id}", _reward_label(reward_id, registry)) for reward_id in room_state.rewards],
             ("claim_all", "全部领取"),
+            ("back", "返回上一步"),
+        ],
+    )
+
+
+def build_boss_reward_menu(boss_rewards: Mapping[str, object]) -> MenuDefinition:
+    gold_reward = boss_rewards.get("gold_reward")
+    gold_label = f"领取金币 +{gold_reward}" if isinstance(gold_reward, int) and not isinstance(gold_reward, bool) else "领取金币"
+    return build_menu(
+        title="Boss奖励",
+        options=[
+            ("claim_boss_gold", gold_label),
+            ("choose_boss_relic", "选择遗物"),
+            ("back", "返回上一步"),
+        ],
+    )
+
+
+def build_boss_relic_menu(relic_ids: list[str], *, registry: ContentProviderPort) -> MenuDefinition:
+    return build_menu(
+        title="选择Boss遗物",
+        options=[
+            *[(f"claim_boss_relic:{relic_id}", registry.relics().get(relic_id).name) for relic_id in relic_ids],
             ("back", "返回上一步"),
         ],
     )

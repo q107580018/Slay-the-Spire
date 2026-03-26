@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import replace
 
 from slay_the_spire.app.menu_definitions import (
+    build_boss_relic_menu,
+    build_boss_reward_menu,
     build_next_room_menu,
     build_inspect_root_menu,
     build_reward_menu,
@@ -37,6 +39,46 @@ def test_build_root_menu_binds_resolved_combat_without_rewards_to_inspect_action
     assert resolve_menu_action("3", menu) == "save"
 
 
+def test_build_root_menu_binds_pending_boss_rewards_to_reward_actions() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=replace(
+            start_session(seed=5).room_state,
+            room_type="boss",
+            stage="completed",
+            is_resolved=True,
+            rewards=[],
+            payload={
+                "node_id": "boss",
+                "next_node_ids": [],
+                "boss_rewards": {
+                    "generated_by": "boss_reward_generator",
+                    "gold_reward": 95,
+                    "claimed_gold": False,
+                    "boss_relic_offers": ["black_blood", "anchor", "lantern"],
+                    "claimed_relic_id": None,
+                },
+            },
+        ),
+    )
+
+    menu = build_root_menu(room_state=session.room_state)
+
+    assert format_menu_lines(menu) == [
+        "可选操作:",
+        "1. 查看奖励",
+        "2. 领取奖励",
+        "3. 前往下一个房间",
+        "4. 查看资料",
+        "5. 保存游戏",
+        "6. 读取存档",
+        "7. 退出游戏",
+    ]
+    assert resolve_menu_action("1", menu) == "view_rewards"
+    assert resolve_menu_action("2", menu) == "claim_rewards"
+    assert resolve_menu_action("4", menu) == "inspect"
+
+
 def test_build_inspect_root_menu_binds_combat_choices_to_actions() -> None:
     session = start_session(seed=5)
 
@@ -58,6 +100,43 @@ def test_build_inspect_root_menu_binds_combat_choices_to_actions() -> None:
     assert resolve_menu_action("5", menu) == "inspect_hand"
     assert resolve_menu_action("9", menu) == "inspect_enemies"
     assert resolve_menu_action("10", menu) == "back"
+
+
+def test_build_inspect_root_menu_binds_pending_boss_rewards_to_non_combat_choices() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=replace(
+            start_session(seed=5).room_state,
+            room_type="boss",
+            stage="completed",
+            is_resolved=True,
+            rewards=[],
+            payload={
+                "node_id": "boss",
+                "next_node_ids": [],
+                "boss_rewards": {
+                    "generated_by": "boss_reward_generator",
+                    "gold_reward": 95,
+                    "claimed_gold": False,
+                    "boss_relic_offers": ["black_blood", "anchor", "lantern"],
+                    "claimed_relic_id": None,
+                },
+            },
+        ),
+    )
+
+    menu = build_inspect_root_menu(room_state=session.room_state)
+
+    assert format_menu_lines(menu) == [
+        "资料总览:",
+        "1. 属性",
+        "2. 牌组",
+        "3. 遗物",
+        "4. 药水",
+        "5. 返回上一步",
+    ]
+    assert resolve_menu_action("1", menu) == "inspect_stats"
+    assert resolve_menu_action("5", menu) == "back"
 
 
 def test_build_inspect_root_menu_binds_non_combat_choices_to_actions() -> None:
@@ -99,6 +178,46 @@ def test_build_reward_menu_binds_labels_and_claim_actions() -> None:
     assert resolve_menu_action("1", menu) == "claim_reward:gold:99"
     assert resolve_menu_action("2", menu) == "claim_all"
     assert resolve_menu_action("3", menu) == "back"
+
+
+def test_build_boss_reward_menu_binds_gold_relic_and_back_actions() -> None:
+    menu = build_boss_reward_menu(
+        {
+            "generated_by": "boss_reward_generator",
+            "gold_reward": 99,
+            "claimed_gold": False,
+            "boss_relic_offers": ["black_blood", "anchor", "lantern"],
+            "claimed_relic_id": None,
+        }
+    )
+
+    assert format_menu_lines(menu) == [
+        "Boss奖励:",
+        "1. 领取金币 +99",
+        "2. 选择遗物",
+        "3. 返回上一步",
+    ]
+    assert resolve_menu_action("1", menu) == "claim_boss_gold"
+    assert resolve_menu_action("2", menu) == "choose_boss_relic"
+    assert resolve_menu_action("3", menu) == "back"
+
+
+def test_build_boss_relic_menu_binds_three_relic_choices_and_back() -> None:
+    session = start_session(seed=5)
+    registry = StarterContentProvider(session.content_root)
+
+    menu = build_boss_relic_menu(["black_blood", "anchor", "lantern"], registry=registry)
+
+    assert format_menu_lines(menu) == [
+        "选择Boss遗物:",
+        "1. 黑色之血",
+        "2. 锚",
+        "3. 灯笼",
+        "4. 返回上一步",
+    ]
+    assert resolve_menu_action("1", menu) == "claim_boss_relic:black_blood"
+    assert resolve_menu_action("3", menu) == "claim_boss_relic:lantern"
+    assert resolve_menu_action("4", menu) == "back"
 
 
 def test_build_terminal_phase_menu_binds_result_and_system_actions() -> None:

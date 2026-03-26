@@ -10,6 +10,8 @@ from slay_the_spire.adapters.terminal.prompts import prompt_for_session
 from slay_the_spire.adapters.terminal.renderer import render_room, render_room_renderable
 from slay_the_spire.adapters.persistence.save_files import JsonFileSaveRepository
 from slay_the_spire.app.menu_definitions import (
+    build_boss_relic_menu,
+    build_boss_reward_menu,
     build_card_detail_menu,
     build_enemy_detail_menu,
     build_event_choice_menu,
@@ -663,17 +665,7 @@ def _root_view_title(session: SessionState) -> str:
 
 def _route_inspect_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
     parent_mode = session.menu_state.inspect_parent_mode or "root"
-    action_id = None
-    if _has_pending_boss_rewards(session.room_state):
-        action_id = {
-            "1": "inspect_stats",
-            "2": "inspect_deck",
-            "3": "inspect_relics",
-            "4": "inspect_potions",
-            "5": "back",
-        }.get(choice)
-    if action_id is None:
-        action_id = resolve_menu_action(choice, build_inspect_root_menu(room_state=session.room_state))
+    action_id = resolve_menu_action(choice, build_inspect_root_menu(room_state=session.room_state))
     if action_id is None:
         return _invalid_menu_choice(session)
     shared_target = SHARED_INSPECT_ROOT_ACTIONS.get(action_id)
@@ -857,19 +849,7 @@ def _route_combat_inspect_enemy_detail_menu(choice: str, session: SessionState) 
 def _route_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
     if session.run_phase in {"victory", "game_over"}:
         return _route_terminal_phase_menu(choice, session)
-    action_id = None
-    if _has_pending_boss_rewards(session.room_state):
-        action_id = {
-            "1": "view_rewards",
-            "2": "claim_rewards",
-            "3": "next_room",
-            "4": "inspect",
-            "5": "save",
-            "6": "load",
-            "7": "quit",
-        }.get(choice)
-    if action_id is None:
-        action_id = resolve_menu_action(choice, build_root_menu(room_state=session.room_state))
+    action_id = resolve_menu_action(choice, build_root_menu(room_state=session.room_state))
     if action_id is None:
         return _invalid_menu_choice(session)
     if action_id in {"view_current", "view_rewards"}:
@@ -1125,7 +1105,10 @@ def _route_reward_menu(choice: str, session: SessionState) -> tuple[bool, Sessio
 
 
 def _route_boss_reward_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
-    action_id = {"1": "claim_boss_gold", "2": "choose_boss_relic", "3": "back"}.get(choice)
+    boss_rewards = _boss_rewards(session.room_state)
+    if boss_rewards is None:
+        return _invalid_menu_choice(session)
+    action_id = resolve_menu_action(choice, build_boss_reward_menu(boss_rewards))
     if action_id is None:
         return _invalid_menu_choice(session)
     if action_id == "back":
@@ -1146,18 +1129,15 @@ def _route_boss_relic_menu(choice: str, session: SessionState) -> tuple[bool, Se
     offers = boss_rewards.get("boss_relic_offers")
     if not isinstance(offers, list):
         return _invalid_menu_choice(session)
-    try:
-        index = int(choice)
-    except ValueError:
+    action_id = resolve_menu_action(choice, build_boss_relic_menu(offers, registry=_content_provider(session)))
+    if action_id is None:
         return _invalid_menu_choice(session)
-    if index == len(offers) + 1:
+    if action_id == "back":
         next_session = replace(session, menu_state=MenuState(mode="select_boss_reward"))
         return True, next_session, render_session(next_session)
-    if index <= 0 or index > len(offers):
+    if not action_id.startswith("claim_boss_relic:"):
         return _invalid_menu_choice(session)
-    relic_id = offers[index - 1]
-    if not isinstance(relic_id, str):
-        return _invalid_menu_choice(session)
+    relic_id = action_id.split(":", 1)[1]
     next_session = _claim_boss_relic(session, relic_id)
     return True, next_session, render_session(next_session)
 

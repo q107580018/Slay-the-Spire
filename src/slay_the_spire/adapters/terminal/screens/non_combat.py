@@ -13,6 +13,8 @@ from slay_the_spire.adapters.terminal.inspect import (
 )
 from slay_the_spire.adapters.terminal.inspect_registry import format_shared_inspect_menu, render_shared_inspect_panel
 from slay_the_spire.app.menu_definitions import (
+    build_boss_relic_menu,
+    build_boss_reward_menu,
     build_event_choice_menu,
     build_event_remove_menu,
     build_event_upgrade_menu,
@@ -157,6 +159,21 @@ def _format_event_result(room_state: RoomState) -> str | None:
     return result
 
 
+def _boss_rewards(room_state: RoomState) -> dict[str, object] | None:
+    boss_rewards = room_state.payload.get("boss_rewards")
+    if not isinstance(boss_rewards, dict):
+        return None
+    return boss_rewards
+
+
+def _has_pending_boss_rewards(room_state: RoomState) -> bool:
+    boss_rewards = _boss_rewards(room_state)
+    if boss_rewards is None or room_state.room_type != "boss" or not room_state.is_resolved:
+        return False
+    claimed_relic_id = boss_rewards.get("claimed_relic_id")
+    return not (boss_rewards.get("claimed_gold") is True and isinstance(claimed_relic_id, str) and bool(claimed_relic_id))
+
+
 def _draw_conn(buf: list[str], from_col: int, to_col: int, cell_width: int) -> None:
     from_center = from_col * cell_width + cell_width // 2
     to_center = to_col * cell_width + cell_width // 2
@@ -282,6 +299,19 @@ def _format_event_remove_menu(room_state: RoomState, registry: ContentProviderPo
 
 def _format_reward_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str]:
     return format_menu_lines(build_reward_menu(room_state=room_state, registry=registry))
+
+
+def _format_boss_reward_menu(room_state: RoomState) -> list[str]:
+    boss_rewards = _boss_rewards(room_state) or {}
+    return format_menu_lines(build_boss_reward_menu(boss_rewards))
+
+
+def _format_boss_relic_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str]:
+    boss_rewards = _boss_rewards(room_state) or {}
+    relic_ids = boss_rewards.get("boss_relic_offers")
+    if not isinstance(relic_ids, list):
+        relic_ids = []
+    return format_menu_lines(build_boss_relic_menu(relic_ids, registry=registry))
 
 
 def format_non_combat_inspect_menu(
@@ -433,6 +463,32 @@ def render_reward_panel(room_state: RoomState, registry: ContentProviderPort) ->
     return Panel(Group(*body), title="奖励", box=PANEL_BOX, expand=False)
 
 
+def render_boss_reward_panel(room_state: RoomState, registry: ContentProviderPort) -> Panel:
+    boss_rewards = _boss_rewards(room_state) or {}
+    gold_reward = boss_rewards.get("gold_reward")
+    claimed_gold = boss_rewards.get("claimed_gold") is True
+    claimed_relic_id = boss_rewards.get("claimed_relic_id")
+    relic_ids = boss_rewards.get("boss_relic_offers")
+    if not isinstance(relic_ids, list):
+        relic_ids = []
+    selected_relic_name = "-"
+    if isinstance(claimed_relic_id, str) and claimed_relic_id:
+        selected_relic_name = registry.relics().get(claimed_relic_id).name
+    lines = [
+        Text.assemble(("金币奖励：", "summary.label"), f"+{gold_reward}" if isinstance(gold_reward, int) and not isinstance(gold_reward, bool) else "-"),
+        Text.assemble(("金币领取状态：", "summary.label"), "已领取" if claimed_gold else "未领取"),
+        Text.assemble(("已选遗物：", "summary.label"), selected_relic_name),
+        Text.assemble(("可选遗物数：", "summary.label"), str(len(relic_ids))),
+    ]
+    if relic_ids:
+        lines.append(Text(""))
+        lines.append(Text("可选遗物：", style="summary.label"))
+        for relic_id in relic_ids:
+            if isinstance(relic_id, str):
+                lines.append(Text(f"- {registry.relics().get(relic_id).name}"))
+    return Panel(Group(*lines), title="Boss奖励", box=PANEL_BOX, expand=False)
+
+
 def render_shop_panel(room_state: RoomState, registry: ContentProviderPort, run_state: RunState) -> Panel:
     cards = room_state.payload.get("cards", [])
     relics = room_state.payload.get("relics", [])
@@ -529,6 +585,8 @@ def render_non_combat_screen(
         body.append(render_shop_panel(room_state, registry, run_state))
     elif room_state.room_type == "rest":
         body.append(render_rest_panel(room_state, registry))
+    elif mode in {"select_boss_reward", "select_boss_relic"} or _has_pending_boss_rewards(room_state):
+        body.append(render_boss_reward_panel(room_state, registry))
     elif room_state.is_resolved and room_state.rewards:
         body.append(render_reward_panel(room_state, registry))
     elif room_state.room_type == "event":
@@ -550,6 +608,10 @@ def render_non_combat_screen(
         footer = render_menu(_format_event_remove_menu(room_state, registry))
     elif mode == "select_reward":
         footer = render_menu(_format_reward_menu(room_state, registry))
+    elif mode == "select_boss_reward":
+        footer = render_menu(_format_boss_reward_menu(room_state))
+    elif mode == "select_boss_relic":
+        footer = render_menu(_format_boss_relic_menu(room_state, registry))
     elif mode == "shop_root":
         footer = render_menu(_format_shop_root_menu(room_state, registry, run_state))
     elif mode == "shop_remove_card":
