@@ -1,0 +1,58 @@
+{
+  "enemies": [
+    {
+      "id": "hexaghost",
+      "name": "六火幽魂",
+      "hp": 250,
+      "move_table": [
+        {
+          "move": "divider",
+          "effects": []
+        },
+        {
+          "move": "sear",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 6
+            },
+            {
+              "type": "add_card_to_discard",
+              "card_id": "burn",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "move": "tackle",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 14
+            }
+          ]
+        },
+        {
+          "move": "inferno",
+          "effects": [
+            {
+              "type": "add_card_to_discard",
+              "card_id": "burn",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "move": "tackle",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 14
+            }
+          ]
+        }
+      ],
+      "intent_policy": "scripted"
+    }
+  ]
+}

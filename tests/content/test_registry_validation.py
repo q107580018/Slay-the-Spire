@@ -11,6 +11,11 @@ from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.content.registries import CardRegistry, EnemyRegistry
 
 
+def _content_roots() -> tuple[Path, Path]:
+    root = Path(__file__).resolve().parents[2]
+    return (root / "content", root / "src" / "slay_the_spire" / "data" / "content")
+
+
 def test_registry_rejects_duplicate_ids() -> None:
     registry = CardRegistry()
     registry.register({"id": "strike", "name": "Strike", "cost": 1, "effects": []})
@@ -34,19 +39,24 @@ def test_json_loader_reads_raw_json(tmp_path: Path) -> None:
     assert load_json_file(path) == payload
 
 
-def test_provider_exposes_registry_accessors() -> None:
-    provider = StarterContentProvider(Path(__file__).resolve().parents[2] / "content")
+@pytest.mark.parametrize("content_root", _content_roots())
+def test_provider_exposes_registry_accessors(content_root: Path) -> None:
+    provider = StarterContentProvider(content_root)
 
     assert provider.characters().get("ironclad").name == "铁甲战士"
     assert provider.cards().get("bash").name == "重击"
     assert provider.enemies().get("slime").name == "绿史莱姆"
+    assert provider.enemies().get("hexaghost").name == "六火幽魂"
+    assert provider.cards().get("burn").playable is False
+    assert provider.cards().get("burn").can_appear_in_shop is False
     assert provider.relics().get("burning_blood").id == "burning_blood"
     assert provider.events().get("shining_light").text.startswith("一道圣洁的光")
-    assert provider.acts().get("act1").enemy_pool_id == "act1_basic"
+    assert provider.acts().get("act1").boss_pool_id == "act1_bosses"
 
 
-def test_starter_catalog_passes_startup_integrity() -> None:
-    catalog = ContentCatalog.from_content_root(Path(__file__).resolve().parents[2] / "content")
+@pytest.mark.parametrize("content_root", _content_roots())
+def test_starter_catalog_passes_startup_integrity(content_root: Path) -> None:
+    catalog = ContentCatalog.from_content_root(content_root)
 
     assert catalog.cards.get("strike").name == "打击"
     assert catalog.enemies.get("jaw_worm").id == "jaw_worm"
@@ -65,14 +75,16 @@ def test_starter_catalog_passes_startup_integrity() -> None:
     assert catalog.acts.get("act1").id == "act1"
 
 
-def test_content_catalog_loads_potion_pools() -> None:
-    provider = StarterContentProvider(Path(__file__).resolve().parents[2] / "content")
+@pytest.mark.parametrize("content_root", _content_roots())
+def test_content_catalog_loads_potion_pools(content_root: Path) -> None:
+    provider = StarterContentProvider(content_root)
 
     assert provider.potions().all()
 
 
-def test_act_registry_accepts_map_config_instead_of_static_nodes() -> None:
-    provider = StarterContentProvider(Path(__file__).resolve().parents[2] / "content")
+@pytest.mark.parametrize("content_root", _content_roots())
+def test_act_registry_accepts_map_config_instead_of_static_nodes(content_root: Path) -> None:
+    provider = StarterContentProvider(content_root)
     act = provider.acts().get("act1")
 
     assert act.map_config.floor_count == 13

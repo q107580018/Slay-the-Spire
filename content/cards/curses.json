@@ -15,6 +15,14 @@
       "playable": false,
       "can_appear_in_shop": false,
       "effects": []
+    },
+    {
+      "id": "burn",
+      "name": "灼伤",
+      "cost": -1,
+      "playable": false,
+      "can_appear_in_shop": false,
+      "effects": []
     }
   ]
 }
