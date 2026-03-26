@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from rich.console import Group, RenderableType
+from rich.cells import cell_len
 from rich.panel import Panel
 from rich.text import Text
 
@@ -56,6 +57,17 @@ _ROOM_TYPE_MARKERS = {
     "shop": "店",
     "rest": "休",
 }
+
+_MAP_ROOM_TYPE_LABELS = {
+    "combat": "战斗",
+    "elite": "精英",
+    "boss": "Boss",
+    "event": "事件",
+    "shop": "商店",
+    "rest": "休息",
+}
+
+_MAP_NODE_CELL_WIDTH = 8
 
 _STAGE_LABELS = {
     "waiting_input": "等待操作",
@@ -220,12 +232,58 @@ _OPPOSITE_DIR = {
 
 
 def _node_token(act_state: ActState, node: ActNodeState) -> str:
-    marker = _ROOM_TYPE_MARKERS.get(node.room_type, node.room_type[:1].upper())
+    marker = _MAP_ROOM_TYPE_LABELS.get(node.room_type, node.room_type[:1].upper())
     if node.node_id == act_state.current_node_id:
-        return f"[{marker}]"
-    if node.node_id in act_state.reachable_node_ids:
-        return f"({marker})"
-    return f" {marker} "
+        raw = f">{marker}<"
+    elif node.node_id in act_state.reachable_node_ids:
+        raw = f"[{marker}]"
+    else:
+        raw = f" {marker} "
+    return _center_cell_text(raw, _MAP_NODE_CELL_WIDTH)
+
+
+def _node_token_styles(act_state: ActState, node: ActNodeState) -> tuple[str, str]:
+    if node.node_id == act_state.current_node_id:
+        base_style = "map.node.current"
+    elif node.node_id in act_state.reachable_node_ids:
+        base_style = "map.node.reachable"
+    else:
+        base_style = "map.node.default"
+    return base_style, f"map.room.{node.room_type}"
+
+
+def _center_cell_text(text: str, width: int) -> str:
+    padding = max(0, width - cell_len(text))
+    left = padding // 2
+    right = padding - left
+    return f"{' ' * left}{text}{' ' * right}"
+
+
+def _text_to_cells(text: str) -> list[str]:
+    cells: list[str] = []
+    for char in text:
+        char_width = cell_len(char)
+        cells.append(char)
+        cells.extend("" for _ in range(max(0, char_width - 1)))
+    return cells
+
+
+def _cell_to_text_index(cells: list[str], cell_position: int) -> int:
+    return sum(1 for cell in cells[:cell_position] if cell != "")
+
+
+def _node_label_cell_range(act_state: ActState, node: ActNodeState) -> tuple[int, int]:
+    label = _MAP_ROOM_TYPE_LABELS.get(node.room_type, node.room_type[:1].upper())
+    if node.node_id == act_state.current_node_id or node.node_id in act_state.reachable_node_ids:
+        raw = f"x{label}x"
+        offset = 1
+    else:
+        raw = f" {label} "
+        offset = 1
+    left_pad = max(0, (_MAP_NODE_CELL_WIDTH - cell_len(raw)) // 2)
+    start = left_pad + offset
+    end = start + cell_len(label)
+    return start, end
 
 
 def _map_positions(act_state: ActState, *, col_spacing: int, row_spacing: int, margin_x: int) -> dict[str, tuple[int, int]]:
@@ -296,15 +354,63 @@ def _render_direction_canvas(direction_canvas: list[list[set[str]]]) -> list[lis
     return rendered
 
 
-def _full_map_lines(act_state: ActState) -> list[str]:
+def _metric_line(label: str, value: str) -> Text:
+    return Text.assemble((label, "map.metric.label"), ("  ", "map.metric.sep"), (value, "map.metric.value"))
+
+
+def _legend_line(label: str, entries: list[tuple[str, str, str | None]]) -> Text:
+    line = Text()
+    line.append(label, style="map.legend.label")
+    line.append(" | ", style="map.legend.sep")
+    for index, (marker, description, marker_style) in enumerate(entries):
+        line.append(marker, style=marker_style or "map.legend.value")
+        line.append(f"={description}", style="map.legend.value")
+        if index < len(entries) - 1:
+            line.append(" ", style="map.legend.sep")
+    return line
+
+
+def _type_legend_line() -> Text:
+    line = Text()
+    line.append("TYPE", style="map.legend.label")
+    line.append(" | ", style="map.legend.sep")
+    entries = [
+        ("战斗", "map.room.combat"),
+        ("精英", "map.room.elite"),
+        ("Boss", "map.room.boss"),
+        ("事件", "map.room.event"),
+        ("商店", "map.room.shop"),
+        ("休息", "map.room.rest"),
+    ]
+    for index, (name, style) in enumerate(entries):
+        line.append(name, style=style)
+        if index < len(entries) - 1:
+            line.append(" ", style="map.legend.sep")
+    return line
+
+
+def _status_legend_line() -> Text:
+    line = Text()
+    line.append("STAT", style="map.legend.label")
+    line.append(" | ", style="map.legend.sep")
+    line.append(">房间<", style="map.node.current")
+    line.append(" 当前 ", style="map.legend.value")
+    line.append("[房间]", style="map.node.reachable")
+    line.append(" 可达  ", style="map.legend.value")
+    line.append("房间", style="map.node.default")
+    line.append("  其他", style="map.legend.value")
+    return line
+
+
+def _full_map_lines(act_state: ActState) -> list[Text]:
     current_row, current_col = act_state.current_coord()
     row_numbers = sorted({node.row for node in act_state.nodes})
     total_cols = max(node.col for node in act_state.nodes) + 1
-    col_spacing = 10
+    col_spacing = 14
     row_spacing = 4
-    margin_x = 4
+    margin_x = 6
     positions = _map_positions(act_state, col_spacing=col_spacing, row_spacing=row_spacing, margin_x=margin_x)
-    grid_width = margin_x * 2 + max(1, total_cols - 1) * col_spacing + 3
+    grid_width = margin_x * 2 + max(1, total_cols - 1) * col_spacing + _MAP_NODE_CELL_WIDTH
     grid_height = max(row_numbers) * row_spacing + 1
     direction_canvas = _blank_direction_canvas(grid_width, grid_height)
 
@@ -313,29 +419,57 @@ def _full_map_lines(act_state: ActState) -> list[str]:
         for next_node_id in node.next_node_ids:
             _draw_edge(direction_canvas, from_pos=from_pos, to_pos=positions[next_node_id])
 
-    rendered_canvas = _render_direction_canvas(direction_canvas)
+    rendered_canvas = [list(row) for row in _render_direction_canvas(direction_canvas)]
     for node in act_state.nodes:
         x, y = positions[node.node_id]
-        token = _node_token(act_state, node)
-        for offset, char in enumerate(token):
-            target_x = x - 1 + offset
+        token_cells = _text_to_cells(_node_token(act_state, node))
+        start_x = x - (_MAP_NODE_CELL_WIDTH // 2)
+        for offset, char in enumerate(token_cells):
+            target_x = start_x + offset
             if 0 <= y < len(rendered_canvas) and 0 <= target_x < len(rendered_canvas[y]):
                 rendered_canvas[y][target_x] = char
 
-    lines = [
-        f"当前坐标: ({current_row}, {current_col})",
-        f"层范围: 第 {row_numbers[0]} 层 -> 第 {row_numbers[-1]} 层",
-        "",
+    lines: list[Text] = [
+        _metric_line("POS", f"({current_row}, {current_col})"),
+        _metric_line("ROW", f"L{row_numbers[0]:02d}..L{row_numbers[-1]:02d}"),
+        Text(""),
     ]
 
     last_row = max(row_numbers)
-    for display_y, row_chars in enumerate(rendered_canvas):
+    for display_y, row_cells in enumerate(rendered_canvas):
         logical_row = last_row - (display_y // row_spacing)
-        prefix = f"第 {logical_row} 层 | " if display_y % row_spacing == 0 else "       | "
-        lines.append(f"{prefix}{''.join(row_chars).rstrip()}")
+        prefix = f"L{logical_row:02d} | " if display_y % row_spacing == 0 else "    | "
+        body = "".join(row_cells)
+        line = Text()
+        line.append(prefix, style="map.ruler")
+        if body:
+            line.append(body, style="map.connector")
+        for node in act_state.nodes:
+            node_x, node_y = positions[node.node_id]
+            if node_y != display_y:
+                continue
+            token_start_cell = node_x - (_MAP_NODE_CELL_WIDTH // 2)
+            token_end_cell = token_start_cell + _MAP_NODE_CELL_WIDTH
+            start = len(prefix) + _cell_to_text_index(row_cells, token_start_cell)
+            end = len(prefix) + _cell_to_text_index(row_cells, token_end_cell)
+            base_style, room_style = _node_token_styles(act_state, node)
+            if start < end:
+                line.stylize(base_style, start, end)
 
-    legend = "图例: 战=战斗 精=精英 王=Boss 事=事件 店=商店 休=休息 [x]=当前 (x)=可选"
-    lines.extend(["", legend])
+            label_start_cell, label_end_cell = _node_label_cell_range(act_state, node)
+            label_start = len(prefix) + _cell_to_text_index(row_cells, token_start_cell + label_start_cell)
+            label_end = len(prefix) + _cell_to_text_index(row_cells, token_start_cell + label_end_cell)
+            if label_start < label_end:
+                line.stylize(room_style, label_start, label_end)
+        lines.append(line)
+
+    lines.extend(
+        [
+            Text(""),
+            _type_legend_line(),
+            _status_legend_line(),
+        ]
+    )
     return lines
 
 
@@ -524,7 +658,7 @@ def render_summary_panel(
 
 
 def render_full_map_panel(act_state: ActState) -> Panel:
-    return Panel(Group(*[Text(line) for line in _full_map_lines(act_state)]), title="完整地图", box=PANEL_BOX, expand=False)
+    return Panel(Group(*_full_map_lines(act_state)), title="完整地图", box=PANEL_BOX, expand=False)
 
 
 def render_event_body(room_state: RoomState, registry: ContentProviderPort) -> Panel:

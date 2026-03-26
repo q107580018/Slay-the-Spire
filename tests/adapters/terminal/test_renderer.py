@@ -2,6 +2,7 @@ from dataclasses import replace
 
 from slay_the_spire.app.session import MenuState, start_session
 from slay_the_spire.adapters.terminal.renderer import render_room
+from slay_the_spire.adapters.terminal.screens.non_combat import render_full_map_panel
 from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.domain.models.act_state import ActNodeState, ActState
 from slay_the_spire.domain.models.combat_state import CombatState
@@ -516,9 +517,10 @@ def test_non_combat_renderer_shows_full_map_rows_and_current_position() -> None:
     )
 
     assert "完整地图" in output
-    assert "当前坐标" in output
-    assert "第 0 层" in output
-    assert "第 12 层" in output
+    assert "POS" in output
+    assert "ROW" in output
+    assert "L00 |" in output
+    assert "L12 |" in output
     assert "当前金币" in output
 
 
@@ -745,7 +747,14 @@ def test_map_renderer_marks_current_and_reachable_nodes_inline() -> None:
         boss_pool_id="act1_bosses",
         event_pool_id="act1_events",
     )
-    room_state = replace(session.room_state, payload={"node_id": "start", "next_node_ids": ["r1c0", "r1c1"]})
+    room_state = RoomState(
+        room_id="act1:event",
+        room_type="event",
+        stage="waiting_input",
+        payload={"node_id": "start", "room_kind": "event", "event_id": "shining_light", "next_node_ids": ["r1c0", "r1c1"]},
+        is_resolved=False,
+        rewards=[],
+    )
 
     output = render_room(
         run_state=session.run_state,
@@ -756,9 +765,9 @@ def test_map_renderer_marks_current_and_reachable_nodes_inline() -> None:
         run_phase="active",
     )
 
-    assert "[战]" in output
-    assert "(事)" in output
-    assert "(店)" in output
+    assert ">战斗<" in output
+    assert "[事件]" in output
+    assert "[商店]" in output
     assert "[1]" not in output
 
 
@@ -779,7 +788,14 @@ def test_map_renderer_draws_continuous_connectors_for_branch_and_merge() -> None
         boss_pool_id="act1_bosses",
         event_pool_id="act1_events",
     )
-    room_state = replace(session.room_state, payload={"node_id": "start", "next_node_ids": ["r1c0", "r1c2"]})
+    room_state = RoomState(
+        room_id="act1:event",
+        room_type="event",
+        stage="waiting_input",
+        payload={"node_id": "start", "room_kind": "event", "event_id": "shining_light", "next_node_ids": ["r1c0", "r1c2"]},
+        is_resolved=False,
+        rewards=[],
+    )
 
     output = render_room(
         run_state=session.run_state,
@@ -792,6 +808,90 @@ def test_map_renderer_draws_continuous_connectors_for_branch_and_merge() -> None
 
     assert "─" in output or "|" in output
     assert any(char in output for char in ("┌", "┐", "└", "┘", "┼", "├", "┤"))
+
+
+def test_map_renderer_uses_terminal_ruler_and_legend_layout() -> None:
+    session = start_session(seed=5)
+    act_state = ActState(
+        act_id="act1",
+        current_node_id="start",
+        nodes=[
+            ActNodeState(node_id="start", row=0, col=0, room_type="combat", next_node_ids=["r1c0", "r1c1"]),
+            ActNodeState(node_id="r1c0", row=1, col=0, room_type="event", next_node_ids=["r2c0"]),
+            ActNodeState(node_id="r1c1", row=1, col=1, room_type="elite", next_node_ids=["r2c0"]),
+            ActNodeState(node_id="r2c0", row=2, col=0, room_type="boss", next_node_ids=[]),
+        ],
+        visited_node_ids=["start"],
+        enemy_pool_id="act1_basic",
+        elite_pool_id="act1_elites",
+        boss_pool_id="act1_bosses",
+        event_pool_id="act1_events",
+    )
+    room_state = RoomState(
+        room_id="act1:event",
+        room_type="event",
+        stage="waiting_input",
+        payload={"node_id": "start", "room_kind": "event", "event_id": "shining_light", "next_node_ids": ["r1c0", "r1c1"]},
+        is_resolved=False,
+        rewards=[],
+    )
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=act_state,
+        room_state=room_state,
+        registry=_provider(session),
+        menu_state=MenuState(),
+        run_phase="active",
+    )
+
+    assert "POS  (0, 0)" in output
+    assert "ROW  L00..L02" in output
+    assert "L02 |" in output
+    assert "L00 |" in output
+    assert "TYPE | 战斗 精英 Boss 事件 商店 休息" in output
+    assert "STAT | >房间< 当前 [房间] 可达  房间  其他" in output
+    assert "[精英]" in output
+    assert "Boss" in output
+
+
+def test_map_renderer_applies_light_rich_styles_to_priority_tokens() -> None:
+    act_state = ActState(
+        act_id="act1",
+        current_node_id="start",
+        nodes=[
+            ActNodeState(node_id="start", row=0, col=0, room_type="combat", next_node_ids=["r1c0", "r1c1"]),
+            ActNodeState(node_id="r1c0", row=1, col=0, room_type="event", next_node_ids=["r2c0"]),
+            ActNodeState(node_id="r1c1", row=1, col=1, room_type="elite", next_node_ids=["r2c0"]),
+            ActNodeState(node_id="r2c0", row=2, col=0, room_type="boss", next_node_ids=[]),
+        ],
+        visited_node_ids=["start"],
+        enemy_pool_id="act1_basic",
+        elite_pool_id="act1_elites",
+        boss_pool_id="act1_bosses",
+        event_pool_id="act1_events",
+    )
+
+    panel = render_full_map_panel(act_state)
+    text_lines = [renderable for renderable in panel.renderable.renderables if hasattr(renderable, "plain")]
+    styled_lines = {line.plain: {span.style for span in line.spans} for line in text_lines}
+
+    assert "POS  (0, 0)" in styled_lines
+    assert "TYPE | 战斗 精英 Boss 事件 商店 休息" in styled_lines
+    assert "map.metric.label" in styled_lines["POS  (0, 0)"]
+    assert "map.legend.label" in styled_lines["TYPE | 战斗 精英 Boss 事件 商店 休息"]
+
+    current_line_styles = next(styles for line, styles in styled_lines.items() if ">战斗<" in line)
+    assert "map.node.current" in current_line_styles
+    assert "map.room.combat" in current_line_styles
+
+    reachable_line_styles = next(styles for line, styles in styled_lines.items() if "[事件]" in line and "[精英]" in line)
+    assert "map.node.reachable" in reachable_line_styles
+    assert "map.room.event" in reachable_line_styles
+    assert "map.room.elite" in reachable_line_styles
+
+    boss_line_styles = next(styles for line, styles in styled_lines.items() if line.startswith("L02 |") and "Boss" in line)
+    assert "map.room.boss" in boss_line_styles
 
 
 def test_event_upgrade_menu_shows_card_name_with_instance_id() -> None:
