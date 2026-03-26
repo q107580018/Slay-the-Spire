@@ -46,12 +46,20 @@ def _build_enemy_state(enemy_id: str, registry: ContentProviderPort) -> EnemySta
     )
 
 
-def _build_combat_state(run_state: RunState, *, enemy_pool_id: str, registry: ContentProviderPort) -> CombatState:
+def _build_combat_state(
+    run_state: RunState,
+    *,
+    room_id: str,
+    enemy_pool_id: str,
+    registry: ContentProviderPort,
+) -> CombatState:
     character = registry.characters().get(run_state.character_id)
     deck_instance_ids = list(run_state.deck) or _build_card_instance_ids(list(character.starter_deck))
     enemy_ids = registry.enemy_ids_for_pool(enemy_pool_id)
     if not enemy_ids:
         raise ValueError(f"enemy pool {enemy_pool_id} must contain at least one enemy")
+    enemy_rng = _offer_rng(run_state, room_id, "enemy")
+    enemy_id = enemy_rng.choice(enemy_ids)
 
     state = CombatState(
         round_number=1,
@@ -67,7 +75,7 @@ def _build_combat_state(run_state: RunState, *, enemy_pool_id: str, registry: Co
             block=0,
             statuses=[],
         ),
-        enemies=[_build_enemy_state(enemy_ids[0], registry)],
+        enemies=[_build_enemy_state(enemy_id, registry)],
         effect_queue=[],
         log=[],
     )
@@ -135,7 +143,6 @@ def enter_room(run_state: RunState, act_state: ActState, node_id: str, registry:
     current_node = act_state.get_node(node_id)
     room_kind = _room_type_for_node(act_state, current_node.node_id)
     room_id = f"{act_state.act_id}:{current_node.node_id}"
-    _mark_node_visited(act_state, current_node.node_id)
 
     payload: dict[str, object] = {
         "act_id": act_state.act_id,
@@ -155,6 +162,7 @@ def enter_room(run_state: RunState, act_state: ActState, node_id: str, registry:
         payload["enemy_pool_id"] = enemy_pool_id
         payload["combat_state"] = _build_combat_state(
             run_state,
+            room_id=room_id,
             enemy_pool_id=enemy_pool_id,
             registry=registry,
         ).to_dict()
@@ -173,7 +181,7 @@ def enter_room(run_state: RunState, act_state: ActState, node_id: str, registry:
         payload.update(_build_shop_payload(run_state, room_id=room_id, registry=registry))
     elif room_kind == "rest":
         payload["actions"] = ["rest", "smith"]
-    return RoomState(
+    room_state = RoomState(
         room_id=room_id,
         room_type=room_kind,
         stage="waiting_input",
@@ -181,3 +189,5 @@ def enter_room(run_state: RunState, act_state: ActState, node_id: str, registry:
         is_resolved=False,
         rewards=[],
     )
+    _mark_node_visited(act_state, current_node.node_id)
+    return room_state

@@ -6,6 +6,7 @@ from pathlib import Path
 
 from slay_the_spire.app.cli import main
 from slay_the_spire.app.session import SessionState, route_menu_choice, start_session
+from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.room_state import RoomState
 
 
@@ -81,7 +82,7 @@ def test_main_new_run_renders_first_room(capsys, monkeypatch) -> None:
     assert "7. 退出游戏" in output
 
 
-def test_single_act_smoke_covers_map_shop_rest_and_boss_victory() -> None:
+def test_single_act_smoke_simulates_map_shop_rest_and_boss_victory_flow() -> None:
     session = start_session(seed=1)
     _running, session, _message = route_menu_choice("4", session=session)
     _running, session, _message = route_menu_choice("5", session=session)
@@ -115,6 +116,8 @@ def test_single_act_smoke_covers_map_shop_rest_and_boss_victory() -> None:
         session = _advance_to(session, next_node_id)
         visited_types.append(session.room_state.room_type)
 
+    # 这里有意直接补齐房间结算结果，用来串起地图/菜单/奖励路径，
+    # 不是在验证完整的真实 Boss 战斗胜利流程。
     session = replace(
         session,
         room_state=replace(session.room_state, stage="completed", is_resolved=True, rewards=["gold:99"]),
@@ -127,3 +130,41 @@ def test_single_act_smoke_covers_map_shop_rest_and_boss_victory() -> None:
     assert session.run_phase == "victory"
     assert session.run_state.gold == 198
     assert "bash_plus#10" in session.run_state.deck
+
+
+def test_single_act_smoke_boss_room_uses_act1_bosses_and_hexaghost() -> None:
+    session = start_session(seed=1)
+    _running, session, _message = route_menu_choice("4", session=session)
+    _running, session, _message = route_menu_choice("5", session=session)
+    _running, session, _message = route_menu_choice("1", session=session)
+    _running, session, _message = route_menu_choice("2", session=session)
+    _running, session, _message = route_menu_choice("10", session=session)
+    path = _path_with_shop_and_rest(session.act_state)
+
+    for next_node_id in path[1:]:
+        if session.room_state.room_type == "event":
+            _running, session, _message = route_menu_choice("3", session=session)
+            _running, session, _message = route_menu_choice("1", session=session)
+            _running, session, _message = route_menu_choice("1", session=session)
+            _running, session, _message = route_menu_choice("5", session=session)
+        if session.room_state.room_type == "shop":
+            _running, session, _message = route_menu_choice(_shop_inspect_choice(session.room_state), session=session)
+            _running, session, _message = route_menu_choice("1", session=session)
+            _running, session, _message = route_menu_choice("1", session=session)
+            _running, session, _message = route_menu_choice("5", session=session)
+            _running, session, _message = route_menu_choice(_shop_leave_choice(session.room_state), session=session)
+        elif session.room_state.room_type == "rest":
+            _running, session, _message = route_menu_choice("3", session=session)
+            _running, session, _message = route_menu_choice("3", session=session)
+            _running, session, _message = route_menu_choice("1", session=session)
+            _running, session, _message = route_menu_choice("5", session=session)
+            _running, session, _message = route_menu_choice("2", session=session)
+            _running, session, _message = route_menu_choice("1", session=session)
+        else:
+            session = _complete_current_room(session)
+        session = _advance_to(session, next_node_id)
+
+    assert session.room_state.room_type == "boss"
+    assert session.room_state.payload["enemy_pool_id"] == "act1_bosses"
+    combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
+    assert combat_state.enemies[0].enemy_id == "hexaghost"

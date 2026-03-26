@@ -183,3 +183,38 @@ def test_enter_room_builds_playable_combat_state_for_combat_nodes() -> None:
         "bash#10",
     ]
     assert len(combat_state.enemies) == 1
+
+
+def test_enter_room_samples_enemy_from_pool_deterministically() -> None:
+    provider = _content_provider()
+    run_state = start_new_run("ironclad", seed=3, registry=provider)
+    act_state = generate_act_state("act1", seed=3, registry=provider)
+
+    room_state = enter_room(run_state, act_state, node_id="start", registry=provider)
+    combat_state = CombatState.from_dict(room_state.payload["combat_state"])
+
+    assert combat_state.energy == 3
+    assert combat_state.round_number == 1
+    assert len(combat_state.enemies) == 1
+    assert combat_state.enemies[0].enemy_id == "jaw_worm"
+
+
+def test_enter_room_does_not_mutate_act_state_when_combat_setup_fails() -> None:
+    provider = _content_provider()
+    run_state = start_new_run("ironclad", seed=7, registry=provider)
+    act_state = generate_act_state("act1", seed=7, registry=provider)
+    target_node_id = next(
+        node.node_id
+        for node in act_state.nodes
+        if node.room_type == "combat" and node.node_id != act_state.current_node_id
+    )
+    original_current_node_id = act_state.current_node_id
+    original_visited_node_ids = list(act_state.visited_node_ids)
+    act_state.enemy_pool_id = None
+
+    with pytest.raises(ValueError, match="combat rooms require an enemy pool id"):
+        enter_room(run_state, act_state, node_id=target_node_id, registry=provider)
+
+    assert act_state.current_node_id == original_current_node_id
+    assert act_state.visited_node_ids == original_visited_node_ids
+    assert target_node_id not in act_state.visited_node_ids
