@@ -34,6 +34,9 @@ class _CountingProvider:
     def enemies(self):
         return self._delegate.enemies()
 
+    def encounters(self):
+        return self._delegate.encounters()
+
     def relics(self):
         return self._delegate.relics()
 
@@ -49,8 +52,17 @@ class _CountingProvider:
     def enemy_ids_for_pool(self, pool_id: str):
         return self._delegate.enemy_ids_for_pool(pool_id)
 
+    def enemy_pool_entries(self, pool_id: str):
+        return self._delegate.enemy_pool_entries(pool_id)
+
+    def encounter_pool_entries(self, pool_id: str):
+        return self._delegate.encounter_pool_entries(pool_id)
+
     def event_ids_for_pool(self, pool_id: str):
         return self._delegate.event_ids_for_pool(pool_id)
+
+    def event_pool_entries(self, pool_id: str):
+        return self._delegate.event_pool_entries(pool_id)
 
     def potion_ids_for_pool(self, pool_id: str):
         return self._delegate.potion_ids_for_pool(pool_id)

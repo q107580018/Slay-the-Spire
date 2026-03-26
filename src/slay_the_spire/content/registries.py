@@ -82,6 +82,14 @@ class EnemyDef:
 
 
 @dataclass(slots=True, frozen=True)
+class EncounterDef:
+    id: str
+    name: str
+    enemy_ids: list[str]
+    pool_weight: int
+
+
+@dataclass(slots=True, frozen=True)
 class RelicDef:
     id: str
     name: str
@@ -226,6 +234,27 @@ class RelicRegistry(_BaseRegistry[RelicDef]):
                 "can_appear_in_shop",
                 default=True,
             ),
+        )
+
+
+class EncounterRegistry(_BaseRegistry[EncounterDef]):
+    def register(self, payload: Mapping[str, object]) -> EncounterDef:
+        record = self._build(payload)
+        if record.id in self._items:
+            raise ValueError(f"duplicate encounter id: {record.id}")
+        self._items[record.id] = record
+        return record
+
+    def _build(self, payload: Mapping[str, object]) -> EncounterDef:
+        data = _require_mapping(payload, "payload")
+        enemy_ids = [_require_str(item, "enemy_ids item") for item in _require_list(data.get("enemy_ids"), "enemy_ids")]
+        if not enemy_ids:
+            raise ValueError("enemy_ids must not be empty")
+        return EncounterDef(
+            id=_require_str(data.get("id"), "id"),
+            name=_require_str(data.get("name"), "name"),
+            enemy_ids=enemy_ids,
+            pool_weight=_require_int(data.get("pool_weight", 1), "pool_weight"),
         )
 
 
@@ -386,12 +415,14 @@ def validate_startup_integrity(
     characters: CharacterRegistry,
     cards: CardRegistry,
     enemies: EnemyRegistry,
+    encounters: EncounterRegistry,
     relics: RelicRegistry,
     potions: PotionRegistry,
     events: EventRegistry,
     acts: ActRegistry,
     card_pool_ids: set[str],
     enemy_pool_ids: set[str],
+    encounter_pool_ids: set[str],
     relic_pool_ids: set[str],
     potion_pool_ids: set[str],
     event_pool_ids: set[str],
@@ -413,14 +444,17 @@ def validate_startup_integrity(
         cards.get(card_id)
     for relic_id in character.starter_relic_ids:
         relics.get(relic_id)
-    act = acts.get(character.starting_act_id)
-    if act.enemy_pool_id not in enemy_pool_ids:
-        raise ValueError("enemy_pool_id must reference a loaded enemy pool")
-    if act.elite_pool_id not in enemy_pool_ids:
-        raise ValueError("elite_pool_id must reference a loaded enemy pool")
-    if act.event_pool_id not in event_pool_ids:
-        raise ValueError("event_pool_id must reference a loaded event pool")
-    if act.boss_pool_id not in enemy_pool_ids:
-        raise ValueError("boss_pool_id must reference a loaded enemy pool")
-    if act.next_act_id is not None:
-        acts.get(act.next_act_id)
+    for encounter in encounters.all():
+        for enemy_id in encounter.enemy_ids:
+            enemies.get(enemy_id)
+    for act in acts.all():
+        if act.enemy_pool_id not in encounter_pool_ids:
+            raise ValueError("enemy_pool_id must reference a loaded encounter pool")
+        if act.elite_pool_id not in encounter_pool_ids:
+            raise ValueError("elite_pool_id must reference a loaded encounter pool")
+        if act.event_pool_id not in event_pool_ids:
+            raise ValueError("event_pool_id must reference a loaded event pool")
+        if act.boss_pool_id not in encounter_pool_ids:
+            raise ValueError("boss_pool_id must reference a loaded encounter pool")
+        if act.next_act_id is not None:
+            acts.get(act.next_act_id)

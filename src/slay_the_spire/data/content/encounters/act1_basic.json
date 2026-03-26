@@ -1,0 +1,37 @@
+{
+  "encounters": [
+    {
+      "id": "single_slime",
+      "name": "单只绿史莱姆",
+      "enemy_ids": [
+        "slime"
+      ],
+      "pool_weight": 1
+    },
+    {
+      "id": "single_jaw_worm",
+      "name": "单只颚虫",
+      "enemy_ids": [
+        "jaw_worm"
+      ],
+      "pool_weight": 3
+    },
+    {
+      "id": "single_acid_slime",
+      "name": "单只酸液史莱姆",
+      "enemy_ids": [
+        "acid_slime"
+      ],
+      "pool_weight": 1
+    },
+    {
+      "id": "double_slime",
+      "name": "双绿史莱姆",
+      "enemy_ids": [
+        "slime",
+        "slime"
+      ],
+      "pool_weight": 1
+    }
+  ]
+}

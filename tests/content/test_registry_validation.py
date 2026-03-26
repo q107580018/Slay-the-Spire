@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
 
 import pytest
@@ -8,7 +9,7 @@ import pytest
 from slay_the_spire.content.catalog import ContentCatalog
 from slay_the_spire.content.loaders import load_json_file
 from slay_the_spire.content.provider import StarterContentProvider
-from slay_the_spire.content.registries import CardRegistry, EnemyRegistry
+from slay_the_spire.content.registries import CardRegistry, EncounterRegistry, EnemyRegistry
 
 
 def _content_roots() -> tuple[Path, Path]:
@@ -129,6 +130,55 @@ def test_provider_exposes_enemy_pool_entry_weights(content_root: Path) -> None:
     assert entries
     assert all(entry.member_id for entry in entries)
     assert all(entry.weight > 0 for entry in entries)
+
+
+@pytest.mark.parametrize("content_root", _content_roots())
+def test_content_provider_loads_encounter_pool_entries(content_root: Path) -> None:
+    provider = StarterContentProvider(content_root)
+
+    entries = provider.encounter_pool_entries("act1_basic")
+
+    assert any(entry.member_id == "double_slime" for entry in entries)
+    assert provider.encounters().get("double_slime").enemy_ids == ["slime", "slime"]
+
+
+def test_encounter_registry_rejects_empty_enemy_ids() -> None:
+    registry = EncounterRegistry()
+
+    with pytest.raises(ValueError, match="enemy_ids must not be empty"):
+        registry.register({"id": "empty_room", "name": "空房间", "enemy_ids": []})
+
+
+@pytest.mark.parametrize("content_root", _content_roots())
+def test_catalog_rejects_missing_encounter_pool_referenced_by_act(content_root: Path, tmp_path: Path) -> None:
+    copied_root = tmp_path / content_root.name
+    shutil.copytree(content_root, copied_root)
+    (copied_root / "encounters" / "act1_basic.json").unlink()
+
+    with pytest.raises(ValueError, match="enemy_pool_id must reference a loaded encounter pool"):
+        ContentCatalog.from_content_root(copied_root)
+
+
+@pytest.mark.parametrize("content_root", _content_roots())
+def test_catalog_rejects_missing_encounter_pool_referenced_by_non_starting_act(content_root: Path, tmp_path: Path) -> None:
+    copied_root = tmp_path / content_root.name
+    shutil.copytree(content_root, copied_root)
+    acts_path = copied_root / "acts" / "act1_map.json"
+    payload = load_json_file(acts_path)
+    act_records = payload["acts"]
+    act_records.append(
+        {
+            **act_records[0],
+            "id": "act_extra_validation",
+            "name": "额外校验幕",
+            "boss_pool_id": "act_extra_missing_bosses",
+            "next_act_id": None,
+        }
+    )
+    acts_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="boss_pool_id must reference a loaded encounter pool"):
+        ContentCatalog.from_content_root(copied_root)
 
 
 @pytest.mark.parametrize("content_root", _content_roots())

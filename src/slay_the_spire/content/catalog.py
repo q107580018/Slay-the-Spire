@@ -9,6 +9,7 @@ from slay_the_spire.content.registries import (
     ActRegistry,
     CardRegistry,
     CharacterRegistry,
+    EncounterRegistry,
     EnemyRegistry,
     EventRegistry,
     PotionRegistry,
@@ -56,12 +57,14 @@ class ContentCatalog:
     characters: CharacterRegistry = field(default_factory=CharacterRegistry)
     cards: CardRegistry = field(default_factory=CardRegistry)
     enemies: EnemyRegistry = field(default_factory=EnemyRegistry)
+    encounters: EncounterRegistry = field(default_factory=EncounterRegistry)
     relics: RelicRegistry = field(default_factory=RelicRegistry)
     potions: PotionRegistry = field(default_factory=PotionRegistry)
     events: EventRegistry = field(default_factory=EventRegistry)
     acts: ActRegistry = field(default_factory=ActRegistry)
     card_pool_ids: set[str] = field(default_factory=set)
     enemy_pool_ids: set[str] = field(default_factory=set)
+    encounter_pool_ids: set[str] = field(default_factory=set)
     relic_pool_ids: set[str] = field(default_factory=set)
     potion_pool_ids: set[str] = field(default_factory=set)
     event_pool_ids: set[str] = field(default_factory=set)
@@ -69,6 +72,7 @@ class ContentCatalog:
     potion_pool_members: dict[str, tuple[str, ...]] = field(default_factory=dict)
     event_pool_members: dict[str, tuple[str, ...]] = field(default_factory=dict)
     enemy_pool_entries: dict[str, tuple[WeightedPoolEntry, ...]] = field(default_factory=dict)
+    encounter_pool_entries: dict[str, tuple[WeightedPoolEntry, ...]] = field(default_factory=dict)
     event_pool_entries: dict[str, tuple[WeightedPoolEntry, ...]] = field(default_factory=dict)
 
     @classmethod
@@ -78,6 +82,7 @@ class ContentCatalog:
         catalog._load_characters(root / "characters")
         catalog._load_card_pools(root / "cards")
         catalog._load_enemy_pools(root / "enemies")
+        catalog._load_encounter_pools(root / "encounters")
         catalog._load_event_pools(root / "events")
         catalog._load_relic_pools(root / "relics")
         catalog._load_potion_pools(root / "potions")
@@ -108,6 +113,20 @@ class ContentCatalog:
             self.enemy_pool_entries[path.stem] = entries
             self.enemy_pool_members[path.stem] = tuple(entry.member_id for entry in entries)
             self.enemies.register_many(enemy_records)
+
+    def _load_encounter_pools(self, directory: Path) -> None:
+        for path in sorted(directory.glob("*.json")):
+            self.encounter_pool_ids.add(path.stem)
+            encounter_records = _require_list(_load_list_payload(path, "encounters"), "encounters")
+            entries = tuple(
+                WeightedPoolEntry(
+                    member_id=_require_str(_require_mapping(record, "encounter").get("id"), "encounter.id"),
+                    weight=int(_require_mapping(record, "encounter").get("pool_weight", 1)),
+                )
+                for record in encounter_records
+            )
+            self.encounter_pool_entries[path.stem] = entries
+            self.encounters.register_many(encounter_records)
 
     def _load_event_pools(self, directory: Path) -> None:
         for path in sorted(directory.glob("*.json")):
@@ -149,12 +168,14 @@ class ContentCatalog:
             characters=self.characters,
             cards=self.cards,
             enemies=self.enemies,
+            encounters=self.encounters,
             relics=self.relics,
             potions=self.potions,
             events=self.events,
             acts=self.acts,
             card_pool_ids=self.card_pool_ids,
             enemy_pool_ids=self.enemy_pool_ids,
+            encounter_pool_ids=self.encounter_pool_ids,
             relic_pool_ids=self.relic_pool_ids,
             potion_pool_ids=self.potion_pool_ids,
             event_pool_ids=self.event_pool_ids,
@@ -174,6 +195,11 @@ class ContentCatalog:
         if pool_id not in self.enemy_pool_entries:
             raise KeyError(pool_id)
         return self.enemy_pool_entries[pool_id]
+
+    def encounter_pool_entries_for_pool(self, pool_id: str) -> tuple[WeightedPoolEntry, ...]:
+        if pool_id not in self.encounter_pool_entries:
+            raise KeyError(pool_id)
+        return self.encounter_pool_entries[pool_id]
 
     def event_pool_entries_for_pool(self, pool_id: str) -> tuple[WeightedPoolEntry, ...]:
         if pool_id not in self.event_pool_entries:

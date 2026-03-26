@@ -154,7 +154,7 @@ git commit -m "feat: add act-to-act progression scaffold"
 - Create: `content/encounters/act1_basic.json`
 - Create: `src/slay_the_spire/data/content/encounters/act1_basic.json`
 
-- [ ] **Step 1: 写失败测试，锁定 encounter 可注册且能生成多敌人**
+- [x] **Step 1: 写失败测试，锁定 encounter 可注册且能生成多敌人**
 
 在 `tests/content/test_registry_validation.py` 增加：
 
@@ -178,7 +178,7 @@ def test_enter_room_builds_multiple_enemy_states_from_encounter() -> None:
     assert [enemy.instance_id for enemy in combat_state.enemies] == ["enemy-1", "enemy-2"]
 ```
 
-- [ ] **Step 2: 运行测试，确认当前失败**
+- [x] **Step 2: 运行测试，确认当前失败**
 
 Run: `uv run pytest tests/content/test_registry_validation.py tests/use_cases/test_enter_room.py tests/use_cases/test_start_run.py -v`
 
@@ -186,7 +186,7 @@ Expected:
 - `ContentProviderPort` 没有 `encounter_pool_entries`
 - `enter_room` 只会创建一个敌人
 
-- [ ] **Step 3: 最小实现 encounter 注册与战斗入场**
+- [x] **Step 3: 最小实现 encounter 注册与战斗入场**
 
 实现方向：
 
@@ -205,13 +205,13 @@ def encounters(self) -> "EncounterRegistry": ...
   - 改为从 encounter 池抽 `encounter_id`
   - 按 `enemy_ids` 生成多个 `EnemyState`
 
-- [ ] **Step 4: 运行测试，确认多敌人入场通过**
+- [x] **Step 4: 运行测试，确认多敌人入场通过**
 
 Run: `uv run pytest tests/content/test_registry_validation.py tests/use_cases/test_enter_room.py tests/use_cases/test_start_run.py -v`
 
 Expected: PASS
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add tests/content/test_registry_validation.py \
