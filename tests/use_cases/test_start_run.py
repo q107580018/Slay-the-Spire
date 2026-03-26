@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -183,6 +184,28 @@ def test_enter_room_builds_playable_combat_state_for_combat_nodes() -> None:
         "bash#10",
     ]
     assert len(combat_state.enemies) == 1
+
+
+def test_enter_room_applies_anchor_block_on_combat_start() -> None:
+    provider = _content_provider()
+    run_state = replace(start_new_run("ironclad", seed=5, registry=provider), relics=["anchor"])
+    act_state = generate_act_state("act1", seed=5, registry=provider)
+
+    room_state = enter_room(run_state, act_state, node_id="start", registry=provider)
+    combat_state = CombatState.from_dict(room_state.payload["combat_state"])
+
+    assert combat_state.player.block == 10
+
+
+def test_enter_room_applies_lantern_energy_on_combat_start() -> None:
+    provider = _content_provider()
+    run_state = replace(start_new_run("ironclad", seed=5, registry=provider), relics=["lantern"])
+    act_state = generate_act_state("act1", seed=5, registry=provider)
+
+    room_state = enter_room(run_state, act_state, node_id="start", registry=provider)
+    combat_state = CombatState.from_dict(room_state.payload["combat_state"])
+
+    assert combat_state.energy == 4
 
 
 def test_enter_room_samples_enemy_from_pool_deterministically() -> None:

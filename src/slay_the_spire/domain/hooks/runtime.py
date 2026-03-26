@@ -21,7 +21,7 @@ def _materialize_relic_effects(
     materialized: list[JsonDict] = []
     for raw_effect in effects:
         effect = copy_effect(raw_effect)
-        if effect.get("type") == "heal" and "target_instance_id" not in effect:
+        if effect.get("type") in {"heal", "block"} and "target_instance_id" not in effect:
             effect["target_instance_id"] = target_instance_id
         materialized.append(effect)
     return materialized

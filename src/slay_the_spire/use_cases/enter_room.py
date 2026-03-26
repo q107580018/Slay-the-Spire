@@ -3,6 +3,9 @@ from __future__ import annotations
 from random import Random
 
 from slay_the_spire.domain.combat.turn_flow import start_turn
+from slay_the_spire.domain.effects.effect_resolver import resolve_effect_queue
+from slay_the_spire.domain.hooks.hook_dispatcher import dispatch_hook
+from slay_the_spire.domain.hooks.runtime import build_runtime_hook_registrations
 from slay_the_spire.domain.models.act_state import ActState
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
@@ -79,7 +82,11 @@ def _build_combat_state(
         effect_queue=[],
         log=[],
     )
-    return start_turn(state)
+    state = start_turn(state)
+    registrations = build_runtime_hook_registrations(run_state, registry)
+    dispatch_hook(state, "on_combat_start", registrations)
+    resolve_effect_queue(state, hook_registrations=registrations)
+    return state
 
 
 def _offer_rng(run_state: RunState, room_id: str, category: str) -> Random:

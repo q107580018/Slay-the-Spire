@@ -9,6 +9,7 @@ from slay_the_spire.domain.effects.effect_types import (
     EFFECT_DAMAGE,
     EFFECT_DRAW,
     EFFECT_EMIT_HOOK,
+    EFFECT_GAIN_ENERGY,
     EFFECT_HEAL,
     EFFECT_NOOP,
     EFFECT_VULNERABLE,
@@ -218,6 +219,11 @@ def resolve_next_effect(
             return noop_effect(reason="dead_target")
         draw_count = _draw_cards(state, amount=int(effect.get("amount", 0)))
         return _with_result(effect, drawn_count=draw_count)
+
+    if effect_type == EFFECT_GAIN_ENERGY:
+        gained_energy = max(int(effect.get("amount", 0)), 0)
+        state.energy += gained_energy
+        return _with_result(effect, gained_energy=gained_energy)
 
     if effect_type == EFFECT_VULNERABLE:
         target = _get_target(state, effect.get("target_instance_id"))

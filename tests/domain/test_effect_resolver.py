@@ -14,11 +14,16 @@ from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
 from slay_the_spire.domain.models.statuses import StatusState
 
 
-def make_combat_state(*, enemies: list[EnemyState], effect_queue: list[dict[str, object]] | None = None) -> CombatState:
+def make_combat_state(
+    *,
+    enemies: list[EnemyState],
+    energy: int = 3,
+    effect_queue: list[dict[str, object]] | None = None,
+) -> CombatState:
     return CombatState(
         schema_version=1,
         round_number=1,
-        energy=3,
+        energy=energy,
         hand=[],
         draw_pile=["strike-1", "defend-1"],
         discard_pile=[],
@@ -193,6 +198,19 @@ def test_add_card_to_discard_creates_new_instance_ids() -> None:
 
     assert [effect["type"] for effect in resolved] == ["add_card_to_discard"]
     assert state.discard_pile == ["burn#1", "burn#2"]
+
+
+def test_gain_energy_effect_increases_combat_energy() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 3)],
+        energy=3,
+        effect_queue=[{"type": "gain_energy", "amount": 1}],
+    )
+
+    resolved = resolve_effect_queue(state)
+
+    assert resolved == [{"type": "gain_energy", "amount": 1, "result": {"gained_energy": 1}}]
+    assert state.energy == 4
 
 
 def test_damage_effect_reports_structured_resolution_details():
