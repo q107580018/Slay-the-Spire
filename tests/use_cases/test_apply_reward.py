@@ -74,6 +74,7 @@ def test_generate_boss_rewards_returns_high_gold_and_three_unique_relics() -> No
         registry=_content_provider(),
     )
 
+    assert rewards["generated_by"] == "boss_reward_generator"
     assert rewards["gold_reward"] == 106
     assert rewards["boss_relic_offers"] == ["black_blood", "anchor", "lantern"]
     assert rewards["claimed_gold"] is False
@@ -102,3 +103,21 @@ def test_apply_reward_black_blood_replaces_burning_blood() -> None:
 
     assert "burning_blood" not in updated.relics
     assert "black_blood" in updated.relics
+
+
+def test_apply_reward_adds_generic_relic_and_repeated_claim_is_no_op() -> None:
+    updated = apply_reward(
+        run_state=_run_state(),
+        reward_id="relic:anchor",
+        registry=_content_provider(),
+    )
+
+    assert updated.relics == ["burning_blood", "anchor"]
+
+    repeated = apply_reward(
+        run_state=updated,
+        reward_id="relic:anchor",
+        registry=_content_provider(),
+    )
+
+    assert repeated == updated
