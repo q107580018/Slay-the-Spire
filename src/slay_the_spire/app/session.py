@@ -29,6 +29,12 @@ from slay_the_spire.app.menu_definitions import (
     build_terminal_phase_menu,
     resolve_menu_action,
 )
+from slay_the_spire.app.inspect_registry import (
+    COMBAT_INSPECT_CARD_LIST_MODES,
+    COMBAT_INSPECT_ROOT_ACTIONS,
+    SHARED_INSPECT_ROOT_ACTIONS,
+    inspect_leaf_title,
+)
 from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.domain.map.map_generator import generate_act_state
 from slay_the_spire.domain.hooks.runtime import build_runtime_hook_registrations
@@ -567,55 +573,21 @@ def _route_inspect_root_menu(choice: str, session: SessionState) -> tuple[bool, 
     action_id = resolve_menu_action(choice, build_inspect_root_menu(room_state=session.room_state))
     if action_id is None:
         return _invalid_menu_choice(session)
-    if action_id == "inspect_stats":
+    shared_target = SHARED_INSPECT_ROOT_ACTIONS.get(action_id)
+    if shared_target is not None:
+        mode, item_id, title = shared_target
         next_session = replace(
             session,
             menu_state=MenuState(
-                mode="inspect_stats",
+                mode=mode,
                 inspect_parent_mode=parent_mode,
-                inspect_item_id="stats",
+                inspect_item_id=item_id,
             ),
         )
-        return True, next_session, _inspect_transition_message(next_session, "角色状态")
-    if action_id == "inspect_deck":
-        next_session = replace(
-            session,
-            menu_state=MenuState(
-                mode="inspect_deck",
-                inspect_parent_mode=parent_mode,
-                inspect_item_id="deck",
-            ),
-        )
-        return True, next_session, _inspect_transition_message(next_session, "牌组列表")
-    if action_id == "inspect_relics":
-        next_session = replace(
-            session,
-            menu_state=MenuState(
-                mode="inspect_relics",
-                inspect_parent_mode=parent_mode,
-                inspect_item_id="relics",
-            ),
-        )
-        return True, next_session, _inspect_transition_message(next_session, "遗物列表")
-    if action_id == "inspect_potions":
-        next_session = replace(
-            session,
-            menu_state=MenuState(
-                mode="inspect_potions",
-                inspect_parent_mode=parent_mode,
-                inspect_item_id="potions",
-            ),
-        )
-        return True, next_session, _inspect_transition_message(next_session, "药水列表")
-    combat_inspect_modes = {
-        "inspect_hand": ("inspect_hand", "hand", "手牌列表"),
-        "inspect_draw_pile": ("inspect_draw_pile", "draw_pile", "抽牌堆列表"),
-        "inspect_discard_pile": ("inspect_discard_pile", "discard_pile", "弃牌堆列表"),
-        "inspect_exhaust_pile": ("inspect_exhaust_pile", "exhaust_pile", "消耗堆列表"),
-        "inspect_enemies": ("inspect_enemy_list", "enemies", "敌人列表"),
-    }
-    if action_id in combat_inspect_modes:
-        mode, item_id, title = combat_inspect_modes[action_id]
+        return True, next_session, _inspect_transition_message(next_session, title)
+    combat_target = COMBAT_INSPECT_ROOT_ACTIONS.get(action_id)
+    if combat_target is not None:
+        mode, item_id, title = combat_target
         next_session = replace(
             session,
             menu_state=MenuState(
@@ -1169,13 +1141,10 @@ def route_menu_choice(choice: str, *, session: SessionState) -> tuple[bool, Sess
         return _route_inspect_root_menu(choice.strip(), next_session)
     if next_session.menu_state.mode == "inspect_deck":
         return _route_inspect_deck_menu(choice.strip(), next_session)
-    if next_session.menu_state.mode == "inspect_stats":
-        return _route_inspect_leaf_menu(choice.strip(), next_session, "角色状态")
-    if next_session.menu_state.mode == "inspect_relics":
-        return _route_inspect_leaf_menu(choice.strip(), next_session, "遗物列表")
-    if next_session.menu_state.mode == "inspect_potions":
-        return _route_inspect_leaf_menu(choice.strip(), next_session, "药水列表")
-    if next_session.menu_state.mode in {"inspect_hand", "inspect_draw_pile", "inspect_discard_pile", "inspect_exhaust_pile"}:
+    leaf_title = inspect_leaf_title(next_session.menu_state.mode)
+    if leaf_title is not None:
+        return _route_inspect_leaf_menu(choice.strip(), next_session, leaf_title)
+    if next_session.menu_state.mode in COMBAT_INSPECT_CARD_LIST_MODES:
         return _route_combat_inspect_card_list_menu(choice.strip(), next_session)
     if next_session.menu_state.mode == "inspect_card_detail":
         return _route_combat_inspect_card_detail_menu(choice.strip(), next_session)

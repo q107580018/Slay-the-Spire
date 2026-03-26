@@ -6,6 +6,7 @@ from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
 from slay_the_spire.domain.models.room_state import RoomState
+from slay_the_spire.domain.models.statuses import StatusState
 
 
 def _provider(session):
@@ -56,6 +57,7 @@ def test_combat_root_screen_keeps_full_context_and_hand_panel() -> None:
     assert "当前能量" in output
     assert "手牌" in output
     assert "敌人意图" in output
+    assert "战斗记录" in output
     assert "4. 查看资料" in output
     assert "5. 保存游戏" in output
     assert "6. 读取存档" in output
@@ -90,6 +92,131 @@ def test_combat_root_screen_uses_current_round_enemy_intent() -> None:
 
     assert "6 段攻击（每段伤害随生命变化）" not in output
     assert "造成 6 伤害" in output
+
+
+def test_combat_renderer_shows_recent_battle_log_entries() -> None:
+    session = start_session(seed=5)
+    combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
+    combat_state.log = [
+        "你打出 打击，对 绿史莱姆 造成 6 伤害。",
+        "绿史莱姆攻击你 3，实际受到 3。",
+    ]
+    room_state = replace(session.room_state, payload={**session.room_state.payload, "combat_state": combat_state.to_dict()})
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=room_state,
+        registry=_provider(session),
+        menu_state=MenuState(),
+        run_phase=session.run_phase,
+    )
+
+    assert "战斗记录" in output
+    assert "你打出 打击，对 绿史莱姆 造成 6 伤害。" in output
+    assert "绿史莱姆攻击你 3，实际受到 3。" in output
+
+
+def test_combat_renderer_uses_dynamic_enemy_intent_for_sleeping_enemy() -> None:
+    session = start_session(seed=5)
+    combat_state = CombatState(
+        round_number=1,
+        energy=3,
+        hand=[],
+        draw_pile=[],
+        discard_pile=[],
+        exhaust_pile=[],
+        player=PlayerCombatState(
+            instance_id="player-1",
+            hp=80,
+            max_hp=80,
+            block=0,
+            statuses=[],
+        ),
+        enemies=[
+            EnemyState(
+                instance_id="enemy-1",
+                enemy_id="lagavulin",
+                hp=109,
+                max_hp=109,
+                block=0,
+                statuses=[StatusState(status_id="sleeping", stacks=2)],
+            )
+        ],
+        effect_queue=[],
+        log=[],
+    )
+    room_state = RoomState(
+        room_id="act1:elite",
+        room_type="elite",
+        stage="waiting_input",
+        payload={"node_id": "elite", "room_kind": "elite", "combat_state": combat_state.to_dict(), "next_node_ids": ["boss"]},
+        is_resolved=False,
+        rewards=[],
+    )
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=room_state,
+        registry=_provider(session),
+        menu_state=MenuState(),
+        run_phase="active",
+    )
+
+    assert "沉睡巨像" in output
+    assert "意图: 沉睡 2 回合" in output
+
+
+def test_combat_renderer_uses_dynamic_enemy_intent_for_awake_enemy() -> None:
+    session = start_session(seed=5)
+    combat_state = CombatState(
+        round_number=4,
+        energy=3,
+        hand=[],
+        draw_pile=[],
+        discard_pile=[],
+        exhaust_pile=[],
+        player=PlayerCombatState(
+            instance_id="player-1",
+            hp=80,
+            max_hp=80,
+            block=0,
+            statuses=[],
+        ),
+        enemies=[
+            EnemyState(
+                instance_id="enemy-1",
+                enemy_id="lagavulin",
+                hp=109,
+                max_hp=109,
+                block=0,
+                statuses=[],
+            )
+        ],
+        effect_queue=[],
+        log=[],
+    )
+    room_state = RoomState(
+        room_id="act1:elite",
+        room_type="elite",
+        stage="waiting_input",
+        payload={"node_id": "elite", "room_kind": "elite", "combat_state": combat_state.to_dict(), "next_node_ids": ["boss"]},
+        is_resolved=False,
+        rewards=[],
+    )
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=room_state,
+        registry=_provider(session),
+        menu_state=MenuState(),
+        run_phase="active",
+    )
+
+    assert "沉睡巨像" in output
+    assert "意图: 造成 18 伤害" in output
 
 
 def test_combat_renderer_shows_inspect_root_menu_when_in_inspect_mode() -> None:

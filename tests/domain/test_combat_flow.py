@@ -144,6 +144,7 @@ def test_end_turn_use_case_returns_structured_result() -> None:
     assert result.combat_state is state
     assert [effect["type"] for effect in result.resolved_effects] == ["damage"]
     assert state.round_number == 2
+    assert state.log == ["Training Slime攻击你 5，实际受到 5。"]
 
 
 def test_end_turn_stops_before_next_turn_when_player_dies() -> None:
@@ -220,6 +221,63 @@ def test_lagavulin_sleeps_for_first_three_enemy_turns_then_attacks() -> None:
 
     assert [effect["type"] for effect in resolved] == ["damage"]
     assert state.player.hp == 62
+
+
+def test_end_turn_log_reports_block_absorption_and_actual_damage() -> None:
+    registry = _enemy_registry()
+    state = _combat_state()
+    state.player.block = 2
+
+    run_end_turn(state, registry)
+
+    assert state.log == ["Training Slime攻击你 5，格挡抵消 2，实际受到 3。"]
+
+
+def test_end_turn_log_reports_sleeping_enemy() -> None:
+    registry = _Registry()
+    registry.enemies().register(
+        {
+            "id": "lagavulin",
+            "name": "Lagavulin",
+            "hp": 109,
+            "move_table": [
+                {"move": "sleep", "sleep_turns": 3},
+                {"move": "heavy_slam", "effects": [{"type": "damage", "amount": 18}]},
+            ],
+            "intent_policy": "scripted",
+        }
+    )
+    state = CombatState(
+        round_number=1,
+        energy=3,
+        hand=[],
+        draw_pile=[],
+        discard_pile=[],
+        exhaust_pile=[],
+        player=PlayerCombatState(
+            instance_id="player-1",
+            hp=80,
+            max_hp=80,
+            block=0,
+            statuses=[],
+        ),
+        enemies=[
+            EnemyState(
+                instance_id="enemy-1",
+                enemy_id="lagavulin",
+                hp=109,
+                max_hp=109,
+                block=0,
+                statuses=[StatusState(status_id="sleeping", stacks=3)],
+            )
+        ],
+        effect_queue=[],
+        log=[],
+    )
+
+    run_end_turn(state, registry)
+
+    assert state.log == ["Lagavulin沉睡，暂不行动。"]
 
 
 def test_preview_enemy_move_reuses_combat_turn_logic_without_mutating_state() -> None:

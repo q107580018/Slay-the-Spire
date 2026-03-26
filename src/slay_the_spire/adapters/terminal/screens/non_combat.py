@@ -11,6 +11,7 @@ from slay_the_spire.adapters.terminal.inspect import (
     render_shared_relics_panel,
     render_shared_stats_panel,
 )
+from slay_the_spire.adapters.terminal.inspect_registry import format_shared_inspect_menu, render_shared_inspect_panel
 from slay_the_spire.app.menu_definitions import (
     build_event_choice_menu,
     build_event_remove_menu,
@@ -283,29 +284,6 @@ def _format_reward_menu(room_state: RoomState, registry: ContentProviderPort) ->
     return format_menu_lines(build_reward_menu(room_state=room_state, registry=registry))
 
 
-def _format_non_combat_inspect_deck_menu(run_state: RunState, registry: ContentProviderPort) -> list[str]:
-    lines: list[str] = []
-    if not run_state.deck:
-        lines.append("-")
-    else:
-        for index, card_instance_id in enumerate(run_state.deck, start=1):
-            card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
-            lines.append(f"{index}. {card_def.name}")
-    lines.append(f"{len(run_state.deck) + 1}. 返回上一步")
-    return lines
-
-
-def _format_non_combat_inspect_deck_footer(run_state: RunState) -> list[str]:
-    return [
-        "输入上方编号查看卡牌详情",
-        f"{len(run_state.deck) + 1}. 返回上一步",
-    ]
-
-
-def _format_non_combat_inspect_leaf_menu(title: str) -> list[str]:
-    return format_menu_lines(build_leaf_menu(title=title))
-
-
 def format_non_combat_inspect_menu(
     run_state: RunState,
     room_state: RoomState,
@@ -313,16 +291,15 @@ def format_non_combat_inspect_menu(
     menu_state: Any,
 ) -> list[str]:
     mode = _menu_mode(menu_state)
-    if mode == "inspect_root":
-        return format_menu_lines(build_inspect_root_menu(room_state=room_state))
-    if mode == "inspect_deck":
-        return _format_non_combat_inspect_deck_footer(run_state)
-    if mode == "inspect_stats":
-        return _format_non_combat_inspect_leaf_menu("属性")
-    if mode == "inspect_relics":
-        return _format_non_combat_inspect_leaf_menu("遗物")
-    if mode == "inspect_potions":
-        return _format_non_combat_inspect_leaf_menu("药水")
+    shared_menu = format_shared_inspect_menu(
+        mode=mode,
+        context="non_combat",
+        run_state=run_state,
+        room_state=room_state,
+        registry=registry,
+    )
+    if shared_menu is not None:
+        return shared_menu
     return _format_default_menu(room_state)
 
 
@@ -334,15 +311,17 @@ def render_non_combat_inspect_panel(
     menu_state: Any,
 ) -> Panel:
     mode = _menu_mode(menu_state)
-    if mode == "inspect_stats":
-        return render_shared_stats_panel(title="属性", run_state=run_state, act_state=act_state, room_state=room_state)
-    if mode == "inspect_deck":
-        lines = [Text(line) for line in _format_non_combat_inspect_deck_menu(run_state, registry)]
-        return Panel(Group(*lines), title="牌组", box=PANEL_BOX, expand=False)
-    if mode == "inspect_relics":
-        return render_shared_relics_panel(title="遗物", run_state=run_state, registry=registry)
-    if mode == "inspect_potions":
-        return render_shared_potions_panel(title="药水", run_state=run_state, registry=registry)
+    shared_panel = render_shared_inspect_panel(
+        mode=mode,
+        context="non_combat",
+        run_state=run_state,
+        act_state=act_state,
+        room_state=room_state,
+        registry=registry,
+        card_instance_id=getattr(menu_state, "inspect_item_id", None),
+    )
+    if shared_panel is not None:
+        return shared_panel
     lines = [
         "可查看共享资料页。",
         "包含属性、牌组、遗物和药水。",
