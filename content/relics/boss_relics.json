@@ -1,0 +1,46 @@
+{
+  "relics": [
+    {
+      "id": "black_blood",
+      "name": "黑色之血",
+      "trigger_hooks": [
+        "on_combat_end"
+      ],
+      "passive_effects": [
+        {
+          "type": "heal",
+          "amount": 12
+        }
+      ],
+      "can_appear_in_shop": false
+    },
+    {
+      "id": "anchor",
+      "name": "锚",
+      "trigger_hooks": [
+        "on_combat_start"
+      ],
+      "passive_effects": [
+        {
+          "type": "block",
+          "amount": 10
+        }
+      ],
+      "can_appear_in_shop": false
+    },
+    {
+      "id": "lantern",
+      "name": "灯笼",
+      "trigger_hooks": [
+        "on_combat_start"
+      ],
+      "passive_effects": [
+        {
+          "type": "gain_energy",
+          "amount": 1
+        }
+      ],
+      "can_appear_in_shop": false
+    }
+  ]
+}

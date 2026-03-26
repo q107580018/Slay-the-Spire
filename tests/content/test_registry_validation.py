@@ -55,6 +55,22 @@ def test_provider_exposes_registry_accessors(content_root: Path) -> None:
     assert provider.acts().get("act1").boss_pool_id == "act1_bosses"
 
 
+def test_boss_relic_catalog_exposes_black_blood_anchor_and_lantern() -> None:
+    provider = StarterContentProvider(Path(__file__).resolve().parents[2] / "content")
+
+    assert provider.relics().get("black_blood").name == "黑色之血"
+    assert provider.relics().get("anchor").name == "锚"
+    assert provider.relics().get("lantern").name == "灯笼"
+
+
+def test_boss_relics_do_not_appear_in_shop_pool() -> None:
+    provider = StarterContentProvider(Path(__file__).resolve().parents[2] / "content")
+
+    assert provider.relics().get("black_blood").can_appear_in_shop is False
+    assert provider.relics().get("anchor").can_appear_in_shop is False
+    assert provider.relics().get("lantern").can_appear_in_shop is False
+
+
 @pytest.mark.parametrize("content_root", _content_roots())
 def test_starter_catalog_passes_startup_integrity(content_root: Path) -> None:
     catalog = ContentCatalog.from_content_root(content_root)
