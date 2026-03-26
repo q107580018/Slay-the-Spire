@@ -25,6 +25,18 @@ def apply_reward(*, run_state: RunState, reward_id: str, registry: ContentProvid
     if reward_id.startswith("gold:"):
         amount = int(reward_id.split(":", 1)[1])
         return replace(run_state, gold=run_state.gold + _gold_amount(run_state, amount))
+    if reward_id == "relic:black_blood":
+        registry.relics().get("black_blood")
+        relics = [relic_id for relic_id in run_state.relics if relic_id != "burning_blood"]
+        if "black_blood" in relics:
+            return replace(run_state, relics=relics)
+        return replace(run_state, relics=[*relics, "black_blood"])
+    if reward_id.startswith("relic:"):
+        relic_id = reward_id.split(":", 1)[1]
+        registry.relics().get(relic_id)
+        if relic_id in run_state.relics:
+            return run_state
+        return replace(run_state, relics=[*run_state.relics, relic_id])
     if reward_id == "card:reward_strike":
         registry.cards().get("strike_plus")
         return replace(run_state, deck=[*run_state.deck, _next_instance_id(run_state.deck, "strike_plus")])

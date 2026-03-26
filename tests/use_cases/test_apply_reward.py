@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.domain.models.run_state import RunState
+from slay_the_spire.domain.rewards.reward_generator import generate_boss_rewards
 from slay_the_spire.use_cases.apply_reward import apply_reward
 
 
@@ -62,3 +64,41 @@ def test_apply_reward_gold_uses_golden_idol_bonus() -> None:
     updated = apply_reward(run_state=run_state, reward_id="gold:100", registry=_content_provider())
 
     assert updated.gold == 224
+
+
+def test_generate_boss_rewards_returns_high_gold_and_three_unique_relics() -> None:
+    rewards = generate_boss_rewards(
+        room_id="act1:boss",
+        seed=37,
+        run_state=_run_state(),
+        registry=_content_provider(),
+    )
+
+    assert rewards["gold_reward"] == 106
+    assert rewards["boss_relic_offers"] == ["black_blood", "anchor", "lantern"]
+    assert rewards["claimed_gold"] is False
+    assert rewards["claimed_relic_id"] is None
+
+
+def test_generate_boss_rewards_filters_owned_relics() -> None:
+    run_state = replace(_run_state(), relics=["burning_blood", "anchor"])
+
+    rewards = generate_boss_rewards(
+        room_id="act1:boss",
+        seed=37,
+        run_state=run_state,
+        registry=_content_provider(),
+    )
+
+    assert "anchor" not in rewards["boss_relic_offers"]
+
+
+def test_apply_reward_black_blood_replaces_burning_blood() -> None:
+    updated = apply_reward(
+        run_state=_run_state(),
+        reward_id="relic:black_blood",
+        registry=_content_provider(),
+    )
+
+    assert "burning_blood" not in updated.relics
+    assert "black_blood" in updated.relics
