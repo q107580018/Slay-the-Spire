@@ -6,6 +6,7 @@ from random import Random
 from slay_the_spire.content.registries import ActDef, ActMapConfig
 from slay_the_spire.domain.models.act_state import ActNodeState, ActState
 from slay_the_spire.ports.content_provider import ContentProviderPort
+from slay_the_spire.shared.rng import rng_for_run
 
 _MAX_WIDTH = 3
 _MAX_GENERATION_ATTEMPTS = 50
@@ -180,7 +181,7 @@ def _validate_generated_nodes(nodes: list[ActNodeState], *, config: ActMapConfig
 def generate_act_state(act_id: str, seed: int, registry: ContentProviderPort) -> ActState:
     act_def = _act_def_from_registry(act_id, registry)
     for attempt in range(_MAX_GENERATION_ATTEMPTS):
-        rng = Random(seed + attempt)
+        rng = rng_for_run(seed=seed, category=f"map:{act_id}:{attempt}")
         topology = _build_layered_topology(act_def.map_config, rng)
         typed_nodes = _assign_room_types(topology, config=act_def.map_config, rng=rng)
         try:

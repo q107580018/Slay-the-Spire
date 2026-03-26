@@ -24,3 +24,15 @@ class SeededRng:
 
     def choice(self, seq: Sequence[T]) -> T:
         return self._random.choice(seq)
+
+
+def _seed_key(*parts: object) -> str:
+    return ":".join(str(part) for part in parts)
+
+
+def rng_for_run(*, seed: int, category: str) -> random.Random:
+    return random.Random(_seed_key(seed, category))
+
+
+def rng_for_room(*, seed: int, room_id: str, category: str) -> random.Random:
+    return random.Random(_seed_key(seed, room_id, category))

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from random import Random
-
 from slay_the_spire.domain.combat.turn_flow import start_turn
 from slay_the_spire.domain.effects.effect_resolver import resolve_effect_queue
 from slay_the_spire.domain.hooks.hook_dispatcher import dispatch_hook
@@ -13,6 +11,7 @@ from slay_the_spire.domain.models.room_state import RoomState
 from slay_the_spire.domain.models.run_state import RunState
 from slay_the_spire.domain.models.statuses import StatusState
 from slay_the_spire.ports.content_provider import ContentProviderPort
+from slay_the_spire.shared.rng import rng_for_room
 
 _SUPPORTED_ROOM_TYPES = {"combat", "elite", "event", "boss", "shop", "rest"}
 
@@ -89,11 +88,11 @@ def _build_combat_state(
     return state
 
 
-def _offer_rng(run_state: RunState, room_id: str, category: str) -> Random:
-    return Random(f"{run_state.seed}:{room_id}:{category}")
+def _offer_rng(run_state: RunState, room_id: str, category: str):
+    return rng_for_room(seed=run_state.seed, room_id=room_id, category=category)
 
 
-def _sample_ids(ids: list[str], *, count: int, rng: Random) -> list[str]:
+def _sample_ids(ids: list[str], *, count: int, rng) -> list[str]:
     if not ids:
         return []
     if len(ids) <= count:
