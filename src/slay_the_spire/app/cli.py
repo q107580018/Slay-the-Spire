@@ -3,11 +3,13 @@ from __future__ import annotations
 import argparse
 
 from slay_the_spire.adapters.terminal.app import run_terminal_session
+from slay_the_spire.adapters.textual.textual_runner import run_textual_session
 from slay_the_spire.app.session import load_session, start_session
 
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="slay-the-spire")
+    parser.add_argument("--ui", choices=["terminal", "textual"], default="terminal")
     subparsers = parser.add_subparsers(dest="command")
 
     new_parser = subparsers.add_parser("new")
@@ -37,7 +39,10 @@ def main(argv: list[str] | None = None) -> int:
             content_root=args.content_root,
             save_path=args.save_path,
         )
-        run_terminal_session(session=session)
+        if args.ui == "textual":
+            run_textual_session(session=session)
+        else:
+            run_terminal_session(session=session)
         return 0
 
     if args.command == "load":
@@ -45,7 +50,10 @@ def main(argv: list[str] | None = None) -> int:
             save_path=args.save_path,
             content_root=args.content_root,
         )
-        run_terminal_session(session=session)
+        if args.ui == "textual":
+            run_textual_session(session=session)
+        else:
+            run_terminal_session(session=session)
         return 0
 
     parser.print_help()

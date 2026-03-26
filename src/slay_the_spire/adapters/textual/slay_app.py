@@ -1,0 +1,389 @@
+"""SlayApp - 主 Textual 应用，整合地图、日志和输入。"""
+from __future__ import annotations
+
+from typing import Any
+
+from rich.console import Group
+from textual import on
+from textual.app import App, ComposeResult
+from textual.containers import Horizontal, Vertical
+from textual.css.query import NoMatches
+from textual.widgets import Footer, Header, OptionList, RichLog, Static
+
+from slay_the_spire.adapters.terminal.theme import TERMINAL_THEME
+from slay_the_spire.adapters.textual.map_widget import MapWidget
+from slay_the_spire.app.inspect_registry import COMBAT_INSPECT_CARD_LIST_MODES, inspect_leaf_title
+from slay_the_spire.app.menu_definitions import (
+    MenuDefinition,
+    build_boss_relic_menu,
+    build_boss_reward_menu,
+    build_card_detail_menu,
+    build_enemy_detail_menu,
+    build_event_choice_menu,
+    build_event_remove_menu,
+    build_event_upgrade_menu,
+    build_inspect_root_menu,
+    build_leaf_menu,
+    build_menu,
+    build_next_room_menu,
+    build_rest_root_menu,
+    build_rest_upgrade_menu,
+    build_reward_menu,
+    build_root_menu,
+    build_select_card_menu,
+    build_shop_remove_menu,
+    build_shop_root_menu,
+    build_target_menu,
+    build_terminal_phase_menu,
+)
+from slay_the_spire.app.session import (
+    SessionState,
+    _content_provider,
+    render_session,
+    render_session_renderable,
+    route_menu_choice,
+)
+from slay_the_spire.domain.models.cards import card_id_from_instance_id
+from slay_the_spire.domain.models.combat_state import CombatState
+
+
+def _render_to_rich(session: SessionState) -> Any:
+    """把 session 转成 Rich renderable，供 RichLog 显示。"""
+    renderable = render_session_renderable(session)
+    if isinstance(renderable, Group):
+        renderables = list(renderable.renderables)
+        if len(renderables) >= 3:
+            return Group(*renderables[:-1])
+    return renderable
+
+
+def _menu_choice_for_action(menu: MenuDefinition, action_id: str) -> str | None:
+    for index, option in enumerate(menu.options, start=1):
+        if option.action_id == action_id:
+            return str(index)
+    return None
+
+
+def _plain_label(label: object) -> str:
+    return getattr(label, "plain", str(label))
+
+
+def _combat_state_from_session(session: SessionState) -> CombatState | None:
+    combat_state = session.room_state.payload.get("combat_state")
+    if not isinstance(combat_state, dict):
+        return None
+    return CombatState.from_dict(combat_state)
+
+
+def _boss_rewards(session: SessionState) -> dict[str, object] | None:
+    rewards = session.room_state.payload.get("boss_rewards")
+    if not isinstance(rewards, dict):
+        return None
+    return rewards
+
+
+def _inspect_list_menu(title: str, labels: list[str]) -> MenuDefinition:
+    options = [(f"item:{index}", label) for index, label in enumerate(labels, start=1)]
+    options.append(("back", "返回上一步"))
+    return build_menu(title=title, options=options)
+
+
+def _build_target_action_menu(session: SessionState) -> MenuDefinition | None:
+    combat_state = _combat_state_from_session(session)
+    selected_card = session.menu_state.selected_card_instance_id
+    if combat_state is None or not isinstance(selected_card, str):
+        return None
+
+    registry = _content_provider(session)
+    card_def = registry.cards().get(card_id_from_instance_id(selected_card))
+    current_card_name = card_def.name
+    effect_types = {str(effect.get("type")) for effect in card_def.effects}
+    requires_enemy_target = bool(effect_types & {"damage", "vulnerable", "weak"})
+    requires_hand_target = bool(effect_types & {"exhaust_target_card", "upgrade_target_card"})
+
+    target_options: list[tuple[str, str]] = []
+    if requires_enemy_target or not requires_hand_target:
+        living_enemies = [enemy for enemy in combat_state.enemies if enemy.hp > 0]
+        for index, enemy in enumerate(living_enemies, start=1):
+            enemy_name = registry.enemies().get(enemy.enemy_id).name
+            target_options.append((f"target_enemy:{index}", f"敌人 {enemy_name}"))
+    if requires_hand_target:
+        selectable_cards = [card_instance_id for card_instance_id in combat_state.hand if card_instance_id != selected_card]
+        for index, card_instance_id in enumerate(selectable_cards, start=1):
+            card_name = registry.cards().get(card_id_from_instance_id(card_instance_id)).name
+            target_options.append((f"target_hand:{index}", f"手牌 {card_name}"))
+
+    return build_target_menu(target_options=target_options, current_card_name=current_card_name)
+
+
+def _current_action_menu(session: SessionState) -> MenuDefinition | None:
+    registry = _content_provider(session)
+    room_state = session.room_state
+    menu_mode = session.menu_state.mode
+
+    if session.run_phase != "active":
+        return build_terminal_phase_menu(run_phase=session.run_phase)
+    if menu_mode == "root":
+        return build_root_menu(room_state=room_state)
+    if menu_mode == "select_next_room":
+        next_node_ids = room_state.payload.get("next_node_ids", [])
+        if not isinstance(next_node_ids, list):
+            next_node_ids = []
+        return build_next_room_menu(options=[(f"next_node:{node_id}", str(node_id)) for node_id in next_node_ids])
+    if menu_mode == "select_event_choice":
+        event_id = room_state.payload.get("event_id")
+        if not isinstance(event_id, str):
+            return build_event_choice_menu(options=[])
+        event_def = registry.events().get(event_id)
+        return build_event_choice_menu(
+            options=[(f"choice:{choice.get('id')}", str(choice.get("label"))) for choice in event_def.choices]
+        )
+    if menu_mode == "event_upgrade_card":
+        options = room_state.payload.get("upgrade_options", [])
+        if not isinstance(options, list):
+            options = []
+        return build_event_upgrade_menu(
+            options=[
+                (f"upgrade_card:{card_instance_id}", registry.cards().get(card_id_from_instance_id(card_instance_id)).name)
+                for card_instance_id in options
+            ]
+        )
+    if menu_mode == "event_remove_card":
+        candidates = room_state.payload.get("remove_candidates", [])
+        if not isinstance(candidates, list):
+            candidates = []
+        return build_event_remove_menu(
+            options=[
+                (f"remove_card:{card_instance_id}", registry.cards().get(card_id_from_instance_id(card_instance_id)).name)
+                for card_instance_id in candidates
+            ]
+        )
+    if menu_mode == "select_reward":
+        return build_reward_menu(room_state=room_state, registry=registry)
+    if menu_mode == "select_boss_reward":
+        return build_boss_reward_menu(_boss_rewards(session) or {})
+    if menu_mode == "select_boss_relic":
+        boss_rewards = _boss_rewards(session) or {}
+        offers = boss_rewards.get("boss_relic_offers", [])
+        if not isinstance(offers, list):
+            offers = []
+        return build_boss_relic_menu(offers, registry=registry)
+    if menu_mode == "shop_root":
+        return build_shop_root_menu(run_state=session.run_state, room_state=room_state, registry=registry)
+    if menu_mode == "shop_remove_card":
+        return build_shop_remove_menu(room_state=room_state, registry=registry)
+    if menu_mode == "rest_root":
+        return build_rest_root_menu(room_state=room_state)
+    if menu_mode == "rest_upgrade_card":
+        return build_rest_upgrade_menu(room_state=room_state, registry=registry)
+    if menu_mode == "select_card":
+        combat_state = _combat_state_from_session(session)
+        if combat_state is None:
+            return None
+        return build_select_card_menu(combat_state=combat_state, registry=registry)
+    if menu_mode == "select_target":
+        return _build_target_action_menu(session)
+    if menu_mode == "inspect_root":
+        return build_inspect_root_menu(room_state=room_state)
+    if menu_mode == "inspect_deck":
+        labels = [registry.cards().get(card_id_from_instance_id(card_instance_id)).name for card_instance_id in session.run_state.deck]
+        return _inspect_list_menu("牌组列表", labels)
+    if menu_mode in COMBAT_INSPECT_CARD_LIST_MODES:
+        combat_state = _combat_state_from_session(session)
+        if combat_state is None:
+            return None
+        pile_map = {
+            "inspect_hand": ("手牌列表", combat_state.hand),
+            "inspect_draw_pile": ("抽牌堆列表", combat_state.draw_pile),
+            "inspect_discard_pile": ("弃牌堆列表", combat_state.discard_pile),
+            "inspect_exhaust_pile": ("消耗堆列表", combat_state.exhaust_pile),
+        }
+        title, pile = pile_map[menu_mode]
+        labels = [registry.cards().get(card_id_from_instance_id(card_instance_id)).name for card_instance_id in pile]
+        return _inspect_list_menu(title, labels)
+    if menu_mode == "inspect_enemy_list":
+        combat_state = _combat_state_from_session(session)
+        if combat_state is None:
+            return None
+        labels = [registry.enemies().get(enemy.enemy_id).name for enemy in combat_state.enemies]
+        return _inspect_list_menu("敌人列表", labels)
+    if menu_mode == "inspect_card_detail":
+        return build_card_detail_menu()
+    if menu_mode == "inspect_enemy_detail":
+        return build_enemy_detail_menu()
+
+    leaf_title = inspect_leaf_title(menu_mode)
+    if leaf_title is not None:
+        return build_leaf_menu(title=leaf_title)
+    return None
+
+
+class SlayApp(App[None]):
+    """Slay the Spire Textual UI。"""
+
+    CSS = """
+    Screen {
+        layout: horizontal;
+    }
+
+    #map-panel {
+        width: 2fr;
+        height: 1fr;
+        border: solid cyan;
+        padding: 0;
+        overflow: auto;
+    }
+
+    #right-panel {
+        width: 3fr;
+        height: 1fr;
+        layout: vertical;
+    }
+
+    #game-log {
+        height: 1fr;
+        border: solid grey;
+        overflow-y: auto;
+    }
+
+    #action-summary {
+        height: auto;
+        background: $surface;
+        padding: 0 1;
+        color: $text-muted;
+    }
+
+    #action-list {
+        height: 12;
+        border: solid green;
+    }
+
+    #flash-msg {
+        height: 1;
+        background: $surface;
+        color: yellow;
+        padding: 0 1;
+    }
+
+    Footer {
+        height: 1;
+    }
+    """
+
+    BINDINGS = [
+        ("ctrl+c", "quit", "退出"),
+        ("ctrl+q", "quit", "退出"),
+    ]
+
+    def __init__(self, session: SessionState) -> None:
+        super().__init__()
+        self._session = session
+        self._action_choices: list[str] = []
+        self.console.push_theme(TERMINAL_THEME)
+
+    def compose(self) -> ComposeResult:
+        yield Header(show_clock=False)
+        with Horizontal():
+            # 左侧：地图
+            with Vertical(id="map-panel"):
+                yield MapWidget(self._session.act_state, id="map-widget")
+            # 右侧：日志 + 输入
+            with Vertical(id="right-panel"):
+                yield RichLog(id="game-log", highlight=True, markup=True, wrap=True)
+                yield Static("", id="action-summary")
+                yield OptionList(id="action-list")
+                yield Static("", id="flash-msg")
+        yield Footer()
+
+    def on_mount(self) -> None:
+        self._refresh_log()
+        self._refresh_actions()
+        self.query_one("#action-list", OptionList).focus()
+
+    def _refresh_log(self) -> None:
+        log = self.query_one("#game-log", RichLog)
+        log.clear()
+        renderable = _render_to_rich(self._session)
+        log.write(renderable)
+        log.scroll_end(animate=False)
+
+    def _refresh_map(self) -> None:
+        try:
+            map_widget = self.query_one("#map-widget", MapWidget)
+            map_widget.update_act(self._session.act_state)
+        except NoMatches:
+            pass
+
+    def _set_flash(self, msg: str) -> None:
+        try:
+            self.query_one("#flash-msg", Static).update(msg)
+        except NoMatches:
+            pass
+
+    def _refresh_actions(self) -> None:
+        menu = _current_action_menu(self._session)
+        action_summary = self.query_one("#action-summary", Static)
+        action_list = self.query_one("#action-list", OptionList)
+        action_list.clear_options()
+        self._action_choices = []
+
+        if menu is None:
+            action_summary.update("当前没有可点击操作。")
+            return
+
+        summary_lines = [menu.title]
+        summary_lines.extend(_plain_label(line) for line in menu.header_lines)
+        action_summary.update("\n".join(summary_lines))
+
+        prompts = []
+        for index, option in enumerate(menu.options, start=1):
+            prompts.append(f"{index}. {_plain_label(option.label)}")
+            self._action_choices.append(str(index))
+        action_list.add_options(prompts)
+
+    def _process_command(self, cmd: str) -> None:
+        running, new_session, message = route_menu_choice(cmd, session=self._session)
+        self._session = new_session
+        self._refresh_log()
+        self._refresh_map()
+        self._refresh_actions()
+        rendered = render_session(new_session)
+        self._set_flash("" if message == rendered else message)
+        if not running:
+            self._set_flash("游戏已结束，按 Ctrl+C 退出。")
+            self.query_one("#action-list", OptionList).disabled = True
+
+    @on(OptionList.OptionSelected, "#action-list")
+    def handle_action_selected(self, event: OptionList.OptionSelected) -> None:
+        option_index = event.option_index
+        if option_index < 0 or option_index >= len(self._action_choices):
+            return
+        self._process_command(self._action_choices[option_index])
+
+    @on(MapWidget.NodeSelected)
+    def handle_node_selected(self, event: MapWidget.NodeSelected) -> None:
+        node_id = event.node_id
+        session = self._session
+        if session.menu_state.mode == "select_next_room":
+            next_choice = self._next_node_choice(node_id)
+            if next_choice is not None:
+                self._process_command(next_choice)
+            return
+
+        if session.menu_state.mode != "root" or not session.room_state.is_resolved:
+            return
+
+        root_choice = _menu_choice_for_action(build_root_menu(room_state=session.room_state), "next_room")
+        if root_choice is None:
+            return
+        self._process_command(root_choice)
+        next_choice = self._next_node_choice(node_id)
+        if next_choice is not None:
+            self._process_command(next_choice)
+
+    def _next_node_choice(self, node_id: str) -> str | None:
+        next_node_ids = self._session.room_state.payload.get("next_node_ids", [])
+        if not isinstance(next_node_ids, list) or node_id not in next_node_ids:
+            return None
+        menu = build_next_room_menu(options=[(f"next_node:{next_id}", str(next_id)) for next_id in next_node_ids])
+        return _menu_choice_for_action(menu, f"next_node:{node_id}")
