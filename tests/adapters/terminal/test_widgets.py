@@ -149,7 +149,7 @@ def test_render_room_select_target_menu_uses_shared_hp_bar_contract() -> None:
         menu_state=MenuState(mode="select_target"),
     )
 
-    assert "选择目标" in output
+    assert "选择敌人" in output
     assert "12/12 12/12" not in output
 
 

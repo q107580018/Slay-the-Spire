@@ -45,6 +45,15 @@ def test_provider_exposes_registry_accessors(content_root: Path) -> None:
 
     assert provider.characters().get("ironclad").name == "铁甲战士"
     assert provider.cards().get("bash").name == "重击"
+    assert provider.cards().get("bloodletting").name == "放血"
+    assert provider.cards().get("true_grit").name == "坚毅"
+    assert provider.cards().get("shrug_it_off").name == "耸肩无视"
+    assert provider.cards().get("armaments").name == "武装"
+    assert provider.cards().get("terror").name == "恐怖"
+    assert provider.cards().get("terror").cost == 1
+    assert provider.cards().get("terror").effects == [{"type": "vulnerable", "stacks": 2}]
+    assert provider.cards().get("terror_plus").cost == 1
+    assert provider.cards().get("terror_plus").effects == [{"type": "vulnerable", "stacks": 3}]
     assert provider.enemies().get("slime").name == "绿史莱姆"
     assert provider.enemies().get("acid_slime").name == "酸液史莱姆"
     assert provider.enemies().get("hexaghost").name == "六火幽魂"

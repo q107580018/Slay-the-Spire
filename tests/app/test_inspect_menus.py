@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import replace
 
 from slay_the_spire.app.session import MenuState, route_menu_choice, start_session
+from slay_the_spire.domain.models.combat_state import CombatState
+from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
 from slay_the_spire.domain.models.room_state import RoomState
 
 
@@ -55,6 +57,52 @@ def _rest_room() -> RoomState:
     )
 
 
+def _combat_room(*, hand: list[str], enemy_count: int = 1) -> RoomState:
+    enemies = [
+        EnemyState(
+            instance_id=f"enemy-{index}",
+            enemy_id="slime",
+            hp=12,
+            max_hp=12,
+            block=0,
+            statuses=[],
+        )
+        for index in range(1, enemy_count + 1)
+    ]
+    combat_state = CombatState(
+        round_number=1,
+        energy=3,
+        hand=hand,
+        draw_pile=[],
+        discard_pile=[],
+        exhaust_pile=[],
+        player=PlayerCombatState(
+            instance_id="player-1",
+            hp=80,
+            max_hp=80,
+            block=0,
+            statuses=[],
+        ),
+        enemies=enemies,
+        effect_queue=[],
+        log=[],
+    )
+    return RoomState(
+        room_id="act1:hallway",
+        room_type="combat",
+        stage="waiting_input",
+        payload={
+            "node_id": "r1c0",
+            "room_kind": "hallway",
+            "enemy_pool_id": "act1_basic",
+            "next_node_ids": ["r2c0"],
+            "combat_state": combat_state.to_dict(),
+        },
+        is_resolved=False,
+        rewards=[],
+    )
+
+
 def test_combat_root_menu_can_enter_inspect_root() -> None:
     session = start_session(seed=5)
 
@@ -65,6 +113,33 @@ def test_combat_root_menu_can_enter_inspect_root() -> None:
     assert next_session.menu_state.inspect_parent_mode == "root"
     assert next_session.menu_state.inspect_item_id is None
     assert "资料总览" in message
+
+
+def test_single_enemy_attack_card_plays_without_entering_target_menu() -> None:
+    session = replace(start_session(seed=5), room_state=_combat_room(hand=["strike#1"], enemy_count=1))
+
+    _running, select_card_session, _message = route_menu_choice("2", session=session)
+    _running, played_session, message = route_menu_choice("1", session=select_card_session)
+
+    assert select_card_session.menu_state.mode == "select_card"
+    assert played_session.menu_state.mode == "root"
+    assert "选择敌人" not in message
+    assert "造成 6 伤害" in message
+
+
+def test_hand_target_card_still_enters_hand_target_menu() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=_combat_room(hand=["armaments#1", "strike#2"], enemy_count=1),
+    )
+
+    _running, select_card_session, _message = route_menu_choice("2", session=session)
+    _running, target_session, message = route_menu_choice("1", session=select_card_session)
+
+    assert select_card_session.menu_state.mode == "select_card"
+    assert target_session.menu_state.mode == "select_target"
+    assert target_session.menu_state.selected_card_instance_id == "armaments#1"
+    assert "选择手牌" in message
 
 
 def test_resolved_combat_without_rewards_can_enter_inspect_root_from_choice_two() -> None:

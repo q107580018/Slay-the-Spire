@@ -101,12 +101,24 @@ def summarize_effect(effect: Mapping[str, object], *, detailed_status_cards: boo
         return f"获得 {int(effect.get('amount', 0))} 格挡"
     if effect_type == "heal":
         return f"回复 {int(effect.get('amount', 0))} 点生命"
+    if effect_type == "lose_hp":
+        return f"失去 {int(effect.get('amount', 0))} 点生命"
     if effect_type == "draw":
         return f"抽 {int(effect.get('amount', 0))} 张牌"
+    if effect_type == "gain_energy":
+        return f"获得 {int(effect.get('amount', 0))} 点能量"
     if effect_type == "vulnerable":
         return f"施加 {int(effect.get('stacks', 0))} 易伤"
     if effect_type == "weak":
         return f"施加 {int(effect.get('stacks', 0))} 虚弱"
+    if effect_type == "exhaust_random_hand":
+        return f"随机消耗 {int(effect.get('count', 1))} 张手牌"
+    if effect_type == "exhaust_target_card":
+        return "消耗 1 张手牌"
+    if effect_type == "upgrade_target_card":
+        return "升级 1 张手牌"
+    if effect_type == "upgrade_all_hand":
+        return "升级所有手牌"
     if effect_type == "create_card_copy":
         zone_labels = {
             "hand": "手牌",

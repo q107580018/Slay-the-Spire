@@ -184,19 +184,61 @@ def _format_card_menu(combat_state: CombatState, registry: ContentProviderPort) 
 
 def _format_target_menu(combat_state: CombatState, registry: ContentProviderPort, selected_card: str | None) -> list[str | Text]:
     current_card_name: str | None = None
+    requires_enemy_target = False
+    requires_hand_target = False
     if selected_card is not None:
         card_def = registry.cards().get(card_id_from_instance_id(selected_card))
         current_card_name = card_def.name
-    enemy_options: list[tuple[str, Text]] = []
-    living_enemies = [enemy for enemy in combat_state.enemies if enemy.hp > 0]
-    for index, enemy in enumerate(living_enemies, start=1):
-        enemy_def = registry.enemies().get(enemy.enemy_id)
-        label = Text()
-        label.append(enemy_def.name, style="enemy.name")
-        label.append(" 生命: ")
-        label.append_text(render_hp_bar(enemy.hp, enemy.max_hp))
-        enemy_options.append((f"target:{index}", label))
-    menu = build_target_menu(enemy_options=enemy_options, current_card_name=current_card_name)
+        effect_types = {effect.get("type") for effect in card_def.effects}
+        requires_enemy_target = bool(effect_types & {"damage", "vulnerable"})
+        requires_hand_target = bool(effect_types & {"exhaust_target_card", "upgrade_target_card"})
+    enemy_target_options: list[tuple[str, Text]] = []
+    if requires_enemy_target or not requires_hand_target:
+        living_enemies = [enemy for enemy in combat_state.enemies if enemy.hp > 0]
+        for index, enemy in enumerate(living_enemies, start=1):
+            enemy_def = registry.enemies().get(enemy.enemy_id)
+            label = Text()
+            label.append(enemy_def.name, style="enemy.name")
+            label.append(" 生命: ")
+            label.append_text(render_hp_bar(enemy.hp, enemy.max_hp))
+            enemy_target_options.append((f"target_enemy:{index}", label))
+    hand_target_options: list[tuple[str, Text]] = []
+    if selected_card is not None and requires_hand_target:
+        selectable_hand_cards = [card for card in combat_state.hand if card != selected_card]
+        for index, card_instance_id in enumerate(selectable_hand_cards, start=1):
+            card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
+            label = Text()
+            label.append(card_def.name, style="card.name")
+            label.append(f" ({card_instance_id})")
+            hand_target_options.append((f"target_hand:{index}", label))
+
+    target_options: list[tuple[str, str | Text]] = []
+    header_lines: list[str | Text] = []
+    title = "选择目标"
+    if enemy_target_options and not hand_target_options:
+        title = "选择敌人"
+        target_options = enemy_target_options
+    elif hand_target_options and not enemy_target_options:
+        title = "选择手牌"
+        target_options = hand_target_options
+    else:
+        title = "选择目标（敌人或手牌）"
+        if enemy_target_options:
+            header_lines.append("敌人目标:")
+            target_options.extend(enemy_target_options)
+        if hand_target_options:
+            if target_options:
+                header_lines.append("手牌目标:")
+            else:
+                header_lines.append("手牌目标:")
+            target_options.extend(hand_target_options)
+
+    menu = build_target_menu(
+        target_options=target_options,
+        current_card_name=current_card_name,
+        title=title,
+        header_lines=header_lines,
+    )
     return format_menu_entries(menu)
 
 

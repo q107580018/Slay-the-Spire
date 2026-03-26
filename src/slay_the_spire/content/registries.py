@@ -63,6 +63,7 @@ class CardDef:
     upgrades_to: str | None = None
     playable: bool = True
     can_appear_in_shop: bool = True
+    exhausts: bool = False
 
 
 @dataclass(slots=True, frozen=True)
@@ -170,6 +171,7 @@ class CardRegistry(_BaseRegistry[CardDef]):
                 "can_appear_in_shop",
                 default=True,
             ),
+            exhausts=_require_optional_bool(data.get("exhausts"), "exhausts", default=False),
         )
 
 

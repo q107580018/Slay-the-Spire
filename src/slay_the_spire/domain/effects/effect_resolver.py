@@ -9,9 +9,14 @@ from slay_the_spire.domain.effects.effect_types import (
     EFFECT_DAMAGE,
     EFFECT_DRAW,
     EFFECT_EMIT_HOOK,
+    EFFECT_EXHAUST_RANDOM_HAND,
+    EFFECT_EXHAUST_TARGET_CARD,
     EFFECT_GAIN_ENERGY,
     EFFECT_HEAL,
+    EFFECT_LOSE_HP,
     EFFECT_NOOP,
+    EFFECT_UPGRADE_ALL_HAND,
+    EFFECT_UPGRADE_TARGET_CARD,
     EFFECT_VULNERABLE,
     EFFECT_WEAK,
     copy_effect,
@@ -83,6 +88,12 @@ def _heal_target(target: PlayerCombatState | EnemyState, amount: int) -> int:
     return healed
 
 
+def _lose_hp_target(target: PlayerCombatState | EnemyState, amount: int) -> int:
+    hp_lost = min(target.hp, max(amount, 0))
+    target.hp = max(target.hp - max(amount, 0), 0)
+    return hp_lost
+
+
 def _with_result(effect: JsonDict, **result: JsonValue) -> JsonDict:
     resolved = copy_effect(effect)
     resolved["result"] = result
@@ -118,6 +129,33 @@ def _append_card_to_zone(state: CombatState, *, zone: str, card_instance_id: str
         state.exhaust_pile.append(card_instance_id)
         return
     raise ValueError(f"unsupported card copy zone: {zone}")
+
+
+def _remove_card_from_zones(state: CombatState, card_instance_id: str) -> bool:
+    for zone in (state.hand, state.draw_pile, state.discard_pile, state.exhaust_pile):
+        if card_instance_id in zone:
+            zone.remove(card_instance_id)
+            return True
+    return False
+
+
+def _replace_card_in_zones(state: CombatState, from_card_instance_id: str, to_card_instance_id: str) -> bool:
+    for zone in (state.hand, state.draw_pile, state.discard_pile, state.exhaust_pile):
+        for index, current in enumerate(zone):
+            if current == from_card_instance_id:
+                zone[index] = to_card_instance_id
+                return True
+    return False
+
+
+def _pseudo_random_hand_selection(state: CombatState, candidates: list[str], *, count: int) -> list[str]:
+    if count <= 0 or not candidates:
+        return []
+    ordered = sorted(candidates)
+    seed_basis = sum(ord(char) for item in [*state.hand, *state.draw_pile, *state.discard_pile, *state.exhaust_pile] for char in item)
+    start_index = seed_basis % len(ordered)
+    rotated = ordered[start_index:] + ordered[:start_index]
+    return rotated[: min(count, len(rotated))]
 
 
 def _draw_cards(state: CombatState, *, amount: int) -> int:
@@ -213,6 +251,13 @@ def resolve_next_effect(
         healed = _heal_target(target, int(effect.get("amount", 0)))
         return _with_result(effect, actual_healed=healed)
 
+    if effect_type == EFFECT_LOSE_HP:
+        target = _get_target(state, effect.get("target_instance_id"))
+        if _is_dead(target):
+            return noop_effect(reason="dead_target")
+        hp_lost = _lose_hp_target(target, int(effect.get("amount", 0)))
+        return _with_result(effect, actual_hp_lost=hp_lost)
+
     if effect_type == EFFECT_DRAW:
         target = _get_target(state, effect.get("target_instance_id"))
         if _is_dead(target):
@@ -272,6 +317,59 @@ def resolve_next_effect(
         for _ in range(count):
             state.discard_pile.append(_next_card_instance_id(state, card_id))
         return effect
+
+    if effect_type == EFFECT_EXHAUST_RANDOM_HAND:
+        count = max(int(effect.get("count", 1)), 0)
+        exhausted_cards = _pseudo_random_hand_selection(state, list(state.hand), count=count)
+        for card_instance_id in exhausted_cards:
+            if _remove_card_from_zones(state, card_instance_id):
+                state.exhaust_pile.append(card_instance_id)
+        return _with_result(effect, exhausted_cards=exhausted_cards)
+
+    if effect_type == EFFECT_EXHAUST_TARGET_CARD:
+        card_instance_id = effect.get("target_card_instance_id")
+        if not isinstance(card_instance_id, str):
+            raise TypeError("target_card_instance_id must be a string")
+        if not _remove_card_from_zones(state, card_instance_id):
+            return noop_effect(reason="missing_target_card")
+        state.exhaust_pile.append(card_instance_id)
+        return _with_result(effect, exhausted_cards=[card_instance_id])
+
+    if effect_type == EFFECT_UPGRADE_TARGET_CARD:
+        target_card_instance_id = effect.get("target_card_instance_id")
+        upgraded_card_id = effect.get("upgraded_card_id")
+        if not isinstance(target_card_instance_id, str):
+            raise TypeError("target_card_instance_id must be a string")
+        if not isinstance(upgraded_card_id, str):
+            raise TypeError("upgraded_card_id must be a string")
+        _old_card_id, suffix = target_card_instance_id.split("#", 1)
+        upgraded_card_instance_id = f"{upgraded_card_id}#{suffix}"
+        if not _replace_card_in_zones(state, target_card_instance_id, upgraded_card_instance_id):
+            return noop_effect(reason="missing_target_card")
+        return _with_result(
+            effect,
+            upgraded_from=target_card_instance_id,
+            upgraded_to=upgraded_card_instance_id,
+        )
+
+    if effect_type == EFFECT_UPGRADE_ALL_HAND:
+        upgrades = effect.get("upgrades")
+        if not isinstance(upgrades, dict):
+            raise TypeError("upgrades must be a mapping")
+        upgraded_cards: list[JsonDict] = []
+        for index, card_instance_id in enumerate(list(state.hand)):
+            try:
+                card_id = card_id_from_instance_id(card_instance_id)
+            except (TypeError, ValueError):
+                continue
+            upgraded_card_id = upgrades.get(card_id)
+            if not isinstance(upgraded_card_id, str):
+                continue
+            _old_card_id, suffix = card_instance_id.split("#", 1)
+            upgraded_card_instance_id = f"{upgraded_card_id}#{suffix}"
+            state.hand[index] = upgraded_card_instance_id
+            upgraded_cards.append({"from": card_instance_id, "to": upgraded_card_instance_id})
+        return _with_result(effect, upgraded_cards=upgraded_cards)
 
     if effect_type == EFFECT_EMIT_HOOK:
         hook_name = effect.get("hook_name")

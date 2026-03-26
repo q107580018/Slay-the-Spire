@@ -164,6 +164,7 @@ def test_play_card_creates_a_new_anger_copy_in_discard_pile() -> None:
     assert state.hand == []
     assert state.discard_pile == ["anger#1", "anger#2"]
     assert state.enemies[0].hp == 4
+    assert state.log == ["你打出 Custom Strike，对 Training Dummy 造成 6 伤害，并向弃牌堆加入 1 张Custom Strike。"]
 
 
 def test_play_card_uses_registry_to_resolve_card_definition() -> None:
@@ -267,3 +268,107 @@ def test_play_card_draw_log_uses_refilled_discard_cards() -> None:
 
     assert state.hand == ["bonus_a#1", "bonus_b#1"]
     assert state.log == ["你打出 Custom Strike，对 Training Dummy 造成 10 伤害，并抽 2 张牌。"]
+
+
+def test_play_card_bloodletting_gains_energy_and_loses_hp() -> None:
+    state = _combat_state(hand=["bloodletting#1"], energy=1)
+    provider = _provider_with_card(
+        card_id="bloodletting",
+        cost=0,
+        effects=[
+            {"type": "gain_energy", "amount": 2},
+            {"type": "lose_hp", "amount": 3},
+        ],
+    )
+
+    result = play_card(state, "bloodletting#1", None, provider)
+
+    assert result.combat_state is state
+    assert [effect["type"] for effect in result.resolved_effects] == ["gain_energy", "lose_hp"]
+    assert state.energy == 3
+    assert state.player.hp == 37
+    assert state.log == ["你打出 Custom Strike，获得 2 点能量，并失去 3 点生命。"]
+
+
+def test_play_card_true_grit_plus_can_target_a_hand_card_to_exhaust() -> None:
+    state = _combat_state(hand=["true_grit_plus#1", "strike#2"])
+    provider = _provider_with_card(
+        card_id="true_grit_plus",
+        cost=1,
+        effects=[
+            {"type": "block", "amount": 9},
+            {"type": "exhaust_target_card"},
+        ],
+    )
+    provider.cards().register(
+        {
+            "id": "strike",
+            "name": "Strike",
+            "cost": 1,
+            "effects": [{"type": "damage", "amount": 6}],
+        }
+    )
+
+    result = play_card(state, "true_grit_plus#1", "strike#2", provider)
+
+    assert result.combat_state is state
+    assert [effect["type"] for effect in result.resolved_effects] == ["block", "exhaust_target_card"]
+    assert state.hand == []
+    assert state.discard_pile == ["true_grit_plus#1"]
+    assert state.exhaust_pile == ["strike#2"]
+    assert state.player.block == 9
+    assert state.log == ["你打出 Custom Strike，获得 9 格挡，并消耗 1 张手牌。"]
+
+
+def test_play_card_armaments_plus_upgrades_all_remaining_hand_cards() -> None:
+    state = _combat_state(hand=["armaments_plus#1", "strike#2", "defend#3"])
+    provider = _provider_with_card(
+        card_id="armaments_plus",
+        cost=1,
+        effects=[
+            {"type": "block", "amount": 5},
+            {"type": "upgrade_all_hand"},
+        ],
+    )
+    provider.cards().register(
+        {
+            "id": "strike",
+            "name": "Strike",
+            "cost": 1,
+            "upgrades_to": "strike_plus",
+            "effects": [{"type": "damage", "amount": 6}],
+        }
+    )
+    provider.cards().register(
+        {
+            "id": "strike_plus",
+            "name": "Strike+",
+            "cost": 1,
+            "effects": [{"type": "damage", "amount": 9}],
+        }
+    )
+    provider.cards().register(
+        {
+            "id": "defend",
+            "name": "Defend",
+            "cost": 1,
+            "upgrades_to": "defend_plus",
+            "effects": [{"type": "block", "amount": 5}],
+        }
+    )
+    provider.cards().register(
+        {
+            "id": "defend_plus",
+            "name": "Defend+",
+            "cost": 1,
+            "effects": [{"type": "block", "amount": 8}],
+        }
+    )
+
+    result = play_card(state, "armaments_plus#1", None, provider)
+
+    assert result.combat_state is state
+    assert [effect["type"] for effect in result.resolved_effects] == ["block", "upgrade_all_hand"]
+    assert state.hand == ["strike_plus#2", "defend_plus#3"]
+    assert state.discard_pile == ["armaments_plus#1"]
+    assert state.player.block == 5

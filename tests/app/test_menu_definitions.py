@@ -11,6 +11,7 @@ from slay_the_spire.app.menu_definitions import (
     build_rest_upgrade_menu,
     build_root_menu,
     build_shop_root_menu,
+    build_target_menu,
     build_terminal_phase_menu,
     format_menu_lines,
     resolve_menu_action,
@@ -221,6 +222,43 @@ def test_build_boss_reward_menu_marks_claimed_gold_as_completed() -> None:
     ]
     assert resolve_menu_action("1", menu) == "claimed_boss_gold"
     assert resolve_menu_action("2", menu) == "choose_boss_relic"
+    assert resolve_menu_action("3", menu) == "back"
+
+
+def test_build_target_menu_supports_explicit_enemy_title() -> None:
+    menu = build_target_menu(
+        target_options=[("target_enemy:1", "绿史莱姆")],
+        current_card_name="打击",
+        title="选择敌人",
+    )
+
+    assert format_menu_lines(menu) == [
+        "选择敌人:",
+        "当前卡牌: 打击",
+        "1. 绿史莱姆",
+        "2. 返回上一步",
+    ]
+    assert resolve_menu_action("1", menu) == "target_enemy:1"
+    assert resolve_menu_action("2", menu) == "back"
+
+
+def test_build_target_menu_supports_hand_target_headers() -> None:
+    menu = build_target_menu(
+        target_options=[("target_hand:1", "打击 (strike#2)")],
+        current_card_name="武装",
+        title="选择手牌",
+        header_lines=["手牌目标:"],
+    )
+
+    assert format_menu_lines(menu) == [
+        "选择手牌:",
+        "手牌目标:",
+        "当前卡牌: 武装",
+        "1. 打击 (strike#2)",
+        "2. 返回上一步",
+    ]
+    assert resolve_menu_action("1", menu) == "target_hand:1"
+    assert resolve_menu_action("2", menu) == "back"
 
 
 def test_build_boss_reward_menu_marks_claimed_relic_as_completed() -> None:

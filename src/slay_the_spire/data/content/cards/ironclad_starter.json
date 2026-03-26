@@ -141,7 +141,7 @@
     },
     {
       "id": "shrug_it_off",
-      "name": "不屈意志",
+      "name": "耸肩无视",
       "cost": 1,
       "upgrades_to": "shrug_it_off_plus",
       "effects": [
@@ -157,7 +157,7 @@
     },
     {
       "id": "shrug_it_off_plus",
-      "name": "不屈意志+",
+      "name": "耸肩无视+",
       "cost": 1,
       "effects": [
         {
@@ -167,6 +167,119 @@
         {
           "type": "draw",
           "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "bloodletting",
+      "name": "放血",
+      "cost": 0,
+      "upgrades_to": "bloodletting_plus",
+      "effects": [
+        {
+          "type": "gain_energy",
+          "amount": 2
+        },
+        {
+          "type": "lose_hp",
+          "amount": 3
+        }
+      ]
+    },
+    {
+      "id": "bloodletting_plus",
+      "name": "放血+",
+      "cost": 0,
+      "effects": [
+        {
+          "type": "gain_energy",
+          "amount": 3
+        },
+        {
+          "type": "lose_hp",
+          "amount": 3
+        }
+      ]
+    },
+    {
+      "id": "true_grit",
+      "name": "坚毅",
+      "cost": 1,
+      "upgrades_to": "true_grit_plus",
+      "effects": [
+        {
+          "type": "block",
+          "amount": 7
+        },
+        {
+          "type": "exhaust_random_hand",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "true_grit_plus",
+      "name": "坚毅+",
+      "cost": 1,
+      "effects": [
+        {
+          "type": "block",
+          "amount": 9
+        },
+        {
+          "type": "exhaust_target_card"
+        }
+      ]
+    },
+    {
+      "id": "armaments",
+      "name": "武装",
+      "cost": 1,
+      "upgrades_to": "armaments_plus",
+      "effects": [
+        {
+          "type": "block",
+          "amount": 5
+        },
+        {
+          "type": "upgrade_target_card"
+        }
+      ]
+    },
+    {
+      "id": "armaments_plus",
+      "name": "武装+",
+      "cost": 1,
+      "effects": [
+        {
+          "type": "block",
+          "amount": 5
+        },
+        {
+          "type": "upgrade_all_hand"
+        }
+      ]
+    },
+    {
+      "id": "terror",
+      "name": "恐怖",
+      "cost": 1,
+      "upgrades_to": "terror_plus",
+      "effects": [
+        {
+          "type": "vulnerable",
+          "stacks": 2
+        }
+      ]
+    },
+    {
+      "id": "terror_plus",
+      "name": "恐怖+",
+      "cost": 1,
+      "effects": [
+        {
+          "type": "vulnerable",
+          "stacks": 3
         }
       ]
     }

@@ -43,6 +43,21 @@ def describe_player_action(*, events: Sequence[CombatEvent]) -> list[str]:
             continue
         if event.event_type == "draw" and event.amount > 0:
             self_parts.append(f"抽 {event.amount} 张牌")
+            continue
+        if event.event_type == "add_card_to_discard" and event.card_name is not None and event.count > 0:
+            self_parts.append(f"向弃牌堆加入 {event.count} 张{event.card_name}")
+            continue
+        if event.event_type == "gain_energy" and event.amount > 0:
+            self_parts.append(f"获得 {event.amount} 点能量")
+            continue
+        if event.event_type == "lose_hp" and event.amount > 0:
+            self_parts.append(f"失去 {event.amount} 点生命")
+            continue
+        if event.event_type == "exhaust_card" and event.count > 0:
+            self_parts.append(f"消耗 {event.count} 张手牌")
+            continue
+        if event.event_type == "upgrade_card" and event.count > 0:
+            self_parts.append(f"升级 {event.count} 张手牌")
 
     parts: list[str] = []
     for target_name, values in target_parts.items():

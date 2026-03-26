@@ -251,3 +251,85 @@ def test_draw_effect_refills_from_discard_pile_when_draw_pile_runs_out():
     assert state.hand == ["pommel_a#1", "pommel_b#1"]
     assert state.draw_pile == []
     assert state.discard_pile == []
+
+
+def test_lose_hp_effect_reduces_player_hp_without_touching_block() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 10)],
+        effect_queue=[{"type": "lose_hp", "target_instance_id": "player-1", "amount": 3}],
+    )
+    state.player.block = 9
+
+    resolved = resolve_next_effect(state)
+
+    assert resolved["type"] == "lose_hp"
+    assert resolved["result"] == {"actual_hp_lost": 3}
+    assert state.player.hp == 67
+    assert state.player.block == 9
+
+
+def test_exhaust_random_hand_effect_moves_a_remaining_hand_card_to_exhaust() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 10)],
+        effect_queue=[{"type": "exhaust_random_hand", "count": 1}],
+    )
+    state.hand = ["true_grit_plus#1", "strike#2", "defend#3"]
+
+    resolved = resolve_next_effect(state)
+
+    assert resolved["type"] == "exhaust_random_hand"
+    exhausted_cards = resolved["result"]["exhausted_cards"]
+    assert len(exhausted_cards) == 1
+    assert exhausted_cards[0] in {"true_grit_plus#1", "strike#2", "defend#3"}
+    assert len(state.hand) == 2
+    assert exhausted_cards[0] not in state.hand
+    assert state.exhaust_pile == exhausted_cards
+
+
+def test_upgrade_target_card_effect_rewrites_card_instance_id_in_hand() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 10)],
+        effect_queue=[
+            {
+                "type": "upgrade_target_card",
+                "target_card_instance_id": "bash#3",
+                "upgraded_card_id": "bash_plus",
+            }
+        ],
+    )
+    state.hand = ["bash#3", "defend#4"]
+
+    resolved = resolve_next_effect(state)
+
+    assert resolved["type"] == "upgrade_target_card"
+    assert resolved["result"] == {
+        "upgraded_from": "bash#3",
+        "upgraded_to": "bash_plus#3",
+    }
+    assert state.hand == ["bash_plus#3", "defend#4"]
+
+
+def test_upgrade_all_hand_effect_upgrades_every_upgradeable_card_in_hand() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 10)],
+        effect_queue=[
+            {
+                "type": "upgrade_all_hand",
+                "upgrades": {
+                    "strike": "strike_plus",
+                    "defend": "defend_plus",
+                    "bash": "bash_plus",
+                },
+            }
+        ],
+    )
+    state.hand = ["strike#1", "defend#2", "burn#3"]
+
+    resolved = resolve_next_effect(state)
+
+    assert resolved["type"] == "upgrade_all_hand"
+    assert resolved["result"]["upgraded_cards"] == [
+        {"from": "strike#1", "to": "strike_plus#1"},
+        {"from": "defend#2", "to": "defend_plus#2"},
+    ]
+    assert state.hand == ["strike_plus#1", "defend_plus#2", "burn#3"]

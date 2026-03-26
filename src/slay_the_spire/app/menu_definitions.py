@@ -391,11 +391,17 @@ def build_select_card_menu(*, combat_state: CombatState, registry: ContentProvid
     return build_menu(title="手牌", options=options)
 
 
-def build_target_menu(*, enemy_options: list[tuple[str, str | Text]], current_card_name: str | None) -> MenuDefinition:
-    header_lines: list[str] = []
+def build_target_menu(
+    *,
+    target_options: list[tuple[str, str | Text]],
+    current_card_name: str | None,
+    title: str = "选择目标",
+    header_lines: list[str | Text] | tuple[str | Text, ...] = (),
+) -> MenuDefinition:
+    resolved_header_lines: list[str | Text] = list(header_lines)
     if current_card_name:
-        header_lines.append(f"当前卡牌: {current_card_name}")
-    return build_menu(title="选择目标", header_lines=header_lines, options=[*enemy_options, ("back", "返回上一步")])
+        resolved_header_lines.append(f"当前卡牌: {current_card_name}")
+    return build_menu(title=title, header_lines=resolved_header_lines, options=[*target_options, ("back", "返回上一步")])
 
 
 def _shop_offer_status(*, price: object, sold: bool, current_gold: int) -> str:

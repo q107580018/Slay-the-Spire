@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from slay_the_spire.content.registries import EnemyRegistry
+from slay_the_spire.use_cases.combat_log import describe_player_action
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
 from slay_the_spire.use_cases.combat_events import (
@@ -101,6 +102,7 @@ def test_build_player_action_events_uses_structured_effect_results() -> None:
         card_name="重击",
         resolved_effects=resolved_effects,
         entities=snapshots,
+        registry=None,
     )
 
     assert events == [
@@ -124,3 +126,25 @@ def test_build_enemy_turn_events_adds_sleep_event_without_damage_recomputation()
     assert events == [
         CombatEvent(event_type="sleep", actor_name="Training Dummy", amount=2),
     ]
+
+
+def test_build_player_action_events_include_created_card_copy_for_logs() -> None:
+    state = _combat_state()
+    snapshots = capture_entity_snapshots(state, _provider())
+    resolved_effects = [
+        {
+            "type": "create_card_copy",
+            "card_id": "anger",
+            "zone": "discard_pile",
+            "result": {"created_card_instance_id": "anger#2"},
+        }
+    ]
+
+    events = build_player_action_events(
+        card_name="愤怒",
+        resolved_effects=resolved_effects,
+        entities=snapshots,
+        registry=None,
+    )
+
+    assert describe_player_action(events=events) == ["你打出 愤怒，向弃牌堆加入 1 张anger。"]

@@ -55,6 +55,7 @@ def build_player_action_events(
     card_name: str,
     resolved_effects: Sequence[JsonDict],
     entities: Mapping[str, EntitySnapshot],
+    registry: ContentProviderPort | None = None,
 ) -> list[CombatEvent]:
     events = [CombatEvent(event_type="card_played", actor_name="你", card_name=card_name)]
     for effect in resolved_effects:
@@ -93,6 +94,36 @@ def build_player_action_events(
                 )
             )
             continue
+        if effect_type == "gain_energy":
+            events.append(
+                CombatEvent(
+                    event_type="gain_energy",
+                    actor_name="你",
+                    amount=_result_int(result, "gained_energy"),
+                )
+            )
+            continue
+        if effect_type == "lose_hp":
+            events.append(
+                CombatEvent(
+                    event_type="lose_hp",
+                    actor_name="你",
+                    amount=_result_int(result, "actual_hp_lost"),
+                )
+            )
+            continue
+        if effect_type == "create_card_copy":
+            if effect.get("zone") != "discard_pile":
+                continue
+            events.append(
+                CombatEvent(
+                    event_type="add_card_to_discard",
+                    actor_name="你",
+                    card_name=_card_name(effect.get("card_id"), registry) if registry is not None else str(effect.get("card_id")),
+                    count=1,
+                )
+            )
+            continue
         if effect_type == "vulnerable":
             target_name = _target_name(entities, effect)
             if target_name is None:
@@ -118,6 +149,35 @@ def build_player_action_events(
                     target_name=target_name,
                     status_id="weak",
                     stacks=_result_int(result, "applied_stacks"),
+                )
+            )
+            continue
+        if effect_type in {"exhaust_random_hand", "exhaust_target_card"}:
+            events.append(
+                CombatEvent(
+                    event_type="exhaust_card",
+                    actor_name="你",
+                    count=len(result.get("exhausted_cards", [])) if isinstance(result.get("exhausted_cards"), list) else 0,
+                )
+            )
+            continue
+        if effect_type == "upgrade_target_card":
+            upgraded_to = result.get("upgraded_to")
+            events.append(
+                CombatEvent(
+                    event_type="upgrade_card",
+                    actor_name="你",
+                    count=1 if isinstance(upgraded_to, str) else 0,
+                )
+            )
+            continue
+        if effect_type == "upgrade_all_hand":
+            upgraded_cards = result.get("upgraded_cards")
+            events.append(
+                CombatEvent(
+                    event_type="upgrade_card",
+                    actor_name="你",
+                    count=len(upgraded_cards) if isinstance(upgraded_cards, list) else 0,
                 )
             )
     return events

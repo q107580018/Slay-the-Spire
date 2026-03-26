@@ -698,7 +698,7 @@ def test_reward_renderer_uses_concrete_gold_and_card_labels() -> None:
     )
 
     assert "金币 +11" in output
-    assert "卡牌 不屈意志" in output
+    assert "卡牌 耸肩无视" in output
 
 
 def test_event_upgrade_menu_shows_card_name_with_instance_id() -> None:

@@ -391,6 +391,8 @@ def _resolve_target_id(combat_state: CombatState, target_index: str | None) -> s
         if len(living_targets) == 1:
             return living_targets[0]
         return None
+    if target_index.startswith("enemy:"):
+        target_index = target_index.split(":", 1)[1]
     try:
         index = int(target_index)
     except ValueError as exc:
@@ -400,7 +402,30 @@ def _resolve_target_id(combat_state: CombatState, target_index: str | None) -> s
     return living_targets[index - 1]
 
 
+def _resolve_hand_target_id(combat_state: CombatState, selected_card_instance_id: str, target_index: str) -> str:
+    if target_index.startswith("hand:"):
+        target_index = target_index.split(":", 1)[1]
+    try:
+        index = int(target_index)
+    except ValueError as exc:
+        raise ValueError("target index must be an integer") from exc
+    selectable_hand_cards = [card for card in combat_state.hand if card != selected_card_instance_id]
+    if index <= 0 or index > len(selectable_hand_cards):
+        raise ValueError("target index is out of range")
+    return selectable_hand_cards[index - 1]
+
+
 def _card_requires_target(card_instance_id: str, session: SessionState) -> bool:
+    card_def = _content_provider(session).cards().get(card_id_from_instance_id(card_instance_id))
+    return any(effect.get("type") in {"damage", "vulnerable", "exhaust_target_card", "upgrade_target_card"} for effect in card_def.effects)
+
+
+def _card_requires_hand_target(card_instance_id: str, session: SessionState) -> bool:
+    card_def = _content_provider(session).cards().get(card_id_from_instance_id(card_instance_id))
+    return any(effect.get("type") in {"exhaust_target_card", "upgrade_target_card"} for effect in card_def.effects)
+
+
+def _card_requires_enemy_target(card_instance_id: str, session: SessionState) -> bool:
     card_def = _content_provider(session).cards().get(card_id_from_instance_id(card_instance_id))
     return any(effect.get("type") in {"damage", "vulnerable"} for effect in card_def.effects)
 
@@ -524,8 +549,12 @@ def route_command(command: str, *, session: SessionState) -> tuple[bool, Session
         try:
             card_instance_id = _resolve_hand_card(combat_state, parts[1])
             card_def = _content_provider(next_session).cards().get(card_id_from_instance_id(card_instance_id))
-            target_id = _resolve_target_id(combat_state, parts[2] if len(parts) == 3 else None)
-            if any(effect.get("type") in {"damage", "vulnerable"} for effect in card_def.effects) and target_id is None:
+            target_token = parts[2] if len(parts) == 3 else None
+            if _card_requires_hand_target(card_instance_id, next_session):
+                target_id = _resolve_hand_target_id(combat_state, card_instance_id, target_token) if target_token is not None else None
+            else:
+                target_id = _resolve_target_id(combat_state, target_token)
+            if _card_requires_target(card_instance_id, next_session) and target_id is None:
                 return True, next_session, "Target is required."
             result = play_card(
                 combat_state,
@@ -911,7 +940,10 @@ def _route_card_menu(choice: str, session: SessionState) -> tuple[bool, SessionS
         card_instance_id = _resolve_hand_card(combat_state, choice_index)
     except ValueError:
         return _invalid_menu_choice(session)
-    if _card_requires_target(card_instance_id, session) and len(_combat_target_ids(combat_state)) > 1:
+    requires_hand_target = _card_requires_hand_target(card_instance_id, session)
+    requires_enemy_target = _card_requires_enemy_target(card_instance_id, session)
+    should_select_target = requires_hand_target or (requires_enemy_target and len(_combat_target_ids(combat_state)) > 1)
+    if should_select_target:
         next_session = replace(
             session,
             menu_state=MenuState(mode="select_target", selected_card_instance_id=card_instance_id),
@@ -933,32 +965,37 @@ def _route_target_menu(choice: str, session: SessionState) -> tuple[bool, Sessio
     if selected_card_instance_id is None:
         next_session = replace(session, menu_state=MenuState(mode="select_card"))
         return True, next_session, render_session(next_session)
-    targets = _combat_target_ids(combat_state)
+    enemy_targets = _combat_target_ids(combat_state) if _card_requires_enemy_target(selected_card_instance_id, session) else []
+    hand_targets = [card for card in combat_state.hand if card != selected_card_instance_id] if _card_requires_hand_target(selected_card_instance_id, session) else []
+    target_options = [
+        *( (f"target_enemy:{index}", target_id) for index, target_id in enumerate(enemy_targets, start=1) ),
+        *( (f"target_hand:{index}", card_id) for index, card_id in enumerate(hand_targets, start=1) ),
+    ]
     action_id = resolve_menu_action(
         choice,
         build_target_menu(
-            enemy_options=[(f"target:{index}", target_id) for index, target_id in enumerate(targets, start=1)],
+            target_options=target_options,
             current_card_name=None,
         ),
     )
     if action_id == "back":
         next_session = replace(session, menu_state=MenuState(mode="select_card"))
         return True, next_session, render_session(next_session)
-    if action_id is None or not action_id.startswith("target:"):
-        return _invalid_menu_choice(session)
-    try:
-        target_index = int(action_id.split(":", 1)[1])
-    except ValueError:
-        return _invalid_menu_choice(session)
-    if target_index <= 0 or target_index > len(targets):
+    if action_id is None:
         return _invalid_menu_choice(session)
     try:
         hand_index = _hand_index_for_card(combat_state, selected_card_instance_id)
     except ValueError:
         next_session = replace(session, menu_state=MenuState())
         return True, next_session, "所选手牌已发生变化，请重新选择。"
+    if action_id.startswith("target_enemy:"):
+        target_token = f"enemy:{action_id.split(':', 1)[1]}"
+    elif action_id.startswith("target_hand:"):
+        target_token = f"hand:{action_id.split(':', 1)[1]}"
+    else:
+        return _invalid_menu_choice(session)
     running, next_session, message = route_command(
-        f"play {hand_index} {target_index}",
+        f"play {hand_index} {target_token}",
         session=replace(session, menu_state=MenuState()),
     )
     next_session = _preserve_menu_history(next_session, history_session=session)

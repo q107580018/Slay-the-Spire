@@ -3,21 +3,34 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from slay_the_spire.domain.combat.turn_flow import resolve_player_actions
-from slay_the_spire.domain.effects.effect_types import EFFECT_DAMAGE, EFFECT_VULNERABLE, EFFECT_WEAK, copy_effect
+from slay_the_spire.domain.effects.effect_types import (
+    EFFECT_DAMAGE,
+    EFFECT_EXHAUST_TARGET_CARD,
+    EFFECT_UPGRADE_TARGET_CARD,
+    EFFECT_UPGRADE_ALL_HAND,
+    EFFECT_VULNERABLE,
+    EFFECT_WEAK,
+    copy_effect,
+)
 from slay_the_spire.domain.hooks.hook_types import HookRegistration
 from slay_the_spire.domain.models.cards import CombatActionResult, card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
+from slay_the_spire.content.registries import CardDef
 from slay_the_spire.ports.content_provider import ContentProviderPort
 from slay_the_spire.shared.types import JsonDict
 from slay_the_spire.use_cases.combat_events import build_player_action_events, capture_entity_snapshots
 from slay_the_spire.use_cases.combat_log import append_log_entries, describe_player_action
 
 _TARGETED_EFFECT_TYPES = {EFFECT_DAMAGE, EFFECT_VULNERABLE, EFFECT_WEAK}
+_HAND_TARGETED_EFFECT_TYPES = {EFFECT_EXHAUST_TARGET_CARD, EFFECT_UPGRADE_TARGET_CARD}
 
 
 def _materialize_card_effects(
     raw_effects: Sequence[JsonDict],
     *,
+    combat_state: CombatState,
+    card_instance_id: str,
+    registry: ContentProviderPort,
     source_instance_id: str,
     target_id: str | None,
 ) -> list[JsonDict]:
@@ -33,7 +46,29 @@ def _materialize_card_effects(
             if target_id is None:
                 raise ValueError("target is required for targeted cards")
             effect["target_instance_id"] = target_id
-        elif effect_type in {"block", "draw"} and "target_instance_id" not in effect:
+        elif effect_type in _HAND_TARGETED_EFFECT_TYPES:
+            if target_id is None:
+                raise ValueError("target is required for targeted cards")
+            if target_id == card_instance_id:
+                raise ValueError("不能将当前打出的牌作为目标。")
+            if target_id not in combat_state.hand:
+                raise ValueError("target card is not in hand")
+            effect["target_card_instance_id"] = target_id
+            if effect_type == EFFECT_UPGRADE_TARGET_CARD:
+                target_card_def = registry.cards().get(card_id_from_instance_id(target_id))
+                if target_card_def.upgrades_to is None:
+                    raise ValueError("所选卡牌无法升级。")
+                effect["upgraded_card_id"] = target_card_def.upgrades_to
+        elif effect_type == EFFECT_UPGRADE_ALL_HAND:
+            upgrades: dict[str, str] = {}
+            for hand_card_instance_id in combat_state.hand:
+                if hand_card_instance_id == card_instance_id:
+                    continue
+                hand_card_def = registry.cards().get(card_id_from_instance_id(hand_card_instance_id))
+                if hand_card_def.upgrades_to is not None:
+                    upgrades[card_id_from_instance_id(hand_card_instance_id)] = hand_card_def.upgrades_to
+            effect["upgrades"] = upgrades
+        elif effect_type in {"block", "draw", "lose_hp"} and "target_instance_id" not in effect:
             effect["target_instance_id"] = source_instance_id
         effects.append(effect)
     return effects
@@ -59,6 +94,9 @@ def play_card(
 
     materialized_effects = _materialize_card_effects(
         card_def.effects,
+        combat_state=combat_state,
+        card_instance_id=card_instance_id,
+        registry=registry,
         source_instance_id=combat_state.player.instance_id,
         target_id=target_id,
     )
@@ -66,7 +104,10 @@ def play_card(
 
     combat_state.energy -= card_def.cost
     combat_state.hand.remove(card_instance_id)
-    combat_state.discard_pile.append(card_instance_id)
+    if getattr(card_def, "exhausts", False):
+        combat_state.exhaust_pile.append(card_instance_id)
+    else:
+        combat_state.discard_pile.append(card_instance_id)
     combat_state.effect_queue.extend(materialized_effects)
     resolved_effects = resolve_player_actions(
         combat_state,
@@ -79,6 +120,7 @@ def play_card(
                 card_name=card_def.name,
                 resolved_effects=resolved_effects,
                 entities=snapshots_before,
+                registry=registry,
             ),
         ),
     )
