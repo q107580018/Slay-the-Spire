@@ -27,7 +27,7 @@ def _build_card_instance_ids(card_ids: list[str]) -> list[str]:
     return [f"{card_id}#{index}" for index, card_id in enumerate(card_ids, start=1)]
 
 
-def _build_enemy_state(enemy_id: str, registry: ContentProviderPort) -> EnemyState:
+def _build_enemy_state(enemy_id: str, registry: ContentProviderPort, *, instance_id: str) -> EnemyState:
     enemy_def = registry.enemies().get(enemy_id)
     statuses: list[StatusState] = []
     if enemy_def.move_table:
@@ -39,7 +39,7 @@ def _build_enemy_state(enemy_id: str, registry: ContentProviderPort) -> EnemySta
             if sleep_turns > 0:
                 statuses.append(StatusState(status_id="sleeping", stacks=sleep_turns))
     return EnemyState(
-        instance_id="enemy-1",
+        instance_id=instance_id,
         enemy_id=enemy_def.id,
         hp=enemy_def.hp,
         max_hp=enemy_def.hp,
@@ -48,22 +48,39 @@ def _build_enemy_state(enemy_id: str, registry: ContentProviderPort) -> EnemySta
     )
 
 
+def _select_combat_enemy_ids(
+    run_state: RunState,
+    *,
+    room_id: str,
+    enemy_pool_id: str,
+    registry: ContentProviderPort,
+) -> tuple[str | None, list[str]]:
+    encounter_entries = list(registry.encounter_pool_entries(enemy_pool_id))
+    if not encounter_entries:
+        raise ValueError(f"encounter pool {enemy_pool_id} must contain at least one encounter")
+    encounter_rng = _offer_rng(run_state, room_id, "enemy")
+    encounter_id = weighted_choice(
+        [(entry.member_id, entry.weight) for entry in encounter_entries],
+        rng=encounter_rng,
+    )
+    encounter = registry.encounters().get(encounter_id)
+    return encounter_id, list(encounter.enemy_ids)
+
+
 def _build_combat_state(
     run_state: RunState,
     *,
     room_id: str,
     enemy_pool_id: str,
     registry: ContentProviderPort,
-) -> CombatState:
+) -> tuple[CombatState, str | None]:
     character = registry.characters().get(run_state.character_id)
     deck_instance_ids = list(run_state.deck) or _build_card_instance_ids(list(character.starter_deck))
-    enemy_entries = list(registry.enemy_pool_entries(enemy_pool_id))
-    if not enemy_entries:
-        raise ValueError(f"enemy pool {enemy_pool_id} must contain at least one enemy")
-    enemy_rng = _offer_rng(run_state, room_id, "enemy")
-    enemy_id = weighted_choice(
-        [(entry.member_id, entry.weight) for entry in enemy_entries],
-        rng=enemy_rng,
+    encounter_id, enemy_ids = _select_combat_enemy_ids(
+        run_state,
+        room_id=room_id,
+        enemy_pool_id=enemy_pool_id,
+        registry=registry,
     )
 
     state = CombatState(
@@ -80,7 +97,10 @@ def _build_combat_state(
             block=0,
             statuses=[],
         ),
-        enemies=[_build_enemy_state(enemy_id, registry)],
+        enemies=[
+            _build_enemy_state(enemy_id, registry, instance_id=f"enemy-{index}")
+            for index, enemy_id in enumerate(enemy_ids, start=1)
+        ],
         effect_queue=[],
         log=[],
     )
@@ -88,7 +108,7 @@ def _build_combat_state(
     registrations = build_runtime_hook_registrations(run_state, registry)
     dispatch_hook(state, "on_combat_start", registrations)
     resolve_effect_queue(state, hook_registrations=registrations)
-    return state
+    return state, encounter_id
 
 
 def _offer_rng(run_state: RunState, room_id: str, category: str):
@@ -179,12 +199,15 @@ def enter_room(run_state: RunState, act_state: ActState, node_id: str, registry:
         if enemy_pool_id is None:
             raise ValueError(f"{room_kind} rooms require an enemy pool id")
         payload["enemy_pool_id"] = enemy_pool_id
-        payload["combat_state"] = _build_combat_state(
+        combat_state, encounter_id = _build_combat_state(
             run_state,
             room_id=room_id,
             enemy_pool_id=enemy_pool_id,
             registry=registry,
-        ).to_dict()
+        )
+        if encounter_id is not None:
+            payload["encounter_id"] = encounter_id
+        payload["combat_state"] = combat_state.to_dict()
     elif room_kind == "event":
         if act_state.event_pool_id is None:
             raise ValueError("event rooms require an event pool id")

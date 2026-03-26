@@ -7,6 +7,7 @@ from slay_the_spire.content.registries import (
     ActRegistry,
     CardRegistry,
     CharacterRegistry,
+    EncounterRegistry,
     EnemyRegistry,
     EventRegistry,
     PotionRegistry,
@@ -28,6 +29,9 @@ class StarterContentProvider(ContentProviderPort):
     def enemies(self) -> EnemyRegistry:
         return self._catalog.enemies
 
+    def encounters(self) -> EncounterRegistry:
+        return self._catalog.encounters
+
     def relics(self) -> RelicRegistry:
         return self._catalog.relics
 
@@ -45,6 +49,9 @@ class StarterContentProvider(ContentProviderPort):
 
     def enemy_pool_entries(self, pool_id: str) -> tuple[WeightedPoolEntry, ...]:
         return self._catalog.enemy_pool_entries_for_pool(pool_id)
+
+    def encounter_pool_entries(self, pool_id: str) -> tuple[WeightedPoolEntry, ...]:
+        return self._catalog.encounter_pool_entries_for_pool(pool_id)
 
     def event_ids_for_pool(self, pool_id: str) -> tuple[str, ...]:
         return self._catalog.event_ids_for_pool(pool_id)

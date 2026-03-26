@@ -1,0 +1,12 @@
+{
+  "encounters": [
+    {
+      "id": "single_lagavulin",
+      "name": "单只沉睡巨像",
+      "enemy_ids": [
+        "lagavulin"
+      ],
+      "pool_weight": 1
+    }
+  ]
+}

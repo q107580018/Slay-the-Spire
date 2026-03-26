@@ -1,0 +1,12 @@
+{
+  "encounters": [
+    {
+      "id": "single_hexaghost",
+      "name": "六火幽魂",
+      "enemy_ids": [
+        "hexaghost"
+      ],
+      "pool_weight": 1
+    }
+  ]
+}
