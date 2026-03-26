@@ -8,7 +8,7 @@ from slay_the_spire.domain.effects.effect_types import copy_effect, damage_effec
 from slay_the_spire.domain.hooks.hook_types import HookRegistration
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
-from slay_the_spire.domain.models.entities import EnemyState
+from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
 from slay_the_spire.domain.models.statuses import StatusState
 from slay_the_spire.ports.content_provider import ContentProviderPort
 from slay_the_spire.shared.types import JsonDict
@@ -71,6 +71,29 @@ def _tick_temporary_statuses(entity: PlayerCombatState | EnemyState) -> None:
             )
         )
     entity.statuses = next_statuses
+
+
+def _consume_status_stack(entity: PlayerCombatState | EnemyState, status_id: str) -> bool:
+    for index, status in enumerate(entity.statuses):
+        if status.status_id != status_id:
+            continue
+        remaining_stacks = status.stacks - 1
+        if remaining_stacks <= 0:
+            entity.statuses.pop(index)
+        else:
+            entity.statuses[index] = StatusState(
+                status_id=status.status_id,
+                stacks=remaining_stacks,
+                duration=status.duration,
+            )
+        return True
+    return False
+
+
+def _clear_block_for_turn_start(entity: PlayerCombatState | EnemyState) -> None:
+    if _consume_status_stack(entity, "blur"):
+        return
+    entity.block = 0
 
 
 def _sleep_turns(enemy_def: EnemyDef) -> int:
@@ -198,6 +221,7 @@ def start_turn(
     hand_size: int = DEFAULT_HAND_SIZE,
     energy_per_turn: int = DEFAULT_ENERGY_PER_TURN,
 ) -> CombatState:
+    _clear_block_for_turn_start(state.player)
     state.energy = energy_per_turn
     _draw_cards(state, amount=max(hand_size - len(state.hand), 0))
     return state
@@ -220,6 +244,7 @@ def run_enemy_turn(
     for enemy in state.enemies:
         if enemy.hp <= 0:
             continue
+        _clear_block_for_turn_start(enemy)
         enemy_def = registry.enemies().get(enemy.enemy_id)
         move = _select_enemy_move(state, enemy, enemy_def)
         if move is None:

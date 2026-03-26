@@ -233,6 +233,38 @@ def test_end_turn_log_reports_block_absorption_and_actual_damage() -> None:
     assert state.log == ["Training Slime攻击你 5，格挡抵消 2，实际受到 3。"]
 
 
+def test_end_turn_clears_remaining_player_block_at_next_player_turn() -> None:
+    registry = _enemy_registry()
+    state = _combat_state()
+    state.player.block = 8
+
+    end_turn(state, registry)
+
+    assert state.player.block == 0
+
+
+def test_end_turn_keeps_player_block_when_blur_status_is_active() -> None:
+    registry = _enemy_registry()
+    state = _combat_state()
+    state.player.block = 8
+    state.player.statuses.append(StatusState(status_id="blur", stacks=1))
+
+    end_turn(state, registry)
+
+    assert state.player.block == 3
+    assert state.player.statuses == []
+
+
+def test_end_turn_clears_enemy_block_at_start_of_enemy_turn() -> None:
+    registry = _enemy_registry()
+    state = _combat_state()
+    state.enemies[0].block = 4
+
+    end_turn(state, registry)
+
+    assert state.enemies[0].block == 0
+
+
 def test_end_turn_log_reports_sleeping_enemy() -> None:
     registry = _Registry()
     registry.enemies().register(
