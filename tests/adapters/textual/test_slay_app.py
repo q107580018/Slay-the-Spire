@@ -7,10 +7,17 @@ from io import StringIO
 
 import pytest
 from rich.console import Console
+from textual.widgets import OptionList, Static
 
 from slay_the_spire.adapters.textual.map_widget import MapWidget
 from slay_the_spire.adapters.terminal.theme import TERMINAL_THEME
-from slay_the_spire.adapters.textual.slay_app import SlayApp, _current_action_menu, _menu_choice_for_action, _render_to_rich
+from slay_the_spire.adapters.textual.slay_app import (
+    SlayApp,
+    _current_action_menu,
+    _hover_preview_renderable,
+    _menu_choice_for_action,
+    _render_to_rich,
+)
 from slay_the_spire.app.menu_definitions import build_next_room_menu, build_root_menu
 from slay_the_spire.app.session import render_session_renderable, start_session
 
@@ -204,3 +211,515 @@ def test_textual_log_renderable_still_omits_footer_menu_after_map_polish() -> No
     console.print(_render_to_rich(session))
 
     assert "可选操作" not in buffer.getvalue()
+
+
+def test_textual_log_renderable_omits_duplicate_map_panel() -> None:
+    base_session = start_session(seed=5)
+    session = replace(
+        base_session,
+        room_state=replace(
+            base_session.room_state,
+            room_type="rest",
+            stage="waiting_input",
+            is_resolved=False,
+            payload={"actions": ["rest", "smith"], "node_id": "1"},
+        ),
+    )
+    buffer = StringIO()
+    console = Console(file=buffer, force_terminal=False, color_system=None, theme=TERMINAL_THEME)
+
+    console.print(_render_to_rich(session))
+
+    output = buffer.getvalue()
+    assert "TIP |" not in output
+    assert "TYPE |" not in output
+
+
+def test_hover_preview_panel_is_present_in_reward_menu() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="combat",
+            stage="completed",
+            is_resolved=True,
+            rewards=["card_offer:anger", "gold:15"],
+        ),
+        menu_state=replace(base.menu_state, mode="select_reward"),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            assert app.query_one("#hover-preview", Static).display is True
+
+    asyncio.run(scenario())
+
+
+def test_hover_preview_panel_shows_guidance_in_reward_menu() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="combat",
+            stage="completed",
+            is_resolved=True,
+            rewards=["card_offer:anger", "gold:15"],
+        ),
+        menu_state=replace(base.menu_state, mode="select_reward"),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            preview = app.query_one("#hover-preview", Static)
+            assert "查看说明" in preview.render().plain
+
+    asyncio.run(scenario())
+
+
+def test_hover_preview_shows_card_reward_details_on_mouse_hover() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="combat",
+            stage="completed",
+            is_resolved=True,
+            rewards=["card_offer:anger", "gold:15"],
+        ),
+        menu_state=replace(base.menu_state, mode="select_reward"),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            await pilot.hover("#action-list", offset=(3, 1))
+            await pilot.pause()
+            preview = app.query_one("#hover-preview", Static)
+            assert "愤怒" in preview.render().plain
+            assert "费用" in preview.render().plain
+            assert "效果" in preview.render().plain
+
+    asyncio.run(scenario())
+
+
+def test_hover_preview_panel_is_present_in_shop_root_menu() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="shop",
+            stage="waiting_input",
+            is_resolved=False,
+            payload={"cards": [], "relics": [], "potions": []},
+        ),
+        menu_state=replace(base.menu_state, mode="shop_root"),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            assert app.query_one("#hover-preview", Static).display is True
+
+    asyncio.run(scenario())
+
+
+def test_hover_preview_panel_is_hidden_after_leaving_reward_menu() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="combat",
+            stage="completed",
+            is_resolved=True,
+            rewards=["card_offer:anger", "gold:15"],
+        ),
+        menu_state=replace(base.menu_state, mode="select_reward"),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            menu = _current_action_menu(app._session)
+            assert menu is not None
+            assert app.query_one("#hover-preview", Static).display is True
+            back_choice = _menu_choice_for_action(menu, "back")
+            assert back_choice is not None
+            app._process_command(back_choice)
+            await pilot.pause()
+            assert app.query_one("#hover-preview", Static).display is False
+
+    asyncio.run(scenario())
+
+
+def test_hover_preview_shows_card_reward_details_for_highlighted_reward() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="combat",
+            stage="completed",
+            is_resolved=True,
+            rewards=["card_offer:anger", "gold:15"],
+        ),
+        menu_state=replace(base.menu_state, mode="select_reward"),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            action_list = app.query_one("#action-list", OptionList)
+            action_list.highlighted = 0
+            await pilot.pause()
+            preview = app.query_one("#hover-preview", Static)
+            assert "愤怒" in preview.render().plain
+            assert "费用" in preview.render().plain
+            assert "效果" in preview.render().plain
+
+    asyncio.run(scenario())
+
+
+def test_hover_preview_shows_control_hint_for_claim_all() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="combat",
+            stage="completed",
+            is_resolved=True,
+            rewards=["gold:15", "event:gain_upgrade"],
+        ),
+        menu_state=replace(base.menu_state, mode="select_reward"),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            action_list = app.query_one("#action-list", OptionList)
+            action_list.highlighted = 2
+            await pilot.pause()
+            preview = app.query_one("#hover-preview", Static)
+            assert "全部领取" in preview.render().plain
+
+    asyncio.run(scenario())
+
+
+def test_hover_preview_shows_boss_relic_details() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="boss",
+            stage="completed",
+            is_resolved=True,
+            payload={
+                "boss_rewards": {
+                    "gold_reward": 100,
+                    "claimed_gold": True,
+                    "claimed_relic_id": None,
+                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper"],
+                }
+            },
+        ),
+        menu_state=replace(base.menu_state, mode="select_boss_relic"),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            action_list = app.query_one("#action-list", OptionList)
+            action_list.highlighted = 0
+            await pilot.pause()
+            preview = app.query_one("#hover-preview", Static)
+            assert "黑色之血" in preview.render().plain
+            assert "禁用操作" in preview.render().plain or "替换原遗物" in preview.render().plain
+
+    asyncio.run(scenario())
+
+
+def test_hover_preview_shows_shop_potion_details() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="shop",
+            stage="waiting_input",
+            is_resolved=False,
+            payload={
+                "cards": [],
+                "relics": [],
+                "potions": [{"offer_id": "potion-1", "potion_id": "fire_potion", "price": 20}],
+                "remove_price": 75,
+            },
+        ),
+        menu_state=replace(base.menu_state, mode="shop_root"),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            action_list = app.query_one("#action-list", OptionList)
+            action_list.highlighted = 0
+            await pilot.pause()
+            preview = app.query_one("#hover-preview", Static)
+            assert "火焰药水" in preview.render().plain
+            assert "药水" in preview.render().plain or "效果" in preview.render().plain
+            assert "20" in preview.render().plain
+
+    asyncio.run(scenario())
+
+
+def test_hover_preview_shows_shop_relic_details() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="shop",
+            stage="waiting_input",
+            is_resolved=False,
+            payload={
+                "cards": [],
+                "relics": [{"offer_id": "relic-1", "relic_id": "black_blood", "price": 150}],
+                "potions": [],
+                "remove_price": 75,
+            },
+        ),
+        menu_state=replace(base.menu_state, mode="shop_root"),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            action_list = app.query_one("#action-list", OptionList)
+            action_list.highlighted = 0
+            await pilot.pause()
+            preview = app.query_one("#hover-preview", Static)
+            assert "黑色之血" in preview.render().plain
+            assert "遗物" in preview.render().plain
+            assert (
+                "金币规则" in preview.render().plain
+                or "禁用操作" in preview.render().plain
+                or "替换原遗物" in preview.render().plain
+            )
+
+    asyncio.run(scenario())
+
+
+def test_hover_preview_shows_shop_card_details() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="shop",
+            stage="waiting_input",
+            is_resolved=False,
+            payload={
+                "cards": [{"offer_id": "card-1", "card_id": "anger", "price": 65}],
+                "relics": [],
+                "potions": [],
+                "remove_price": 75,
+            },
+        ),
+        menu_state=replace(base.menu_state, mode="shop_root"),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            action_list = app.query_one("#action-list", OptionList)
+            action_list.highlighted = 0
+            await pilot.pause()
+            preview = app.query_one("#hover-preview", Static)
+            rendered = preview.render().plain
+            assert "愤怒" in rendered
+            assert "费用" in rendered
+            assert "效果" in rendered
+            assert "查看说明" not in rendered
+
+    asyncio.run(scenario())
+
+
+def test_hover_preview_shows_shop_remove_service_hint() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="shop",
+            stage="waiting_input",
+            is_resolved=False,
+            payload={
+                "cards": [],
+                "relics": [{"offer_id": "relic-1", "relic_id": "black_blood", "price": 150}],
+                "potions": [{"offer_id": "potion-1", "potion_id": "fire_potion", "price": 20}],
+                "remove_price": 75,
+            },
+        ),
+        menu_state=replace(base.menu_state, mode="shop_root"),
+    )
+
+    preview = _hover_preview_renderable(session, "remove")
+    assert preview is not None
+    assert "删牌服务" in preview.plain
+    assert "黑色之血" not in preview.plain
+    assert "火焰药水" not in preview.plain
+
+
+def test_hover_preview_shows_boss_reward_entry_hint() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="boss",
+            stage="completed",
+            is_resolved=True,
+            payload={
+                "boss_rewards": {
+                    "gold_reward": 100,
+                    "claimed_gold": False,
+                    "claimed_relic_id": None,
+                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper"],
+                }
+            },
+        ),
+        menu_state=replace(base.menu_state, mode="select_boss_reward"),
+    )
+
+    preview = _hover_preview_renderable(session, "choose_boss_relic")
+    assert preview is not None
+    assert "进入首领遗物选择" in preview.plain
+
+
+def test_hover_preview_maps_task5_control_actions() -> None:
+    base = start_session(seed=5)
+    shop_session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="shop",
+            stage="waiting_input",
+            is_resolved=False,
+            payload={
+                "cards": [],
+                "relics": [],
+                "potions": [],
+                "remove_price": 75,
+            },
+        ),
+        menu_state=replace(base.menu_state, mode="shop_root"),
+    )
+    boss_reward_session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="boss",
+            stage="completed",
+            is_resolved=True,
+            payload={
+                "boss_rewards": {
+                    "gold_reward": 100,
+                    "claimed_gold": False,
+                    "claimed_relic_id": None,
+                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper"],
+                }
+            },
+        ),
+        menu_state=replace(base.menu_state, mode="select_boss_reward"),
+    )
+
+    cases = [
+        (shop_session, "remove", "删牌服务"),
+        (shop_session, "leave", "离开商店"),
+        (shop_session, "inspect", "查看资料"),
+        (shop_session, "save", "保存游戏"),
+        (shop_session, "load", "读取存档"),
+        (shop_session, "quit", "退出游戏"),
+        (boss_reward_session, "claim_boss_gold", "领取首领金币"),
+        (boss_reward_session, "claimed_boss_gold", "首领金币已领取"),
+        (boss_reward_session, "choose_boss_relic", "进入首领遗物选择"),
+        (boss_reward_session, "claimed_boss_relic", "首领遗物已选择"),
+        (boss_reward_session, "back", "返回上一步"),
+    ]
+
+    for session, action_id, expected in cases:
+        preview = _hover_preview_renderable(session, action_id)
+        assert preview is not None
+        assert expected in preview.plain
+        assert "Boss" not in preview.plain
+
+
+def test_hover_preview_ignores_unsupported_claim_reward_prefix() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="combat",
+            stage="completed",
+            is_resolved=True,
+            rewards=["gold:15"],
+        ),
+        menu_state=replace(base.menu_state, mode="select_reward"),
+    )
+
+    assert _hover_preview_renderable(session, "claim_reward:potion:fire_potion") is None
+
+
+def test_hover_preview_has_usable_height_for_boss_relic_details_at_default_size() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="boss",
+            stage="completed",
+            is_resolved=True,
+            payload={
+                "boss_rewards": {
+                    "gold_reward": 100,
+                    "claimed_gold": True,
+                    "claimed_relic_id": None,
+                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper"],
+                }
+            },
+        ),
+        menu_state=replace(base.menu_state, mode="select_boss_relic"),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test(size=(80, 24)) as pilot:
+            await pilot.pause()
+            action_list = app.query_one("#action-list", OptionList)
+            action_list.highlighted = 0
+            await pilot.pause()
+            preview = app.query_one("#hover-preview", Static)
+            rendered = preview.render().plain
+            assert "黑色之血" in rendered
+            assert preview.size.height > 3
+
+    asyncio.run(scenario())

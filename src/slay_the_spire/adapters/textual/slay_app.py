@@ -4,7 +4,9 @@ from __future__ import annotations
 from typing import Any
 
 from rich.console import Group
-from textual import on
+from rich.panel import Panel
+from rich.text import Text
+from textual import events, on
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.css.query import NoMatches
@@ -45,6 +47,12 @@ from slay_the_spire.app.session import (
 )
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
+from slay_the_spire.adapters.terminal.inspect import (
+    format_card_detail_lines,
+    format_potion_detail_lines,
+    format_relic_detail_lines,
+    format_reward_detail_lines,
+)
 
 _ROOM_LABELS: dict[str, str] = {
     "combat": "战斗房",
@@ -56,14 +64,29 @@ _ROOM_LABELS: dict[str, str] = {
 }
 
 
+def _is_full_map_panel(renderable: object) -> bool:
+    return isinstance(renderable, Panel) and _plain_label(renderable.title) == "完整地图"
+
+
+def _strip_full_map_panel(renderable: Any) -> Any:
+    if _is_full_map_panel(renderable):
+        return None
+    if isinstance(renderable, Group):
+        filtered = [_strip_full_map_panel(item) for item in renderable.renderables]
+        kept = [item for item in filtered if item is not None]
+        return Group(*kept)
+    return renderable
+
+
 def _render_to_rich(session: SessionState) -> Any:
     """把 session 转成 Rich renderable，供 RichLog 显示。"""
     renderable = render_session_renderable(session)
     if isinstance(renderable, Group):
         renderables = list(renderable.renderables)
         if len(renderables) >= 3:
-            return Group(*renderables[:-1])
-    return renderable
+            renderable = Group(*renderables[:-1])
+    stripped = _strip_full_map_panel(renderable)
+    return renderable if stripped is None else stripped
 
 
 def _menu_choice_for_action(menu: MenuDefinition, action_id: str) -> str | None:
@@ -89,6 +112,115 @@ def _boss_rewards(session: SessionState) -> dict[str, object] | None:
     if not isinstance(rewards, dict):
         return None
     return rewards
+
+
+def _supports_hover_preview(menu_mode: str) -> bool:
+    return menu_mode in {"select_reward", "select_boss_reward", "select_boss_relic", "shop_root"}
+
+
+def _reward_card_instance_id(reward_id: str) -> str | None:
+    if reward_id.startswith("card_offer:") or reward_id.startswith("card:"):
+        reward_name = reward_id.split(":", 1)[1]
+        if reward_name == "reward_strike":
+            return "strike_plus#reward"
+        if reward_name == "reward_defend":
+            return "defend_plus#reward"
+        return f"{reward_name}#reward"
+    return None
+
+
+def _supports_reward_preview(reward_id: str) -> bool:
+    return reward_id.startswith(("card_offer:", "card:", "gold:", "event:", "relic:"))
+
+
+def _text_from_lines(lines: list[str | Text]) -> Text:
+    rendered = Text()
+    for index, line in enumerate(lines):
+        if index > 0:
+            rendered.append("\n")
+        if isinstance(line, Text):
+            rendered.append_text(line)
+        else:
+            rendered.append(line)
+    return rendered
+
+
+def _reward_preview_renderable(session: SessionState, action_id: str) -> Text | None:
+    if action_id.startswith("claim_reward:"):
+        reward_id = action_id.split(":", 1)[1]
+        if not _supports_reward_preview(reward_id):
+            return None
+        card_instance_id = _reward_card_instance_id(reward_id)
+        if card_instance_id is not None:
+            return _text_from_lines(format_card_detail_lines(card_instance_id, _content_provider(session)))
+        return _text_from_lines(format_reward_detail_lines(reward_id, _content_provider(session)))
+    if action_id == "claim_all":
+        return Text("控制项：全部领取")
+    if action_id == "back":
+        return Text("控制项：返回上一步")
+    if action_id == "skip_card_rewards":
+        return Text("控制项：跳过卡牌奖励")
+    return None
+
+
+def _shop_offer_by_action_id(session: SessionState, action_id: str, *, offer_type: str, item_key: str) -> str | None:
+    if not action_id.startswith(f"{offer_type}:"):
+        return None
+    offer_id = action_id.split(":", 1)[1]
+    offers = session.room_state.payload.get(f"{item_key}s")
+    if not isinstance(offers, list):
+        return None
+    for offer in offers:
+        if not isinstance(offer, dict) or offer.get("offer_id") != offer_id:
+            continue
+        item_id = offer.get(f"{item_key}_id")
+        if isinstance(item_id, str):
+            return item_id
+    return None
+
+
+def _hover_preview_renderable(session: SessionState, action_id: str) -> Text | None:
+    if session.menu_state.mode == "select_reward":
+        return _reward_preview_renderable(session, action_id)
+    if session.menu_state.mode == "select_boss_reward":
+        if action_id == "claim_boss_gold":
+            return Text("控制项：领取首领金币")
+        if action_id == "claimed_boss_gold":
+            return Text("控制项：首领金币已领取")
+        if action_id == "choose_boss_relic":
+            return Text("控制项：进入首领遗物选择")
+        if action_id == "claimed_boss_relic":
+            return Text("控制项：首领遗物已选择")
+        if action_id == "back":
+            return Text("控制项：返回上一步")
+        return None
+    if session.menu_state.mode == "select_boss_relic" and action_id.startswith("claim_boss_relic:"):
+        relic_id = action_id.split(":", 1)[1]
+        return _text_from_lines(format_relic_detail_lines(relic_id, _content_provider(session)))
+    if session.menu_state.mode == "shop_root":
+        if action_id == "remove":
+            remove_price = session.room_state.payload.get("remove_price", 75)
+            return Text(f"控制项：删牌服务 - {remove_price} 金币")
+        if action_id == "leave":
+            return Text("控制项：离开商店")
+        if action_id == "inspect":
+            return Text("控制项：查看资料")
+        if action_id == "save":
+            return Text("控制项：保存游戏")
+        if action_id == "load":
+            return Text("控制项：读取存档")
+        if action_id == "quit":
+            return Text("控制项：退出游戏")
+        card_id = _shop_offer_by_action_id(session, action_id, offer_type="buy_card", item_key="card")
+        if card_id is not None:
+            return _text_from_lines(format_card_detail_lines(f"{card_id}#shop", _content_provider(session)))
+        relic_id = _shop_offer_by_action_id(session, action_id, offer_type="buy_relic", item_key="relic")
+        if relic_id is not None:
+            return _text_from_lines(format_relic_detail_lines(relic_id, _content_provider(session)))
+        potion_id = _shop_offer_by_action_id(session, action_id, offer_type="buy_potion", item_key="potion")
+        if potion_id is not None:
+            return _text_from_lines(format_potion_detail_lines(potion_id, _content_provider(session)))
+    return None
 
 
 def _inspect_list_menu(title: str, labels: list[str]) -> MenuDefinition:
@@ -264,6 +396,14 @@ class SlayApp(App[None]):
         color: $text-muted;
     }
 
+    #hover-preview {
+        height: 7;
+        border: solid grey;
+        padding: 0 1;
+        color: $text-muted;
+        overflow-y: auto;
+    }
+
     #action-list {
         height: 12;
         border: solid green;
@@ -290,6 +430,7 @@ class SlayApp(App[None]):
         super().__init__()
         self._session = session
         self._action_choices: list[str] = []
+        self._action_ids: list[str] = []
         self._hovered_node_id: str | None = None
         self.console.push_theme(TERMINAL_THEME)
 
@@ -303,6 +444,7 @@ class SlayApp(App[None]):
             with Vertical(id="right-panel"):
                 yield RichLog(id="game-log", highlight=True, markup=True, wrap=True)
                 yield Static("", id="action-summary")
+                yield Static("", id="hover-preview")
                 yield OptionList(id="action-list")
                 yield Static("", id="flash-msg")
         yield Footer()
@@ -338,9 +480,11 @@ class SlayApp(App[None]):
         action_list = self.query_one("#action-list", OptionList)
         action_list.clear_options()
         self._action_choices = []
+        self._action_ids = []
 
         if menu is None:
             action_summary.update("当前没有可点击操作。")
+            self._refresh_hover_preview()
             return
 
         summary_lines = [menu.title]
@@ -354,7 +498,25 @@ class SlayApp(App[None]):
         for index, option in enumerate(menu.options, start=1):
             prompts.append(f"{index}. {_plain_label(option.label)}")
             self._action_choices.append(str(index))
+            self._action_ids.append(option.action_id)
         action_list.add_options(prompts)
+        self._refresh_hover_preview()
+
+    def _refresh_hover_preview(self, action_id: str | None = None) -> None:
+        preview = self.query_one("#hover-preview", Static)
+        menu_mode = self._session.menu_state.mode
+        if action_id is not None:
+            rendered = _hover_preview_renderable(self._session, action_id)
+            if rendered is not None:
+                preview.update(rendered)
+                preview.display = True
+                return
+        if _supports_hover_preview(menu_mode):
+            preview.update(Text("查看说明：将鼠标悬停在奖励或商品上查看详情。"))
+            preview.display = True
+        else:
+            preview.update(Text(""))
+            preview.display = False
 
     def _process_command(self, cmd: str) -> None:
         running, new_session, message = route_menu_choice(cmd, session=self._session)
@@ -374,6 +536,25 @@ class SlayApp(App[None]):
         if option_index < 0 or option_index >= len(self._action_choices):
             return
         self._process_command(self._action_choices[option_index])
+
+    @on(OptionList.OptionHighlighted, "#action-list")
+    def handle_action_highlighted(self, event: OptionList.OptionHighlighted) -> None:
+        if event.option_index < 0 or event.option_index >= len(self._action_ids):
+            self._refresh_hover_preview()
+            return
+        self._refresh_hover_preview(self._action_ids[event.option_index])
+
+    @on(events.MouseMove, "#action-list")
+    def handle_action_list_mouse_move(self, event: events.MouseMove) -> None:
+        option_index = event.style.meta.get("option")
+        if not isinstance(option_index, int) or option_index < 0 or option_index >= len(self._action_ids):
+            self._refresh_hover_preview()
+            return
+        self._refresh_hover_preview(self._action_ids[option_index])
+
+    @on(events.Leave, "#action-list")
+    def handle_action_list_leave(self, _: events.Leave) -> None:
+        self._refresh_hover_preview()
 
     @on(MapWidget.NodeSelected)
     def handle_node_selected(self, event: MapWidget.NodeSelected) -> None:

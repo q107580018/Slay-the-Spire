@@ -161,6 +161,15 @@ def format_relic_detail_lines(relic_id: str, registry: ContentProviderPort) -> l
     return lines
 
 
+def format_potion_detail_lines(potion_id: str, registry: ContentProviderPort) -> list[Text]:
+    potion_def = registry.potions().get(potion_id)
+    return [
+        Text.assemble(("名称 ", "summary.label"), potion_def.name),
+        Text.assemble(("药水 ", "summary.label"), potion_id),
+        Text.assemble(("效果 ", "summary.label"), summarize_effect(potion_def.effect)),
+    ]
+
+
 def _reward_card_id(reward_name: str) -> str:
     if reward_name == "reward_strike":
         return "strike_plus"
