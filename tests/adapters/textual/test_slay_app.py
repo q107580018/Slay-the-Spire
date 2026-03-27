@@ -11,7 +11,13 @@ from textual.widgets import OptionList, Static
 
 from slay_the_spire.adapters.textual.map_widget import MapWidget
 from slay_the_spire.adapters.terminal.theme import TERMINAL_THEME
-from slay_the_spire.adapters.textual.slay_app import SlayApp, _current_action_menu, _menu_choice_for_action, _render_to_rich
+from slay_the_spire.adapters.textual.slay_app import (
+    SlayApp,
+    _current_action_menu,
+    _hover_preview_renderable,
+    _menu_choice_for_action,
+    _render_to_rich,
+)
 from slay_the_spire.app.menu_definitions import build_next_room_menu, build_root_menu
 from slay_the_spire.app.session import render_session_renderable, start_session
 
@@ -447,6 +453,62 @@ def test_hover_preview_shows_shop_potion_details() -> None:
             await pilot.pause()
             preview = app.query_one("#hover-preview", Static)
             assert "火焰药水" in preview.render().plain
+            assert "药水" in preview.render().plain or "效果" in preview.render().plain
             assert "20" in preview.render().plain
 
     asyncio.run(scenario())
+
+
+def test_hover_preview_shows_shop_relic_details() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="shop",
+            stage="waiting_input",
+            is_resolved=False,
+            payload={
+                "cards": [],
+                "relics": [{"offer_id": "relic-1", "relic_id": "black_blood", "price": 150}],
+                "potions": [],
+                "remove_price": 75,
+            },
+        ),
+        menu_state=replace(base.menu_state, mode="shop_root"),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            action_list = app.query_one("#action-list", OptionList)
+            action_list.highlighted = 0
+            await pilot.pause()
+            preview = app.query_one("#hover-preview", Static)
+            assert "黑色之血" in preview.render().plain
+            assert "遗物" in preview.render().plain
+            assert (
+                "金币规则" in preview.render().plain
+                or "禁用操作" in preview.render().plain
+                or "替换原遗物" in preview.render().plain
+            )
+
+    asyncio.run(scenario())
+
+
+def test_hover_preview_ignores_unsupported_claim_reward_prefix() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="combat",
+            stage="completed",
+            is_resolved=True,
+            rewards=["gold:15"],
+        ),
+        menu_state=replace(base.menu_state, mode="select_reward"),
+    )
+
+    assert _hover_preview_renderable(session, "claim_reward:potion:fire_potion") is None
