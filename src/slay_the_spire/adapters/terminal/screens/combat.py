@@ -417,6 +417,7 @@ def _inspect_body_panel(
         room_state=room_state,
         registry=registry,
         card_instance_id=getattr(menu_state, "inspect_item_id", None),
+        combat_state=combat_state,
     )
     if shared_panel is not None:
         return shared_panel

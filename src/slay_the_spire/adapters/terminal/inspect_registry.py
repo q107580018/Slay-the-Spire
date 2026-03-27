@@ -17,6 +17,7 @@ from slay_the_spire.adapters.terminal.theme import PANEL_BOX
 from slay_the_spire.app.menu_definitions import build_inspect_root_menu, build_leaf_menu, format_menu_lines
 from slay_the_spire.domain.models.act_state import ActState
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
+from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.room_state import RoomState
 from slay_the_spire.domain.models.run_state import RunState
 from slay_the_spire.ports.content_provider import ContentProviderPort
@@ -84,12 +85,19 @@ def render_shared_inspect_panel(
     room_state: RoomState,
     registry: ContentProviderPort,
     card_instance_id: str | None = None,
+    combat_state: CombatState | None = None,
 ) -> Panel | None:
     if mode == "inspect_deck":
         lines = [Text(line) for line in _format_inspect_deck_lines(run_state, registry)]
         return Panel(Group(*lines), title=_DECK_PANEL_TITLES[context], box=PANEL_BOX, expand=False)
     if mode == "inspect_stats":
-        return render_shared_stats_panel(title=_LEAF_TITLES[mode][context], run_state=run_state, act_state=act_state, room_state=room_state)
+        return render_shared_stats_panel(
+            title=_LEAF_TITLES[mode][context],
+            run_state=run_state,
+            act_state=act_state,
+            room_state=room_state,
+            combat_state=combat_state if context == "combat" else None,
+        )
     if mode == "inspect_relics":
         return render_shared_relics_panel(title=_LEAF_TITLES[mode][context], run_state=run_state, registry=registry)
     if mode == "inspect_potions":

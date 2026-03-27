@@ -385,9 +385,16 @@ def test_render_combat_inspect_pages_show_pile_summary_card_detail_and_enemy_det
 
 def test_render_combat_shared_inspect_pages_show_real_stats_and_relics() -> None:
     base_session = start_session(seed=5)
+    combat_state = CombatState.from_dict(base_session.room_state.payload["combat_state"])
+    combat_state.player.statuses.append(StatusState(status_id="strength", stacks=2))
+    combat_state.active_powers = [{"power_id": "metallicize", "amount": 3}]
     session = replace(
         base_session,
         run_state=replace(base_session.run_state, gold=123),
+        room_state=replace(
+            base_session.room_state,
+            payload={**base_session.room_state.payload, "combat_state": combat_state.to_dict()},
+        ),
     )
 
     stats_output = render_room(
@@ -412,6 +419,8 @@ def test_render_combat_shared_inspect_pages_show_real_stats_and_relics() -> None
     assert "金币: 123" in stats_output
     assert "当前章节: act1" in stats_output
     assert "当前房间: 起点" in stats_output
+    assert "状态: 力量 2" in stats_output
+    assert "持续效果: 金属化 3" in stats_output
     assert "当前处于角色状态查看。" not in stats_output
     assert "遗物列表" in relics_output
     assert "当前遗物:" in relics_output

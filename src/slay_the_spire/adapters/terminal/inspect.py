@@ -271,12 +271,33 @@ def format_card_list_footer(*, back_choice: int) -> list[str]:
     ]
 
 
+def _active_power_summary(active_powers: list[dict[str, object]]) -> str:
+    power_names = {
+        "inflame": "燃烧",
+        "metallicize": "金属化",
+        "combust": "燃烧躯体",
+    }
+    labels: list[str] = []
+    for power in active_powers:
+        power_id = power.get("power_id")
+        if not isinstance(power_id, str):
+            continue
+        amount = power.get("amount")
+        power_name = power_names.get(power_id, power_id)
+        if isinstance(amount, int):
+            labels.append(f"{power_name} {amount}")
+        else:
+            labels.append(power_name)
+    return " / ".join(labels) if labels else "无"
+
+
 def render_shared_stats_panel(
     *,
     title: str,
     run_state: RunState,
     act_state: ActState,
     room_state: RoomState,
+    combat_state: CombatState | None = None,
 ) -> Panel:
     lines = [
         f"当前生命: {run_state.current_hp}/{run_state.max_hp}",
@@ -284,6 +305,14 @@ def render_shared_stats_panel(
         f"当前章节: {act_state.act_id}",
         f"当前房间: {_format_node_id(room_state.payload.get('node_id', act_state.current_node_id))}",
     ]
+    if combat_state is not None:
+        lines.extend(
+            [
+                f"格挡: {combat_state.player.block}",
+                f"状态: {render_statuses(combat_state.player.statuses).plain}",
+                f"持续效果: {_active_power_summary(combat_state.active_powers)}",
+            ]
+        )
     return Panel(Group(*[Text(line) for line in lines]), title=title, box=PANEL_BOX, expand=False)
 
 
