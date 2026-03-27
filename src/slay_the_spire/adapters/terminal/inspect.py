@@ -140,6 +140,14 @@ def _reward_card_id(reward_name: str) -> str:
     return reward_name
 
 
+def _event_reward_label(result: str) -> str:
+    if result == "gain_upgrade":
+        return "事件结果 获得升级"
+    if result == "nothing":
+        return "事件结果 什么也没有发生"
+    return f"事件结果 {result}"
+
+
 def format_reward_detail_lines(reward_id: str, registry: ContentProviderPort) -> list[Text]:
     lines = [Text.assemble(("奖励 ID: ", "summary.label"), reward_id)]
     if reward_id.startswith("gold:"):
@@ -161,6 +169,10 @@ def format_reward_detail_lines(reward_id: str, registry: ContentProviderPort) ->
         lines.append(Text.assemble(("效果: ", "summary.label"), summarize_relic_effects(relic_def.passive_effects)))
         if relic_def.trigger_hooks:
             lines.append(Text.assemble(("触发: ", "summary.label"), summarize_trigger_hooks(relic_def.trigger_hooks)))
+        return lines
+    if reward_id.startswith("event:"):
+        result = reward_id.split(":", 1)[1]
+        lines.append(Text.assemble(("奖励类型: ", "summary.label"), _event_reward_label(result)))
         return lines
     lines.append(Text.assemble(("说明: ", "summary.label"), reward_id))
     return lines

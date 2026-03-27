@@ -227,6 +227,23 @@ def test_format_reward_detail_lines_include_reward_id_and_human_readable_labels(
     assert any("燃烧之血" in line.plain for line in relic_lines)
 
 
+def test_format_reward_detail_lines_localize_event_rewards() -> None:
+    session = start_session(seed=5)
+    registry = StarterContentProvider(session.content_root)
+
+    gain_upgrade_lines = format_reward_detail_lines("event:gain_upgrade", registry)
+    nothing_lines = format_reward_detail_lines("event:nothing", registry)
+    other_lines = format_reward_detail_lines("event:unknown_outcome", registry)
+
+    assert any("奖励 ID: event:gain_upgrade" in line.plain for line in gain_upgrade_lines)
+    assert any("事件结果" in line.plain for line in gain_upgrade_lines)
+    assert any("获得升级" in line.plain for line in gain_upgrade_lines)
+    assert any("奖励 ID: event:nothing" in line.plain for line in nothing_lines)
+    assert any("什么也没有发生" in line.plain for line in nothing_lines)
+    assert any("奖励 ID: event:unknown_outcome" in line.plain for line in other_lines)
+    assert any("事件结果 unknown_outcome" in line.plain for line in other_lines)
+
+
 def test_render_reward_detail_panel_shows_reward_detail_and_return_choices() -> None:
     session = start_session(seed=5)
     registry = StarterContentProvider(session.content_root)
