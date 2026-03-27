@@ -6,7 +6,7 @@ from typing import Any
 from rich.console import Group
 from rich.panel import Panel
 from rich.text import Text
-from textual import on
+from textual import events, on
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.css.query import NoMatches
@@ -118,6 +118,21 @@ def _supports_hover_preview(menu_mode: str) -> bool:
     return menu_mode in {"select_reward", "select_boss_reward", "select_boss_relic", "shop_root"}
 
 
+def _reward_card_instance_id(reward_id: str) -> str | None:
+    if reward_id.startswith("card_offer:") or reward_id.startswith("card:"):
+        reward_name = reward_id.split(":", 1)[1]
+        if reward_name == "reward_strike":
+            return "strike_plus#reward"
+        if reward_name == "reward_defend":
+            return "defend_plus#reward"
+        return f"{reward_name}#reward"
+    return None
+
+
+def _supports_reward_preview(reward_id: str) -> bool:
+    return reward_id.startswith(("card_offer:", "card:", "gold:", "event:", "relic:"))
+
+
 def _text_from_lines(lines: list[str | Text]) -> Text:
     rendered = Text()
     for index, line in enumerate(lines):
@@ -131,10 +146,13 @@ def _text_from_lines(lines: list[str | Text]) -> Text:
 
 
 def _reward_preview_renderable(session: SessionState, action_id: str) -> Text | None:
-    if action_id.startswith("claim_reward:card_offer:") or action_id.startswith("claim_reward:gold:") or action_id.startswith(
-        "claim_reward:event:"
-    ) or action_id.startswith("claim_reward:card:") or action_id.startswith("claim_reward:relic:"):
+    if action_id.startswith("claim_reward:"):
         reward_id = action_id.split(":", 1)[1]
+        if not _supports_reward_preview(reward_id):
+            return None
+        card_instance_id = _reward_card_instance_id(reward_id)
+        if card_instance_id is not None:
+            return _text_from_lines(format_card_detail_lines(card_instance_id, _content_provider(session)))
         return _text_from_lines(format_reward_detail_lines(reward_id, _content_provider(session)))
     if action_id == "claim_all":
         return Text("控制项：全部领取")
@@ -525,6 +543,18 @@ class SlayApp(App[None]):
             self._refresh_hover_preview()
             return
         self._refresh_hover_preview(self._action_ids[event.option_index])
+
+    @on(events.MouseMove, "#action-list")
+    def handle_action_list_mouse_move(self, event: events.MouseMove) -> None:
+        option_index = event.style.meta.get("option")
+        if not isinstance(option_index, int) or option_index < 0 or option_index >= len(self._action_ids):
+            self._refresh_hover_preview()
+            return
+        self._refresh_hover_preview(self._action_ids[option_index])
+
+    @on(events.Leave, "#action-list")
+    def handle_action_list_leave(self, _: events.Leave) -> None:
+        self._refresh_hover_preview()
 
     @on(MapWidget.NodeSelected)
     def handle_node_selected(self, event: MapWidget.NodeSelected) -> None:
