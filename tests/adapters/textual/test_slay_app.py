@@ -497,6 +497,58 @@ def test_hover_preview_shows_shop_relic_details() -> None:
     asyncio.run(scenario())
 
 
+def test_hover_preview_shows_shop_remove_service_hint() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="shop",
+            stage="waiting_input",
+            is_resolved=False,
+            payload={
+                "cards": [],
+                "relics": [{"offer_id": "relic-1", "relic_id": "black_blood", "price": 150}],
+                "potions": [{"offer_id": "potion-1", "potion_id": "fire_potion", "price": 20}],
+                "remove_price": 75,
+            },
+        ),
+        menu_state=replace(base.menu_state, mode="shop_root"),
+    )
+
+    preview = _hover_preview_renderable(session, "remove")
+    assert preview is not None
+    assert "删牌服务" in preview.plain
+    assert "黑色之血" not in preview.plain
+    assert "火焰药水" not in preview.plain
+
+
+def test_hover_preview_shows_boss_reward_entry_hint() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="boss",
+            stage="completed",
+            is_resolved=True,
+            payload={
+                "boss_rewards": {
+                    "gold_reward": 100,
+                    "claimed_gold": False,
+                    "claimed_relic_id": None,
+                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper"],
+                }
+            },
+        ),
+        menu_state=replace(base.menu_state, mode="select_boss_reward"),
+    )
+
+    preview = _hover_preview_renderable(session, "choose_boss_relic")
+    assert preview is not None
+    assert "进入 Boss 遗物选择" in preview.plain
+
+
 def test_hover_preview_ignores_unsupported_claim_reward_prefix() -> None:
     base = start_session(seed=5)
     session = replace(

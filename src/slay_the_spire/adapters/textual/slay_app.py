@@ -163,10 +163,35 @@ def _shop_offer_by_action_id(session: SessionState, action_id: str, *, offer_typ
 def _hover_preview_renderable(session: SessionState, action_id: str) -> Text | None:
     if session.menu_state.mode == "select_reward":
         return _reward_preview_renderable(session, action_id)
+    if session.menu_state.mode == "select_boss_reward":
+        if action_id == "claim_boss_gold":
+            return Text("控制项：领取 Boss 金币")
+        if action_id == "claimed_boss_gold":
+            return Text("控制项：Boss 金币已领取")
+        if action_id == "choose_boss_relic":
+            return Text("控制项：进入 Boss 遗物选择")
+        if action_id == "claimed_boss_relic":
+            return Text("控制项：Boss 遗物已选择")
+        if action_id == "back":
+            return Text("控制项：返回上一步")
+        return None
     if session.menu_state.mode == "select_boss_relic" and action_id.startswith("claim_boss_relic:"):
         relic_id = action_id.split(":", 1)[1]
         return _text_from_lines(format_relic_detail_lines(relic_id, _content_provider(session)))
     if session.menu_state.mode == "shop_root":
+        if action_id == "remove":
+            remove_price = session.room_state.payload.get("remove_price", 75)
+            return Text(f"控制项：删牌服务 - {remove_price} 金币")
+        if action_id == "leave":
+            return Text("控制项：离开商店")
+        if action_id == "inspect":
+            return Text("控制项：查看资料")
+        if action_id == "save":
+            return Text("控制项：保存游戏")
+        if action_id == "load":
+            return Text("控制项：读取存档")
+        if action_id == "quit":
+            return Text("控制项：退出游戏")
         relic_id = _shop_offer_by_action_id(session, action_id, offer_type="buy_relic", item_key="relic")
         if relic_id is not None:
             return _text_from_lines(format_relic_detail_lines(relic_id, _content_provider(session)))
