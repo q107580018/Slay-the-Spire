@@ -58,6 +58,7 @@
 - `burning_blood`、`black_blood`、`anchor`、`lantern` 等遗物效果已接入运行时 Hook。
 - 当前战斗奖励会真实写回 `run_state`：金币会增加，卡牌奖励会把对应实例加入牌组，Boss 奖励会发高额金币和三选一遗物。
 - 当前战斗奖励中的 `reward_strike` / `reward_defend` 会分别落成 `strike_plus` / `defend_plus`。
+- 当前普通奖励不再提供单独的“奖励主页 / 奖励详情列表 / 奖励详情”三级菜单；已解析奖励时直接进入领取流 `select_reward`。
 - 当前商店可出售卡牌、遗物、药水，并支持付费移除 1 张牌。
 - 当前休息点支持至少“恢复生命”和“升级 1 张牌”。
 - 终端交互主路径走 `route_menu_choice()` 的编号菜单，不是自由文本命令模式。
@@ -71,6 +72,7 @@
 - 默认存档路径是 `./saves/latest.json`。
 - 默认内容路径优先取 `src/slay_the_spire/data/content/`；只有找不到时才会回退到仓库根目录 `content/`。
 - `content/` 与 `src/slay_the_spire/data/content/` 是两套实际文件；修改内容时必须同步维护。
+- 当前处于开发阶段时，默认**不需要兼容旧存档或旧菜单状态**；若在重构或清理旧流程时需要删除历史分支，可直接删除，不必为了历史 `menu_state` / 存档路径保留兼容逻辑，除非需求明确要求兼容。
 
 ## 开发和发布规则
 

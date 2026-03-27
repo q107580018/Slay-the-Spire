@@ -11,7 +11,6 @@ from slay_the_spire.adapters.rich_ui.inspect import (
     render_shared_potions_panel,
     render_shared_relics_panel,
     render_shared_stats_panel,
-    render_reward_detail_panel,
 )
 from slay_the_spire.adapters.rich_ui.inspect_registry import format_shared_inspect_menu, render_shared_inspect_panel
 from slay_the_spire.app.menu_definitions import (
@@ -23,9 +22,6 @@ from slay_the_spire.app.menu_definitions import (
     build_inspect_root_menu,
     build_leaf_menu,
     build_next_room_menu,
-    build_reward_detail_menu,
-    build_reward_list_menu,
-    build_reward_root_menu,
     build_reward_menu,
     build_root_menu,
     build_rest_root_menu,
@@ -92,7 +88,10 @@ _RUN_PHASE_LABELS = {
 
 
 def _menu_mode(menu_state: Any) -> str:
-    return str(getattr(menu_state, "mode", "root"))
+    mode = str(getattr(menu_state, "mode", "root"))
+    if mode in {"inspect_reward_root", "inspect_reward_list", "inspect_reward_detail"}:
+        return "root"
+    return mode
 
 
 def _format_node_id(node_id: object) -> str:
@@ -555,38 +554,6 @@ def _format_reward_menu(room_state: RoomState, registry: ContentProviderPort) ->
     return format_menu_entries(build_reward_menu(room_state=room_state, registry=registry))
 
 
-def _format_reward_root_menu() -> list[str]:
-    return format_menu_lines(build_reward_root_menu())
-
-
-def _format_reward_list_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str | Text]:
-    rewards = room_state.rewards if isinstance(room_state.rewards, list) else []
-    return format_menu_entries(build_reward_list_menu(rewards, registry=registry))
-
-
-def _format_reward_list_lines(room_state: RoomState, registry: ContentProviderPort) -> list[str | Text]:
-    lines: list[str | Text] = ["当前可领取奖励:"]
-    rewards = room_state.rewards if isinstance(room_state.rewards, list) else []
-    if not rewards:
-        lines.append("-")
-        return lines
-    for index, reward in enumerate(rewards, start=1):
-        if isinstance(reward, str):
-            label = _format_reward_label(reward, registry)
-            if isinstance(label, Text):
-                lines.append(Text.assemble(f"{index}. ", label))
-            else:
-                lines.append(f"{index}. {label}")
-        else:
-            lines.append(f"{index}. {reward}")
-    return lines
-
-
-def _format_reward_detail_menu(menu_state: Any) -> list[str]:
-    reward_id = getattr(menu_state, "inspect_item_id", "")
-    return format_menu_lines(build_reward_detail_menu(reward_id if isinstance(reward_id, str) else ""))
-
-
 def _format_boss_reward_menu(room_state: RoomState) -> list[str]:
     boss_rewards = _boss_rewards(room_state) or {}
     return format_menu_lines(build_boss_reward_menu(boss_rewards))
@@ -607,12 +574,6 @@ def format_non_combat_inspect_menu(
     menu_state: Any,
 ) -> list[str | Text]:
     mode = _menu_mode(menu_state)
-    if mode == "inspect_reward_root":
-        return _format_reward_root_menu()
-    if mode == "inspect_reward_list":
-        return _format_reward_list_menu(room_state, registry)
-    if mode == "inspect_reward_detail":
-        return _format_reward_detail_menu(menu_state)
     shared_menu = format_shared_inspect_menu(
         mode=mode,
         context="non_combat",
@@ -633,33 +594,6 @@ def render_non_combat_inspect_panel(
     menu_state: Any,
 ) -> Panel:
     mode = _menu_mode(menu_state)
-    if mode == "inspect_reward_root":
-        lines: list[str | Text] = ["当前可领取奖励:"]
-        if not room_state.rewards:
-            lines.append("-")
-        else:
-            for reward in room_state.rewards:
-                if isinstance(reward, str):
-                    label = _format_reward_label(reward, registry)
-                    if isinstance(label, Text):
-                        lines.append(Text.assemble("- ", label))
-                    else:
-                        lines.append(f"- {label}")
-        lines.extend(["", "可先查看奖励详情，再决定是否领取。"])
-        return Panel(Group(*[line if isinstance(line, Text) else Text(line) for line in lines]), title="奖励主页", box=PANEL_BOX, expand=False)
-    if mode == "inspect_reward_list":
-        lines = _format_reward_list_lines(room_state, registry)
-        return Panel(
-            Group(*[line if isinstance(line, Text) else Text(line) for line in lines]),
-            title="奖励详情列表",
-            box=PANEL_BOX,
-            expand=False,
-        )
-    if mode == "inspect_reward_detail":
-        reward_id = getattr(menu_state, "inspect_item_id", None)
-        if isinstance(reward_id, str):
-            return render_reward_detail_panel(reward_id, registry)
-        return Panel(Group(Text("-")), title="奖励详情", box=PANEL_BOX, expand=False)
     shared_panel = render_shared_inspect_panel(
         mode=mode,
         context="non_combat",

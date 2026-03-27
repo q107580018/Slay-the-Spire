@@ -67,7 +67,7 @@ def test_current_action_menu_matches_root_menu() -> None:
 
     assert menu is not None
     assert menu.title == "可选操作"
-    assert menu.options[0].action_id == "view_current"
+    assert menu.options[0].action_id == "play_card"
 
 
 def test_current_action_menu_marks_disabled_rest_actions() -> None:
@@ -513,6 +513,181 @@ def test_hover_preview_keeps_rarity_color_for_upgraded_shop_card() -> None:
     assert "已升级" in preview.plain
     assert "card.rarity.common" in _span_styles(preview)
     assert "card.upgraded" in _span_styles(preview)
+
+
+def test_hover_preview_shows_event_upgrade_before_and_after_effects() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=RoomState(
+            room_id="act1:event",
+            room_type="event",
+            stage="select_event_upgrade_card",
+            payload={
+                "node_id": "r1c1",
+                "room_kind": "event",
+                "event_id": "shining_light",
+                "upgrade_options": ["bash#9"],
+                "next_node_ids": ["r2c0"],
+            },
+            is_resolved=False,
+            rewards=[],
+        ),
+        menu_state=replace(base.menu_state, mode="event_upgrade_card"),
+    )
+
+    preview = _hover_preview_renderable(session, "upgrade_card:bash#9")
+
+    assert preview is not None
+    assert "当前" in preview.plain
+    assert "升级后" in preview.plain
+    assert "造成 8 伤害" in preview.plain
+    assert "施加 2 易伤" in preview.plain
+    assert "造成 10 伤害" in preview.plain
+    assert "施加 3 易伤" in preview.plain
+
+
+def test_hover_preview_shows_event_upgrade_before_and_after_effects_on_highlight() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=RoomState(
+            room_id="act1:event",
+            room_type="event",
+            stage="select_event_upgrade_card",
+            payload={
+                "node_id": "r1c1",
+                "room_kind": "event",
+                "event_id": "shining_light",
+                "upgrade_options": ["bash#9"],
+                "next_node_ids": ["r2c0"],
+            },
+            is_resolved=False,
+            rewards=[],
+        ),
+        menu_state=replace(base.menu_state, mode="event_upgrade_card"),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            action_list = app.query_one("#action-list", OptionList)
+            action_list.highlighted = 0
+            await pilot.pause()
+            preview = app.query_one("#hover-preview", Static)
+            rendered = preview.render().plain
+            assert "当前" in rendered
+            assert "升级后" in rendered
+            assert "造成 10 伤害" in rendered
+            assert "施加 3 易伤" in rendered
+
+    asyncio.run(scenario())
+
+
+def test_hover_preview_shows_event_upgrade_before_and_after_effects_on_mouse_hover() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=RoomState(
+            room_id="act1:event",
+            room_type="event",
+            stage="select_event_upgrade_card",
+            payload={
+                "node_id": "r1c1",
+                "room_kind": "event",
+                "event_id": "shining_light",
+                "upgrade_options": ["bash#9"],
+                "next_node_ids": ["r2c0"],
+            },
+            is_resolved=False,
+            rewards=[],
+        ),
+        menu_state=replace(base.menu_state, mode="event_upgrade_card"),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            await pilot.hover("#action-list", offset=(3, 1))
+            await pilot.pause()
+            preview = app.query_one("#hover-preview", Static)
+            rendered = preview.render().plain
+            assert "当前" in rendered
+            assert "升级后" in rendered
+            assert "造成 10 伤害" in rendered
+            assert "施加 3 易伤" in rendered
+
+    asyncio.run(scenario())
+
+
+def test_hover_preview_keeps_event_upgrade_after_section_visible_at_default_size() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=RoomState(
+            room_id="act1:event",
+            room_type="event",
+            stage="select_event_upgrade_card",
+            payload={
+                "node_id": "r1c1",
+                "room_kind": "event",
+                "event_id": "shining_light",
+                "upgrade_options": ["bash#9"],
+                "next_node_ids": ["r2c0"],
+            },
+            is_resolved=False,
+            rewards=[],
+        ),
+        menu_state=replace(base.menu_state, mode="event_upgrade_card"),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test(size=(80, 24)) as pilot:
+            await pilot.pause()
+            action_list = app.query_one("#action-list", OptionList)
+            action_list.highlighted = 0
+            await pilot.pause()
+            preview = app.query_one("#hover-preview", Static)
+            visible_lines = preview.render().plain.splitlines()[: preview.size.height]
+            assert any("升级后" in line for line in visible_lines)
+            assert any("造成 10 伤害" in line for line in visible_lines)
+            assert any("施加 3 易伤" in line for line in visible_lines)
+
+    asyncio.run(scenario())
+
+
+def test_hover_preview_shows_rest_upgrade_before_and_after_effects() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=RoomState(
+            room_id="act1:rest",
+            room_type="rest",
+            stage="select_upgrade_card",
+            payload={
+                "node_id": "r5c0",
+                "room_kind": "rest",
+                "upgrade_options": ["bash#3"],
+                "next_node_ids": ["r6c0"],
+            },
+            is_resolved=False,
+            rewards=[],
+        ),
+        menu_state=replace(base.menu_state, mode="rest_upgrade_card"),
+    )
+
+    preview = _hover_preview_renderable(session, "upgrade_card:bash#3")
+
+    assert preview is not None
+    assert "当前" in preview.plain
+    assert "升级后" in preview.plain
+    assert "造成 8 伤害" in preview.plain
+    assert "施加 2 易伤" in preview.plain
+    assert "造成 10 伤害" in preview.plain
+    assert "施加 3 易伤" in preview.plain
 
 
 def test_hover_preview_shows_selected_hand_card_effects_in_combat_menu() -> None:

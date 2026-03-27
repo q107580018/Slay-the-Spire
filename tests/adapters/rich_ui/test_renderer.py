@@ -93,10 +93,10 @@ def test_combat_root_screen_keeps_full_context_and_hand_panel() -> None:
     assert "手牌（能量 3）" in output
     assert "敌人意图" in output
     assert "战斗记录" in output
-    assert "4. 查看资料" in output
-    assert "5. 保存游戏" in output
-    assert "6. 读取存档" in output
-    assert "7. 退出游戏" in output
+    assert "3. 查看资料" in output
+    assert "4. 保存游戏" in output
+    assert "5. 读取存档" in output
+    assert "6. 退出游戏" in output
 
 
 def test_select_card_menu_shows_current_energy_in_menu_title() -> None:
@@ -606,82 +606,40 @@ def test_combat_renderer_shows_inspect_slot_after_resolved_combat_with_rewards()
         run_phase=session.run_phase,
     )
 
-    assert "1. 查看奖励" in output
-    assert "2. 领取奖励" in output
-    assert "3. 前往下一个房间" in output
-    assert "4. 查看资料" in output
-    assert "5. 保存游戏" in output
-    assert "6. 读取存档" in output
-    assert "7. 退出游戏" in output
-    assert "4. 保存游戏" not in output
-
-
-def test_non_combat_renderer_shows_reward_home_screen() -> None:
-    session = replace(
-        start_session(seed=5),
-        room_state=replace(start_session(seed=5).room_state, stage="completed", is_resolved=True, rewards=["gold:11", "card_offer:anger"]),
-        menu_state=MenuState(mode="inspect_reward_root", inspect_parent_mode="root"),
-    )
-
-    output = render_room(
-        run_state=session.run_state,
-        act_state=session.act_state,
-        room_state=session.room_state,
-        registry=_provider(session),
-        menu_state=session.menu_state,
-        run_phase=session.run_phase,
-    )
-
-    assert "奖励主页" in output
     assert "1. 领取奖励" in output
-    assert "2. 查看奖励详情" in output
-    assert "3. 返回" in output
-    assert "查看资料" not in output
+    assert "2. 前往下一个房间" in output
+    assert "3. 查看资料" in output
+    assert "4. 保存游戏" in output
+    assert "5. 读取存档" in output
+    assert "6. 退出游戏" in output
+    assert "1. 查看奖励" not in output
 
 
-def test_non_combat_renderer_shows_reward_list_screen() -> None:
-    session = replace(
+def test_non_combat_renderer_legacy_reward_inspect_modes_fall_back_to_current_reward_root() -> None:
+    base = replace(
         start_session(seed=5),
         room_state=replace(start_session(seed=5).room_state, stage="completed", is_resolved=True, rewards=["gold:11", "card_offer:anger"]),
-        menu_state=MenuState(mode="inspect_reward_list", inspect_parent_mode="inspect_reward_root"),
     )
 
-    output = render_room(
-        run_state=session.run_state,
-        act_state=session.act_state,
-        room_state=session.room_state,
-        registry=_provider(session),
-        menu_state=session.menu_state,
-        run_phase=session.run_phase,
-    )
+    for menu_state in (
+        MenuState(mode="inspect_reward_root", inspect_parent_mode="root"),
+        MenuState(mode="inspect_reward_list", inspect_parent_mode="inspect_reward_root"),
+        MenuState(mode="inspect_reward_detail", inspect_parent_mode="inspect_reward_list", inspect_item_id="gold:11"),
+    ):
+        output = render_room(
+            run_state=base.run_state,
+            act_state=base.act_state,
+            room_state=base.room_state,
+            registry=_provider(base),
+            menu_state=menu_state,
+            run_phase=base.run_phase,
+        )
 
-    assert "奖励详情列表" in output
-    assert "1. 金币 +11" in output
-    assert "2. 卡牌 愤怒" in output
-    assert "3. 返回奖励主页" in output
-
-
-def test_non_combat_renderer_shows_reward_detail_screen() -> None:
-    session = replace(
-        start_session(seed=5),
-        room_state=replace(start_session(seed=5).room_state, stage="completed", is_resolved=True, rewards=["gold:11", "card_offer:anger"]),
-        menu_state=MenuState(mode="inspect_reward_detail", inspect_parent_mode="inspect_reward_list", inspect_item_id="gold:11"),
-    )
-
-    output = render_room(
-        run_state=session.run_state,
-        act_state=session.act_state,
-        room_state=session.room_state,
-        registry=_provider(session),
-        menu_state=session.menu_state,
-        run_phase=session.run_phase,
-    )
-
-    assert "奖励详情" in output
-    assert "奖励 ID: gold:11" in output
-    assert "金币 +11" in output
-    assert "返回奖励列表" in output
-    assert "返回奖励主页" in output
+        assert "奖励主页" not in output
+        assert "奖励详情列表" not in output
+        assert "返回奖励主页" not in output
+        assert "1. 领取奖励" in output
+        assert "2. 前往下一个房间" in output
 
 
 def test_boss_reward_renderer_shows_reward_actions_on_root_screen() -> None:
@@ -718,10 +676,9 @@ def test_boss_reward_renderer_shows_reward_actions_on_root_screen() -> None:
     )
 
     assert "Boss奖励" in output
-    assert "1. 查看奖励" in output
-    assert "2. 领取奖励" in output
-    assert "3. 查看资料" in output
-    assert "4. 保存游戏" in output
+    assert "1. 领取奖励" in output
+    assert "2. 查看资料" in output
+    assert "3. 保存游戏" in output
     assert "前往下一个房间" not in output
 
 
@@ -1410,6 +1367,71 @@ def test_event_upgrade_menu_shows_card_name_with_instance_id() -> None:
     assert "选择要升级的卡牌" in output
     assert "重击" in output
     assert "bash#9" in output
+
+
+def test_event_upgrade_screen_keeps_upgrade_diff_out_of_event_body() -> None:
+    session = start_session(seed=5)
+    room_state = RoomState(
+        room_id="act1:event",
+        room_type="event",
+        stage="select_event_upgrade_card",
+        payload={
+            "node_id": "r1c1",
+            "room_kind": "event",
+            "event_id": "shining_light",
+            "upgrade_options": ["bash#9"],
+            "next_node_ids": ["r2c0"],
+        },
+        is_resolved=False,
+        rewards=[],
+    )
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=room_state,
+        registry=_provider(session),
+        menu_state=MenuState(mode="event_upgrade_card"),
+        run_phase="active",
+    )
+
+    assert "可升级卡牌" in output
+    assert "重击 (bash#9)" in output
+    assert "升级后" not in output
+    assert "造成 10 伤害" not in output
+    assert "施加 3 易伤" not in output
+
+
+def test_rest_upgrade_screen_keeps_upgrade_diff_out_of_rest_panel() -> None:
+    session = start_session(seed=5)
+    room_state = RoomState(
+        room_id="act1:rest",
+        room_type="rest",
+        stage="select_upgrade_card",
+        payload={
+            "node_id": "r5c0",
+            "actions": ["rest", "smith"],
+            "upgrade_options": ["bash#3"],
+            "next_node_ids": ["r6c0"],
+        },
+        is_resolved=False,
+        rewards=[],
+    )
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=room_state,
+        registry=_provider(session),
+        menu_state=MenuState(mode="rest_upgrade_card"),
+        run_phase="active",
+    )
+
+    assert "可升级卡牌" in output
+    assert "重击 (bash#3)" in output
+    assert "升级后" not in output
+    assert "造成 10 伤害" not in output
+    assert "施加 3 易伤" not in output
 
 
 def test_victory_renderer_blocks_normal_room_menu() -> None:

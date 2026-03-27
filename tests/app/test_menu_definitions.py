@@ -7,9 +7,6 @@ from rich.text import Text
 from slay_the_spire.app.menu_definitions import (
     build_boss_relic_menu,
     build_boss_reward_menu,
-    build_reward_detail_menu,
-    build_reward_list_menu,
-    build_reward_root_menu,
     build_next_room_menu,
     build_inspect_root_menu,
     build_reward_menu,
@@ -77,16 +74,14 @@ def test_build_root_menu_binds_pending_boss_rewards_to_reward_actions() -> None:
 
     assert format_menu_lines(menu) == [
         "可选操作:",
-        "1. 查看奖励",
-        "2. 领取奖励",
-        "3. 查看资料",
-        "4. 保存游戏",
-        "5. 读取存档",
-        "6. 退出游戏",
+        "1. 领取奖励",
+        "2. 查看资料",
+        "3. 保存游戏",
+        "4. 读取存档",
+        "5. 退出游戏",
     ]
-    assert resolve_menu_action("1", menu) == "view_rewards"
-    assert resolve_menu_action("2", menu) == "claim_rewards"
-    assert resolve_menu_action("3", menu) == "inspect"
+    assert resolve_menu_action("1", menu) == "claim_rewards"
+    assert resolve_menu_action("2", menu) == "inspect"
     assert "前往下一个房间" not in format_menu_lines(menu)
 
 
@@ -218,46 +213,40 @@ def test_build_reward_menu_lists_skip_card_rewards_when_card_offers_exist() -> N
     assert resolve_menu_action("5", menu) == "skip_card_rewards"
 
 
-def test_build_reward_root_menu_binds_claim_detail_and_back_actions() -> None:
-    menu = build_reward_root_menu()
+def test_build_root_menu_binds_combat_choices_without_view_current() -> None:
+    menu = build_root_menu(room_state=start_session(seed=5).room_state)
 
     assert format_menu_lines(menu) == [
-        "奖励主页:",
-        "1. 领取奖励",
-        "2. 查看奖励详情",
-        "3. 返回",
+        "可选操作:",
+        "1. 出牌",
+        "2. 结束回合",
+        "3. 查看资料",
+        "4. 保存游戏",
+        "5. 读取存档",
+        "6. 退出游戏",
     ]
-    assert resolve_menu_action("1", menu) == "claim_rewards"
-    assert resolve_menu_action("2", menu) == "view_reward_details"
-    assert resolve_menu_action("3", menu) == "back"
+    assert resolve_menu_action("1", menu) == "play_card"
+    assert resolve_menu_action("3", menu) == "inspect"
 
 
-def test_build_reward_list_menu_lists_rewards_and_back_to_reward_root() -> None:
-    session = start_session(seed=5)
-    registry = StarterContentProvider(session.content_root)
-    menu = build_reward_list_menu(["gold:11", "card_offer:anger"], registry=registry)
+def test_build_root_menu_binds_event_choices_without_view_current() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=replace(start_session(seed=5).room_state, room_type="event"),
+    )
+
+    menu = build_root_menu(room_state=session.room_state)
 
     assert format_menu_lines(menu) == [
-        "奖励详情列表:",
-        "1. 金币 +11",
-        "2. 卡牌 愤怒",
-        "3. 返回奖励主页",
+        "可选操作:",
+        "1. 进行选择",
+        "2. 查看资料",
+        "3. 保存游戏",
+        "4. 读取存档",
+        "5. 退出游戏",
     ]
-    assert resolve_menu_action("1", menu) == "inspect_reward:gold:11"
-    assert resolve_menu_action("2", menu) == "inspect_reward:card_offer:anger"
-    assert resolve_menu_action("3", menu) == "back"
-
-
-def test_build_reward_detail_menu_binds_back_to_list_and_root_actions() -> None:
-    menu = build_reward_detail_menu("gold:11")
-
-    assert format_menu_lines(menu) == [
-        "奖励详情:",
-        "1. 返回奖励列表",
-        "2. 返回奖励主页",
-    ]
-    assert resolve_menu_action("1", menu) == "back_to_list"
-    assert resolve_menu_action("2", menu) == "back_to_root"
+    assert resolve_menu_action("1", menu) == "event_choice"
+    assert resolve_menu_action("2", menu) == "inspect"
 
 
 def test_build_boss_reward_menu_binds_gold_relic_and_back_actions() -> None:

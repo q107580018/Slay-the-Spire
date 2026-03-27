@@ -25,7 +25,6 @@ from slay_the_spire.adapters.rich_ui.widgets import (
 from slay_the_spire.app.menu_definitions import (
     build_card_detail_menu,
     build_enemy_detail_menu,
-    build_reward_detail_menu,
     format_menu_lines,
 )
 from slay_the_spire.content.registries import CardDef, EnemyDef
@@ -125,6 +124,31 @@ def format_card_detail_lines(card_instance_id: str, registry: ContentProviderPor
         upgraded = registry.cards().get(card_def.upgrades_to)
         lines.append(Text.assemble(("升级为 ", "summary.label"), render_card_name(upgraded)))
     return lines
+
+
+def _card_upgrade_preview_line(*, title: str, card_def: CardDef) -> Text:
+    return Text.assemble(
+        (f"{title} ", "summary.label"),
+        ("名称 ", "summary.label"),
+        render_card_name(card_def),
+        (" | 费用 ", "summary.label"),
+        _card_cost_label(card_def),
+        (" | 效果 ", "summary.label"),
+        summarize_card_definition(card_def),
+        (" | 状态 ", "summary.label"),
+        "已升级" if is_upgraded_card(card_def) else "未升级",
+    )
+
+
+def format_card_upgrade_preview_lines(card_instance_id: str, registry: ContentProviderPort) -> list[Text]:
+    card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
+    if card_def.upgrades_to is None:
+        return format_card_detail_lines(card_instance_id, registry)
+    upgraded_def = registry.cards().get(card_def.upgrades_to)
+    return [
+        _card_upgrade_preview_line(title="当前", card_def=card_def),
+        _card_upgrade_preview_line(title="升级后", card_def=upgraded_def),
+    ]
 
 
 def format_relic_detail_lines(relic_id: str, registry: ContentProviderPort) -> list[Text]:
@@ -250,10 +274,6 @@ def format_reward_detail_lines(reward_id: str, registry: ContentProviderPort) ->
         return lines
     lines.append(Text.assemble(("说明: ", "summary.label"), reward_id))
     return lines
-
-
-def format_reward_detail_menu(reward_id: str) -> list[str]:
-    return format_menu_lines(build_reward_detail_menu(reward_id))
 
 
 def render_reward_detail_panel(reward_id: str, registry: ContentProviderPort) -> Panel:

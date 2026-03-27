@@ -49,6 +49,7 @@ from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.adapters.rich_ui.inspect import (
     format_card_detail_lines,
+    format_card_upgrade_preview_lines,
     format_potion_detail_lines,
     format_relic_detail_lines,
     format_reward_detail_lines,
@@ -132,6 +133,8 @@ def _supports_hover_preview(menu_mode: str) -> bool:
 
 
 def _hover_preview_guidance(menu_mode: str) -> Text | None:
+    if menu_mode in {"rest_upgrade_card", "event_upgrade_card"}:
+        return Text("查看说明：将鼠标悬停在卡牌上查看升级前后对比。")
     if menu_mode in _CARD_PREVIEW_MENU_MODES:
         return Text("查看说明：将鼠标悬停在卡牌上查看详情。")
     if menu_mode in {"select_reward", "select_boss_reward", "select_boss_relic", "shop_root"}:
@@ -251,6 +254,8 @@ def _hover_preview_renderable(session: SessionState, action_id: str) -> Text | N
         return _reward_preview_renderable(session, action_id)
     card_instance_id = _card_preview_instance_id(session, action_id)
     if card_instance_id is not None:
+        if session.menu_state.mode in {"rest_upgrade_card", "event_upgrade_card"}:
+            return _text_from_lines(format_card_upgrade_preview_lines(card_instance_id, _content_provider(session)))
         return _text_from_lines(format_card_detail_lines(card_instance_id, _content_provider(session)))
     if session.menu_state.mode == "select_boss_reward":
         if action_id == "claim_boss_gold":

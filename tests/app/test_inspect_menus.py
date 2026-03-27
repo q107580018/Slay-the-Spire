@@ -57,13 +57,13 @@ def _rest_room() -> RoomState:
     )
 
 
-def _combat_room(*, hand: list[str], enemy_count: int = 1) -> RoomState:
+def _combat_room(*, hand: list[str], enemy_count: int = 1, enemy_hp: int = 12) -> RoomState:
     enemies = [
         EnemyState(
             instance_id=f"enemy-{index}",
             enemy_id="slime",
-            hp=12,
-            max_hp=12,
+            hp=enemy_hp,
+            max_hp=enemy_hp,
             block=0,
             statuses=[],
         )
@@ -106,7 +106,7 @@ def _combat_room(*, hand: list[str], enemy_count: int = 1) -> RoomState:
 def test_combat_root_menu_can_enter_inspect_root() -> None:
     session = start_session(seed=5)
 
-    running, next_session, message = route_menu_choice("4", session=session)
+    running, next_session, message = route_menu_choice("3", session=session)
 
     assert running is True
     assert next_session.menu_state.mode == "inspect_root"
@@ -118,7 +118,7 @@ def test_combat_root_menu_can_enter_inspect_root() -> None:
 def test_single_enemy_attack_card_plays_without_entering_target_menu() -> None:
     session = replace(start_session(seed=5), room_state=_combat_room(hand=["strike#1"], enemy_count=1))
 
-    _running, select_card_session, _message = route_menu_choice("2", session=session)
+    _running, select_card_session, _message = route_menu_choice("1", session=session)
     _running, played_session, message = route_menu_choice("1", session=select_card_session)
 
     assert select_card_session.menu_state.mode == "select_card"
@@ -127,19 +127,65 @@ def test_single_enemy_attack_card_plays_without_entering_target_menu() -> None:
     assert "造成 6 伤害" in message
 
 
+def test_nonlethal_card_play_keeps_select_card_menu_open_when_hand_remains() -> None:
+    session = replace(start_session(seed=5), room_state=_combat_room(hand=["anger#1", "strike#2"], enemy_count=1))
+
+    _running, select_card_session, _message = route_menu_choice("1", session=session)
+    _running, played_session, message = route_menu_choice("1", session=select_card_session)
+
+    assert select_card_session.menu_state.mode == "select_card"
+    assert played_session.menu_state.mode == "select_card"
+    assert played_session.room_state.payload["combat_state"]["hand"] == ["strike#2"]
+    assert "造成 6 伤害" in message
+
+
+def test_lethal_card_play_exits_select_card_even_when_other_hand_cards_remain() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=_combat_room(hand=["strike#1", "defend#2"], enemy_count=1, enemy_hp=6),
+    )
+
+    _running, select_card_session, _message = route_menu_choice("1", session=session)
+    _running, played_session, message = route_menu_choice("1", session=select_card_session)
+
+    assert select_card_session.menu_state.mode == "select_card"
+    assert played_session.menu_state.mode == "root"
+    assert played_session.room_state.is_resolved is True
+    assert played_session.room_state.stage == "completed"
+    assert played_session.room_state.payload["combat_state"]["hand"] == ["defend#2"]
+    assert played_session.room_state.rewards
+    assert "领取奖励" in message
+
+
 def test_hand_target_card_still_enters_hand_target_menu() -> None:
     session = replace(
         start_session(seed=5),
         room_state=_combat_room(hand=["armaments#1", "strike#2"], enemy_count=1),
     )
 
-    _running, select_card_session, _message = route_menu_choice("2", session=session)
+    _running, select_card_session, _message = route_menu_choice("1", session=session)
     _running, target_session, message = route_menu_choice("1", session=select_card_session)
 
     assert select_card_session.menu_state.mode == "select_card"
     assert target_session.menu_state.mode == "select_target"
     assert target_session.menu_state.selected_card_instance_id == "armaments#1"
     assert "选择手牌" in message
+
+
+def test_targeted_card_play_keeps_select_card_menu_open_after_target_choice() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=_combat_room(hand=["anger#1", "strike#2"], enemy_count=2),
+    )
+
+    _running, select_card_session, _message = route_menu_choice("1", session=session)
+    _running, target_session, _message = route_menu_choice("1", session=select_card_session)
+    _running, played_session, message = route_menu_choice("1", session=target_session)
+
+    assert target_session.menu_state.mode == "select_target"
+    assert played_session.menu_state.mode == "select_card"
+    assert played_session.room_state.payload["combat_state"]["hand"] == ["strike#2"]
+    assert "造成 6 伤害" in message
 
 
 def test_resolved_combat_without_rewards_can_enter_inspect_root_from_choice_two() -> None:
@@ -176,7 +222,7 @@ def test_inspect_root_can_open_deck_and_return() -> None:
 def test_inspect_deck_can_return_to_parent_root_menu() -> None:
     session = start_session(seed=5)
 
-    _running, inspect_session, _message = route_menu_choice("4", session=session)
+    _running, inspect_session, _message = route_menu_choice("3", session=session)
     _running, deck_session, _message = route_menu_choice("2", session=inspect_session)
     _running, back_session, _message = route_menu_choice(str(len(deck_session.run_state.deck) + 1), session=deck_session)
     _running, root_session, root_message = route_menu_choice("10", session=back_session)
@@ -188,7 +234,8 @@ def test_inspect_deck_can_return_to_parent_root_menu() -> None:
     assert back_session.menu_state.mode == "inspect_root"
     assert back_session.menu_state.inspect_parent_mode == "root"
     assert root_session.menu_state.mode == "root"
-    assert "查看战场" in root_message
+    assert "出牌" in root_message
+    assert "查看战场" not in root_message
 
 
 def test_non_combat_inspect_deck_can_open_card_detail_and_return() -> None:
@@ -217,7 +264,7 @@ def test_non_combat_inspect_deck_can_open_card_detail_and_return() -> None:
     assert back_to_root_message.splitlines()[0] == "资料总览"
 
 
-def test_reward_home_can_open_reward_list_and_detail_then_return_to_claim_flow() -> None:
+def test_resolved_reward_root_enters_select_reward_directly() -> None:
     session = replace(
         start_session(seed=5),
         room_state=replace(
@@ -228,42 +275,124 @@ def test_reward_home_can_open_reward_list_and_detail_then_return_to_claim_flow()
         ),
     )
 
-    _running, reward_root_session, reward_root_message = route_menu_choice("1", session=session)
-    _running, reward_list_session, reward_list_message = route_menu_choice("2", session=reward_root_session)
-    _running, reward_detail_session, reward_detail_message = route_menu_choice("1", session=reward_list_session)
-    _running, reward_list_back_session, reward_list_back_message = route_menu_choice("1", session=reward_detail_session)
-    _running, reward_root_back_session, reward_root_back_message = route_menu_choice("3", session=reward_list_back_session)
-    _running, claim_menu_session, claim_menu_message = route_menu_choice("1", session=reward_root_back_session)
+    _running, claim_menu_session, claim_menu_message = route_menu_choice("1", session=session)
 
-    assert reward_root_session.menu_state.mode == "inspect_reward_root"
-    assert reward_root_session.menu_state.inspect_parent_mode == "root"
-    assert reward_root_session.menu_state.inspect_item_id is None
-    assert reward_root_message.splitlines()[0] == "奖励主页"
-    assert reward_list_session.menu_state.mode == "inspect_reward_list"
-    assert reward_list_session.menu_state.inspect_parent_mode == "inspect_reward_root"
-    assert reward_list_session.menu_state.inspect_item_id is None
-    assert reward_list_message.splitlines()[0] == "奖励详情列表"
-    assert reward_detail_session.menu_state.mode == "inspect_reward_detail"
-    assert reward_detail_session.menu_state.inspect_parent_mode == "inspect_reward_root"
-    assert reward_detail_session.menu_state.inspect_item_id == "gold:11"
-    assert reward_detail_message.splitlines()[0] == "奖励详情"
-    assert reward_list_back_session.menu_state.mode == "inspect_reward_list"
-    assert reward_list_back_session.menu_state.inspect_parent_mode == "inspect_reward_root"
-    assert reward_list_back_session.menu_state.inspect_item_id is None
-    assert reward_list_back_message.splitlines()[0] == "奖励详情列表"
-    assert reward_root_back_session.menu_state.mode == "inspect_reward_root"
-    assert reward_root_back_session.menu_state.inspect_parent_mode == "root"
-    assert reward_root_back_session.menu_state.inspect_item_id is None
-    assert reward_root_back_message.splitlines()[0] == "奖励主页"
     assert claim_menu_session.menu_state.mode == "select_reward"
     assert claim_menu_session.room_state.rewards == ["gold:11", "card_offer:anger"]
     assert "奖励:" in claim_menu_message
+    assert "奖励主页" not in claim_menu_message
+
+
+def test_legacy_reward_inspect_mode_redirects_to_current_claim_flow() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=replace(
+            start_session(seed=5).room_state,
+            stage="completed",
+            is_resolved=True,
+            rewards=["gold:11", "card_offer:anger"],
+        ),
+        menu_state=MenuState(mode="inspect_reward_detail", inspect_parent_mode="inspect_reward_list", inspect_item_id="gold:11"),
+    )
+
+    _running, next_session, message = route_menu_choice("1", session=session)
+
+    assert next_session.menu_state.mode == "select_reward"
+    assert "奖励:" in message
+    assert "奖励主页" not in message
+
+
+def test_claiming_partial_rewards_keeps_reward_menu_open_until_empty() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=replace(
+            start_session(seed=5).room_state,
+            stage="completed",
+            is_resolved=True,
+            rewards=["gold:11", "card_offer:anger"],
+        ),
+        menu_state=MenuState(mode="select_reward"),
+    )
+
+    _running, after_gold_session, after_gold_message = route_menu_choice("1", session=session)
+    _running, after_card_session, after_card_message = route_menu_choice("1", session=after_gold_session)
+
+    assert after_gold_session.menu_state.mode == "select_reward"
+    assert after_gold_session.room_state.rewards == ["card_offer:anger"]
+    assert "奖励:" in after_gold_message
+    assert after_card_session.menu_state.mode == "root"
+    assert after_card_session.room_state.rewards == []
+    assert "奖励:" not in after_card_message
+
+
+def test_claiming_boss_gold_keeps_boss_reward_menu_open_until_relic_is_picked() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=replace(
+            start_session(seed=5).room_state,
+            room_type="boss",
+            stage="completed",
+            is_resolved=True,
+            rewards=[],
+            payload={
+                "node_id": "boss",
+                "next_node_ids": [],
+                "boss_rewards": {
+                    "generated_by": "boss_reward_generator",
+                    "gold_reward": 95,
+                    "claimed_gold": False,
+                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper"],
+                    "claimed_relic_id": None,
+                },
+            },
+        ),
+        menu_state=MenuState(mode="select_boss_reward"),
+    )
+
+    _running, next_session, message = route_menu_choice("1", session=session)
+
+    assert next_session.menu_state.mode == "select_boss_reward"
+    assert next_session.room_state.payload["boss_rewards"]["claimed_gold"] is True
+    assert next_session.room_state.payload["boss_rewards"]["claimed_relic_id"] is None
+    assert "Boss奖励:" in message
+
+
+def test_claiming_boss_relic_returns_to_boss_reward_menu_when_gold_is_unclaimed() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=replace(
+            start_session(seed=5).room_state,
+            room_type="boss",
+            stage="completed",
+            is_resolved=True,
+            rewards=[],
+            payload={
+                "node_id": "boss",
+                "next_node_ids": [],
+                "boss_rewards": {
+                    "generated_by": "boss_reward_generator",
+                    "gold_reward": 95,
+                    "claimed_gold": False,
+                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper"],
+                    "claimed_relic_id": None,
+                },
+            },
+        ),
+        menu_state=MenuState(mode="select_boss_relic"),
+    )
+
+    _running, next_session, message = route_menu_choice("1", session=session)
+
+    assert next_session.menu_state.mode == "select_boss_reward"
+    assert next_session.room_state.payload["boss_rewards"]["claimed_gold"] is False
+    assert next_session.room_state.payload["boss_rewards"]["claimed_relic_id"] == "black_blood"
+    assert "Boss奖励:" in message
 
 
 def test_inspect_leaf_pages_keep_transition_messages_consistent() -> None:
     session = start_session(seed=5)
 
-    _running, inspect_session, _message = route_menu_choice("4", session=session)
+    _running, inspect_session, _message = route_menu_choice("3", session=session)
     _running, stats_session, stats_message = route_menu_choice("1", session=inspect_session)
     _running, stats_back_session, stats_back_message = route_menu_choice("1", session=stats_session)
     _running, relic_session, relic_message = route_menu_choice("3", session=stats_back_session)
@@ -301,14 +430,15 @@ def test_combat_inspect_root_includes_potions_hand_enemy_pages_and_back() -> Non
     assert enemy_session.menu_state.mode == "inspect_enemy_list"
     assert enemy_message.splitlines()[0] == "敌人列表"
     assert root_session.menu_state.mode == "root"
-    assert "查看战场" in root_message
+    assert "出牌" in root_message
+    assert "查看战场" not in root_message
 
 
 def test_combat_inspect_card_branch_round_trip_keeps_mode_and_parent_state() -> None:
     session = start_session(seed=5)
     expected_first_hand_card = session.room_state.payload["combat_state"]["hand"][0]
 
-    _running, inspect_session, inspect_message = route_menu_choice("4", session=session)
+    _running, inspect_session, inspect_message = route_menu_choice("3", session=session)
     _running, hand_session, hand_message = route_menu_choice("5", session=inspect_session)
     _running, detail_session, detail_message = route_menu_choice("1", session=hand_session)
     _running, back_to_list_session, back_to_list_message = route_menu_choice("1", session=detail_session)
@@ -337,7 +467,7 @@ def test_combat_inspect_card_branch_round_trip_keeps_mode_and_parent_state() -> 
 def test_combat_inspect_enemy_branch_round_trip_keeps_mode_and_parent_state() -> None:
     session = start_session(seed=5)
 
-    _running, inspect_session, _inspect_message = route_menu_choice("4", session=session)
+    _running, inspect_session, _inspect_message = route_menu_choice("3", session=session)
     _running, enemy_list_session, enemy_list_message = route_menu_choice("9", session=inspect_session)
     _running, detail_session, detail_message = route_menu_choice("1", session=enemy_list_session)
     _running, back_to_list_session, back_to_list_message = route_menu_choice("1", session=detail_session)
@@ -364,7 +494,7 @@ def test_combat_inspect_enemy_branch_round_trip_keeps_mode_and_parent_state() ->
 def test_non_combat_root_menu_can_enter_inspect_root() -> None:
     session = replace(start_session(seed=5), room_state=_event_room())
 
-    running, next_session, message = route_menu_choice("3", session=session)
+    running, next_session, message = route_menu_choice("2", session=session)
 
     assert running is True
     assert next_session.menu_state.mode == "inspect_root"
@@ -392,7 +522,7 @@ def test_non_combat_inspect_root_can_open_potions_and_return() -> None:
     assert back_session.menu_state.mode == "inspect_root"
     assert back_message.splitlines()[0] == "资料总览"
     assert root_session.menu_state.mode == "root"
-    assert "查看事件" in root_message
+    assert "事件操作" in root_message
 
 
 def test_shop_root_menu_can_enter_inspect_and_return_to_shop() -> None:

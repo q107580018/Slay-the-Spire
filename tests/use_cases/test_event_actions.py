@@ -54,7 +54,7 @@ def _run_state(*, relics: list[str] | None = None) -> RunState:
 def test_shining_light_accept_enters_upgrade_subflow_and_upgrades_selected_card() -> None:
     session = _event_session("shining_light")
 
-    _running, session, _message = route_menu_choice("2", session=session)
+    _running, session, _message = route_menu_choice("1", session=session)
     _running, session, _message = route_menu_choice("1", session=session)
 
     assert session.menu_state.mode == "event_upgrade_card"
@@ -72,7 +72,7 @@ def test_shining_light_accept_enters_upgrade_subflow_and_upgrades_selected_card(
 def test_living_wall_forget_enters_remove_subflow_and_removes_selected_card() -> None:
     session = _event_session("living_wall")
 
-    _running, session, _message = route_menu_choice("2", session=session)
+    _running, session, _message = route_menu_choice("1", session=session)
     _running, session, _message = route_menu_choice("1", session=session)
 
     assert session.menu_state.mode == "event_remove_card"
@@ -91,7 +91,7 @@ def test_the_cleric_heal_spends_gold_and_restores_hp() -> None:
     base_session = _event_session("the_cleric")
     session = replace(base_session, run_state=replace(base_session.run_state, current_hp=40, gold=99))
 
-    _running, session, _message = route_menu_choice("2", session=session)
+    _running, session, _message = route_menu_choice("1", session=session)
     _running, session, _message = route_menu_choice("1", session=session)
 
     assert session.room_state.is_resolved is True
@@ -102,7 +102,7 @@ def test_the_cleric_heal_spends_gold_and_restores_hp() -> None:
 def test_world_of_goop_gather_gold_costs_hp_and_grants_gold() -> None:
     session = _event_session("world_of_goop")
 
-    _running, session, _message = route_menu_choice("2", session=session)
+    _running, session, _message = route_menu_choice("1", session=session)
     _running, session, _message = route_menu_choice("1", session=session)
 
     assert session.room_state.is_resolved is True
@@ -114,7 +114,7 @@ def test_big_fish_banana_heals_one_third_max_hp() -> None:
     base_session = _event_session("big_fish")
     session = replace(base_session, run_state=replace(base_session.run_state, current_hp=30))
 
-    _running, session, _message = route_menu_choice("2", session=session)
+    _running, session, _message = route_menu_choice("1", session=session)
     _running, session, _message = route_menu_choice("1", session=session)
 
     assert session.room_state.is_resolved is True
@@ -126,7 +126,7 @@ def test_big_fish_donut_increases_max_hp_and_current_hp() -> None:
     base_session = _event_session("big_fish")
     session = replace(base_session, run_state=replace(base_session.run_state, current_hp=40, max_hp=80))
 
-    _running, session, _message = route_menu_choice("2", session=session)
+    _running, session, _message = route_menu_choice("1", session=session)
     _running, session, _message = route_menu_choice("2", session=session)
 
     assert session.room_state.is_resolved is True
@@ -137,7 +137,7 @@ def test_big_fish_donut_increases_max_hp_and_current_hp() -> None:
 def test_golden_shrine_pray_grants_gold_without_other_side_effects() -> None:
     session = _event_session("golden_shrine")
 
-    _running, session, _message = route_menu_choice("2", session=session)
+    _running, session, _message = route_menu_choice("1", session=session)
     _running, session, _message = route_menu_choice("1", session=session)
 
     assert session.room_state.is_resolved is True
@@ -163,7 +163,7 @@ def test_event_gain_gold_is_blocked_by_ectoplasm() -> None:
 def test_masked_bandits_pay_spends_gold_without_other_side_effects() -> None:
     session = _event_session("masked_bandits")
 
-    _running, session, _message = route_menu_choice("2", session=session)
+    _running, session, _message = route_menu_choice("1", session=session)
     _running, session, _message = route_menu_choice("1", session=session)
 
     assert session.room_state.is_resolved is True
@@ -174,7 +174,7 @@ def test_masked_bandits_pay_spends_gold_without_other_side_effects() -> None:
 def test_ssssserpent_agree_grants_gold_and_adds_doubt_curse() -> None:
     session = _event_session("the_ssssserpent")
 
-    _running, session, _message = route_menu_choice("2", session=session)
+    _running, session, _message = route_menu_choice("1", session=session)
     _running, session, _message = route_menu_choice("1", session=session)
 
     assert session.room_state.is_resolved is True
@@ -185,7 +185,7 @@ def test_ssssserpent_agree_grants_gold_and_adds_doubt_curse() -> None:
 def test_golden_idol_take_hide_grants_relic_and_reduces_max_hp() -> None:
     session = _event_session("golden_idol")
 
-    _running, session, _message = route_menu_choice("2", session=session)
+    _running, session, _message = route_menu_choice("1", session=session)
     _running, session, _message = route_menu_choice("1", session=session)
 
     assert session.room_state.is_resolved is True
@@ -197,7 +197,7 @@ def test_golden_idol_take_hide_grants_relic_and_reduces_max_hp() -> None:
 def test_golden_idol_take_escape_adds_injury_curse() -> None:
     session = _event_session("golden_idol")
 
-    _running, session, _message = route_menu_choice("2", session=session)
+    _running, session, _message = route_menu_choice("1", session=session)
     _running, session, _message = route_menu_choice("3", session=session)
 
     assert session.room_state.is_resolved is True

@@ -47,7 +47,6 @@ def test_act1_boss_reward_transitions_into_act2_start_room() -> None:
     _running, session, _message = route_menu_choice("1", session=session)
     _running, session, _message = route_menu_choice("2", session=session)
     _running, session, _message = route_menu_choice("2", session=session)
-    _running, session, _message = route_menu_choice("2", session=session)
 
     assert session.run_phase == "active"
     assert session.run_state.relics[-1] == "ectoplasm"
@@ -85,7 +84,6 @@ def test_act2_boss_reward_finishes_run_with_victory() -> None:
     )
 
     _running, session, _message = route_menu_choice("1", session=session)
-    _running, session, _message = route_menu_choice("2", session=session)
     _running, session, _message = route_menu_choice("2", session=session)
     _running, session, _message = route_menu_choice("1", session=session)
 

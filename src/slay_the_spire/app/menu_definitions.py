@@ -95,7 +95,6 @@ def build_root_menu(*, room_state: RoomState) -> MenuDefinition:
             return build_menu(
                 title="可选操作",
                 options=[
-                    ("view_rewards", "查看奖励"),
                     ("claim_rewards", "领取奖励"),
                     ("inspect", "查看资料"),
                     ("save", "保存游戏"),
@@ -107,7 +106,6 @@ def build_root_menu(*, room_state: RoomState) -> MenuDefinition:
             return build_menu(
                 title="可选操作",
                 options=[
-                    ("view_rewards", "查看奖励"),
                     ("claim_rewards", "领取奖励"),
                     ("next_room", "前往下一个房间"),
                     ("inspect", "查看资料"),
@@ -130,7 +128,6 @@ def build_root_menu(*, room_state: RoomState) -> MenuDefinition:
         return build_menu(
             title="可选操作",
             options=[
-                ("view_current", "查看战场"),
                 ("play_card", "出牌"),
                 ("end_turn", "结束回合"),
                 ("inspect", "查看资料"),
@@ -143,7 +140,6 @@ def build_root_menu(*, room_state: RoomState) -> MenuDefinition:
         return build_menu(
             title="可选操作",
             options=[
-                ("view_current", "查看事件"),
                 ("event_choice", "进行选择"),
                 ("inspect", "查看资料"),
                 ("save", "保存游戏"),
@@ -235,48 +231,6 @@ def build_reward_menu(*, room_state: RoomState, registry: ContentProviderPort) -
             *((("skip_card_rewards", "跳过卡牌奖励"),) if has_card_offers else ()),
             ("claim_all", "全部领取"),
             ("back", "返回上一步"),
-        ],
-    )
-
-
-def build_reward_root_menu() -> MenuDefinition:
-    return build_menu(
-        title="奖励主页",
-        options=[
-            ("claim_rewards", "领取奖励"),
-            ("view_reward_details", "查看奖励详情"),
-            ("back", "返回"),
-        ],
-    )
-
-
-def _reward_list_label(reward_id: str, registry: ContentProviderPort | None) -> str | Text:
-    if registry is None:
-        return reward_id
-    return _reward_label(reward_id, registry)
-
-
-def build_reward_list_menu(
-    reward_ids: list[str] | tuple[str, ...],
-    *,
-    registry: ContentProviderPort | None = None,
-) -> MenuDefinition:
-    return build_menu(
-        title="奖励详情列表",
-        options=[
-            *[(f"inspect_reward:{reward_id}", _reward_list_label(reward_id, registry)) for reward_id in reward_ids],
-            ("back", "返回奖励主页"),
-        ],
-    )
-
-
-def build_reward_detail_menu(reward_id: str) -> MenuDefinition:
-    del reward_id
-    return build_menu(
-        title="奖励详情",
-        options=[
-            ("back_to_list", "返回奖励列表"),
-            ("back_to_root", "返回奖励主页"),
         ],
     )
 

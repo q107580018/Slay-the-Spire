@@ -80,7 +80,7 @@ def test_main_new_run_dispatches_first_room_to_textual(monkeypatch) -> None:
 
 def test_single_act_smoke_simulates_map_shop_rest_and_boss_reward_transition_into_act2() -> None:
     session = start_session(seed=1)
-    _running, session, _message = route_menu_choice("4", session=session)
+    _running, session, _message = route_menu_choice("3", session=session)
     _running, session, _message = route_menu_choice("5", session=session)
     _running, session, _message = route_menu_choice("1", session=session)
     _running, session, _message = route_menu_choice("2", session=session)
@@ -90,7 +90,7 @@ def test_single_act_smoke_simulates_map_shop_rest_and_boss_reward_transition_int
 
     for next_node_id in path[1:]:
         if session.room_state.room_type == "event":
-            _running, session, _message = route_menu_choice("3", session=session)
+            _running, session, _message = route_menu_choice("2", session=session)
             _running, session, _message = route_menu_choice("1", session=session)
             _running, session, _message = route_menu_choice("1", session=session)
             _running, session, _message = route_menu_choice("5", session=session)
@@ -133,16 +133,14 @@ def test_single_act_smoke_simulates_map_shop_rest_and_boss_reward_transition_int
             },
         ),
     )
-    _running, session, _message = route_menu_choice("2", session=session)
+    _running, session, _message = route_menu_choice("1", session=session)
     _running, session, _message = route_menu_choice("1", session=session)
     assert session.run_phase == "active"
-    assert session.menu_state.mode == "root"
+    assert session.menu_state.mode == "select_boss_reward"
     assert session.room_state.rewards == []
     assert session.room_state.payload["boss_rewards"]["claimed_gold"] is True
     assert "boss_rewards" in session.room_state.payload
 
-    _running, session, _message = route_menu_choice("2", session=session)
-    assert session.menu_state.mode == "select_boss_reward"
     _running, session, _message = route_menu_choice("2", session=session)
     assert session.menu_state.mode == "select_boss_relic"
     _running, session, _message = route_menu_choice("1", session=session)
@@ -161,7 +159,7 @@ def test_single_act_smoke_simulates_map_shop_rest_and_boss_reward_transition_int
 
 def test_single_act_smoke_boss_room_uses_act1_bosses_and_hexaghost() -> None:
     session = start_session(seed=1)
-    _running, session, _message = route_menu_choice("4", session=session)
+    _running, session, _message = route_menu_choice("3", session=session)
     _running, session, _message = route_menu_choice("5", session=session)
     _running, session, _message = route_menu_choice("1", session=session)
     _running, session, _message = route_menu_choice("2", session=session)
@@ -170,7 +168,7 @@ def test_single_act_smoke_boss_room_uses_act1_bosses_and_hexaghost() -> None:
 
     for next_node_id in path[1:]:
         if session.room_state.room_type == "event":
-            _running, session, _message = route_menu_choice("3", session=session)
+            _running, session, _message = route_menu_choice("2", session=session)
             _running, session, _message = route_menu_choice("1", session=session)
             _running, session, _message = route_menu_choice("1", session=session)
             _running, session, _message = route_menu_choice("5", session=session)

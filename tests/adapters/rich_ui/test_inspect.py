@@ -3,6 +3,7 @@ from rich.console import Console
 from slay_the_spire.adapters.rich_ui.inspect import (
     format_card_detail_lines,
     format_card_detail_menu,
+    format_card_upgrade_preview_lines,
     format_reward_detail_lines,
     format_relic_detail_lines,
     render_card_detail_panel,
@@ -118,6 +119,23 @@ def test_format_card_detail_lines_show_x_cost_whirlwind() -> None:
 
     assert any("费用" in line.plain and "X" in line.plain for line in lines)
     assert any("所有敌人" in line.plain for line in lines)
+
+
+def test_format_card_upgrade_preview_lines_show_before_and_after_effects() -> None:
+    session = start_session(seed=5)
+    registry = StarterContentProvider(session.content_root)
+
+    lines = format_card_upgrade_preview_lines("bash#1", registry)
+    rendered = "\n".join(line.plain for line in lines)
+
+    assert "当前" in rendered
+    assert "升级后" in rendered
+    assert "重击" in rendered
+    assert "重击+" in rendered
+    assert "造成 8 伤害" in rendered
+    assert "施加 2 易伤" in rendered
+    assert "造成 10 伤害" in rendered
+    assert "施加 3 易伤" in rendered
 
 
 def test_render_card_detail_panel_marks_x_cost_card_as_playable() -> None:

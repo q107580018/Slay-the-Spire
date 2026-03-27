@@ -19,9 +19,6 @@ from slay_the_spire.app.menu_definitions import (
     build_inspect_root_menu,
     build_leaf_menu,
     build_next_room_menu,
-    build_reward_detail_menu,
-    build_reward_list_menu,
-    build_reward_root_menu,
     build_reward_menu,
     build_rest_root_menu,
     build_rest_upgrade_menu,
@@ -233,12 +230,13 @@ def _claim_session_reward(session: SessionState, reward_id: str) -> SessionState
         registry=provider,
     )
     updated_room_state = _room_with_rewards_claimed(session.room_state, reward_id)
+    next_menu_state = MenuState(mode="select_reward") if updated_room_state.rewards else MenuState()
     return replace(
         session,
         run_state=updated_run_state,
         room_state=updated_room_state,
         run_phase=_derive_run_phase(updated_run_state, session.act_state, updated_room_state, registry=provider),
-        menu_state=MenuState(),
+        menu_state=next_menu_state,
     )
 
 
@@ -252,18 +250,19 @@ def _claim_all_session_rewards(session: SessionState) -> SessionState:
 def _skip_card_offer_rewards(session: SessionState) -> SessionState:
     remaining_rewards = [reward for reward in session.room_state.rewards if not reward.startswith("card_offer:")]
     updated_room_state = replace(session.room_state, rewards=remaining_rewards)
-    return replace(session, room_state=updated_room_state, menu_state=MenuState())
+    next_menu_state = MenuState(mode="select_reward") if updated_room_state.rewards else MenuState()
+    return replace(session, room_state=updated_room_state, menu_state=next_menu_state)
 
 
 def _claim_boss_gold(session: SessionState) -> SessionState:
     boss_rewards = _boss_rewards(session.room_state)
     if boss_rewards is None:
-        return replace(session, menu_state=MenuState())
+        return replace(session, menu_state=MenuState(mode="select_boss_reward"))
     if boss_rewards.get("claimed_gold") is True:
-        return replace(session, menu_state=MenuState())
+        return replace(session, menu_state=MenuState(mode="select_boss_reward"))
     gold_reward = boss_rewards.get("gold_reward")
     if not isinstance(gold_reward, int) or isinstance(gold_reward, bool):
-        return replace(session, menu_state=MenuState())
+        return replace(session, menu_state=MenuState(mode="select_boss_reward"))
     provider = _content_provider(session)
     updated_run_state = apply_reward(
         run_state=session.run_state,
@@ -281,7 +280,7 @@ def _claim_boss_gold(session: SessionState) -> SessionState:
         run_state=updated_run_state,
         room_state=updated_room_state,
         run_phase=_derive_run_phase(updated_run_state, session.act_state, updated_room_state, registry=provider),
-        menu_state=MenuState(),
+        menu_state=MenuState(mode="select_boss_reward"),
     )
     return _resolve_boss_reward_completion(updated_session, registry=provider)
 
@@ -289,13 +288,13 @@ def _claim_boss_gold(session: SessionState) -> SessionState:
 def _claim_boss_relic(session: SessionState, relic_id: str) -> SessionState:
     boss_rewards = _boss_rewards(session.room_state)
     if boss_rewards is None:
-        return replace(session, menu_state=MenuState())
+        return replace(session, menu_state=MenuState(mode="select_boss_reward"))
     offers = boss_rewards.get("boss_relic_offers")
     if not isinstance(offers, list) or relic_id not in offers:
         return session
     claimed_relic_id = boss_rewards.get("claimed_relic_id")
     if isinstance(claimed_relic_id, str) and claimed_relic_id:
-        return replace(session, menu_state=MenuState())
+        return replace(session, menu_state=MenuState(mode="select_boss_reward"))
     provider = _content_provider(session)
     updated_run_state = apply_reward(
         run_state=session.run_state,
@@ -313,7 +312,7 @@ def _claim_boss_relic(session: SessionState, relic_id: str) -> SessionState:
         run_state=updated_run_state,
         room_state=updated_room_state,
         run_phase=_derive_run_phase(updated_run_state, session.act_state, updated_room_state, registry=provider),
-        menu_state=MenuState(),
+        menu_state=MenuState(mode="select_boss_reward"),
     )
     return _resolve_boss_reward_completion(updated_session, registry=provider)
 
@@ -736,42 +735,6 @@ def _enter_inspect_root(session: SessionState, *, parent_mode: str | None = None
     )
 
 
-def _enter_reward_root(session: SessionState, *, parent_mode: str | None = None) -> SessionState:
-    resolved_parent_mode = parent_mode or "root"
-    return replace(
-        session,
-        menu_state=MenuState(
-            mode="inspect_reward_root",
-            inspect_parent_mode=resolved_parent_mode,
-            inspect_item_id=None,
-        ),
-    )
-
-
-def _enter_reward_list(session: SessionState, *, parent_mode: str | None = None) -> SessionState:
-    resolved_parent_mode = parent_mode or "inspect_reward_root"
-    return replace(
-        session,
-        menu_state=MenuState(
-            mode="inspect_reward_list",
-            inspect_parent_mode=resolved_parent_mode,
-            inspect_item_id=None,
-        ),
-    )
-
-
-def _enter_reward_detail(session: SessionState, *, reward_id: str, parent_mode: str | None = None) -> SessionState:
-    resolved_parent_mode = parent_mode or "inspect_reward_list"
-    return replace(
-        session,
-        menu_state=MenuState(
-            mode="inspect_reward_detail",
-            inspect_parent_mode=resolved_parent_mode,
-            inspect_item_id=reward_id,
-        ),
-    )
-
-
 def _return_from_inspect(session: SessionState) -> SessionState:
     parent_mode = session.menu_state.inspect_parent_mode or "root"
     return replace(
@@ -786,16 +749,22 @@ def _return_from_inspect(session: SessionState) -> SessionState:
 
 def _root_view_title(session: SessionState) -> str:
     if session.room_state.is_resolved and (session.room_state.rewards or _has_pending_boss_rewards(session.room_state)):
-        return "查看奖励"
+        return "领取奖励"
     if session.room_state.room_type in {"combat", "elite", "boss"}:
         return "战斗"
     if session.room_state.room_type == "event":
-        return "查看事件"
+        return "事件操作"
     if session.menu_state.mode == "shop_root" or session.room_state.room_type == "shop":
         return "商店操作"
     if session.menu_state.mode == "rest_root" or session.room_state.room_type == "rest":
         return "休息点操作"
     return "查看当前状态"
+
+
+def _normalize_legacy_reward_inspect_mode(session: SessionState) -> SessionState:
+    if session.menu_state.mode not in {"inspect_reward_root", "inspect_reward_list", "inspect_reward_detail"}:
+        return session
+    return replace(session, menu_state=MenuState())
 
 
 def _route_inspect_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
@@ -865,57 +834,6 @@ def _route_inspect_leaf_menu(choice: str, session: SessionState, title: str) -> 
     if action_id == "back":
         next_session = _enter_inspect_root(session, parent_mode=session.menu_state.inspect_parent_mode or "root")
         return True, next_session, _inspect_transition_message(next_session, "资料总览")
-    return _invalid_menu_choice(session)
-
-
-def _route_reward_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
-    action_id = resolve_menu_action(choice, build_reward_root_menu())
-    if action_id is None:
-        return _invalid_menu_choice(session)
-    if action_id == "claim_rewards":
-        if _has_pending_boss_rewards(session.room_state):
-            next_session = replace(session, menu_state=MenuState(mode="select_boss_reward"))
-            return True, next_session, render_session(next_session)
-        if not session.room_state.rewards:
-            return True, replace(session, menu_state=MenuState()), "当前没有可领取的奖励。"
-        next_session = replace(session, menu_state=MenuState(mode="select_reward"))
-        return True, next_session, render_session(next_session)
-    if action_id == "view_reward_details":
-        next_session = _enter_reward_list(session, parent_mode="inspect_reward_root")
-        return True, next_session, _inspect_transition_message(next_session, "奖励详情列表")
-    if action_id == "back":
-        next_session = replace(session, menu_state=MenuState())
-        return True, next_session, _menu_view_message(next_session, _root_view_title(next_session))
-    return _invalid_menu_choice(session)
-
-
-def _route_reward_list_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
-    action_id = resolve_menu_action(choice, build_reward_list_menu(session.room_state.rewards))
-    if action_id is None:
-        return _invalid_menu_choice(session)
-    if action_id == "back":
-        next_session = _enter_reward_root(session, parent_mode="root")
-        return True, next_session, _inspect_transition_message(next_session, "奖励主页")
-    if action_id.startswith("inspect_reward:"):
-        reward_id = action_id.split(":", 1)[1]
-        if reward_id not in session.room_state.rewards:
-            return _invalid_menu_choice(session)
-        next_session = _enter_reward_detail(session, reward_id=reward_id, parent_mode="inspect_reward_root")
-        return True, next_session, _inspect_transition_message(next_session, "奖励详情")
-    return _invalid_menu_choice(session)
-
-
-def _route_reward_detail_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
-    reward_id = session.menu_state.inspect_item_id
-    if not isinstance(reward_id, str):
-        return _invalid_menu_choice(session)
-    action_id = resolve_menu_action(choice, build_reward_detail_menu(reward_id))
-    if action_id == "back_to_list":
-        next_session = _enter_reward_list(session, parent_mode=session.menu_state.inspect_parent_mode or "inspect_reward_root")
-        return True, next_session, _inspect_transition_message(next_session, "奖励详情列表")
-    if action_id == "back_to_root":
-        next_session = _enter_reward_root(session, parent_mode="root")
-        return True, next_session, _inspect_transition_message(next_session, "奖励主页")
     return _invalid_menu_choice(session)
 
 
@@ -1041,12 +959,6 @@ def _route_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionS
     if action_id == "view_current":
         next_session = replace(session, menu_state=MenuState())
         return True, next_session, render_session(next_session)
-    if action_id == "view_rewards":
-        if session.room_state.rewards:
-            next_session = _enter_reward_root(session, parent_mode="root")
-            return True, next_session, _menu_view_message(next_session, "奖励主页")
-        next_session = replace(session, menu_state=MenuState())
-        return True, next_session, render_session(next_session)
     if action_id == "claim_rewards":
         if _has_pending_boss_rewards(session.room_state):
             next_session = replace(session, menu_state=MenuState(mode="select_boss_reward"))
@@ -1088,6 +1000,18 @@ def _route_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionS
     return _invalid_menu_choice(session)
 
 
+def _menu_state_for_post_play_session(session: SessionState) -> MenuState:
+    default_menu_state = _menu_state_for_room(session.room_state)
+    if session.run_phase != "active":
+        return default_menu_state
+    if session.room_state.room_type not in {"combat", "elite", "boss"} or session.room_state.is_resolved:
+        return default_menu_state
+    combat_state = _combat_state_from_room(session.room_state)
+    if combat_state is None or not combat_state.hand:
+        return default_menu_state
+    return MenuState(mode="select_card")
+
+
 def _route_card_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
     combat_state = _combat_state_from_room(session.room_state)
     if combat_state is None:
@@ -1117,7 +1041,7 @@ def _route_card_menu(choice: str, session: SessionState) -> tuple[bool, SessionS
         session=replace(session, menu_state=MenuState()),
     )
     next_session = _preserve_menu_history(next_session, history_session=session)
-    return running, replace(next_session, menu_state=MenuState()), message
+    return running, replace(next_session, menu_state=_menu_state_for_post_play_session(next_session)), message
 
 
 def _route_target_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
@@ -1162,7 +1086,7 @@ def _route_target_menu(choice: str, session: SessionState) -> tuple[bool, Sessio
         session=replace(session, menu_state=MenuState()),
     )
     next_session = _preserve_menu_history(next_session, history_session=session)
-    return running, replace(next_session, menu_state=MenuState()), message
+    return running, replace(next_session, menu_state=_menu_state_for_post_play_session(next_session)), message
 
 
 def _route_next_room_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
@@ -1458,7 +1382,7 @@ def _route_rest_upgrade_card_menu(choice: str, session: SessionState) -> tuple[b
 
 
 def route_menu_choice(choice: str, *, session: SessionState) -> tuple[bool, SessionState, str]:
-    next_session = _with_menu_choice_history(session, choice.strip())
+    next_session = _normalize_legacy_reward_inspect_mode(_with_menu_choice_history(session, choice.strip()))
     if next_session.menu_state.mode == "root":
         return _route_root_menu(choice.strip(), next_session)
     if next_session.menu_state.mode == "select_card":
@@ -1489,12 +1413,6 @@ def route_menu_choice(choice: str, *, session: SessionState) -> tuple[bool, Sess
         return _route_rest_upgrade_card_menu(choice.strip(), next_session)
     if next_session.menu_state.mode == "inspect_root":
         return _route_inspect_root_menu(choice.strip(), next_session)
-    if next_session.menu_state.mode == "inspect_reward_root":
-        return _route_reward_root_menu(choice.strip(), next_session)
-    if next_session.menu_state.mode == "inspect_reward_list":
-        return _route_reward_list_menu(choice.strip(), next_session)
-    if next_session.menu_state.mode == "inspect_reward_detail":
-        return _route_reward_detail_menu(choice.strip(), next_session)
     if next_session.menu_state.mode == "inspect_deck":
         return _route_inspect_deck_menu(choice.strip(), next_session)
     leaf_title = inspect_leaf_title(next_session.menu_state.mode)

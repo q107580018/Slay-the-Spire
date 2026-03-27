@@ -360,7 +360,7 @@ def test_partial_boss_reward_progress_survives_load_session(tmp_path: Path) -> N
         save_path=tmp_path / "boss_reward.json",
         content_root=Path(__file__).resolve().parents[2] / "content",
     )
-    _running, reward_menu_session, _message = route_menu_choice("2", session=restored_session)
+    _running, reward_menu_session, _message = route_menu_choice("1", session=restored_session)
     _running, relic_menu_session, _message = route_menu_choice("2", session=reward_menu_session)
     _running, transitioned_session, _message = route_menu_choice("1", session=relic_menu_session)
 
@@ -452,7 +452,7 @@ def test_non_boss_reward_claim_returns_to_map_selection() -> None:
     assert next_session.run_state.gold == 110
 
 
-def test_reward_detail_menu_round_trip_after_load_session_keeps_claim_flow(tmp_path: Path) -> None:
+def test_reward_claim_flow_after_load_session_keeps_partial_rewards_open(tmp_path: Path) -> None:
     session = replace(
         start_session(seed=7),
         room_state=RoomState(
@@ -476,35 +476,23 @@ def test_reward_detail_menu_round_trip_after_load_session_keeps_claim_flow(tmp_p
         save_path=tmp_path / "reward_detail.json",
         content_root=Path(__file__).resolve().parents[2] / "content",
     )
-    _running, reward_root_session, reward_root_message = route_menu_choice("1", session=restored_session)
-    _running, list_session, list_message = route_menu_choice("2", session=reward_root_session)
-    _running, detail_session, detail_message = route_menu_choice("1", session=list_session)
-    _running, list_back_session, list_back_message = route_menu_choice("1", session=detail_session)
-    _running, reward_root_back_session, reward_root_back_message = route_menu_choice("3", session=list_back_session)
-    _running, claim_menu_session, claim_menu_message = route_menu_choice("1", session=reward_root_back_session)
-    _running, claimed_session, claimed_message = route_menu_choice("1", session=claim_menu_session)
+    _running, claim_menu_session, claim_menu_message = route_menu_choice("1", session=restored_session)
+    _running, claimed_gold_session, claimed_gold_message = route_menu_choice("1", session=claim_menu_session)
+    _running, claimed_card_session, claimed_card_message = route_menu_choice("1", session=claimed_gold_session)
 
     assert restored_session.menu_state.mode == "root"
     assert restored_session.room_state.rewards == ["gold:11", "card_offer:anger"]
-    assert reward_root_session.menu_state.mode == "inspect_reward_root"
-    assert reward_root_message.splitlines()[0] == "奖励主页"
-    assert list_session.menu_state.mode == "inspect_reward_list"
-    assert list_session.menu_state.inspect_parent_mode == "inspect_reward_root"
-    assert list_message.splitlines()[0] == "奖励详情列表"
-    assert detail_session.menu_state.mode == "inspect_reward_detail"
-    assert detail_session.menu_state.inspect_item_id == "gold:11"
-    assert detail_message.splitlines()[0] == "奖励详情"
-    assert list_back_session.menu_state.mode == "inspect_reward_list"
-    assert list_back_message.splitlines()[0] == "奖励详情列表"
-    assert reward_root_back_session.menu_state.mode == "inspect_reward_root"
-    assert reward_root_back_message.splitlines()[0] == "奖励主页"
     assert claim_menu_session.menu_state.mode == "select_reward"
     assert claim_menu_session.room_state.rewards == ["gold:11", "card_offer:anger"]
     assert "奖励:" in claim_menu_message
-    assert claimed_session.menu_state.mode == "root"
-    assert claimed_session.room_state.rewards == ["card_offer:anger"]
-    assert claimed_session.run_state.gold == 110
-    assert "前往下一个房间" in claimed_message
+    assert claimed_gold_session.menu_state.mode == "select_reward"
+    assert claimed_gold_session.room_state.rewards == ["card_offer:anger"]
+    assert claimed_gold_session.run_state.gold == 110
+    assert "奖励:" in claimed_gold_message
+    assert claimed_card_session.menu_state.mode == "root"
+    assert claimed_card_session.room_state.rewards == []
+    assert claimed_card_session.run_state.gold == 110
+    assert "前往下一个房间" in claimed_card_message
 
 
 def test_event_room_inspect_round_trip_keeps_choice_flow() -> None:
@@ -525,11 +513,11 @@ def test_event_room_inspect_round_trip_keeps_choice_flow() -> None:
         ),
     )
 
-    _running, inspect_session, inspect_message = route_menu_choice("3", session=session)
+    _running, inspect_session, inspect_message = route_menu_choice("2", session=session)
     _running, stats_session, stats_message = route_menu_choice("1", session=inspect_session)
     _running, inspect_back_session, inspect_back_message = route_menu_choice("1", session=stats_session)
     _running, root_session, root_message = route_menu_choice("5", session=inspect_back_session)
-    _running, choice_menu_session, _choice_menu_message = route_menu_choice("2", session=root_session)
+    _running, choice_menu_session, _choice_menu_message = route_menu_choice("1", session=root_session)
     _running, next_session, _message = route_menu_choice("1", session=choice_menu_session)
 
     assert inspect_session.menu_state.mode == "inspect_root"
@@ -537,7 +525,7 @@ def test_event_room_inspect_round_trip_keeps_choice_flow() -> None:
     assert stats_session.menu_state.mode == "inspect_stats"
     assert inspect_back_session.menu_state.mode == "inspect_root"
     assert root_session.menu_state.mode == "root"
-    assert "查看事件" in root_message
+    assert "事件操作" in root_message
     assert choice_menu_session.menu_state.mode == "select_event_choice"
     assert next_session.room_state.is_resolved is True
 
@@ -565,11 +553,11 @@ def test_boss_reward_root_inspect_round_trip_keeps_reward_menu_numbering() -> No
         ),
     )
 
-    _running, inspect_session, inspect_message = route_menu_choice("3", session=session)
+    _running, inspect_session, inspect_message = route_menu_choice("2", session=session)
     _running, stats_session, stats_message = route_menu_choice("1", session=inspect_session)
     _running, inspect_back_session, inspect_back_message = route_menu_choice("1", session=stats_session)
     _running, reward_root_session, reward_root_message = route_menu_choice("5", session=inspect_back_session)
-    _running, select_reward_session, _select_reward_message = route_menu_choice("2", session=reward_root_session)
+    _running, select_reward_session, select_reward_message = route_menu_choice("1", session=reward_root_session)
     _running, claimed_session, _claimed_message = route_menu_choice("1", session=select_reward_session)
 
     assert inspect_session.menu_state.mode == "inspect_root"
@@ -577,8 +565,9 @@ def test_boss_reward_root_inspect_round_trip_keeps_reward_menu_numbering() -> No
     assert stats_session.menu_state.mode == "inspect_stats"
     assert inspect_back_session.menu_state.mode == "inspect_root"
     assert reward_root_session.menu_state.mode == "root"
-    assert "查看奖励" in reward_root_message
+    assert "领取奖励" in reward_root_message
     assert select_reward_session.menu_state.mode == "select_boss_reward"
+    assert "Boss奖励" in select_reward_message
     assert claimed_session.run_phase == "active"
     assert claimed_session.room_state.payload["boss_rewards"]["claimed_gold"] is True
     assert claimed_session.run_state.gold == 198
@@ -629,11 +618,11 @@ def test_combat_reward_root_inspect_uses_visible_back_choice_before_claim_flow()
         ),
     )
 
-    _running, inspect_session, inspect_message = route_menu_choice("4", session=session)
+    _running, inspect_session, inspect_message = route_menu_choice("3", session=session)
     _running, stats_session, stats_message = route_menu_choice("1", session=inspect_session)
     _running, inspect_back_session, inspect_back_message = route_menu_choice("1", session=stats_session)
     _running, reward_root_session, reward_root_message = route_menu_choice("5", session=inspect_back_session)
-    _running, select_reward_session, select_reward_message = route_menu_choice("2", session=reward_root_session)
+    _running, select_reward_session, select_reward_message = route_menu_choice("1", session=reward_root_session)
     _running, claimed_session, claimed_message = route_menu_choice("1", session=select_reward_session)
 
     assert inspect_session.menu_state.mode == "inspect_root"
@@ -645,14 +634,61 @@ def test_combat_reward_root_inspect_uses_visible_back_choice_before_claim_flow()
     assert inspect_back_session.menu_state.inspect_parent_mode == "root"
     assert "资料总览" in inspect_back_message
     assert reward_root_session.menu_state.mode == "root"
-    assert "查看奖励" in reward_root_message
     assert reward_root_session.room_state.rewards == ["gold:11"]
+    assert "领取奖励" in reward_root_message
     assert select_reward_session.menu_state.mode == "select_reward"
     assert "奖励" in select_reward_message
     assert claimed_session.menu_state.mode == "root"
     assert claimed_session.room_state.rewards == []
     assert claimed_session.run_state.gold == 110
     assert "前往下一个房间" in claimed_message
+
+
+def test_reward_room_inspect_back_to_root_uses_current_claim_reward_title() -> None:
+    combat_session = replace(
+        start_session(seed=7),
+        room_state=RoomState(
+            room_id="act1:hallway",
+            room_type="combat",
+            stage="completed",
+            payload={"node_id": "r1c0", "next_node_ids": ["r2c0"]},
+            is_resolved=True,
+            rewards=["gold:11"],
+        ),
+    )
+    boss_session = replace(
+        start_session(seed=7),
+        room_state=RoomState(
+            room_id="act1:boss",
+            room_type="boss",
+            stage="completed",
+            payload={
+                "node_id": "boss",
+                "next_node_ids": [],
+                "boss_rewards": {
+                    "generated_by": "boss_reward_generator",
+                    "gold_reward": 99,
+                    "claimed_gold": False,
+                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"],
+                    "claimed_relic_id": None,
+                },
+            },
+            is_resolved=True,
+            rewards=[],
+        ),
+    )
+
+    _running, combat_inspect_session, _combat_inspect_message = route_menu_choice("3", session=combat_session)
+    _running, combat_root_session, combat_root_message = route_menu_choice("5", session=combat_inspect_session)
+    _running, boss_inspect_session, _boss_inspect_message = route_menu_choice("2", session=boss_session)
+    _running, boss_root_session, boss_root_message = route_menu_choice("5", session=boss_inspect_session)
+
+    assert combat_inspect_session.menu_state.mode == "inspect_root"
+    assert combat_root_session.menu_state.mode == "root"
+    assert combat_root_message.splitlines()[0] == "领取奖励"
+    assert boss_inspect_session.menu_state.mode == "inspect_root"
+    assert boss_root_session.menu_state.mode == "root"
+    assert boss_root_message.splitlines()[0] == "领取奖励"
 
 
 def test_combat_reward_root_inspect_potions_follow_visible_menu_numbering() -> None:
@@ -670,11 +706,11 @@ def test_combat_reward_root_inspect_potions_follow_visible_menu_numbering() -> N
         ),
     )
 
-    _running, inspect_session, inspect_message = route_menu_choice("4", session=session)
+    _running, inspect_session, inspect_message = route_menu_choice("3", session=session)
     _running, potions_session, potions_message = route_menu_choice("4", session=inspect_session)
     _running, inspect_back_session, inspect_back_message = route_menu_choice("1", session=potions_session)
     _running, reward_root_session, reward_root_message = route_menu_choice("5", session=inspect_back_session)
-    _running, select_reward_session, select_reward_message = route_menu_choice("2", session=reward_root_session)
+    _running, select_reward_session, select_reward_message = route_menu_choice("1", session=reward_root_session)
     _running, claimed_session, claimed_message = route_menu_choice("1", session=select_reward_session)
 
     assert inspect_session.menu_state.mode == "inspect_root"
@@ -688,7 +724,7 @@ def test_combat_reward_root_inspect_potions_follow_visible_menu_numbering() -> N
     assert inspect_back_session.menu_state.inspect_parent_mode == "root"
     assert "资料总览" in inspect_back_message
     assert reward_root_session.menu_state.mode == "root"
-    assert "查看奖励" in reward_root_message
+    assert "领取奖励" in reward_root_message
     assert select_reward_session.menu_state.mode == "select_reward"
     assert "奖励" in select_reward_message
     assert claimed_session.room_state.rewards == []
@@ -724,7 +760,6 @@ def test_claiming_boss_relic_after_gold_enters_victory() -> None:
 
     _running, session, _message = route_menu_choice("1", session=session)
     _running, session, _message = route_menu_choice("2", session=session)
-    _running, session, _message = route_menu_choice("2", session=session)
     _running, next_session, _message = route_menu_choice("1", session=session)
 
     assert next_session.run_phase == "victory"
@@ -738,8 +773,7 @@ def test_claiming_final_boss_reward_in_act1_enters_act2_instead_of_victory() -> 
     session = _boss_reward_ready_session(act_id="act1", next_act_id="act2")
 
     _running, gold_session, _message = route_menu_choice("1", session=session)
-    _running, reward_menu_session, _message = route_menu_choice("2", session=gold_session)
-    _running, relic_menu_session, _message = route_menu_choice("2", session=reward_menu_session)
+    _running, relic_menu_session, _message = route_menu_choice("2", session=gold_session)
     _running, next_session, _message = route_menu_choice("1", session=relic_menu_session)
 
     assert next_session.run_phase == "active"
