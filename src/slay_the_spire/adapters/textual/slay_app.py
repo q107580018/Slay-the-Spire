@@ -5,6 +5,7 @@ from typing import Any
 
 from rich.console import Group
 from rich.panel import Panel
+from rich.text import Text
 from textual import on
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
@@ -46,6 +47,7 @@ from slay_the_spire.app.session import (
 )
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
+from slay_the_spire.adapters.terminal.inspect import format_reward_detail_lines
 
 _ROOM_LABELS: dict[str, str] = {
     "combat": "战斗房",
@@ -109,6 +111,37 @@ def _boss_rewards(session: SessionState) -> dict[str, object] | None:
 
 def _supports_hover_preview(menu_mode: str) -> bool:
     return menu_mode in {"select_reward", "select_boss_reward", "select_boss_relic", "shop_root"}
+
+
+def _text_from_lines(lines: list[str | Text]) -> Text:
+    rendered = Text()
+    for index, line in enumerate(lines):
+        if index > 0:
+            rendered.append("\n")
+        if isinstance(line, Text):
+            rendered.append_text(line)
+        else:
+            rendered.append(line)
+    return rendered
+
+
+def _reward_preview_renderable(session: SessionState, action_id: str) -> Text | None:
+    if action_id.startswith("claim_reward:"):
+        reward_id = action_id.split(":", 1)[1]
+        return _text_from_lines(format_reward_detail_lines(reward_id, _content_provider(session)))
+    if action_id == "claim_all":
+        return Text("控制项：全部领取")
+    if action_id == "back":
+        return Text("控制项：返回上一步")
+    if action_id == "skip_card_rewards":
+        return Text("控制项：跳过卡牌奖励")
+    return None
+
+
+def _hover_preview_renderable(session: SessionState, action_id: str) -> Text | None:
+    if session.menu_state.mode == "select_reward":
+        return _reward_preview_renderable(session, action_id)
+    return None
 
 
 def _inspect_list_menu(title: str, labels: list[str]) -> MenuDefinition:
@@ -317,6 +350,7 @@ class SlayApp(App[None]):
         super().__init__()
         self._session = session
         self._action_choices: list[str] = []
+        self._action_ids: list[str] = []
         self._hovered_node_id: str | None = None
         self.console.push_theme(TERMINAL_THEME)
 
@@ -366,6 +400,7 @@ class SlayApp(App[None]):
         action_list = self.query_one("#action-list", OptionList)
         action_list.clear_options()
         self._action_choices = []
+        self._action_ids = []
 
         if menu is None:
             action_summary.update("当前没有可点击操作。")
@@ -383,17 +418,24 @@ class SlayApp(App[None]):
         for index, option in enumerate(menu.options, start=1):
             prompts.append(f"{index}. {_plain_label(option.label)}")
             self._action_choices.append(str(index))
+            self._action_ids.append(option.action_id)
         action_list.add_options(prompts)
         self._refresh_hover_preview()
 
-    def _refresh_hover_preview(self) -> None:
+    def _refresh_hover_preview(self, action_id: str | None = None) -> None:
         preview = self.query_one("#hover-preview", Static)
         menu_mode = self._session.menu_state.mode
+        if action_id is not None:
+            rendered = _hover_preview_renderable(self._session, action_id)
+            if rendered is not None:
+                preview.update(rendered)
+                preview.display = True
+                return
         if _supports_hover_preview(menu_mode):
-            preview.update("查看说明：将鼠标悬停在奖励或商品上查看详情。")
+            preview.update(Text("查看说明：将鼠标悬停在奖励或商品上查看详情。"))
             preview.display = True
         else:
-            preview.update("")
+            preview.update(Text(""))
             preview.display = False
 
     def _process_command(self, cmd: str) -> None:
@@ -414,6 +456,13 @@ class SlayApp(App[None]):
         if option_index < 0 or option_index >= len(self._action_choices):
             return
         self._process_command(self._action_choices[option_index])
+
+    @on(OptionList.OptionHighlighted, "#action-list")
+    def handle_action_highlighted(self, event: OptionList.OptionHighlighted) -> None:
+        if event.option_index < 0 or event.option_index >= len(self._action_ids):
+            self._refresh_hover_preview()
+            return
+        self._refresh_hover_preview(self._action_ids[event.option_index])
 
     @on(MapWidget.NodeSelected)
     def handle_node_selected(self, event: MapWidget.NodeSelected) -> None:

@@ -7,7 +7,7 @@ from io import StringIO
 
 import pytest
 from rich.console import Console
-from textual.widgets import Static
+from textual.widgets import OptionList, Static
 
 from slay_the_spire.adapters.textual.map_widget import MapWidget
 from slay_the_spire.adapters.terminal.theme import TERMINAL_THEME
@@ -325,5 +325,60 @@ def test_hover_preview_panel_is_hidden_after_leaving_reward_menu() -> None:
             app._process_command(back_choice)
             await pilot.pause()
             assert app.query_one("#hover-preview", Static).display is False
+
+    asyncio.run(scenario())
+
+
+def test_hover_preview_shows_card_reward_details_for_highlighted_reward() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="combat",
+            stage="completed",
+            is_resolved=True,
+            rewards=["card_offer:anger", "gold:15"],
+        ),
+        menu_state=replace(base.menu_state, mode="select_reward"),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            action_list = app.query_one("#action-list", OptionList)
+            action_list.highlighted = 0
+            await pilot.pause()
+            preview = app.query_one("#hover-preview", Static)
+            assert "愤怒" in preview.render().plain
+            assert "效果" in preview.render().plain
+
+    asyncio.run(scenario())
+
+
+def test_hover_preview_shows_control_hint_for_claim_all() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="combat",
+            stage="completed",
+            is_resolved=True,
+            rewards=["gold:15", "event:gain_upgrade"],
+        ),
+        menu_state=replace(base.menu_state, mode="select_reward"),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            action_list = app.query_one("#action-list", OptionList)
+            action_list.highlighted = 2
+            await pilot.pause()
+            preview = app.query_one("#hover-preview", Static)
+            assert "全部领取" in preview.render().plain
 
     asyncio.run(scenario())
