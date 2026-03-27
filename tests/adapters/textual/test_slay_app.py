@@ -207,7 +207,7 @@ def test_textual_log_renderable_still_omits_footer_menu_after_map_polish() -> No
     assert "可选操作" not in buffer.getvalue()
 
 
-def test_reward_preview_panel_is_present_in_reward_menu() -> None:
+def test_hover_preview_panel_is_present_in_reward_menu() -> None:
     base = start_session(seed=5)
     session = replace(
         base,
@@ -230,3 +230,29 @@ def test_reward_preview_panel_is_present_in_reward_menu() -> None:
     asyncio.run(scenario())
 
 
+def test_hover_preview_panel_is_hidden_after_leaving_reward_menu() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="combat",
+            stage="completed",
+            is_resolved=True,
+            rewards=["card_offer:anger", "gold:15"],
+        ),
+        menu_state=replace(base.menu_state, mode="select_reward"),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            menu = _current_action_menu(app._session)
+            assert menu is not None
+            assert app.query_one("#hover-preview", Static).display is True
+            app._process_command(str(len(menu.options)))
+            await pilot.pause()
+            assert app.query_one("#hover-preview", Static).display is False
+
+    asyncio.run(scenario())
