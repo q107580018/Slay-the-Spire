@@ -83,6 +83,26 @@ def _is_full_map_panel(renderable: object) -> bool:
     return isinstance(renderable, Panel) and _plain_label(renderable.title) == "完整地图"
 
 
+def _is_titled_panel(renderable: object, title: str) -> bool:
+    return isinstance(renderable, Panel) and _plain_label(renderable.title) == title
+
+
+def _extract_titled_panel(renderable: Any, *, title: str) -> tuple[Any, Panel | None]:
+    if _is_titled_panel(renderable, title):
+        return None, renderable
+    if isinstance(renderable, Group):
+        extracted_panel: Panel | None = None
+        kept: list[Any] = []
+        for item in renderable.renderables:
+            stripped_item, found_panel = _extract_titled_panel(item, title=title)
+            if extracted_panel is None and found_panel is not None:
+                extracted_panel = found_panel
+            if stripped_item is not None:
+                kept.append(stripped_item)
+        return Group(*kept), extracted_panel
+    return renderable, None
+
+
 def _strip_full_map_panel(renderable: Any) -> Any:
     if _is_full_map_panel(renderable):
         return None
@@ -100,8 +120,15 @@ def _render_to_rich(session: SessionState) -> Any:
         renderables = list(renderable.renderables)
         if len(renderables) >= 3:
             renderable = Group(*renderables[:-1])
+    renderable, _ = _extract_titled_panel(renderable, title="战斗摘要")
     stripped = _strip_full_map_panel(renderable)
     return renderable if stripped is None else stripped
+
+
+def _combat_summary_renderable(session: SessionState) -> Panel | None:
+    renderable = render_session_renderable(session)
+    _, summary_panel = _extract_titled_panel(renderable, title="战斗摘要")
+    return summary_panel
 
 
 def _menu_choice_for_action(menu: MenuDefinition, action_id: str) -> str | None:
@@ -457,13 +484,25 @@ class SlayApp(App[None]):
         layout: horizontal;
     }
 
-    #map-panel {
+    #left-panel {
         width: 2fr;
+        height: 1fr;
+        layout: vertical;
+    }
+
+    #map-panel {
         height: 1fr;
         background: antiquewhite;
         color: black;
         border: solid wheat;
         padding: 0;
+        overflow: auto;
+    }
+
+    #combat-summary {
+        height: auto;
+        max-height: 11;
+        border: solid grey;
         overflow: auto;
     }
 
@@ -527,9 +566,11 @@ class SlayApp(App[None]):
     def compose(self) -> ComposeResult:
         yield Header(show_clock=False)
         with Horizontal():
-            # 左侧：地图
-            with Vertical(id="map-panel"):
-                yield MapWidget(self._session.act_state, id="map-widget")
+            # 左侧：地图 + 战斗摘要
+            with Vertical(id="left-panel"):
+                with Vertical(id="map-panel"):
+                    yield MapWidget(self._session.act_state, id="map-widget")
+                yield Static("", id="combat-summary")
             # 右侧：日志 + 输入
             with Vertical(id="right-panel"):
                 yield RichLog(id="game-log", highlight=True, markup=True, wrap=True)
@@ -541,6 +582,7 @@ class SlayApp(App[None]):
 
     def on_mount(self) -> None:
         self._refresh_log()
+        self._refresh_combat_summary()
         self._refresh_actions()
         self.query_one("#action-list", OptionList).focus()
 
@@ -557,6 +599,16 @@ class SlayApp(App[None]):
             map_widget.update_act(self._session.act_state)
         except NoMatches:
             pass
+
+    def _refresh_combat_summary(self) -> None:
+        summary = self.query_one("#combat-summary", Static)
+        panel = _combat_summary_renderable(self._session)
+        if panel is None:
+            summary.update(Text(""))
+            summary.display = False
+            return
+        summary.update(panel)
+        summary.display = True
 
     def _set_flash(self, msg: str) -> None:
         try:
@@ -620,6 +672,7 @@ class SlayApp(App[None]):
         self._session = new_session
         self._refresh_log()
         self._refresh_map()
+        self._refresh_combat_summary()
         self._refresh_actions()
         rendered = render_session(new_session)
         self._set_flash("" if message == rendered else message)

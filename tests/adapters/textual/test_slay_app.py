@@ -7,6 +7,7 @@ from io import StringIO
 
 import pytest
 from rich.console import Console
+from rich.panel import Panel
 from rich.text import Text
 from textual.widgets import OptionList, Static
 
@@ -401,6 +402,18 @@ def test_textual_log_renderable_still_omits_footer_menu_after_map_polish() -> No
     assert "可选操作" not in buffer.getvalue()
 
 
+def test_textual_log_renderable_omits_combat_summary_panel() -> None:
+    session = start_session(seed=5)
+    buffer = StringIO()
+    console = Console(file=buffer, force_terminal=False, color_system=None, theme=TERMINAL_THEME)
+
+    console.print(_render_to_rich(session))
+
+    output = buffer.getvalue()
+    assert "战斗摘要" not in output
+    assert "战斗记录" in output
+
+
 def test_textual_log_renderable_omits_duplicate_map_panel() -> None:
     base_session = start_session(seed=5)
     session = replace(
@@ -421,6 +434,43 @@ def test_textual_log_renderable_omits_duplicate_map_panel() -> None:
     output = buffer.getvalue()
     assert "TIP |" not in output
     assert "TYPE |" not in output
+
+
+def test_combat_summary_panel_is_rendered_below_map_when_in_combat() -> None:
+    async def scenario() -> None:
+        app = SlayApp(start_session(seed=5))
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            summary = app.query_one("#combat-summary", Static)
+            rendered = summary.render()
+            assert summary.display is True
+            assert isinstance(rendered._renderable, Panel)
+            assert rendered._renderable.title == "战斗摘要"
+
+    asyncio.run(scenario())
+
+
+def test_combat_summary_panel_is_hidden_outside_combat() -> None:
+    base_session = start_session(seed=5)
+    session = replace(
+        base_session,
+        room_state=replace(
+            base_session.room_state,
+            room_type="rest",
+            stage="waiting_input",
+            payload={"actions": ["rest", "smith"], "node_id": "r1c0"},
+        ),
+        menu_state=replace(base_session.menu_state, mode="rest_root"),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            summary = app.query_one("#combat-summary", Static)
+            assert summary.display is False
+
+    asyncio.run(scenario())
 
 
 def test_hover_preview_panel_is_present_in_reward_menu() -> None:
