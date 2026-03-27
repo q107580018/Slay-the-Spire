@@ -73,6 +73,70 @@ def test_map_widget_enables_scrollbars() -> None:
     assert widget.show_vertical_scrollbar is True
 
 
+def test_map_widget_uses_compact_node_regions() -> None:
+    widget = MapWidget(start_session(seed=5).act_state)
+
+    width_values = {region[2] for region in widget._node_regions.values()}
+    height_values = {region[3] for region in widget._node_regions.values()}
+
+    assert max(width_values) <= 7
+    assert max(height_values) <= 3
+
+
+def test_map_widget_centers_view_above_current_node() -> None:
+    async def scenario() -> None:
+        app = SlayApp(start_session(seed=5))
+        async with app.run_test(size=(80, 24)) as pilot:
+            await pilot.pause()
+            map_widget = app.query_one("#map-widget", MapWidget)
+            assert map_widget.scroll_y >= 0
+            assert map_widget.max_scroll_y > 0
+
+    asyncio.run(scenario())
+
+
+def test_display_positions_are_stable_for_same_act_state() -> None:
+    act_state = start_session(seed=5).act_state
+
+    left = MapWidget(act_state)
+    right = MapWidget(act_state)
+
+    assert left._node_regions == right._node_regions
+
+
+def test_current_node_region_is_not_centered_exactly() -> None:
+    widget = MapWidget(start_session(seed=5).act_state)
+    region = widget._current_node_region()
+
+    assert region is not None
+    assert region.height <= 3
+
+
+def test_map_widget_renders_icon_with_label_for_current_floor() -> None:
+    widget = MapWidget(start_session(seed=5).act_state)
+
+    canvas = "\n".join(widget._canvas_lines)
+    assert "⚔" in canvas or "💀" in canvas or "👑" in canvas
+    assert "战斗" in canvas or "精英" in canvas or "商店" in canvas
+    assert "┌" not in canvas
+    assert "╔" not in canvas
+
+
+def test_current_and_reachable_nodes_use_distinct_styles() -> None:
+    widget = MapWidget(start_session(seed=5).act_state)
+
+    styles = [style for row in widget._style_rows for style in row]
+    assert any(style.bold for style in styles)
+
+
+def test_map_widget_avoids_boxy_edge_glyphs() -> None:
+    widget = MapWidget(start_session(seed=5).act_state)
+
+    canvas = "\n".join(widget._canvas_lines)
+    assert "│" not in canvas
+    assert "─" not in canvas
+
+
 def test_map_initially_scrolls_toward_current_node() -> None:
     async def scenario() -> None:
         app = SlayApp(start_session(seed=5))
@@ -95,6 +159,17 @@ def test_textual_ui_omits_input_and_legend_regions() -> None:
     asyncio.run(scenario())
 
 
+def test_textual_map_panel_css_uses_light_background() -> None:
+    assert "#map-panel" in SlayApp.CSS
+    map_panel_css = SlayApp.CSS.split("#map-panel", maxsplit=1)[1].split("}", maxsplit=1)[0]
+    assert "background:" in map_panel_css
+
+
+def test_textual_map_panel_declares_light_background_css() -> None:
+    assert "#map-panel" in SlayApp.CSS
+    assert "background:" in SlayApp.CSS
+
+
 def test_textual_log_renderable_omits_footer_menu() -> None:
     session = start_session(seed=5)
     buffer = StringIO()
@@ -104,3 +179,13 @@ def test_textual_log_renderable_omits_footer_menu() -> None:
 
     output = buffer.getvalue()
     assert "可选操作" not in output
+
+
+def test_textual_log_renderable_still_omits_footer_menu_after_map_polish() -> None:
+    session = start_session(seed=5)
+    buffer = StringIO()
+    console = Console(file=buffer, force_terminal=False, color_system=None, theme=TERMINAL_THEME)
+
+    console.print(_render_to_rich(session))
+
+    assert "可选操作" not in buffer.getvalue()

@@ -33,13 +33,13 @@ _NODE_LABELS: dict[str, str] = {
     "rest": "休息",
 }
 
-_NODE_COLORS: dict[str, tuple[str, str]] = {
-    "combat":  ("grey23",         "white"),
-    "elite":   ("dark_goldenrod", "bright_white"),
-    "boss":    ("dark_red",       "bright_white"),
-    "event":   ("dark_cyan",      "bright_white"),
-    "shop":    ("purple",         "bright_white"),
-    "rest":    ("dark_green",     "bright_white"),
+_NODE_COLORS: dict[str, str] = {
+    "combat": "grey23",
+    "elite": "dark_goldenrod",
+    "boss": "dark_red",
+    "event": "dark_cyan",
+    "shop": "purple",
+    "rest": "dark_green",
 }
 
 _CURRENT_BG   = "bright_cyan"
@@ -49,11 +49,12 @@ _REACHABLE_FG = "bright_white"
 _HOVER_BG     = "grey50"
 _HOVER_FG     = "bright_white"
 
-_NODE_W      = 8
-_COL_SPACING = 14
-_ROW_SPACING = 5
-_MARGIN_X    = 5
-_MARGIN_Y    = 1
+_NODE_W      = 7
+_NODE_H      = 3
+_COL_SPACING = 12
+_ROW_SPACING = 4
+_MARGIN_X    = 6
+_MARGIN_Y    = 2
 
 
 def _center(text: str, width: int) -> str:
@@ -62,10 +63,15 @@ def _center(text: str, width: int) -> str:
     return " " * (pad // 2) + text + " " * (pad - pad // 2)
 
 
-def _node_center(node: "ActNodeState", last_row: int) -> tuple[int, int]:
-    cx = _MARGIN_X + node.col * _COL_SPACING
-    cy = _MARGIN_Y + (last_row - node.row) * _ROW_SPACING
-    return cx, cy
+def _stable_wobble(node_id: str) -> int:
+    return (sum(ord(ch) for ch in node_id) % 5) - 2
+
+
+def _display_anchor(node: "ActNodeState", *, last_row: int) -> tuple[int, int]:
+    base_x = _MARGIN_X + node.col * _COL_SPACING
+    x = base_x + _stable_wobble(node.node_id)
+    y = _MARGIN_Y + (last_row - node.row) * _ROW_SPACING
+    return x, y
 
 
 def _safe_set(canvas: list[list[str]], y: int, x: int, ch: str) -> None:
@@ -73,54 +79,53 @@ def _safe_set(canvas: list[list[str]], y: int, x: int, ch: str) -> None:
         canvas[y][x] = ch
 
 
-def _draw_vline(canvas: list[list[str]], x: int, y1: int, y2: int) -> None:
-    for y in range(min(y1, y2), max(y1, y2) + 1):
-        _safe_set(canvas, y, x, "│")
+def _edge_points(start: tuple[int, int], end: tuple[int, int]) -> list[tuple[int, int]]:
+    x1, y1 = start
+    x2, y2 = end
+    steps = max(abs(x2 - x1), abs(y2 - y1))
+    if steps == 0:
+        return [start]
+    points: list[tuple[int, int]] = []
+    for step in range(steps + 1):
+        ratio = step / steps
+        x = round(x1 + (x2 - x1) * ratio)
+        y = round(y1 + (y2 - y1) * ratio)
+        point = (x, y)
+        if not points or points[-1] != point:
+            points.append(point)
+    return points
 
 
-def _draw_hline(canvas: list[list[str]], y: int, x1: int, x2: int) -> None:
-    for x in range(min(x1, x2), max(x1, x2) + 1):
-        _safe_set(canvas, y, x, "─")
+def _edge_glyph(previous: tuple[int, int], current: tuple[int, int]) -> str:
+    dx = current[0] - previous[0]
+    dy = current[1] - previous[1]
+    if dx == 0:
+        return "·"
+    return "╱" if dx * dy < 0 else "╲"
 
 
 def _draw_edge(
     canvas: list[list[str]], fx: int, fy: int, tx: int, ty: int
 ) -> None:
-    box_half_h = 2
+    box_half_h = 1
     start_y = fy - box_half_h
     end_y   = ty + box_half_h
-    mid_y   = (start_y + end_y) // 2
-    if fx == tx:
-        _draw_vline(canvas, fx, end_y, start_y)
-    else:
-        _draw_vline(canvas, fx, mid_y, start_y)
-        _draw_hline(canvas, mid_y, fx, tx)
-        _draw_vline(canvas, tx, end_y, mid_y)
+    points = _edge_points((fx, start_y), (tx, end_y))
+    for step, point in enumerate(points[1:], start=1):
+        if step % 2 != 0:
+            continue
+        _safe_set(canvas, point[1], point[0], _edge_glyph(points[step - 1], point))
 
 
-def _node_box_lines(
+def _node_lines(
     node: "ActNodeState",
-    *,
-    is_current: bool,
-    is_reachable: bool,
 ) -> list[str]:
     icon  = _NODE_ICONS.get(node.room_type, "?")
     label = _NODE_LABELS.get(node.room_type, node.room_type[:2])
-    w = _NODE_W
-    if is_current or is_reachable:
-        tl, tr, bl, br, side, h = "╔", "╗", "╚", "╝", "║", "═"
-        top    = tl + h * w + tr
-        bottom = bl + h * w + br
-    else:
-        tl, tr, bl, br, side, h = "┌", "┐", "└", "┘", "│", "─"
-        top    = tl + h * w + tr
-        bottom = bl + h * w + br
     return [
-        top,
-        f"{side}{_center(icon,  w)}{side}",
-        f"{side}{_center(label, w)}{side}",
-        f"{side}{' ' * w}{side}",
-        bottom,
+        _center(icon, _NODE_W),
+        _center(label, _NODE_W),
+        " " * _NODE_W,
     ]
 
 
@@ -138,6 +143,11 @@ class MapWidget(ScrollView):
 
     class NodeSelected(Message):
         def __init__(self, node_id: str) -> None:
+            super().__init__()
+            self.node_id = node_id
+
+    class NodeHovered(Message):
+        def __init__(self, node_id: str | None) -> None:
             super().__init__()
             self.node_id = node_id
 
@@ -171,13 +181,14 @@ class MapWidget(ScrollView):
 
         last_row  = max(n.row for n in act.nodes)
         max_col   = max(n.col for n in act.nodes)
-        canvas_w  = _MARGIN_X * 2 + max_col * _COL_SPACING + _NODE_W + 4
-        canvas_h  = _MARGIN_Y * 2 + last_row * _ROW_SPACING + 5
+        max_wobble = 2
+        canvas_w  = _MARGIN_X * 2 + max_col * _COL_SPACING + _NODE_W + max_wobble * 2 + 4
+        canvas_h  = _MARGIN_Y * 2 + last_row * _ROW_SPACING + _NODE_H + 2
 
         raw: list[list[str]] = [[" "] * canvas_w for _ in range(canvas_h)]
 
         centers: dict[str, tuple[int, int]] = {
-            n.node_id: _node_center(n, last_row) for n in act.nodes
+            n.node_id: _display_anchor(n, last_row=last_row) for n in act.nodes
         }
 
         for node in act.nodes:
@@ -192,8 +203,8 @@ class MapWidget(ScrollView):
             cx, cy = centers[node.node_id]
             is_current   = node.node_id == act.current_node_id
             is_reachable = node.node_id in act.reachable_node_ids
-            lines = _node_box_lines(node, is_current=is_current, is_reachable=is_reachable)
-            bw, bh = _NODE_W + 2, 5
+            lines = _node_lines(node)
+            bw, bh = _NODE_W, _NODE_H
             x0 = cx - bw // 2
             y0 = cy - bh // 2
             for ro, line in enumerate(lines):
@@ -212,7 +223,7 @@ class MapWidget(ScrollView):
         self._canvas_size  = Size(canvas_w, canvas_h)
         self.virtual_size = self._canvas_size
 
-        conn_chars = set("─│╭╮╰╯┼┬┴├┤")
+        conn_chars = set("·╱╲")
         conn_style = Style(color="grey42")
         self._style_rows = []
         for y, line in enumerate(self._canvas_lines):
@@ -238,7 +249,7 @@ class MapWidget(ScrollView):
                 elif is_reachable:
                     bg, fg = _REACHABLE_BG, _REACHABLE_FG
                 else:
-                    bg, fg = _NODE_COLORS.get(node.room_type, ("grey23", "white"))
+                    bg, fg = None, _NODE_COLORS.get(node.room_type, "white")
 
                 ns = Style(color=fg, bgcolor=bg, bold=(is_current or is_reachable))
                 for x in range(rx, min(rx + rw, len(row))):
@@ -301,9 +312,11 @@ class MapWidget(ScrollView):
         region = self._current_node_region()
         if region is None:
             return
+        target_y = max(0, region.y - max(2, self.size.height // 3))
+        target_x = max(0, region.x - max(0, (self.size.width - region.width) // 2))
         self.scroll_to_region(
-            region,
-            center=True,
+            Region(x=target_x, y=target_y, width=region.width, height=region.height),
+            center=False,
             force=True,
             animate=False,
             immediate=True,
@@ -323,6 +336,15 @@ class MapWidget(ScrollView):
             self._hovered = hovered
             self._rebuild()
             self.refresh()
+            self.post_message(self.NodeHovered(hovered))
+
+    def on_leave(self) -> None:
+        if self._hovered is None:
+            return
+        self._hovered = None
+        self._rebuild()
+        self.refresh()
+        self.post_message(self.NodeHovered(None))
 
     def on_click(self, event: object) -> None:
         from textual.events import Click

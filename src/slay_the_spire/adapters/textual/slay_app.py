@@ -46,6 +46,15 @@ from slay_the_spire.app.session import (
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
 
+_ROOM_LABELS: dict[str, str] = {
+    "combat": "战斗房",
+    "elite": "精英房",
+    "boss": "Boss 房",
+    "event": "事件房",
+    "shop": "商店",
+    "rest": "休息点",
+}
+
 
 def _render_to_rich(session: SessionState) -> Any:
     """把 session 转成 Rich renderable，供 RichLog 显示。"""
@@ -229,7 +238,9 @@ class SlayApp(App[None]):
     #map-panel {
         width: 2fr;
         height: 1fr;
-        border: solid cyan;
+        background: antiquewhite;
+        color: black;
+        border: solid wheat;
         padding: 0;
         overflow: auto;
     }
@@ -279,6 +290,7 @@ class SlayApp(App[None]):
         super().__init__()
         self._session = session
         self._action_choices: list[str] = []
+        self._hovered_node_id: str | None = None
         self.console.push_theme(TERMINAL_THEME)
 
     def compose(self) -> ComposeResult:
@@ -333,6 +345,9 @@ class SlayApp(App[None]):
 
         summary_lines = [menu.title]
         summary_lines.extend(_plain_label(line) for line in menu.header_lines)
+        hover_summary = self._hover_summary()
+        if hover_summary is not None:
+            summary_lines.append(hover_summary)
         action_summary.update("\n".join(summary_lines))
 
         prompts = []
@@ -381,9 +396,30 @@ class SlayApp(App[None]):
         if next_choice is not None:
             self._process_command(next_choice)
 
+    @on(MapWidget.NodeHovered)
+    def handle_node_hovered(self, event: MapWidget.NodeHovered) -> None:
+        self._hovered_node_id = event.node_id
+        self._refresh_actions()
+
     def _next_node_choice(self, node_id: str) -> str | None:
         next_node_ids = self._session.room_state.payload.get("next_node_ids", [])
         if not isinstance(next_node_ids, list) or node_id not in next_node_ids:
             return None
         menu = build_next_room_menu(options=[(f"next_node:{next_id}", str(next_id)) for next_id in next_node_ids])
         return _menu_choice_for_action(menu, f"next_node:{node_id}")
+
+    def _hover_summary(self) -> str | None:
+        node_id = self._hovered_node_id
+        if node_id is None:
+            return None
+        node = next((item for item in self._session.act_state.nodes if item.node_id == node_id), None)
+        if node is None:
+            return None
+        room_label = _ROOM_LABELS.get(node.room_type, node.room_type)
+        if node.node_id == self._session.act_state.current_node_id:
+            state_label = "当前"
+        elif node.node_id in self._session.act_state.reachable_node_ids:
+            state_label = "可达"
+        else:
+            state_label = "不可达"
+        return f"当前悬停：{room_label}（{state_label}）"
