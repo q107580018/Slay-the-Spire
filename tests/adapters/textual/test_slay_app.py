@@ -382,3 +382,71 @@ def test_hover_preview_shows_control_hint_for_claim_all() -> None:
             assert "全部领取" in preview.render().plain
 
     asyncio.run(scenario())
+
+
+def test_hover_preview_shows_boss_relic_details() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="boss",
+            stage="completed",
+            is_resolved=True,
+            payload={
+                "boss_rewards": {
+                    "gold_reward": 100,
+                    "claimed_gold": True,
+                    "claimed_relic_id": None,
+                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper"],
+                }
+            },
+        ),
+        menu_state=replace(base.menu_state, mode="select_boss_relic"),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            action_list = app.query_one("#action-list", OptionList)
+            action_list.highlighted = 0
+            await pilot.pause()
+            preview = app.query_one("#hover-preview", Static)
+            assert "黑色之血" in preview.render().plain
+            assert "禁用操作" in preview.render().plain or "替换原遗物" in preview.render().plain
+
+    asyncio.run(scenario())
+
+
+def test_hover_preview_shows_shop_potion_details() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="shop",
+            stage="waiting_input",
+            is_resolved=False,
+            payload={
+                "cards": [],
+                "relics": [],
+                "potions": [{"offer_id": "potion-1", "potion_id": "fire_potion", "price": 20}],
+                "remove_price": 75,
+            },
+        ),
+        menu_state=replace(base.menu_state, mode="shop_root"),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            action_list = app.query_one("#action-list", OptionList)
+            action_list.highlighted = 0
+            await pilot.pause()
+            preview = app.query_one("#hover-preview", Static)
+            assert "火焰药水" in preview.render().plain
+            assert "20" in preview.render().plain
+
+    asyncio.run(scenario())

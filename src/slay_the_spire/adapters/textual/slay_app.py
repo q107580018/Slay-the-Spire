@@ -47,7 +47,11 @@ from slay_the_spire.app.session import (
 )
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
-from slay_the_spire.adapters.terminal.inspect import format_reward_detail_lines
+from slay_the_spire.adapters.terminal.inspect import (
+    format_potion_detail_lines,
+    format_relic_detail_lines,
+    format_reward_detail_lines,
+)
 
 _ROOM_LABELS: dict[str, str] = {
     "combat": "战斗房",
@@ -126,7 +130,9 @@ def _text_from_lines(lines: list[str | Text]) -> Text:
 
 
 def _reward_preview_renderable(session: SessionState, action_id: str) -> Text | None:
-    if action_id.startswith("claim_reward:"):
+    if action_id.startswith("claim_reward:card_offer:") or action_id.startswith("claim_reward:gold:") or action_id.startswith(
+        "claim_reward:event:"
+    ) or action_id.startswith("claim_reward:card:") or action_id.startswith("claim_reward:relic:"):
         reward_id = action_id.split(":", 1)[1]
         return _text_from_lines(format_reward_detail_lines(reward_id, _content_provider(session)))
     if action_id == "claim_all":
@@ -138,9 +144,35 @@ def _reward_preview_renderable(session: SessionState, action_id: str) -> Text | 
     return None
 
 
+def _shop_offer_by_action_id(session: SessionState, action_id: str, *, offer_type: str, item_key: str) -> str | None:
+    if not action_id.startswith(f"{offer_type}:"):
+        return None
+    offer_id = action_id.split(":", 1)[1]
+    offers = session.room_state.payload.get(f"{item_key}s")
+    if not isinstance(offers, list):
+        return None
+    for offer in offers:
+        if not isinstance(offer, dict) or offer.get("offer_id") != offer_id:
+            continue
+        item_id = offer.get(f"{item_key}_id")
+        if isinstance(item_id, str):
+            return item_id
+    return None
+
+
 def _hover_preview_renderable(session: SessionState, action_id: str) -> Text | None:
     if session.menu_state.mode == "select_reward":
         return _reward_preview_renderable(session, action_id)
+    if session.menu_state.mode == "select_boss_relic" and action_id.startswith("claim_boss_relic:"):
+        relic_id = action_id.split(":", 1)[1]
+        return _text_from_lines(format_relic_detail_lines(relic_id, _content_provider(session)))
+    if session.menu_state.mode == "shop_root":
+        relic_id = _shop_offer_by_action_id(session, action_id, offer_type="buy_relic", item_key="relic")
+        if relic_id is not None:
+            return _text_from_lines(format_relic_detail_lines(relic_id, _content_provider(session)))
+        potion_id = _shop_offer_by_action_id(session, action_id, offer_type="buy_potion", item_key="potion")
+        if potion_id is not None:
+            return _text_from_lines(format_potion_detail_lines(potion_id, _content_provider(session)))
     return None
 
 
