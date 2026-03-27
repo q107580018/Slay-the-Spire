@@ -165,13 +165,13 @@ def _hover_preview_renderable(session: SessionState, action_id: str) -> Text | N
         return _reward_preview_renderable(session, action_id)
     if session.menu_state.mode == "select_boss_reward":
         if action_id == "claim_boss_gold":
-            return Text("控制项：领取 Boss 金币")
+            return Text("控制项：领取首领金币")
         if action_id == "claimed_boss_gold":
-            return Text("控制项：Boss 金币已领取")
+            return Text("控制项：首领金币已领取")
         if action_id == "choose_boss_relic":
-            return Text("控制项：进入 Boss 遗物选择")
+            return Text("控制项：进入首领遗物选择")
         if action_id == "claimed_boss_relic":
-            return Text("控制项：Boss 遗物已选择")
+            return Text("控制项：首领遗物已选择")
         if action_id == "back":
             return Text("控制项：返回上一步")
         return None

@@ -546,7 +546,65 @@ def test_hover_preview_shows_boss_reward_entry_hint() -> None:
 
     preview = _hover_preview_renderable(session, "choose_boss_relic")
     assert preview is not None
-    assert "进入 Boss 遗物选择" in preview.plain
+    assert "进入首领遗物选择" in preview.plain
+
+
+def test_hover_preview_maps_task5_control_actions() -> None:
+    base = start_session(seed=5)
+    shop_session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="shop",
+            stage="waiting_input",
+            is_resolved=False,
+            payload={
+                "cards": [],
+                "relics": [],
+                "potions": [],
+                "remove_price": 75,
+            },
+        ),
+        menu_state=replace(base.menu_state, mode="shop_root"),
+    )
+    boss_reward_session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="boss",
+            stage="completed",
+            is_resolved=True,
+            payload={
+                "boss_rewards": {
+                    "gold_reward": 100,
+                    "claimed_gold": False,
+                    "claimed_relic_id": None,
+                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper"],
+                }
+            },
+        ),
+        menu_state=replace(base.menu_state, mode="select_boss_reward"),
+    )
+
+    cases = [
+        (shop_session, "remove", "删牌服务"),
+        (shop_session, "leave", "离开商店"),
+        (shop_session, "inspect", "查看资料"),
+        (shop_session, "save", "保存游戏"),
+        (shop_session, "load", "读取存档"),
+        (shop_session, "quit", "退出游戏"),
+        (boss_reward_session, "claim_boss_gold", "领取首领金币"),
+        (boss_reward_session, "claimed_boss_gold", "首领金币已领取"),
+        (boss_reward_session, "choose_boss_relic", "进入首领遗物选择"),
+        (boss_reward_session, "claimed_boss_relic", "首领遗物已选择"),
+        (boss_reward_session, "back", "返回上一步"),
+    ]
+
+    for session, action_id, expected in cases:
+        preview = _hover_preview_renderable(session, action_id)
+        assert preview is not None
+        assert expected in preview.plain
+        assert "Boss" not in preview.plain
 
 
 def test_hover_preview_ignores_unsupported_claim_reward_prefix() -> None:
