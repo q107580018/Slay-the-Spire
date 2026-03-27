@@ -7,6 +7,7 @@ from io import StringIO
 
 import pytest
 from rich.console import Console
+from textual.widgets import Static
 
 from slay_the_spire.adapters.textual.map_widget import MapWidget
 from slay_the_spire.adapters.terminal.theme import TERMINAL_THEME
@@ -204,3 +205,28 @@ def test_textual_log_renderable_still_omits_footer_menu_after_map_polish() -> No
     console.print(_render_to_rich(session))
 
     assert "可选操作" not in buffer.getvalue()
+
+
+def test_reward_preview_panel_is_present_in_reward_menu() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="combat",
+            stage="completed",
+            is_resolved=True,
+            rewards=["card_offer:anger", "gold:15"],
+        ),
+        menu_state=replace(base.menu_state, mode="select_reward"),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            assert app.query_one("#hover-preview", Static).display is True
+
+    asyncio.run(scenario())
+
+
