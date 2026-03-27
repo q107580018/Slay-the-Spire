@@ -18,6 +18,7 @@ EFFECT_EXHAUST_RANDOM_HAND = "exhaust_random_hand"
 EFFECT_EXHAUST_TARGET_CARD = "exhaust_target_card"
 EFFECT_UPGRADE_TARGET_CARD = "upgrade_target_card"
 EFFECT_UPGRADE_ALL_HAND = "upgrade_all_hand"
+EFFECT_ADD_POWER = "add_power"
 EFFECT_NOOP = "noop"
 EFFECT_EMIT_HOOK = "emit_hook"
 

@@ -47,9 +47,10 @@ def test_act1_boss_reward_transitions_into_act2_start_room() -> None:
     _running, session, _message = route_menu_choice("1", session=session)
     _running, session, _message = route_menu_choice("2", session=session)
     _running, session, _message = route_menu_choice("2", session=session)
-    _running, session, _message = route_menu_choice("1", session=session)
+    _running, session, _message = route_menu_choice("2", session=session)
 
     assert session.run_phase == "active"
+    assert session.run_state.relics[-1] == "ectoplasm"
     assert session.act_state.act_id == "act2"
     assert session.room_state.room_type == "combat"
 

@@ -107,6 +107,17 @@ def summarize_effect(effect: Mapping[str, object], *, detailed_status_cards: boo
         return f"抽 {int(effect.get('amount', 0))} 张牌"
     if effect_type == "gain_energy":
         return f"获得 {int(effect.get('amount', 0))} 点能量"
+    if effect_type == "add_power":
+        power_id = effect.get("power_id")
+        amount = int(effect.get("amount", 0))
+        if power_id == "inflame":
+            return f"获得 {amount} 层力量"
+        if power_id == "metallicize":
+            return f"回合结束时获得 {amount} 格挡"
+        if power_id == "combust":
+            self_damage = int(effect.get("self_damage", 1))
+            return f"回合结束时对所有敌人造成 {amount} 伤害，自己失去 {self_damage} 点生命"
+        return f"获得持续效果 {power_id} {amount}"
     if effect_type == "strength":
         return f"获得 {int(effect.get('amount', 0))} 力量"
     if effect_type == "vulnerable":

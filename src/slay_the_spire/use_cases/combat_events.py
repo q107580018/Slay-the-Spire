@@ -103,6 +103,17 @@ def build_player_action_events(
                 )
             )
             continue
+        if effect_type == "add_power":
+            power_id = effect.get("power_id")
+            if power_id == "inflame":
+                events.append(
+                    CombatEvent(
+                        event_type="gain_strength",
+                        actor_name="你",
+                        amount=_result_int(result, "amount"),
+                    )
+                )
+            continue
         if effect_type == "lose_hp":
             events.append(
                 CombatEvent(

@@ -4,7 +4,7 @@ from collections.abc import Mapping, Sequence
 
 from slay_the_spire.content.registries import EnemyDef
 from slay_the_spire.domain.effects.effect_resolver import resolve_effect_queue
-from slay_the_spire.domain.effects.effect_types import copy_effect, damage_effect
+from slay_the_spire.domain.effects.effect_types import block_effect, copy_effect, damage_effect
 from slay_the_spire.domain.hooks.hook_types import HookRegistration
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
@@ -255,6 +255,51 @@ def _burn_end_turn_effects(state: CombatState) -> list[JsonDict]:
     return effects
 
 
+def _active_power_end_turn_effects(state: CombatState) -> list[JsonDict]:
+    effects: list[JsonDict] = []
+    for power in state.active_powers:
+        power_id = power.get("power_id")
+        if not isinstance(power_id, str):
+            continue
+        raw_amount = power.get("amount")
+        amount = raw_amount if isinstance(raw_amount, int) else 0
+        amount = max(amount, 0)
+        if power_id == "metallicize" and amount > 0:
+            effects.append(
+                block_effect(
+                    source_instance_id=state.player.instance_id,
+                    target_instance_id=state.player.instance_id,
+                    amount=amount,
+                )
+            )
+            continue
+        if power_id != "combust" or amount <= 0:
+            continue
+        for enemy in state.enemies:
+            if enemy.hp <= 0:
+                continue
+            effects.append(
+                damage_effect(
+                    source_instance_id=state.player.instance_id,
+                    target_instance_id=enemy.instance_id,
+                    amount=amount,
+                )
+            )
+        raw_self_damage = power.get("self_damage", 1)
+        self_damage = raw_self_damage if isinstance(raw_self_damage, int) else 0
+        self_damage = max(self_damage, 0)
+        if self_damage > 0:
+            effects.append(
+                {
+                    "type": "lose_hp",
+                    "source_instance_id": state.player.instance_id,
+                    "target_instance_id": state.player.instance_id,
+                    "amount": self_damage,
+                }
+            )
+    return effects
+
+
 def start_turn(
     state: CombatState,
     *,
@@ -321,6 +366,7 @@ def end_turn(
     energy_per_turn: int = DEFAULT_ENERGY_PER_TURN,
 ) -> list[JsonDict]:
     resolved = []
+    state.effect_queue.extend(_active_power_end_turn_effects(state))
     state.effect_queue.extend(_burn_end_turn_effects(state))
     if state.effect_queue:
         resolved.extend(resolve_effect_queue(state, hook_registrations=hook_registrations))

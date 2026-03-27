@@ -84,6 +84,20 @@ def _enemy_registry() -> _Registry:
     return registry
 
 
+def _enemy_registry_without_attacks() -> _Registry:
+    registry = _Registry()
+    registry.enemies().register(
+        {
+            "id": "training_slime",
+            "name": "Training Slime",
+            "hp": 12,
+            "move_table": [],
+            "intent_policy": "scripted",
+        }
+    )
+    return registry
+
+
 def _hexaghost_registry() -> _Registry:
     registry = _Registry()
     registry.enemies().register(
@@ -133,6 +147,40 @@ def test_end_turn_runs_enemy_intents_and_draws_new_hand() -> None:
     assert state.draw_pile == ["strike#1", "defend#1"]
     assert state.discard_pile == []
     assert [effect["type"] for effect in resolved] == ["damage"]
+
+
+def test_end_turn_applies_metallicize_power_before_enemy_attack() -> None:
+    registry = _enemy_registry()
+    state = _combat_state()
+    state.active_powers.append({"power_id": "metallicize", "amount": 3})
+
+    resolved = end_turn(state, registry)
+
+    assert [effect["type"] for effect in resolved] == ["block", "damage"]
+    assert state.player.hp == 28
+
+
+def test_end_turn_applies_combust_to_all_enemies_and_self() -> None:
+    registry = _enemy_registry_without_attacks()
+    state = _combat_state()
+    state.enemies.append(
+        EnemyState(
+            instance_id="enemy-2",
+            enemy_id="training_slime",
+            hp=12,
+            max_hp=12,
+            block=0,
+            statuses=[],
+        )
+    )
+    state._refresh_entity_index()
+    state.active_powers.append({"power_id": "combust", "amount": 5, "self_damage": 1})
+
+    resolved = end_turn(state, registry)
+
+    assert [effect["type"] for effect in resolved] == ["damage", "damage", "lose_hp"]
+    assert [enemy.hp for enemy in state.enemies] == [7, 7]
+    assert state.player.hp == 29
 
 
 def test_end_turn_use_case_returns_structured_result() -> None:

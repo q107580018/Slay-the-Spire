@@ -330,9 +330,21 @@ def render_summary_bar(
 
 
 def render_player_panel(combat_state: CombatState, registry: ContentProviderPort) -> Panel:
+    del registry
+    power_labels: list[str] = []
+    for power in combat_state.active_powers:
+        power_id = power.get("power_id")
+        if not isinstance(power_id, str):
+            continue
+        amount = power.get("amount")
+        if isinstance(amount, int):
+            power_labels.append(f"{power_id} {amount}")
+        else:
+            power_labels.append(power_id)
     lines = [
         Text.assemble(("格挡 ", "summary.label"), render_block(combat_state.player.block)),
         Text.assemble(("状态 ", "summary.label"), render_statuses(combat_state.player.statuses)),
+        Text.assemble(("持续效果 ", "summary.label"), " / ".join(power_labels) if power_labels else "无"),
     ]
     return Panel(Group(*lines), title="玩家状态", box=PANEL_BOX, expand=False)
 

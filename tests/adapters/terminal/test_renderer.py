@@ -233,6 +233,25 @@ def test_combat_renderer_uses_dynamic_enemy_intent_for_sleeping_enemy() -> None:
     assert "意图: 沉睡 2 回合" in output
 
 
+def test_combat_renderer_shows_active_powers_in_player_panel() -> None:
+    session = start_session(seed=5)
+    combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
+    combat_state.active_powers = [{"power_id": "metallicize", "amount": 3}]
+    room_state = replace(session.room_state, payload={**session.room_state.payload, "combat_state": combat_state.to_dict()})
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=room_state,
+        registry=_provider(session),
+        menu_state=MenuState(),
+        run_phase=session.run_phase,
+    )
+
+    assert "持续效果" in output
+    assert "metallicize 3" in output
+
+
 def test_combat_renderer_uses_dynamic_enemy_intent_for_awake_enemy() -> None:
     session = start_session(seed=5)
     combat_state = CombatState(

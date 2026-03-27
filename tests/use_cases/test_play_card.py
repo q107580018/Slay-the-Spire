@@ -200,6 +200,21 @@ def test_play_card_applies_player_strength_to_damage_effects() -> None:
     assert state.enemies[0].hp == 4
 
 
+def test_inflame_adds_strength_via_power_play() -> None:
+    state = _combat_state(hand=["inflame#1"])
+    provider = _provider_with_card(
+        card_id="inflame",
+        effects=[{"type": "add_power", "power_id": "inflame", "amount": 2}],
+    )
+
+    result = play_card(state, "inflame#1", None, provider)
+
+    assert result.combat_state is state
+    assert [effect["type"] for effect in result.resolved_effects] == ["add_power"]
+    assert state.active_powers == [{"power_id": "inflame", "amount": 2}]
+    assert state.player.statuses == [StatusState(status_id="strength", stacks=2)]
+
+
 def test_play_card_applies_vulnerable_status_effects() -> None:
     state = _combat_state(hand=["bash#1"], energy=2)
     provider = _provider_with_card(

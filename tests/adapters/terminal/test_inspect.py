@@ -90,6 +90,17 @@ def test_format_card_detail_lines_explain_burn_end_turn_penalty() -> None:
     assert any("回合结束时若仍在手中，失去 2 点生命" in line.plain for line in lines)
 
 
+def test_format_card_detail_lines_show_combust_power_text() -> None:
+    session = start_session(seed=5)
+    registry = StarterContentProvider(session.content_root)
+
+    lines = format_card_detail_lines("combust#1", registry)
+
+    assert any("回合结束" in line.plain for line in lines)
+    assert any("所有敌人" in line.plain for line in lines)
+    assert any("失去" in line.plain for line in lines)
+
+
 def test_format_relic_detail_lines_translate_disabled_actions_and_gold_rules() -> None:
     session = start_session(seed=5)
     registry = StarterContentProvider(session.content_root)

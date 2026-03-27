@@ -171,6 +171,264 @@
       ]
     },
     {
+      "id": "cleave",
+      "name": "旋风斩",
+      "cost": 1,
+      "upgrades_to": "cleave_plus",
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 8
+        }
+      ]
+    },
+    {
+      "id": "cleave_plus",
+      "name": "旋风斩+",
+      "cost": 1,
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 11
+        }
+      ]
+    },
+    {
+      "id": "twin_strike",
+      "name": "双重打击",
+      "cost": 1,
+      "upgrades_to": "twin_strike_plus",
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 5
+        },
+        {
+          "type": "damage",
+          "amount": 5
+        }
+      ]
+    },
+    {
+      "id": "twin_strike_plus",
+      "name": "双重打击+",
+      "cost": 1,
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 7
+        },
+        {
+          "type": "damage",
+          "amount": 7
+        }
+      ]
+    },
+    {
+      "id": "inflame",
+      "name": "燃烧",
+      "cost": 1,
+      "upgrades_to": "inflame_plus",
+      "effects": [
+        {
+          "type": "add_power",
+          "power_id": "inflame",
+          "amount": 2
+        }
+      ]
+    },
+    {
+      "id": "inflame_plus",
+      "name": "燃烧+",
+      "cost": 1,
+      "effects": [
+        {
+          "type": "add_power",
+          "power_id": "inflame",
+          "amount": 3
+        }
+      ]
+    },
+    {
+      "id": "metallicize",
+      "name": "金属化",
+      "cost": 1,
+      "upgrades_to": "metallicize_plus",
+      "effects": [
+        {
+          "type": "add_power",
+          "power_id": "metallicize",
+          "amount": 3
+        }
+      ]
+    },
+    {
+      "id": "metallicize_plus",
+      "name": "金属化+",
+      "cost": 1,
+      "effects": [
+        {
+          "type": "add_power",
+          "power_id": "metallicize",
+          "amount": 4
+        }
+      ]
+    },
+    {
+      "id": "hemokinesis",
+      "name": "献祭打击",
+      "cost": 1,
+      "upgrades_to": "hemokinesis_plus",
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 14
+        },
+        {
+          "type": "lose_hp",
+          "amount": 2
+        }
+      ]
+    },
+    {
+      "id": "hemokinesis_plus",
+      "name": "献祭打击+",
+      "cost": 1,
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 18
+        },
+        {
+          "type": "lose_hp",
+          "amount": 2
+        }
+      ]
+    },
+    {
+      "id": "sword_boomerang",
+      "name": "剑刃回旋镖",
+      "cost": 1,
+      "upgrades_to": "sword_boomerang_plus",
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 3
+        },
+        {
+          "type": "damage",
+          "amount": 3
+        },
+        {
+          "type": "damage",
+          "amount": 3
+        }
+      ]
+    },
+    {
+      "id": "sword_boomerang_plus",
+      "name": "剑刃回旋镖+",
+      "cost": 1,
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 4
+        },
+        {
+          "type": "damage",
+          "amount": 4
+        },
+        {
+          "type": "damage",
+          "amount": 4
+        },
+        {
+          "type": "damage",
+          "amount": 4
+        }
+      ]
+    },
+    {
+      "id": "pummel",
+      "name": "连击",
+      "cost": 1,
+      "upgrades_to": "pummel_plus",
+      "exhausts": true,
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 2
+        },
+        {
+          "type": "damage",
+          "amount": 2
+        },
+        {
+          "type": "damage",
+          "amount": 2
+        },
+        {
+          "type": "damage",
+          "amount": 2
+        }
+      ]
+    },
+    {
+      "id": "pummel_plus",
+      "name": "连击+",
+      "cost": 1,
+      "exhausts": true,
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 2
+        },
+        {
+          "type": "damage",
+          "amount": 2
+        },
+        {
+          "type": "damage",
+          "amount": 2
+        },
+        {
+          "type": "damage",
+          "amount": 2
+        },
+        {
+          "type": "damage",
+          "amount": 2
+        }
+      ]
+    },
+    {
+      "id": "combust",
+      "name": "燃烧躯体",
+      "cost": 1,
+      "upgrades_to": "combust_plus",
+      "effects": [
+        {
+          "type": "add_power",
+          "power_id": "combust",
+          "amount": 5,
+          "self_damage": 1
+        }
+      ]
+    },
+    {
+      "id": "combust_plus",
+      "name": "燃烧躯体+",
+      "cost": 1,
+      "effects": [
+        {
+          "type": "add_power",
+          "power_id": "combust",
+          "amount": 7,
+          "self_damage": 1
+        }
+      ]
+    },
+    {
       "id": "bloodletting",
       "name": "放血",
       "cost": 0,

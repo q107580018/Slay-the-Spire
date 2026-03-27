@@ -398,7 +398,11 @@ def _session_with_combat_state(session: SessionState, combat_state: CombatState)
             combat_state,
             stage="completed",
             is_resolved=True,
-            rewards=[] if session.room_state.room_type == "boss" else generate_combat_rewards(room_id=session.room_state.room_id, seed=session.run_state.seed),
+            rewards=[] if session.room_state.room_type == "boss" else generate_combat_rewards(
+                room_id=session.room_state.room_id,
+                seed=session.run_state.seed,
+                act_id=session.run_state.current_act_id,
+            ),
         )
         if session.room_state.room_type == "boss":
             room_state = replace(

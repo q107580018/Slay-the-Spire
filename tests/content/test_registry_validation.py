@@ -51,6 +51,9 @@ def test_provider_exposes_registry_accessors(content_root: Path) -> None:
     assert provider.cards().get("shrug_it_off").name == "耸肩无视"
     assert provider.cards().get("armaments").name == "武装"
     assert provider.cards().get("terror").name == "恐怖"
+    assert provider.cards().get("inflame").name == "燃烧"
+    assert provider.cards().get("metallicize").name == "金属化"
+    assert provider.cards().get("combust").name == "燃烧躯体"
     assert provider.cards().get("terror").cost == 1
     assert provider.cards().get("terror").effects == [{"type": "vulnerable", "stacks": 2}]
     assert provider.cards().get("terror_plus").cost == 1

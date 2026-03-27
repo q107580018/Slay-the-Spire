@@ -50,6 +50,9 @@ def describe_player_action(*, events: Sequence[CombatEvent]) -> list[str]:
         if event.event_type == "gain_energy" and event.amount > 0:
             self_parts.append(f"获得 {event.amount} 点能量")
             continue
+        if event.event_type == "gain_strength" and event.amount > 0:
+            self_parts.append(f"获得 {event.amount} 层力量")
+            continue
         if event.event_type == "lose_hp" and event.amount > 0:
             self_parts.append(f"失去 {event.amount} 点生命")
             continue

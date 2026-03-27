@@ -213,6 +213,26 @@ def test_gain_energy_effect_increases_combat_energy() -> None:
     assert state.energy == 4
 
 
+def test_add_power_effect_appends_active_power_and_applies_inflame_strength() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 3)],
+        effect_queue=[{"type": "add_power", "power_id": "inflame", "amount": 2}],
+    )
+
+    resolved = resolve_effect_queue(state)
+
+    assert resolved == [
+        {
+            "type": "add_power",
+            "power_id": "inflame",
+            "amount": 2,
+            "result": {"power_id": "inflame", "amount": 2, "total_amount": 2},
+        }
+    ]
+    assert state.active_powers == [{"power_id": "inflame", "amount": 2}]
+    assert state.player.statuses == [StatusState(status_id="strength", stacks=2)]
+
+
 def test_damage_effect_reports_structured_resolution_details():
     enemy = make_enemy("enemy-1", 10)
     enemy.block = 2

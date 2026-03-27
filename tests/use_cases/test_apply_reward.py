@@ -141,6 +141,16 @@ def test_generate_combat_rewards_returns_gold_and_three_unique_card_offers() -> 
     assert len(set(card_rewards)) == 3
 
 
+def test_generate_combat_rewards_uses_act_specific_card_pools() -> None:
+    act1_rewards = generate_combat_rewards(room_id="act1:r3c1:reward", seed=41, act_id="act1")
+    act2_rewards = generate_combat_rewards(room_id="act2:r3c1:reward", seed=41, act_id="act2")
+
+    act1_cards = {reward.split(":", 1)[1] for reward in act1_rewards if reward.startswith("card_offer:")}
+    act2_cards = {reward.split(":", 1)[1] for reward in act2_rewards if reward.startswith("card_offer:")}
+
+    assert act1_cards != act2_cards
+
+
 def test_generate_boss_rewards_filters_owned_relics() -> None:
     run_state = replace(_run_state(), relics=["burning_blood", "ectoplasm"])
 

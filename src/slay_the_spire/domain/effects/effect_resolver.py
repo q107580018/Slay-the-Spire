@@ -4,6 +4,7 @@ from collections.abc import Sequence
 
 from slay_the_spire.domain.effects.effect_types import (
     EFFECT_ADD_CARD_TO_DISCARD,
+    EFFECT_ADD_POWER,
     EFFECT_BLOCK,
     EFFECT_CREATE_CARD_COPY,
     EFFECT_DAMAGE,
@@ -194,6 +195,35 @@ def _apply_status(
     target.statuses.append(StatusState(status_id=status_id, stacks=normalized_stacks))
 
 
+def _append_or_increase_power(
+    state: CombatState,
+    *,
+    power_id: str,
+    amount: int,
+    self_damage: int | None,
+) -> JsonDict:
+    normalized_amount = max(amount, 0)
+    normalized_self_damage = max(self_damage, 0) if self_damage is not None else None
+    for power in state.active_powers:
+        if power.get("power_id") != power_id:
+            continue
+        raw_existing_amount = power.get("amount")
+        existing_amount = raw_existing_amount if isinstance(raw_existing_amount, int) else 0
+        power["amount"] = existing_amount + normalized_amount
+        if normalized_self_damage is not None:
+            power["self_damage"] = normalized_self_damage
+        return power
+
+    next_power: JsonDict = {
+        "power_id": power_id,
+        "amount": normalized_amount,
+    }
+    if normalized_self_damage is not None:
+        next_power["self_damage"] = normalized_self_damage
+    state.active_powers.append(next_power)
+    return next_power
+
+
 def _has_pending_hook(state: CombatState, hook_name: str) -> bool:
     for effect in state.effect_queue:
         if effect.get("type") == EFFECT_EMIT_HOOK and effect.get("hook_name") == hook_name:
@@ -377,6 +407,33 @@ def resolve_next_effect(
             state.hand[index] = upgraded_card_instance_id
             upgraded_cards.append({"from": card_instance_id, "to": upgraded_card_instance_id})
         return _with_result(effect, upgraded_cards=upgraded_cards)
+
+    if effect_type == EFFECT_ADD_POWER:
+        power_id = effect.get("power_id")
+        if not isinstance(power_id, str):
+            raise TypeError("power_id must be a string")
+        amount = max(int(effect.get("amount", 0)), 0)
+        raw_self_damage = effect.get("self_damage")
+        if raw_self_damage is not None and not isinstance(raw_self_damage, int):
+            raise TypeError("self_damage must be an int")
+        merged_power = _append_or_increase_power(
+            state,
+            power_id=power_id,
+            amount=amount,
+            self_damage=raw_self_damage if isinstance(raw_self_damage, int) else None,
+        )
+        if power_id == "inflame" and amount > 0:
+            _apply_status(
+                state.player,
+                status_id="strength",
+                stacks=amount,
+            )
+        return _with_result(
+            effect,
+            power_id=power_id,
+            amount=amount,
+            total_amount=int(merged_power.get("amount", amount)),
+        )
 
     if effect_type == EFFECT_EMIT_HOOK:
         hook_name = effect.get("hook_name")

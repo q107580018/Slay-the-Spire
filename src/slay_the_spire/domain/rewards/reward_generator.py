@@ -4,11 +4,22 @@ from slay_the_spire.domain.models.run_state import RunState
 from slay_the_spire.ports.content_provider import ContentProviderPort
 from slay_the_spire.shared.rng import rng_for_room
 
-_IRONCLAD_EARLY_REWARD_CARDS = (
+_IRONCLAD_ACT1_REWARD_CARDS = (
     "bash",
     "anger",
     "pommel_strike",
     "shrug_it_off",
+)
+
+_IRONCLAD_ACT2_REWARD_CARDS = (
+    "cleave",
+    "twin_strike",
+    "inflame",
+    "metallicize",
+    "hemokinesis",
+    "sword_boomerang",
+    "pummel",
+    "combust",
 )
 
 _BOSS_RELIC_OFFERS = ("black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer")
@@ -28,17 +39,20 @@ def _require_seed(seed: object) -> int:
     return seed
 
 
-def _sample_unique_card_offers(*, room_id: str, seed: int) -> list[str]:
+def _sample_unique_card_offers(*, room_id: str, seed: int, act_id: str) -> list[str]:
     rng = rng_for_room(seed=seed, room_id=room_id, category="reward:card")
-    card_ids = list(_IRONCLAD_EARLY_REWARD_CARDS)
+    if act_id == "act2":
+        card_ids = list(_IRONCLAD_ACT2_REWARD_CARDS)
+    else:
+        card_ids = list(_IRONCLAD_ACT1_REWARD_CARDS)
     rng.shuffle(card_ids)
     return card_ids[:3]
 
 
-def generate_combat_rewards(*, room_id: str, seed: int) -> list[str]:
+def generate_combat_rewards(*, room_id: str, seed: int, act_id: str = "act1") -> list[str]:
     normalized_seed = _require_seed(seed)
     gold_amount = 10 + (normalized_seed % 10)
-    card_offers = _sample_unique_card_offers(room_id=room_id, seed=normalized_seed)
+    card_offers = _sample_unique_card_offers(room_id=room_id, seed=normalized_seed, act_id=act_id)
     return [f"gold:{gold_amount}", *[f"card_offer:{card_id}" for card_id in card_offers]]
 
 
