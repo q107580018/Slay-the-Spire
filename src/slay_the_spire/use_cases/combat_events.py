@@ -3,7 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
-from slay_the_spire.adapters.terminal.widgets import card_label
+from slay_the_spire.adapters.rich_ui.widgets import card_label
+from slay_the_spire.adapters.rich_ui.widgets import active_power_label
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.entities import EnemyState
@@ -290,6 +291,61 @@ def build_enemy_turn_events(
                     count=_safe_int(effect.get("count")) or 1,
                 )
             )
+    return events
+
+
+def build_active_power_events(
+    *,
+    resolved_effects: Sequence[JsonDict],
+    entities: Mapping[str, EntitySnapshot],
+) -> list[CombatEvent]:
+    events: list[CombatEvent] = []
+    for effect in resolved_effects:
+        if effect.get("trigger") != "end_turn_power":
+            continue
+        power_id = effect.get("power_id")
+        if not isinstance(power_id, str):
+            continue
+        result = _result_mapping(effect)
+        effect_type = effect.get("type")
+        actor_name = active_power_label(power_id)
+        if effect_type == "block":
+            amount = _result_int(result, "gained_block")
+            if amount > 0:
+                events.append(
+                    CombatEvent(
+                        event_type="active_power_triggered",
+                        actor_name=actor_name,
+                        amount=amount,
+                    )
+                )
+            continue
+        if effect_type == "damage":
+            target_name = _target_name(entities, effect)
+            if target_name is None:
+                continue
+            events.append(
+                CombatEvent(
+                    event_type="active_power_triggered",
+                    actor_name=actor_name,
+                    target_name=target_name,
+                    amount=_result_int(result, "applied_amount"),
+                    blocked=_result_int(result, "blocked"),
+                    actual_damage=_result_int(result, "actual_damage"),
+                )
+            )
+            continue
+        if effect_type == "lose_hp":
+            hp_lost = _result_int(result, "actual_hp_lost")
+            if hp_lost > 0:
+                events.append(
+                    CombatEvent(
+                        event_type="active_power_triggered",
+                        actor_name=actor_name,
+                        actual_damage=hp_lost,
+                    )
+                )
+            continue
     return events
 
 

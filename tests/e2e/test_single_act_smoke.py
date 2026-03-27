@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from dataclasses import replace
 from pathlib import Path
 
@@ -8,10 +7,6 @@ from slay_the_spire.app.cli import main
 from slay_the_spire.app.session import SessionState, route_menu_choice, start_session
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.room_state import RoomState
-
-
-def _strip_ansi(text: str) -> str:
-    return re.sub(r"\x1b\[[0-9;]*m", "", text)
 
 
 def _path_with_shop_and_rest(act_state) -> list[str]:
@@ -67,19 +62,20 @@ def _shop_inspect_choice(room_state: RoomState) -> str:
     return str(int(_shop_leave_choice(room_state)) + 1)
 
 
-def test_main_new_run_renders_first_room(capsys, monkeypatch) -> None:
-    monkeypatch.setattr("builtins.input", lambda _prompt="": "7")
+def test_main_new_run_dispatches_first_room_to_textual(monkeypatch) -> None:
+    recorded: dict[str, object] = {}
+
+    def fake_run_textual_session(*, session: SessionState) -> None:
+        recorded["seed"] = session.run_state.seed
+        recorded["room_type"] = session.room_state.room_type
+        recorded["run_phase"] = session.run_phase
+
+    monkeypatch.setattr("slay_the_spire.app.cli.run_textual_session", fake_run_textual_session)
 
     exit_code = main(["new", "--seed", "1"])
 
-    captured = capsys.readouterr()
-    output = _strip_ansi(captured.out)
-
     assert exit_code == 0
-    assert "种子: 1" in output
-    assert "房间: 起点" in output
-    assert "4. 查看资料" in output
-    assert "7. 退出游戏" in output
+    assert recorded == {"seed": 1, "room_type": "combat", "run_phase": "active"}
 
 
 def test_single_act_smoke_simulates_map_shop_rest_and_boss_reward_transition_into_act2() -> None:

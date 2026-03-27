@@ -5,6 +5,7 @@ from collections.abc import Sequence
 from slay_the_spire.domain.combat.turn_flow import resolve_player_actions
 from slay_the_spire.domain.effects.effect_types import (
     EFFECT_DAMAGE,
+    EFFECT_DAMAGE_ALL_ENEMIES_X_TIMES,
     EFFECT_EXHAUST_TARGET_CARD,
     EFFECT_UPGRADE_TARGET_CARD,
     EFFECT_UPGRADE_ALL_HAND,
@@ -33,6 +34,7 @@ def _materialize_card_effects(
     registry: ContentProviderPort,
     source_instance_id: str,
     target_id: str | None,
+    energy_spent: int,
 ) -> list[JsonDict]:
     effects: list[JsonDict] = []
     for raw_effect in raw_effects:
@@ -40,6 +42,20 @@ def _materialize_card_effects(
         effect_type = effect.get("type")
         if not isinstance(effect_type, str):
             raise TypeError("card effect type must be a string")
+        if effect_type == EFFECT_DAMAGE_ALL_ENEMIES_X_TIMES:
+            repeat_count = max(energy_spent, 0)
+            damage_amount = int(effect.get("amount", 0))
+            for _ in range(repeat_count):
+                for enemy in combat_state.enemies:
+                    effects.append(
+                        {
+                            "type": EFFECT_DAMAGE,
+                            "amount": damage_amount,
+                            "source_instance_id": source_instance_id,
+                            "target_instance_id": enemy.instance_id,
+                        }
+                    )
+            continue
         if "source_instance_id" not in effect:
             effect["source_instance_id"] = source_instance_id
         if effect_type in _TARGETED_EFFECT_TYPES:
@@ -89,8 +105,9 @@ def play_card(
     card_def = registry.cards().get(card_id)
     if not getattr(card_def, "playable", True):
         raise ValueError("这张牌无法打出。")
-    if combat_state.energy < card_def.cost:
+    if card_def.cost >= 0 and combat_state.energy < card_def.cost:
         raise ValueError("not enough energy to play card")
+    energy_spent = combat_state.energy if card_def.cost == -1 else card_def.cost
 
     materialized_effects = _materialize_card_effects(
         card_def.effects,
@@ -99,10 +116,11 @@ def play_card(
         registry=registry,
         source_instance_id=combat_state.player.instance_id,
         target_id=target_id,
+        energy_spent=energy_spent,
     )
     snapshots_before = capture_entity_snapshots(combat_state, registry)
 
-    combat_state.energy -= card_def.cost
+    combat_state.energy -= energy_spent
     combat_state.hand.remove(card_instance_id)
     if getattr(card_def, "exhausts", False):
         combat_state.exhaust_pile.append(card_instance_id)

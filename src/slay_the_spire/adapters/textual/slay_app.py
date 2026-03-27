@@ -12,7 +12,7 @@ from textual.containers import Horizontal, Vertical
 from textual.css.query import NoMatches
 from textual.widgets import Footer, Header, OptionList, RichLog, Static
 
-from slay_the_spire.adapters.terminal.theme import TERMINAL_THEME
+from slay_the_spire.adapters.rich_ui.theme import TERMINAL_THEME
 from slay_the_spire.adapters.textual.map_widget import MapWidget
 from slay_the_spire.app.inspect_registry import COMBAT_INSPECT_CARD_LIST_MODES, inspect_leaf_title
 from slay_the_spire.app.menu_definitions import (
@@ -47,13 +47,13 @@ from slay_the_spire.app.session import (
 )
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
-from slay_the_spire.adapters.terminal.inspect import (
+from slay_the_spire.adapters.rich_ui.inspect import (
     format_card_detail_lines,
     format_potion_detail_lines,
     format_relic_detail_lines,
     format_reward_detail_lines,
 )
-from slay_the_spire.adapters.terminal.widgets import render_card_name
+from slay_the_spire.adapters.rich_ui.widgets import render_card_name
 
 _ROOM_LABELS: dict[str, str] = {
     "combat": "战斗房",

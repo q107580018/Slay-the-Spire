@@ -1,13 +1,15 @@
 from dataclasses import replace
-from slay_the_spire.adapters.terminal.inspect import (
+from rich.console import Console
+from slay_the_spire.adapters.rich_ui.inspect import (
     format_card_detail_lines,
     format_card_detail_menu,
     format_reward_detail_lines,
     format_relic_detail_lines,
+    render_card_detail_panel,
     render_reward_detail_panel,
 )
-from slay_the_spire.adapters.terminal.inspect_registry import format_shared_inspect_menu
-from slay_the_spire.adapters.terminal.renderer import render_room
+from slay_the_spire.adapters.rich_ui.inspect_registry import format_shared_inspect_menu
+from slay_the_spire.adapters.rich_ui.renderer import render_room
 from slay_the_spire.app.session import MenuState, start_session
 from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
@@ -19,6 +21,12 @@ from slay_the_spire.domain.models.statuses import StatusState
 
 def _provider(session):
     return StarterContentProvider(session.content_root)
+
+
+def _export(renderable) -> str:
+    console = Console(width=100, record=True, force_terminal=False, color_system=None)
+    console.print(renderable)
+    return console.export_text(clear=False)
 
 
 def _event_room() -> RoomState:
@@ -100,6 +108,35 @@ def test_format_card_detail_lines_show_combust_power_text() -> None:
     assert any("回合结束" in line.plain for line in lines)
     assert any("所有敌人" in line.plain for line in lines)
     assert any("失去" in line.plain for line in lines)
+
+
+def test_format_card_detail_lines_show_x_cost_whirlwind() -> None:
+    session = start_session(seed=5)
+    registry = StarterContentProvider(session.content_root)
+
+    lines = format_card_detail_lines("whirlwind#1", registry)
+
+    assert any("费用" in line.plain and "X" in line.plain for line in lines)
+    assert any("所有敌人" in line.plain for line in lines)
+
+
+def test_render_card_detail_panel_marks_x_cost_card_as_playable() -> None:
+    session = start_session(seed=5)
+    registry = StarterContentProvider(session.content_root)
+
+    output = _export(render_card_detail_panel("whirlwind#1", registry))
+
+    assert "费用: X" in output
+    assert "是否可打出: 是" in output
+
+
+def test_format_card_detail_lines_keep_unplayable_curse_as_unplayable() -> None:
+    session = start_session(seed=5)
+    registry = StarterContentProvider(session.content_root)
+
+    lines = format_card_detail_lines("doubt#1", registry)
+
+    assert any("费用" in line.plain and "无法打出" in line.plain for line in lines)
 
 
 def test_format_relic_detail_lines_translate_disabled_actions_and_gold_rules() -> None:

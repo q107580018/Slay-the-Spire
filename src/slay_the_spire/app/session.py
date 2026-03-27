@@ -6,8 +6,7 @@ from typing import Callable
 
 from rich.console import RenderableType
 
-from slay_the_spire.adapters.terminal.prompts import prompt_for_session
-from slay_the_spire.adapters.terminal.renderer import render_room, render_room_renderable
+from slay_the_spire.adapters.rich_ui.renderer import render_room, render_room_renderable
 from slay_the_spire.adapters.persistence.save_files import JsonFileSaveRepository
 from slay_the_spire.app.menu_definitions import (
     build_boss_relic_menu,
@@ -108,6 +107,9 @@ class SessionState:
 class SessionLoopResult:
     outputs: list[str]
     final_session: SessionState
+
+
+_MENU_PROMPT = "请输入编号: "
 
 
 def _with_command_history(session: SessionState, command: str) -> SessionState:
@@ -1521,7 +1523,7 @@ def interactive_loop(
         output_writer(initial_output)
     running = True
     while running:
-        command = input_port.read(prompt_for_session(session))
+        command = input_port.read(_MENU_PROMPT)
         running, session, message = route_menu_choice(command, session=session)
         outputs.append(message)
         if output_writer is not None:

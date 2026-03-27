@@ -265,26 +265,28 @@ def _active_power_end_turn_effects(state: CombatState) -> list[JsonDict]:
         amount = raw_amount if isinstance(raw_amount, int) else 0
         amount = max(amount, 0)
         if power_id == "metallicize" and amount > 0:
-            effects.append(
-                block_effect(
-                    source_instance_id=state.player.instance_id,
-                    target_instance_id=state.player.instance_id,
-                    amount=amount,
-                )
+            effect = block_effect(
+                source_instance_id=state.player.instance_id,
+                target_instance_id=state.player.instance_id,
+                amount=amount,
             )
+            effect["power_id"] = power_id
+            effect["trigger"] = "end_turn_power"
+            effects.append(effect)
             continue
         if power_id != "combust" or amount <= 0:
             continue
         for enemy in state.enemies:
             if enemy.hp <= 0:
                 continue
-            effects.append(
-                damage_effect(
-                    source_instance_id=state.player.instance_id,
-                    target_instance_id=enemy.instance_id,
-                    amount=amount,
-                )
+            effect = damage_effect(
+                source_instance_id=state.player.instance_id,
+                target_instance_id=enemy.instance_id,
+                amount=amount,
             )
+            effect["power_id"] = power_id
+            effect["trigger"] = "end_turn_power"
+            effects.append(effect)
         raw_self_damage = power.get("self_damage", 1)
         self_damage = raw_self_damage if isinstance(raw_self_damage, int) else 0
         self_damage = max(self_damage, 0)
@@ -295,6 +297,8 @@ def _active_power_end_turn_effects(state: CombatState) -> list[JsonDict]:
                     "source_instance_id": state.player.instance_id,
                     "target_instance_id": state.player.instance_id,
                     "amount": self_damage,
+                    "power_id": power_id,
+                    "trigger": "end_turn_power",
                 }
             )
     return effects

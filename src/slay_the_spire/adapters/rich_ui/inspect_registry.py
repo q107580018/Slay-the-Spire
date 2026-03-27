@@ -6,15 +6,15 @@ from rich.console import Group
 from rich.panel import Panel
 from rich.text import Text
 
-from slay_the_spire.adapters.terminal.inspect import (
+from slay_the_spire.adapters.rich_ui.inspect import (
     format_card_detail_menu,
     render_card_detail_panel,
     render_shared_potions_panel,
     render_shared_relics_panel,
     render_shared_stats_panel,
 )
-from slay_the_spire.adapters.terminal.theme import PANEL_BOX
-from slay_the_spire.adapters.terminal.widgets import render_card_name
+from slay_the_spire.adapters.rich_ui.theme import PANEL_BOX
+from slay_the_spire.adapters.rich_ui.widgets import render_card_name
 from slay_the_spire.app.menu_definitions import build_inspect_root_menu, build_leaf_menu, format_menu_lines
 from slay_the_spire.domain.models.act_state import ActState
 from slay_the_spire.domain.models.cards import card_id_from_instance_id

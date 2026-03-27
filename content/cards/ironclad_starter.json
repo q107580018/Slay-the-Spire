@@ -184,7 +184,7 @@
     },
     {
       "id": "cleave",
-      "name": "旋风斩",
+      "name": "顺劈斩",
       "cost": 1,
       "rarity": "common",
       "upgrades_to": "cleave_plus",
@@ -197,13 +197,38 @@
     },
     {
       "id": "cleave_plus",
-      "name": "旋风斩+",
+      "name": "顺劈斩+",
       "cost": 1,
       "rarity": "common",
       "effects": [
         {
           "type": "damage",
           "amount": 11
+        }
+      ]
+    },
+    {
+      "id": "whirlwind",
+      "name": "旋风斩",
+      "cost": -1,
+      "rarity": "uncommon",
+      "upgrades_to": "whirlwind_plus",
+      "effects": [
+        {
+          "type": "damage_all_enemies_x_times",
+          "amount": 5
+        }
+      ]
+    },
+    {
+      "id": "whirlwind_plus",
+      "name": "旋风斩+",
+      "cost": -1,
+      "rarity": "uncommon",
+      "effects": [
+        {
+          "type": "damage_all_enemies_x_times",
+          "amount": 8
         }
       ]
     },

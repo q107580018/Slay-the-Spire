@@ -131,3 +131,59 @@ def describe_enemy_turn(*, events: Sequence[CombatEvent]) -> list[str]:
         if parts:
             entries.append(f"{actor_name}{'，并'.join(parts)}。")
     return entries
+
+
+def describe_triggered_active_powers(*, events: Sequence[CombatEvent]) -> list[str]:
+    grouped: OrderedDict[str, dict[str, object]] = OrderedDict()
+
+    for event in events:
+        if event.event_type != "active_power_triggered":
+            continue
+        part = grouped.setdefault(
+            event.actor_name,
+            {
+                "block": 0,
+                "damage_targets": OrderedDict(),
+                "lose_hp": 0,
+            },
+        )
+        if event.target_name is None and event.amount > 0 and event.actual_damage == 0:
+            part["block"] = int(part["block"]) + event.amount
+            continue
+        if event.target_name is not None and (event.amount > 0 or event.blocked > 0 or event.actual_damage > 0):
+            damage_targets = part["damage_targets"]
+            assert isinstance(damage_targets, OrderedDict)
+            totals = damage_targets.setdefault(event.target_name, {"amount": 0, "blocked": 0, "actual_damage": 0})
+            assert isinstance(totals, dict)
+            totals["amount"] = int(totals["amount"]) + event.amount
+            totals["blocked"] = int(totals["blocked"]) + event.blocked
+            totals["actual_damage"] = int(totals["actual_damage"]) + event.actual_damage
+            continue
+        if event.target_name is None and event.actual_damage > 0:
+            part["lose_hp"] = int(part["lose_hp"]) + event.actual_damage
+
+    entries: list[str] = []
+    for power_name, payload in grouped.items():
+        parts: list[str] = []
+        block = int(payload["block"])
+        if block > 0:
+            parts.append(f"获得 {block} 格挡")
+        damage_targets = payload["damage_targets"]
+        assert isinstance(damage_targets, OrderedDict)
+        for target_name, totals in damage_targets.items():
+            assert isinstance(totals, dict)
+            amount = int(totals.get("amount", 0))
+            blocked = int(totals.get("blocked", 0))
+            actual_damage = int(totals.get("actual_damage", 0))
+            visible_damage = actual_damage if blocked == 0 else amount
+            line = f"对 {target_name} 造成 {visible_damage} 伤害"
+            if blocked > 0:
+                line += f"，格挡抵消 {blocked}"
+                line += f"，实际受到 {actual_damage}"
+            parts.append(line)
+        lose_hp = int(payload["lose_hp"])
+        if lose_hp > 0:
+            parts.append(f"失去 {lose_hp} 点生命")
+        if parts:
+            entries.append(f"{power_name}触发，{'，并'.join(parts)}。")
+    return entries

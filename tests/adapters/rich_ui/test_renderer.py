@@ -3,12 +3,12 @@ from dataclasses import replace
 from rich.console import Console
 from rich.text import Text
 
-from slay_the_spire.adapters.terminal.inspect import format_card_detail_lines
+from slay_the_spire.adapters.rich_ui.inspect import format_card_detail_lines
 from slay_the_spire.app.session import MenuState, start_session
-from slay_the_spire.adapters.terminal.renderer import render_room
-from slay_the_spire.adapters.terminal.theme import TERMINAL_THEME
-from slay_the_spire.adapters.terminal.screens.combat import _format_card_menu, _format_target_menu, _format_reward_menu as _format_combat_reward_menu
-from slay_the_spire.adapters.terminal.screens.non_combat import (
+from slay_the_spire.adapters.rich_ui.renderer import render_room
+from slay_the_spire.adapters.rich_ui.theme import TERMINAL_THEME
+from slay_the_spire.adapters.rich_ui.screens.combat import _format_card_menu, _format_target_menu, _format_reward_menu as _format_combat_reward_menu
+from slay_the_spire.adapters.rich_ui.screens.non_combat import (
     _format_event_remove_menu,
     _format_event_upgrade_menu,
     _format_reward_menu as _format_non_combat_reward_menu,
@@ -19,7 +19,7 @@ from slay_the_spire.adapters.terminal.screens.non_combat import (
     render_shop_panel,
     render_full_map_panel,
 )
-from slay_the_spire.adapters.terminal.widgets import render_card_name
+from slay_the_spire.adapters.rich_ui.widgets import render_card_name
 from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.domain.models.act_state import ActNodeState, ActState
 from slay_the_spire.domain.models.combat_state import CombatState
@@ -112,6 +112,25 @@ def test_select_card_menu_shows_current_energy_in_menu_title() -> None:
 
     assert "手牌（当前能量 3）:" in output
     assert "1. 打击 费用1 - 造成 6 伤害" in output
+
+
+def test_render_hand_panel_keeps_unplayable_curse_as_unplayable() -> None:
+    session = start_session(seed=5)
+    combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
+    combat_state.hand = ["doubt#1"]
+    room_state = replace(session.room_state, payload={**session.room_state.payload, "combat_state": combat_state.to_dict()})
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=room_state,
+        registry=_provider(session),
+        menu_state=MenuState(),
+        run_phase=session.run_phase,
+    )
+
+    assert "疑虑" in output
+    assert "(无法打出)" in output
 
 
 def test_select_card_menu_keeps_card_name_styles() -> None:
@@ -403,7 +422,7 @@ def test_combat_renderer_shows_active_powers_in_player_panel() -> None:
     )
 
     assert "持续效果" in output
-    assert "metallicize 3" in output
+    assert "金属化 3" in output
 
 
 def test_combat_renderer_uses_dynamic_enemy_intent_for_awake_enemy() -> None:

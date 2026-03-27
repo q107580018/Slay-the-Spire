@@ -5,13 +5,13 @@ from typing import Any
 
 from rich.console import Console, RenderableType
 
-from slay_the_spire.adapters.terminal.screens.combat import render_combat_screen
-from slay_the_spire.adapters.terminal.screens.non_combat import render_non_combat_screen
+from slay_the_spire.adapters.rich_ui.screens.combat import render_combat_screen
+from slay_the_spire.adapters.rich_ui.screens.non_combat import render_non_combat_screen
 from slay_the_spire.domain.models.act_state import ActState
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.room_state import RoomState
 from slay_the_spire.domain.models.run_state import RunState
-from slay_the_spire.adapters.terminal.theme import TERMINAL_THEME
+from slay_the_spire.adapters.rich_ui.theme import TERMINAL_THEME
 from slay_the_spire.ports.content_provider import ContentProviderPort
 
 

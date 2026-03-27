@@ -35,7 +35,13 @@ class _Provider:
         raise NotImplementedError
 
 
-def _combat_state(*, hand: list[str] | None = None, energy: int = 3) -> CombatState:
+def _combat_state(
+    *,
+    hand: list[str] | None = None,
+    energy: int = 3,
+    enemy_hps: list[int] | None = None,
+) -> CombatState:
+    enemy_hps = enemy_hps or [10]
     return CombatState(
         round_number=1,
         energy=energy,
@@ -52,13 +58,14 @@ def _combat_state(*, hand: list[str] | None = None, energy: int = 3) -> CombatSt
         ),
         enemies=[
             EnemyState(
-                instance_id="enemy-1",
+                instance_id=f"enemy-{index}",
                 enemy_id="training_dummy",
-                hp=10,
-                max_hp=10,
+                hp=hp,
+                max_hp=hp,
                 block=0,
                 statuses=[],
             )
+            for index, hp in enumerate(enemy_hps, start=1)
         ],
         effect_queue=[],
         log=[],
@@ -283,6 +290,47 @@ def test_play_card_appends_block_log_entry() -> None:
     play_card(state, "guard#1", None, provider)
 
     assert state.log == ["你打出 Custom Strike，获得 5 格挡。"]
+
+
+def test_play_card_x_cost_whirlwind_spends_all_energy_and_hits_all_enemies() -> None:
+    state = _combat_state(hand=["whirlwind#1"], energy=3, enemy_hps=[20, 20])
+    provider = _provider_with_card(
+        card_id="whirlwind",
+        cost=-1,
+        effects=[{"type": "damage_all_enemies_x_times", "amount": 5}],
+    )
+
+    result = play_card(state, "whirlwind#1", None, provider)
+
+    assert result.combat_state is state
+    assert [effect["type"] for effect in result.resolved_effects] == [
+        "damage",
+        "damage",
+        "damage",
+        "damage",
+        "damage",
+        "damage",
+    ]
+    assert state.energy == 0
+    assert [enemy.hp for enemy in state.enemies] == [5, 5]
+    assert state.log == ["你打出 Custom Strike，对 Training Dummy 造成 30 伤害。"]
+
+
+def test_play_card_x_cost_whirlwind_applies_strength_to_each_hit() -> None:
+    state = _combat_state(hand=["whirlwind#1"], energy=2, enemy_hps=[20, 20])
+    state.player.statuses.append(StatusState(status_id="strength", stacks=2))
+    provider = _provider_with_card(
+        card_id="whirlwind",
+        cost=-1,
+        effects=[{"type": "damage_all_enemies_x_times", "amount": 5}],
+    )
+
+    result = play_card(state, "whirlwind#1", None, provider)
+
+    assert result.combat_state is state
+    assert [enemy.hp for enemy in state.enemies] == [6, 6]
+    assert all(effect["result"]["applied_amount"] == 7 for effect in result.resolved_effects)
+    assert state.log == ["你打出 Custom Strike，对 Training Dummy 造成 28 伤害。"]
 
 
 def test_play_card_draw_log_uses_refilled_discard_cards() -> None:

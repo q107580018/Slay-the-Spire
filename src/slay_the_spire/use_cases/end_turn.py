@@ -7,8 +7,8 @@ from slay_the_spire.domain.hooks.hook_types import HookRegistration
 from slay_the_spire.domain.models.cards import CombatActionResult
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.ports.content_provider import ContentProviderPort
-from slay_the_spire.use_cases.combat_events import build_enemy_turn_events, capture_entity_snapshots
-from slay_the_spire.use_cases.combat_log import append_log_entries, describe_enemy_turn
+from slay_the_spire.use_cases.combat_events import build_active_power_events, build_enemy_turn_events, capture_entity_snapshots
+from slay_the_spire.use_cases.combat_log import append_log_entries, describe_enemy_turn, describe_triggered_active_powers
 
 
 def end_turn(
@@ -33,6 +33,15 @@ def end_turn(
         combat_state,
         registry,
         hook_registrations=hook_registrations,
+    )
+    append_log_entries(
+        combat_state,
+        describe_triggered_active_powers(
+            events=build_active_power_events(
+                resolved_effects=resolved_effects,
+                entities=snapshots_before,
+            )
+        ),
     )
     append_log_entries(
         combat_state,

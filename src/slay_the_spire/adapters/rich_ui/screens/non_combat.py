@@ -7,13 +7,13 @@ from rich.cells import cell_len
 from rich.panel import Panel
 from rich.text import Text
 
-from slay_the_spire.adapters.terminal.inspect import (
+from slay_the_spire.adapters.rich_ui.inspect import (
     render_shared_potions_panel,
     render_shared_relics_panel,
     render_shared_stats_panel,
     render_reward_detail_panel,
 )
-from slay_the_spire.adapters.terminal.inspect_registry import format_shared_inspect_menu, render_shared_inspect_panel
+from slay_the_spire.adapters.rich_ui.inspect_registry import format_shared_inspect_menu, render_shared_inspect_panel
 from slay_the_spire.app.menu_definitions import (
     build_boss_relic_menu,
     build_boss_reward_menu,
@@ -36,9 +36,9 @@ from slay_the_spire.app.menu_definitions import (
     format_menu_entries,
     format_menu_lines,
 )
-from slay_the_spire.adapters.terminal.screens.layout import build_standard_screen
-from slay_the_spire.adapters.terminal.theme import PANEL_BOX
-from slay_the_spire.adapters.terminal.widgets import render_card_name, render_menu
+from slay_the_spire.adapters.rich_ui.screens.layout import build_standard_screen
+from slay_the_spire.adapters.rich_ui.theme import PANEL_BOX
+from slay_the_spire.adapters.rich_ui.widgets import render_card_name, render_menu
 from slay_the_spire.domain.models.act_state import ActState, ActNodeState
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.room_state import RoomState

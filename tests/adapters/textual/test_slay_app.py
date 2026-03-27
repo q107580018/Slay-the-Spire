@@ -11,7 +11,7 @@ from rich.text import Text
 from textual.widgets import OptionList, Static
 
 from slay_the_spire.adapters.textual.map_widget import MapWidget
-from slay_the_spire.adapters.terminal.theme import TERMINAL_THEME
+from slay_the_spire.adapters.rich_ui.theme import TERMINAL_THEME
 from slay_the_spire.adapters.textual.slay_app import (
     SlayApp,
     _current_action_menu,
@@ -575,6 +575,68 @@ def test_hover_preview_shows_selected_hand_card_effects_in_combat_menu() -> None
             assert "费用" in rendered
             assert "效果" in rendered
             assert "造成 6 伤害" in rendered
+
+    asyncio.run(scenario())
+
+
+def test_hover_preview_keeps_card_effect_visible_at_default_size() -> None:
+    base = start_session(seed=5)
+    combat_state = CombatState(
+        round_number=1,
+        energy=3,
+        hand=["anger#1", "defend#1"],
+        draw_pile=[],
+        discard_pile=[],
+        exhaust_pile=[],
+        player=PlayerCombatState(
+            instance_id="player-1",
+            hp=80,
+            max_hp=80,
+            block=0,
+            statuses=[],
+        ),
+        enemies=[
+            EnemyState(
+                instance_id="enemy-1",
+                enemy_id="slime",
+                hp=12,
+                max_hp=12,
+                block=0,
+                statuses=[],
+            )
+        ],
+        effect_queue=[],
+        log=[],
+    )
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="combat",
+            stage="waiting_input",
+            is_resolved=False,
+            payload={
+                "node_id": "r1c0",
+                "room_kind": "hallway",
+                "enemy_pool_id": "act1_basic",
+                "next_node_ids": ["r2c0"],
+                "combat_state": combat_state.to_dict(),
+            },
+        ),
+        menu_state=replace(base.menu_state, mode="select_card"),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test(size=(80, 24)) as pilot:
+            await pilot.pause()
+            action_list = app.query_one("#action-list", OptionList)
+            action_list.highlighted = 0
+            await pilot.pause()
+            preview = app.query_one("#hover-preview", Static)
+            visible_lines = preview.render().plain.splitlines()[: preview.size.height]
+            assert any("效果" in line for line in visible_lines)
+            assert any("造成 6 伤害" in line for line in visible_lines)
 
     asyncio.run(scenario())
 

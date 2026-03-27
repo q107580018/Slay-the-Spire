@@ -6,8 +6,8 @@ from rich.console import Group
 from rich.panel import Panel
 from rich.text import Text
 
-from slay_the_spire.adapters.terminal.theme import PANEL_BOX
-from slay_the_spire.adapters.terminal.widgets import (
+from slay_the_spire.adapters.rich_ui.theme import PANEL_BOX
+from slay_the_spire.adapters.rich_ui.widgets import (
     card_rarity_label,
     card_label,
     format_card_cost,
@@ -18,6 +18,7 @@ from slay_the_spire.adapters.terminal.widgets import (
     summarize_card_definition,
     summarize_card_effects,
     summarize_effect,
+    summarize_active_powers,
     summarize_relic_effects,
     summarize_trigger_hooks,
 )
@@ -45,14 +46,14 @@ def _format_node_id(node_id: object) -> str:
 
 
 def _card_cost_label(card_def: CardDef) -> str:
-    if not card_def.playable or card_def.cost < 0:
+    if not card_def.playable:
         return "无法打出"
-    return str(card_def.cost)
+    return format_card_cost(card_def.cost)
 
 
 def _card_type_label(card_def: CardDef) -> str:
     effect_types = {str(effect.get("type")) for effect in card_def.effects}
-    if effect_types & {"damage", "vulnerable", "weak"}:
+    if effect_types & {"damage", "damage_all_enemies_x_times", "vulnerable", "weak"}:
         return "攻击"
     if effect_types:
         return "技能"
@@ -111,13 +112,14 @@ def _upgrade_target_label(card_def: CardDef, registry: ContentProviderPort) -> s
 
 def format_card_detail_lines(card_instance_id: str, registry: ContentProviderPort) -> list[Text]:
     card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
+    cost_label = "无法打出" if not card_def.playable else format_card_cost(card_def.cost)
     lines = [
         Text.assemble(("名称 ", "summary.label"), render_card_name(card_def)),
-        Text.assemble(("实例 ", "summary.label"), card_instance_id),
+        Text.assemble(("费用 ", "summary.label"), cost_label),
+        Text.assemble(("效果 ", "summary.label"), summarize_card_definition(card_def)),
         Text.assemble(("稀有度 ", "summary.label"), card_rarity_label(card_def)),
         Text.assemble(("状态 ", "summary.label"), "已升级" if is_upgraded_card(card_def) else "未升级"),
-        Text.assemble(("费用 ", "summary.label"), format_card_cost(card_def.cost)),
-        Text.assemble(("效果 ", "summary.label"), summarize_card_definition(card_def)),
+        Text.assemble(("实例 ", "summary.label"), card_instance_id),
     ]
     if card_def.upgrades_to is not None:
         upgraded = registry.cards().get(card_def.upgrades_to)
@@ -285,23 +287,7 @@ def format_card_list_footer(*, back_choice: int) -> list[str]:
 
 
 def _active_power_summary(active_powers: list[dict[str, object]]) -> str:
-    power_names = {
-        "inflame": "燃烧",
-        "metallicize": "金属化",
-        "combust": "燃烧躯体",
-    }
-    labels: list[str] = []
-    for power in active_powers:
-        power_id = power.get("power_id")
-        if not isinstance(power_id, str):
-            continue
-        amount = power.get("amount")
-        power_name = power_names.get(power_id, power_id)
-        if isinstance(amount, int):
-            labels.append(f"{power_name} {amount}")
-        else:
-            labels.append(power_name)
-    return " / ".join(labels) if labels else "无"
+    return summarize_active_powers(active_powers)
 
 
 def render_shared_stats_panel(
@@ -355,6 +341,7 @@ def format_card_detail_menu() -> list[str]:
 
 def render_card_detail_panel(card_instance_id: str, registry: ContentProviderPort) -> Panel:
     card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
+    playable_label = "是" if card_def.playable else "否"
     lines = [
         Text.assemble(("名称: ", "summary.label"), render_card_name(card_def)),
         Text.assemble(("实例 ID: ", "summary.label"), card_instance_id),
@@ -362,7 +349,7 @@ def render_card_detail_panel(card_instance_id: str, registry: ContentProviderPor
         Text.assemble(("状态: ", "summary.label"), "已升级" if is_upgraded_card(card_def) else "未升级"),
         Text.assemble(("费用: ", "summary.label"), _card_cost_label(card_def)),
         Text.assemble(("类型: ", "summary.label"), _card_type_label(card_def)),
-        Text.assemble(("是否可打出: ", "summary.label"), "是" if card_def.playable and card_def.cost >= 0 else "否"),
+        Text.assemble(("是否可打出: ", "summary.label"), playable_label),
         Text.assemble(("完整效果: ", "summary.label"), _full_effect_summary(card_def, registry)),
         Text.assemble(("升级目标: ", "summary.label"), _upgrade_target_label(card_def, registry)),
     ]

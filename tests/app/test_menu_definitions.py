@@ -21,7 +21,7 @@ from slay_the_spire.app.menu_definitions import (
     format_menu_lines,
     resolve_menu_action,
 )
-from slay_the_spire.adapters.terminal.widgets import render_card_name
+from slay_the_spire.adapters.rich_ui.widgets import render_card_name
 from slay_the_spire.app.session import start_session
 from slay_the_spire.content.provider import StarterContentProvider
 

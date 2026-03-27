@@ -6,7 +6,7 @@ from rich.console import Group
 from rich.panel import Panel
 from rich.text import Text
 
-from slay_the_spire.adapters.terminal.theme import HP_BAR_WIDTH, PANEL_BOX
+from slay_the_spire.adapters.rich_ui.theme import HP_BAR_WIDTH, PANEL_BOX
 from slay_the_spire.content.registries import CardDef, EnemyDef
 from slay_the_spire.domain.models.statuses import StatusState
 
@@ -42,6 +42,12 @@ _CARD_RARITY_STYLES: dict[str, str] = {
     "rare": "card.rarity.rare",
     "curse": "card.rarity.curse",
     "special": "card.rarity.special",
+}
+
+_POWER_LABELS: dict[str, str] = {
+    "inflame": "燃烧",
+    "metallicize": "金属化",
+    "combust": "燃烧躯体",
 }
 
 
@@ -119,6 +125,25 @@ def card_rarity_label(card_def: CardDef) -> str:
     return _CARD_RARITY_LABELS.get(card_def.rarity, card_def.rarity)
 
 
+def active_power_label(power_id: str) -> str:
+    return _POWER_LABELS.get(power_id, power_id)
+
+
+def summarize_active_powers(active_powers: Sequence[Mapping[str, object]]) -> str:
+    labels: list[str] = []
+    for power in active_powers:
+        power_id = power.get("power_id")
+        if not isinstance(power_id, str):
+            continue
+        amount = power.get("amount")
+        power_name = active_power_label(power_id)
+        if isinstance(amount, int):
+            labels.append(f"{power_name} {amount}")
+        else:
+            labels.append(power_name)
+    return " / ".join(labels) if labels else "无"
+
+
 def render_card_name(card_def: CardDef) -> Text:
     rendered = Text()
     rendered.append(card_def.name, style=_CARD_RARITY_STYLES.get(card_def.rarity or "", "card.name"))
@@ -131,6 +156,8 @@ def summarize_effect(effect: Mapping[str, object], *, detailed_status_cards: boo
     effect_type = effect.get("type")
     if effect.get("move") == "divider":
         return "6 段攻击（每段伤害随生命变化）"
+    if effect_type == "damage_all_enemies_x_times":
+        return f"X 次对所有敌人各造成 {int(effect.get('amount', 0))} 伤害"
     if effect_type == "damage":
         return f"造成 {int(effect.get('amount', 0))} 伤害"
     if effect_type == "block":
@@ -241,6 +268,8 @@ def summarize_trigger_hooks(trigger_hooks: Sequence[str]) -> str:
 
 
 def format_card_cost(cost: int) -> str:
+    if cost == -1:
+        return "X"
     if cost < 0:
         return "无法打出"
     return str(cost)

@@ -6,7 +6,7 @@ from rich.console import Group, RenderableType
 from rich.panel import Panel
 from rich.text import Text
 
-from slay_the_spire.adapters.terminal.inspect import (
+from slay_the_spire.adapters.rich_ui.inspect import (
     format_card_detail_menu,
     format_card_list_footer,
     format_enemy_detail_menu,
@@ -19,15 +19,17 @@ from slay_the_spire.adapters.terminal.inspect import (
     render_shared_relics_panel,
     render_shared_stats_panel,
 )
-from slay_the_spire.adapters.terminal.inspect_registry import format_shared_inspect_menu, render_shared_inspect_panel
-from slay_the_spire.adapters.terminal.screens.layout import build_standard_screen, build_two_column_body
-from slay_the_spire.adapters.terminal.theme import PANEL_BOX
-from slay_the_spire.adapters.terminal.widgets import (
+from slay_the_spire.adapters.rich_ui.inspect_registry import format_shared_inspect_menu, render_shared_inspect_panel
+from slay_the_spire.adapters.rich_ui.screens.layout import build_standard_screen, build_two_column_body
+from slay_the_spire.adapters.rich_ui.theme import PANEL_BOX
+from slay_the_spire.adapters.rich_ui.widgets import (
+    format_card_cost,
     render_block,
     render_card_name,
     render_hp_bar,
     render_menu,
     render_statuses,
+    summarize_active_powers,
     summarize_card_definition,
     summarize_enemy_move_preview,
 )
@@ -332,20 +334,10 @@ def render_summary_bar(
 
 def render_player_panel(combat_state: CombatState, registry: ContentProviderPort) -> Panel:
     del registry
-    power_labels: list[str] = []
-    for power in combat_state.active_powers:
-        power_id = power.get("power_id")
-        if not isinstance(power_id, str):
-            continue
-        amount = power.get("amount")
-        if isinstance(amount, int):
-            power_labels.append(f"{power_id} {amount}")
-        else:
-            power_labels.append(power_id)
     lines = [
         Text.assemble(("格挡 ", "summary.label"), render_block(combat_state.player.block)),
         Text.assemble(("状态 ", "summary.label"), render_statuses(combat_state.player.statuses)),
-        Text.assemble(("持续效果 ", "summary.label"), " / ".join(power_labels) if power_labels else "无"),
+        Text.assemble(("持续效果 ", "summary.label"), summarize_active_powers(combat_state.active_powers)),
     ]
     return Panel(Group(*lines), title="玩家状态", box=PANEL_BOX, expand=False)
 
@@ -378,11 +370,12 @@ def render_hand_panel(combat_state: CombatState, registry: ContentProviderPort) 
     lines: list[RenderableType] = []
     for index, card_instance_id in enumerate(combat_state.hand, start=1):
         card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
+        cost_label = "无法打出" if not getattr(card_def, "playable", True) else format_card_cost(card_def.cost)
         lines.append(
             Text.assemble(
                 f"{index}. ",
                 render_card_name(card_def),
-                f" ({card_def.cost}) - {summarize_card_definition(card_def)}",
+                f" ({cost_label}) - {summarize_card_definition(card_def)}",
             )
         )
     return Panel(Group(*lines), title=title, box=PANEL_BOX, expand=False)

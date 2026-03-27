@@ -195,6 +195,62 @@ def test_end_turn_use_case_returns_structured_result() -> None:
     assert state.log == ["Training Slime攻击你 5，实际受到 5。"]
 
 
+def test_end_turn_use_case_logs_triggered_active_powers() -> None:
+    registry = _enemy_registry_without_attacks()
+    state = _combat_state()
+    state.active_powers = [
+        {"power_id": "metallicize", "amount": 3},
+        {"power_id": "combust", "amount": 5, "self_damage": 1},
+    ]
+    state.enemies.append(
+        EnemyState(
+            instance_id="enemy-2",
+            enemy_id="training_slime",
+            hp=12,
+            max_hp=12,
+            block=0,
+            statuses=[],
+        )
+    )
+    state._refresh_entity_index()
+
+    result = run_end_turn(state, registry)
+
+    assert result.combat_state is state
+    assert state.log == [
+        "金属化触发，获得 3 格挡。",
+        "燃烧躯体触发，对 Training Slime 造成 10 伤害，并失去 1 点生命。",
+    ]
+
+
+def test_end_turn_use_case_logs_triggered_active_powers_even_when_blocked() -> None:
+    registry = _enemy_registry_without_attacks()
+    state = _combat_state()
+    state.active_powers = [{"power_id": "combust", "amount": 5, "self_damage": 1}]
+    state.enemies[0].block = 5
+
+    result = run_end_turn(state, registry)
+
+    assert result.combat_state is state
+    assert state.log == [
+        "燃烧躯体触发，对 Training Slime 造成 5 伤害，格挡抵消 5，实际受到 0，并失去 1 点生命。",
+    ]
+
+
+def test_end_turn_use_case_logs_triggered_active_powers_with_lethal_overkill() -> None:
+    registry = _enemy_registry_without_attacks()
+    state = _combat_state()
+    state.active_powers = [{"power_id": "combust", "amount": 5, "self_damage": 1}]
+    state.enemies[0].hp = 3
+
+    result = run_end_turn(state, registry)
+
+    assert result.combat_state is state
+    assert state.log == [
+        "燃烧躯体触发，对 Training Slime 造成 3 伤害，并失去 1 点生命。",
+    ]
+
+
 def test_end_turn_stops_before_next_turn_when_player_dies() -> None:
     registry = _enemy_registry()
     state = _combat_state()
