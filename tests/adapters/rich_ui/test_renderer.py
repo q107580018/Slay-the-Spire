@@ -876,7 +876,7 @@ def test_full_map_panel_lists_reachable_nodes_and_topology_hint() -> None:
 
     output = _export(render_full_map_panel(act_state))
 
-    assert "NEXT  [战斗] r3c1 (3,1), [战斗] r3c2 (3,2)" in output
+    assert "NEXT  战斗（路线1）, 战斗（路线2）" in output
     assert "TIP | 只有 [可达] 节点可以作为下一步" in output
     assert "线条只表示整张地图的连接关系" in output
 
@@ -1293,6 +1293,46 @@ def test_map_renderer_uses_terminal_ruler_and_legend_layout() -> None:
     assert "STAT | >当前< 所在 [可达] 下一步 节点 其他" in output
     assert "[精英]" in output
     assert "Boss" in output
+
+
+def test_next_room_menu_shows_human_readable_room_labels() -> None:
+    session = start_session(seed=5)
+    act_state = ActState(
+        act_id="act1",
+        current_node_id="start",
+        nodes=[
+            ActNodeState(node_id="start", row=0, col=0, room_type="combat", next_node_ids=["r1c0", "r1c1"]),
+            ActNodeState(node_id="r1c0", row=1, col=0, room_type="event", next_node_ids=[]),
+            ActNodeState(node_id="r1c1", row=1, col=1, room_type="shop", next_node_ids=[]),
+        ],
+        visited_node_ids=["start"],
+        enemy_pool_id="act1_basic",
+        elite_pool_id="act1_elites",
+        boss_pool_id="act1_bosses",
+        event_pool_id="act1_events",
+    )
+    room_state = RoomState(
+        room_id="act1:start",
+        room_type="combat",
+        stage="completed",
+        payload={"node_id": "start", "room_kind": "combat", "next_node_ids": ["r1c0", "r1c1"]},
+        is_resolved=True,
+        rewards=[],
+    )
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=act_state,
+        room_state=room_state,
+        registry=_provider(session),
+        menu_state=MenuState(mode="select_next_room"),
+        run_phase="active",
+    )
+
+    assert "1. 事件" in output
+    assert "2. 商店" in output
+    assert "r1c0" not in output
+    assert "r1c1" not in output
 
 
 def test_map_renderer_applies_light_rich_styles_to_priority_tokens() -> None:

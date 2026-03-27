@@ -13,6 +13,7 @@ from slay_the_spire.adapters.rich_ui.inspect import (
     render_shared_stats_panel,
 )
 from slay_the_spire.adapters.rich_ui.inspect_registry import format_shared_inspect_menu, render_shared_inspect_panel
+from slay_the_spire.app.map_labels import format_next_room_labels, format_node_id
 from slay_the_spire.app.menu_definitions import (
     build_boss_relic_menu,
     build_boss_reward_menu,
@@ -50,15 +51,6 @@ _ROOM_TYPE_LABELS = {
     "rest": "休息点",
 }
 
-_ROOM_TYPE_MARKERS = {
-    "combat": "战",
-    "elite": "精",
-    "boss": "王",
-    "event": "事",
-    "shop": "店",
-    "rest": "休",
-}
-
 _MAP_ROOM_TYPE_LABELS = {
     "combat": "战斗",
     "elite": "精英",
@@ -94,12 +86,6 @@ def _menu_mode(menu_state: Any) -> str:
     return mode
 
 
-def _format_node_id(node_id: object) -> str:
-    if str(node_id) == "start":
-        return "起点"
-    return str(node_id)
-
-
 def _node_lookup(act_state: ActState, node_id: object) -> ActNodeState | None:
     if not isinstance(node_id, str):
         return None
@@ -110,26 +96,14 @@ def _node_lookup(act_state: ActState, node_id: object) -> ActNodeState | None:
 
 
 def _format_node_choice(act_state: ActState, node_id: object) -> str:
-    node = _node_lookup(act_state, node_id)
-    if node is None:
-        return _format_node_id(node_id)
-    marker = _ROOM_TYPE_MARKERS.get(node.room_type, node.room_type[:1].upper())
-    return f"{marker} {node.node_id} ({node.row},{node.col})"
-
-
-def _format_reachable_node_summary(act_state: ActState, node_id: object) -> str:
-    node = _node_lookup(act_state, node_id)
-    if node is None:
-        return _format_node_id(node_id)
-    label = _MAP_ROOM_TYPE_LABELS.get(node.room_type, node.room_type)
-    return f"[{label}] {node.node_id} ({node.row},{node.col})"
+    return format_next_room_labels(act_state, [node_id])[0]
 
 
 def _format_next_nodes(act_state: ActState, room_state: RoomState) -> str:
     next_node_ids = room_state.payload.get("next_node_ids", [])
     if not isinstance(next_node_ids, list) or not next_node_ids:
         return "-"
-    return ", ".join(_format_node_choice(act_state, node_id) for node_id in next_node_ids)
+    return ", ".join(format_next_room_labels(act_state, next_node_ids))
 
 
 def _format_card_instance_label(card_instance_id: str, registry: ContentProviderPort) -> Text:
@@ -428,7 +402,7 @@ def _status_legend_line() -> Text:
 def _full_map_lines(act_state: ActState) -> list[Text]:
     current_row, current_col = act_state.current_coord()
     row_numbers = sorted({node.row for node in act_state.nodes})
-    next_nodes = ", ".join(_format_reachable_node_summary(act_state, node_id) for node_id in act_state.reachable_node_ids) or "-"
+    next_nodes = ", ".join(format_next_room_labels(act_state, act_state.reachable_node_ids)) or "-"
     total_cols = max(node.col for node in act_state.nodes) + 1
     col_spacing = 14
     row_spacing = 4
@@ -503,9 +477,10 @@ def _format_next_room_menu(act_state: ActState, room_state: RoomState) -> list[s
     next_node_ids = room_state.payload.get("next_node_ids", [])
     if not isinstance(next_node_ids, list):
         next_node_ids = []
+    labels = format_next_room_labels(act_state, next_node_ids)
     return format_menu_lines(
         build_next_room_menu(
-            options=[(f"next_node:{node_id}", _format_node_choice(act_state, node_id)) for node_id in next_node_ids],
+            options=[(f"next_node:{node_id}", label) for node_id, label in zip(next_node_ids, labels, strict=False)],
         )
     )
 
@@ -668,7 +643,7 @@ def render_summary_panel(
         Text.assemble(("种子 ", "summary.label"), str(run_state.seed), f" (种子: {run_state.seed})"),
         Text.assemble(("角色 ", "summary.label"), (character_name, "player.name")),
         Text.assemble(("章节 ", "summary.label"), str(act_name), f" (章节: {act_name})"),
-        Text.assemble(("房间 ", "summary.label"), _format_node_id(node_id), f" (房间: {_format_node_id(node_id)})"),
+        Text.assemble(("房间 ", "summary.label"), format_node_id(node_id), f" (房间: {format_node_id(node_id)})"),
         Text.assemble(
             ("房间类型 ", "summary.label"),
             _ROOM_TYPE_LABELS.get(str(room_kind), str(room_kind)),

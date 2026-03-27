@@ -8,6 +8,7 @@ from rich.console import RenderableType
 
 from slay_the_spire.adapters.rich_ui.renderer import render_room, render_room_renderable
 from slay_the_spire.adapters.persistence.save_files import JsonFileSaveRepository
+from slay_the_spire.app.map_labels import format_next_room_labels
 from slay_the_spire.app.menu_definitions import (
     build_boss_relic_menu,
     build_boss_reward_menu,
@@ -1093,9 +1094,12 @@ def _route_next_room_menu(choice: str, session: SessionState) -> tuple[bool, Ses
     next_node_ids = session.room_state.payload.get("next_node_ids", [])
     if not isinstance(next_node_ids, list):
         return _invalid_menu_choice(session)
+    labels = format_next_room_labels(session.act_state, next_node_ids)
     action_id = resolve_menu_action(
         choice,
-        build_next_room_menu(options=[(f"next_node:{node_id}", str(node_id)) for node_id in next_node_ids]),
+        build_next_room_menu(
+            options=[(f"next_node:{node_id}", label) for node_id, label in zip(next_node_ids, labels, strict=False)]
+        ),
     )
     if action_id == "back":
         next_session = replace(session, menu_state=MenuState())

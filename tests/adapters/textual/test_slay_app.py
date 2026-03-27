@@ -21,6 +21,7 @@ from slay_the_spire.adapters.textual.slay_app import (
 )
 from slay_the_spire.app.menu_definitions import build_next_room_menu, build_root_menu
 from slay_the_spire.app.session import render_session_renderable, start_session
+from slay_the_spire.domain.models.act_state import ActNodeState, ActState
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
 from slay_the_spire.domain.models.room_state import RoomState
@@ -206,6 +207,38 @@ def test_current_action_menu_preserves_rarity_style_for_event_remove_choices() -
     assert label.plain == "愤怒+"
     assert "card.rarity.common" in _span_styles(label)
     assert "card.upgraded" in _span_styles(label)
+
+
+def test_current_action_menu_shows_readable_next_room_labels() -> None:
+    base_session = start_session(seed=5)
+    act_state = ActState(
+        act_id="act1",
+        current_node_id="start",
+        nodes=[
+            ActNodeState(node_id="start", row=0, col=0, room_type="combat", next_node_ids=["r1c0", "r1c1"]),
+            ActNodeState(node_id="r1c0", row=1, col=0, room_type="event", next_node_ids=[]),
+            ActNodeState(node_id="r1c1", row=1, col=1, room_type="shop", next_node_ids=[]),
+        ],
+        visited_node_ids=["start"],
+    )
+    session = replace(
+        base_session,
+        act_state=act_state,
+        room_state=RoomState(
+            room_id="act1:start",
+            room_type="combat",
+            stage="completed",
+            payload={"node_id": "start", "room_kind": "combat", "next_node_ids": ["r1c0", "r1c1"]},
+            is_resolved=True,
+            rewards=[],
+        ),
+        menu_state=replace(base_session.menu_state, mode="select_next_room"),
+    )
+
+    menu = _current_action_menu(session)
+
+    assert menu is not None
+    assert [option.label for option in menu.options[:2]] == ["事件", "商店"]
 
 
 def test_action_list_refresh_keeps_text_styles_for_hand_targets() -> None:
