@@ -64,10 +64,12 @@
 - 终端交互主路径走 `route_menu_choice()` 的编号菜单，不是自由文本命令模式。
 - 查看页已覆盖角色状态、牌组、遗物、药水、敌人详情、卡牌详情等 inspect 菜单。
 - CLI 支持：
+  - `uv run python -m slay_the_spire.app.cli new`
   - `uv run python -m slay_the_spire.app.cli new --seed 5`
   - `uv run python -m slay_the_spire.app.cli load --save-path saves/latest.json`
+  - `uv run slay-the-spire new`
   - `uv run slay-the-spire new --seed 5`
-- `new` 必填 `--seed`，可选 `--character`、`--content-root`、`--save-path`。
+- `new` 可选 `--seed`、`--character`、`--content-root`、`--save-path`；不传 `--seed` 时会自动生成随机 seed。
 - `load` 可选 `--content-root`、`--save-path`。
 - 默认存档路径是 `./saves/latest.json`。
 - 默认内容路径优先取 `src/slay_the_spire/data/content/`；只有找不到时才会回退到仓库根目录 `content/`。
@@ -78,8 +80,8 @@
 
 - 初始化环境：`uv sync --dev`
 - 跑测试：`uv run pytest`
-- 本地启动新游戏：`uv run python -m slay_the_spire.app.cli new --seed 5`
-- 启动游戏：`uv run slay-the-spire new --seed 5`
+- 本地启动新游戏：`uv run python -m slay_the_spire.app.cli new`
+- 启动游戏：`uv run slay-the-spire new`
 - 从存档恢复：`uv run python -m slay_the_spire.app.cli load --save-path saves/latest.json`
 - 打包：`uv build`
 - 打包后检查 `dist/` 中的 wheel / sdist 是否更新。

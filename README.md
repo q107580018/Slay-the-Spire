@@ -28,6 +28,14 @@ uv sync --dev
 uv run slay-the-spire new --seed 5
 ```
 
+`--seed` 现在是可选参数；不传时会自动随机生成 seed。
+
+例如直接随机开局：
+
+```bash
+uv run slay-the-spire new
+```
+
 也可以直接调用模块入口：
 
 ```bash
