@@ -69,12 +69,19 @@ def _is_weak(source: PlayerCombatState | EnemyState | None) -> bool:
     return any(status.status_id == "weak" and status.stacks > 0 for status in source.statuses)
 
 
+def _strength_bonus(source: PlayerCombatState | EnemyState | None) -> int:
+    if source is None:
+        return 0
+    return sum(status.stacks for status in source.statuses if status.status_id == "strength" and status.stacks > 0)
+
+
 def _damage_amount(
     source: PlayerCombatState | EnemyState | None,
     target: PlayerCombatState | EnemyState,
     base_amount: int,
 ) -> int:
     amount = max(base_amount, 0)
+    amount += _strength_bonus(source)
     if _is_weak(source):
         amount = (amount * 3) // 4
     if _vulnerable_bonus(target):

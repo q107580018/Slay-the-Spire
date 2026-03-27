@@ -182,6 +182,24 @@ def test_play_card_uses_registry_to_resolve_card_definition() -> None:
     assert provider.cards_calls >= 2
 
 
+def test_play_card_applies_player_strength_to_damage_effects() -> None:
+    state = _combat_state(hand=["custom_strike#1"])
+    state.player.statuses.append(StatusState(status_id="strength", stacks=2))
+    provider = _provider_with_card(effects=[{"type": "damage", "amount": 4}])
+
+    result = play_card(state, "custom_strike#1", "enemy-1", provider)
+
+    assert result.combat_state is state
+    assert [effect["type"] for effect in result.resolved_effects] == ["damage"]
+    assert result.resolved_effects[0]["result"] == {
+        "applied_amount": 6,
+        "blocked": 0,
+        "actual_damage": 6,
+        "target_defeated": False,
+    }
+    assert state.enemies[0].hp == 4
+
+
 def test_play_card_applies_vulnerable_status_effects() -> None:
     state = _combat_state(hand=["bash#1"], energy=2)
     provider = _provider_with_card(

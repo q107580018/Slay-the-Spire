@@ -9,6 +9,7 @@ from slay_the_spire.adapters.terminal.widgets import (
     render_statuses,
     preview_enemy_intent,
     summarize_card_effects,
+    summarize_effect,
 )
 from slay_the_spire.app.session import MenuState, start_session
 from slay_the_spire.content.provider import StarterContentProvider
@@ -44,6 +45,11 @@ def test_terminal_theme_uses_original_hp_bar_colors() -> None:
 def test_render_statuses_returns_compact_chinese_labels() -> None:
     output = _export(render_statuses([StatusState(status_id="vulnerable", stacks=2)]))
     assert "易伤 2" in output
+
+
+def test_render_statuses_renders_strength_labels() -> None:
+    output = _export(render_statuses([StatusState(status_id="strength", stacks=3)]))
+    assert "力量 3" in output
 
 
 def test_render_statuses_uses_empty_label_for_no_statuses() -> None:
@@ -82,6 +88,12 @@ def test_summarize_card_effects_localizes_card_copy_effect() -> None:
     )
 
     assert output == "造成 6 伤害 / 复制一张卡牌放入弃牌堆"
+
+
+def test_summarize_effect_localizes_strength_effect() -> None:
+    output = summarize_effect({"type": "strength", "amount": 2})
+
+    assert output == "获得 2 力量"
 
 
 def test_preview_enemy_intent_uses_move_table_without_state() -> None:

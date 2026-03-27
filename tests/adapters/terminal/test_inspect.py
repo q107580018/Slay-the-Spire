@@ -13,6 +13,7 @@ from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
 from slay_the_spire.domain.models.room_state import RoomState
+from slay_the_spire.domain.models.statuses import StatusState
 
 
 def _provider(session):
@@ -455,7 +456,7 @@ def test_render_hexaghost_enemy_detail_localizes_divider_summary() -> None:
                 hp=250,
                 max_hp=250,
                 block=0,
-                statuses=[],
+                statuses=[StatusState(status_id="strength", stacks=2)],
             )
         ],
         effect_queue=[],
@@ -475,5 +476,6 @@ def test_render_hexaghost_enemy_detail_localizes_divider_summary() -> None:
         run_phase=session.run_phase,
     )
 
+    assert "当前状态: 力量 2" in output
     assert "当前意图摘要: 6 段攻击（每段伤害随生命变化）" in output
     assert "招式表预览: divider: 6 段攻击（每段伤害随生命变化）" in output

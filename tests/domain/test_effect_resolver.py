@@ -235,6 +235,86 @@ def test_damage_effect_reports_structured_resolution_details():
     }
 
 
+def test_damage_effect_applies_source_strength_to_player_damage() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 10)],
+        effect_queue=[
+            damage_effect(source_instance_id="player-1", target_instance_id="enemy-1", amount=4),
+        ],
+    )
+    state.player.statuses.append(StatusState(status_id="strength", stacks=2))
+
+    resolved = resolve_next_effect(state)
+
+    assert resolved["result"] == {
+        "applied_amount": 6,
+        "blocked": 0,
+        "actual_damage": 6,
+        "target_defeated": False,
+    }
+    assert state.enemies[0].hp == 4
+
+
+def test_damage_effect_applies_strength_to_each_damage_hit() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 20)],
+        effect_queue=[
+            damage_effect(source_instance_id="player-1", target_instance_id="enemy-1", amount=2),
+            damage_effect(source_instance_id="player-1", target_instance_id="enemy-1", amount=2),
+        ],
+    )
+    state.player.statuses.append(StatusState(status_id="strength", stacks=2))
+
+    resolved = resolve_effect_queue(state)
+
+    assert [effect["result"]["applied_amount"] for effect in resolved] == [4, 4]
+    assert [effect["result"]["actual_damage"] for effect in resolved] == [4, 4]
+    assert state.enemies[0].hp == 12
+
+
+def test_damage_effect_applies_enemy_strength_to_player_damage() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 10)],
+        effect_queue=[
+            damage_effect(source_instance_id="enemy-1", target_instance_id="player-1", amount=4),
+        ],
+    )
+    state.enemies[0].statuses.append(StatusState(status_id="strength", stacks=2))
+
+    resolved = resolve_next_effect(state)
+
+    assert resolved["result"] == {
+        "applied_amount": 6,
+        "blocked": 0,
+        "actual_damage": 6,
+        "target_defeated": False,
+    }
+    assert state.player.hp == 64
+
+
+def test_damage_effect_keeps_strength_weak_and_vulnerable_order_semantics() -> None:
+    enemy = make_enemy("enemy-1", 20)
+    enemy.statuses.append(StatusState(status_id="vulnerable", stacks=1))
+    state = make_combat_state(
+        enemies=[enemy],
+        effect_queue=[
+            damage_effect(source_instance_id="player-1", target_instance_id="enemy-1", amount=5),
+        ],
+    )
+    state.player.statuses.append(StatusState(status_id="strength", stacks=1))
+    state.player.statuses.append(StatusState(status_id="weak", stacks=1))
+
+    resolved = resolve_next_effect(state)
+
+    assert resolved["result"] == {
+        "applied_amount": 6,
+        "blocked": 0,
+        "actual_damage": 6,
+        "target_defeated": False,
+    }
+    assert state.enemies[0].hp == 14
+
+
 def test_draw_effect_refills_from_discard_pile_when_draw_pile_runs_out():
     state = make_combat_state(
         enemies=[make_enemy("enemy-1", 10)],

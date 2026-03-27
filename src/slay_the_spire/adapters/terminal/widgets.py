@@ -107,6 +107,8 @@ def summarize_effect(effect: Mapping[str, object], *, detailed_status_cards: boo
         return f"抽 {int(effect.get('amount', 0))} 张牌"
     if effect_type == "gain_energy":
         return f"获得 {int(effect.get('amount', 0))} 点能量"
+    if effect_type == "strength":
+        return f"获得 {int(effect.get('amount', 0))} 力量"
     if effect_type == "vulnerable":
         return f"施加 {int(effect.get('stacks', 0))} 易伤"
     if effect_type == "weak":
