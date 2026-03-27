@@ -63,6 +63,18 @@ _ROOM_LABELS: dict[str, str] = {
     "rest": "休息点",
 }
 
+_CARD_PREVIEW_MENU_MODES = frozenset(
+    {
+        "select_card",
+        "shop_remove_card",
+        "rest_upgrade_card",
+        "event_upgrade_card",
+        "event_remove_card",
+        "inspect_deck",
+        *COMBAT_INSPECT_CARD_LIST_MODES,
+    }
+)
+
 
 def _is_full_map_panel(renderable: object) -> bool:
     return isinstance(renderable, Panel) and _plain_label(renderable.title) == "完整地图"
@@ -115,7 +127,61 @@ def _boss_rewards(session: SessionState) -> dict[str, object] | None:
 
 
 def _supports_hover_preview(menu_mode: str) -> bool:
-    return menu_mode in {"select_reward", "select_boss_reward", "select_boss_relic", "shop_root"}
+    return menu_mode in {"select_reward", "select_boss_reward", "select_boss_relic", "shop_root"} or menu_mode in _CARD_PREVIEW_MENU_MODES
+
+
+def _hover_preview_guidance(menu_mode: str) -> Text | None:
+    if menu_mode in _CARD_PREVIEW_MENU_MODES:
+        return Text("查看说明：将鼠标悬停在卡牌上查看详情。")
+    if menu_mode in {"select_reward", "select_boss_reward", "select_boss_relic", "shop_root"}:
+        return Text("查看说明：将鼠标悬停在奖励或商品上查看详情。")
+    return None
+
+
+def _action_index(action_id: str, *, prefix: str) -> int | None:
+    if not action_id.startswith(prefix):
+        return None
+    raw_index = action_id[len(prefix) :]
+    if not raw_index.isdigit():
+        return None
+    index = int(raw_index) - 1
+    if index < 0:
+        return None
+    return index
+
+
+def _card_instance_from_indexed_action(action_id: str, *, prefix: str, card_instance_ids: list[str]) -> str | None:
+    index = _action_index(action_id, prefix=prefix)
+    if index is None or index >= len(card_instance_ids):
+        return None
+    return card_instance_ids[index]
+
+
+def _card_preview_instance_id(session: SessionState, action_id: str) -> str | None:
+    menu_mode = session.menu_state.mode
+    if menu_mode == "select_card":
+        combat_state = _combat_state_from_session(session)
+        if combat_state is None:
+            return None
+        return _card_instance_from_indexed_action(action_id, prefix="play_card:", card_instance_ids=combat_state.hand)
+    if menu_mode in {"shop_remove_card", "event_remove_card"} and action_id.startswith("remove_card:"):
+        return action_id.split(":", 1)[1]
+    if menu_mode in {"rest_upgrade_card", "event_upgrade_card"} and action_id.startswith("upgrade_card:"):
+        return action_id.split(":", 1)[1]
+    if menu_mode == "inspect_deck":
+        return _card_instance_from_indexed_action(action_id, prefix="item:", card_instance_ids=session.run_state.deck)
+    if menu_mode in COMBAT_INSPECT_CARD_LIST_MODES:
+        combat_state = _combat_state_from_session(session)
+        if combat_state is None:
+            return None
+        pile_map = {
+            "inspect_hand": combat_state.hand,
+            "inspect_draw_pile": combat_state.draw_pile,
+            "inspect_discard_pile": combat_state.discard_pile,
+            "inspect_exhaust_pile": combat_state.exhaust_pile,
+        }
+        return _card_instance_from_indexed_action(action_id, prefix="item:", card_instance_ids=pile_map.get(menu_mode, []))
+    return None
 
 
 def _reward_card_instance_id(reward_id: str) -> str | None:
@@ -182,6 +248,9 @@ def _shop_offer_by_action_id(session: SessionState, action_id: str, *, offer_typ
 def _hover_preview_renderable(session: SessionState, action_id: str) -> Text | None:
     if session.menu_state.mode == "select_reward":
         return _reward_preview_renderable(session, action_id)
+    card_instance_id = _card_preview_instance_id(session, action_id)
+    if card_instance_id is not None:
+        return _text_from_lines(format_card_detail_lines(card_instance_id, _content_provider(session)))
     if session.menu_state.mode == "select_boss_reward":
         if action_id == "claim_boss_gold":
             return Text("控制项：领取首领金币")
@@ -511,8 +580,9 @@ class SlayApp(App[None]):
                 preview.update(rendered)
                 preview.display = True
                 return
-        if _supports_hover_preview(menu_mode):
-            preview.update(Text("查看说明：将鼠标悬停在奖励或商品上查看详情。"))
+        guidance = _hover_preview_guidance(menu_mode)
+        if guidance is not None:
+            preview.update(guidance)
             preview.display = True
         else:
             preview.update(Text(""))
