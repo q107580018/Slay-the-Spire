@@ -2,5 +2,10 @@ __pycache__/
 *.py[cod]
 .DS_Store
 *.egg-info/
+.venv/
+.mypy_cache/
 .pytest_cache/
 .superpowers/
+build/
+dist/
+saves/
