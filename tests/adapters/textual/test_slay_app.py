@@ -230,6 +230,29 @@ def test_hover_preview_panel_is_present_in_reward_menu() -> None:
     asyncio.run(scenario())
 
 
+def test_hover_preview_panel_is_present_in_shop_root_menu() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="shop",
+            stage="waiting_input",
+            is_resolved=False,
+            payload={"cards": [], "relics": [], "potions": []},
+        ),
+        menu_state=replace(base.menu_state, mode="shop_root"),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            assert app.query_one("#hover-preview", Static).display is True
+
+    asyncio.run(scenario())
+
+
 def test_hover_preview_panel_is_hidden_after_leaving_reward_menu() -> None:
     base = start_session(seed=5)
     session = replace(
@@ -251,7 +274,9 @@ def test_hover_preview_panel_is_hidden_after_leaving_reward_menu() -> None:
             menu = _current_action_menu(app._session)
             assert menu is not None
             assert app.query_one("#hover-preview", Static).display is True
-            app._process_command(str(len(menu.options)))
+            back_choice = _menu_choice_for_action(menu, "back")
+            assert back_choice is not None
+            app._process_command(back_choice)
             await pilot.pause()
             assert app.query_one("#hover-preview", Static).display is False
 
