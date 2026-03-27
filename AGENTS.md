@@ -3,6 +3,7 @@
 ## 项目定位
 
 - 这是一个 Python 3.12 的终端版《Slay the Spire》原型项目。
+- 当前项目的**玩法内容与系统基线默认以原版《Slay the Spire》1 代为主**；若借鉴《Slay the Spire 2》或 `sts2-cli`，默认只作为局部交互、信息架构或流程设计参考，不能覆盖现有 1 代内容基线，除非需求或文档明确改方向。
 - 默认交互界面是基于 `rich` 的编号菜单终端 UI，并提供基于 `textual` 的可选 TUI。
 - 目标是本地单机、可回放的菜单驱动流程，不是图形界面项目，也不是服务端项目。
 - 开发环境、依赖管理、命令执行默认都用 `uv`。
@@ -100,6 +101,7 @@
 ## 维护建议
 
 - 优先相信 `src/slay_the_spire/app/session.py`、`tests/`、`content/` 和 `src/slay_the_spire/data/content/`，不要优先相信旧文档。
+- 做设计取舍时，若 1 代与 2 代资料或旧设计文档冲突，默认以“当前代码中的 1 代内容基线 + 已落地行为”优先；只有在需求明确指定、且文档中清楚标注“这是 2 代导向改动”时，才主动向 2 代靠拢。
 - 需要参考原版《Slay the Spire》资料时，优先查询官方社区 Wiki：[Slay the Spire Wiki](https://slay-the-spire.fandom.com/wiki/)。
 - 新增房间类型前，先确认三层都补齐：地图内容、use case / session 路由、终端渲染。
 - 新增角色、卡牌、敌人、事件、遗物或药水时，先改根目录 `content/`，再同步到 `src/slay_the_spire/data/content/`。
