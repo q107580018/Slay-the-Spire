@@ -55,8 +55,10 @@ def test_provider_exposes_registry_accessors(content_root: Path) -> None:
     assert provider.cards().get("metallicize").name == "金属化"
     assert provider.cards().get("combust").name == "燃烧躯体"
     assert provider.cards().get("terror").cost == 1
+    assert provider.cards().get("terror").rarity == "uncommon"
     assert provider.cards().get("terror").effects == [{"type": "vulnerable", "stacks": 2}]
     assert provider.cards().get("terror_plus").cost == 1
+    assert provider.cards().get("terror_plus").rarity == "uncommon"
     assert provider.cards().get("terror_plus").effects == [{"type": "vulnerable", "stacks": 3}]
     assert provider.enemies().get("slime").name == "绿史莱姆"
     assert provider.enemies().get("acid_slime").name == "酸液史莱姆"
@@ -66,6 +68,22 @@ def test_provider_exposes_registry_accessors(content_root: Path) -> None:
     assert provider.relics().get("burning_blood").id == "burning_blood"
     assert provider.events().get("shining_light").text.startswith("一道圣洁的光")
     assert provider.acts().get("act1").boss_pool_id == "act1_bosses"
+
+
+@pytest.mark.parametrize("content_root", _content_roots())
+def test_cards_define_rarity_and_upgrades_keep_base_rarity(content_root: Path) -> None:
+    provider = StarterContentProvider(content_root)
+    allowed_rarities = {"basic", "common", "uncommon", "rare", "curse", "special"}
+
+    for card_def in provider.cards().all():
+        assert card_def.rarity in allowed_rarities
+        if card_def.upgrades_to is not None:
+            upgraded = provider.cards().get(card_def.upgrades_to)
+            assert upgraded.rarity == card_def.rarity
+
+    assert provider.cards().get("burn").rarity == "curse"
+    assert provider.cards().get("doubt").rarity == "curse"
+    assert provider.cards().get("injury").rarity == "curse"
 
 
 @pytest.mark.parametrize("content_root", _content_roots())

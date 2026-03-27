@@ -14,6 +14,7 @@ from slay_the_spire.adapters.terminal.inspect import (
     render_shared_stats_panel,
 )
 from slay_the_spire.adapters.terminal.theme import PANEL_BOX
+from slay_the_spire.adapters.terminal.widgets import render_card_name
 from slay_the_spire.app.menu_definitions import build_inspect_root_menu, build_leaf_menu, format_menu_lines
 from slay_the_spire.domain.models.act_state import ActState
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
@@ -88,7 +89,7 @@ def render_shared_inspect_panel(
     combat_state: CombatState | None = None,
 ) -> Panel | None:
     if mode == "inspect_deck":
-        lines = [Text(line) for line in _format_inspect_deck_lines(run_state, registry)]
+        lines = [line if isinstance(line, Text) else Text(line) for line in _format_inspect_deck_lines(run_state, registry)]
         return Panel(Group(*lines), title=_DECK_PANEL_TITLES[context], box=PANEL_BOX, expand=False)
     if mode == "inspect_stats":
         return render_shared_stats_panel(
@@ -107,14 +108,14 @@ def render_shared_inspect_panel(
     return None
 
 
-def _format_inspect_deck_lines(run_state: RunState, registry: ContentProviderPort) -> list[str]:
-    lines: list[str] = []
+def _format_inspect_deck_lines(run_state: RunState, registry: ContentProviderPort) -> list[str | Text]:
+    lines: list[str | Text] = []
     if not run_state.deck:
         lines.append("-")
     else:
         for index, card_instance_id in enumerate(run_state.deck, start=1):
             card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
-            lines.append(f"{index}. {card_def.name}")
+            lines.append(Text.assemble(f"{index}. ", render_card_name(card_def)))
     lines.append(f"{len(run_state.deck) + 1}. 返回上一步")
     return lines
 

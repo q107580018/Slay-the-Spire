@@ -28,7 +28,7 @@
       "id": "strike_plus",
       "name": "打击+",
       "cost": 1,
-      "rarity": "special",
+      "rarity": "basic",
       "effects": [
         {
           "type": "damage",
@@ -40,7 +40,7 @@
       "id": "defend_plus",
       "name": "防御+",
       "cost": 1,
-      "rarity": "special",
+      "rarity": "basic",
       "effects": [
         {
           "type": "block",
@@ -69,7 +69,7 @@
       "id": "bash_plus",
       "name": "重击+",
       "cost": 2,
-      "rarity": "special",
+      "rarity": "basic",
       "effects": [
         {
           "type": "damage",
@@ -103,7 +103,7 @@
       "id": "anger_plus",
       "name": "愤怒+",
       "cost": 0,
-      "rarity": "special",
+      "rarity": "common",
       "effects": [
         {
           "type": "damage",
@@ -137,7 +137,7 @@
       "id": "pommel_strike_plus",
       "name": "柄击+",
       "cost": 1,
-      "rarity": "special",
+      "rarity": "common",
       "effects": [
         {
           "type": "damage",
@@ -170,7 +170,7 @@
       "id": "shrug_it_off_plus",
       "name": "耸肩无视+",
       "cost": 1,
-      "rarity": "special",
+      "rarity": "common",
       "effects": [
         {
           "type": "block",
@@ -199,7 +199,7 @@
       "id": "cleave_plus",
       "name": "旋风斩+",
       "cost": 1,
-      "rarity": "special",
+      "rarity": "common",
       "effects": [
         {
           "type": "damage",
@@ -228,7 +228,7 @@
       "id": "twin_strike_plus",
       "name": "双重打击+",
       "cost": 1,
-      "rarity": "special",
+      "rarity": "common",
       "effects": [
         {
           "type": "damage",
@@ -258,7 +258,7 @@
       "id": "inflame_plus",
       "name": "燃烧+",
       "cost": 1,
-      "rarity": "special",
+      "rarity": "uncommon",
       "effects": [
         {
           "type": "add_power",
@@ -285,7 +285,7 @@
       "id": "metallicize_plus",
       "name": "金属化+",
       "cost": 1,
-      "rarity": "special",
+      "rarity": "uncommon",
       "effects": [
         {
           "type": "add_power",
@@ -315,7 +315,7 @@
       "id": "hemokinesis_plus",
       "name": "献祭打击+",
       "cost": 1,
-      "rarity": "special",
+      "rarity": "uncommon",
       "effects": [
         {
           "type": "damage",
@@ -352,7 +352,7 @@
       "id": "sword_boomerang_plus",
       "name": "剑刃回旋镖+",
       "cost": 1,
-      "rarity": "special",
+      "rarity": "common",
       "effects": [
         {
           "type": "damage",
@@ -402,7 +402,7 @@
       "id": "pummel_plus",
       "name": "连击+",
       "cost": 1,
-      "rarity": "special",
+      "rarity": "uncommon",
       "exhausts": true,
       "effects": [
         {
@@ -446,7 +446,7 @@
       "id": "combust_plus",
       "name": "燃烧躯体+",
       "cost": 1,
-      "rarity": "special",
+      "rarity": "uncommon",
       "effects": [
         {
           "type": "add_power",
@@ -477,7 +477,7 @@
       "id": "bloodletting_plus",
       "name": "放血+",
       "cost": 0,
-      "rarity": "special",
+      "rarity": "uncommon",
       "effects": [
         {
           "type": "gain_energy",
@@ -510,7 +510,7 @@
       "id": "true_grit_plus",
       "name": "坚毅+",
       "cost": 1,
-      "rarity": "special",
+      "rarity": "common",
       "effects": [
         {
           "type": "block",
@@ -541,7 +541,7 @@
       "id": "armaments_plus",
       "name": "武装+",
       "cost": 1,
-      "rarity": "special",
+      "rarity": "common",
       "effects": [
         {
           "type": "block",
@@ -556,7 +556,7 @@
       "id": "terror",
       "name": "恐怖",
       "cost": 1,
-      "rarity": "special",
+      "rarity": "uncommon",
       "upgrades_to": "terror_plus",
       "effects": [
         {
@@ -569,7 +569,7 @@
       "id": "terror_plus",
       "name": "恐怖+",
       "cost": 1,
-      "rarity": "special",
+      "rarity": "uncommon",
       "effects": [
         {
           "type": "vulnerable",

@@ -26,6 +26,24 @@ _SPECIAL_CARD_LABELS: dict[str, str] = {
     "burn": "灼伤",
 }
 
+_CARD_RARITY_LABELS: dict[str, str] = {
+    "basic": "基础",
+    "common": "普通",
+    "uncommon": "罕见",
+    "rare": "稀有",
+    "curse": "诅咒",
+    "special": "特殊",
+}
+
+_CARD_RARITY_STYLES: dict[str, str] = {
+    "basic": "card.rarity.basic",
+    "common": "card.rarity.common",
+    "uncommon": "card.rarity.uncommon",
+    "rare": "card.rarity.rare",
+    "curse": "card.rarity.curse",
+    "special": "card.rarity.special",
+}
+
 
 def hp_style_for_ratio(ratio: float) -> str:
     if ratio <= 0.25:
@@ -89,6 +107,24 @@ def special_card_rule_text(card_id: str) -> str | None:
 
 def card_label(card_id: str) -> str:
     return _SPECIAL_CARD_LABELS.get(card_id, card_id)
+
+
+def is_upgraded_card(card_def: CardDef) -> bool:
+    return card_def.id.endswith("_plus") or card_def.name.endswith("+")
+
+
+def card_rarity_label(card_def: CardDef) -> str:
+    if card_def.rarity is None:
+        return "未知"
+    return _CARD_RARITY_LABELS.get(card_def.rarity, card_def.rarity)
+
+
+def render_card_name(card_def: CardDef) -> Text:
+    rendered = Text()
+    rendered.append(card_def.name, style=_CARD_RARITY_STYLES.get(card_def.rarity or "", "card.name"))
+    if is_upgraded_card(card_def):
+        rendered.stylize("card.upgraded")
+    return rendered
 
 
 def summarize_effect(effect: Mapping[str, object], *, detailed_status_cards: bool = False) -> str:
