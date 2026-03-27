@@ -542,6 +542,38 @@ def test_end_turn_log_reports_burn_trigger_and_enemy_adding_burn() -> None:
     ]
 
 
+def test_end_turn_doubt_applies_weak_after_existing_weak_expires() -> None:
+    registry = _enemy_registry_without_attacks()
+    state = _combat_state()
+    state.hand = ["doubt#1"]
+    state.player.statuses.append(StatusState(status_id="weak", stacks=1))
+
+    resolved = end_turn(state, registry)
+
+    assert [effect["type"] for effect in resolved] == ["weak"]
+    assert state.player.statuses == [StatusState(status_id="weak", stacks=1)]
+
+
+def test_run_end_turn_logs_doubt_triggered_weak() -> None:
+    registry = _enemy_registry_without_attacks()
+    registry.cards().register(
+        {
+            "id": "doubt",
+            "name": "疑虑",
+            "cost": -1,
+            "playable": False,
+            "can_appear_in_shop": False,
+            "effects": [],
+        }
+    )
+    state = _combat_state()
+    state.hand = ["doubt#1"]
+
+    run_end_turn(state, registry)
+
+    assert state.log == ["疑虑施加 1 层虚弱。"]
+
+
 def test_preview_enemy_move_reuses_combat_turn_logic_without_mutating_state() -> None:
     registry = _Registry()
     registry.enemies().register(

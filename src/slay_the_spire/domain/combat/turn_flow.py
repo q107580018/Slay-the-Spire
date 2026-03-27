@@ -240,17 +240,33 @@ def _divider_damage_per_hit(player_hp: int) -> int:
     return 4
 
 
-def _burn_end_turn_effects(state: CombatState) -> list[JsonDict]:
+def _burn_end_turn_effects(hand: Sequence[str], player_instance_id: str) -> list[JsonDict]:
     effects: list[JsonDict] = []
-    for card_instance_id in state.hand:
+    for card_instance_id in hand:
         if card_id_from_instance_id(card_instance_id) != "burn":
             continue
         effects.append(
             damage_effect(
                 source_instance_id=card_instance_id,
-                target_instance_id=state.player.instance_id,
+                target_instance_id=player_instance_id,
                 amount=2,
             )
+        )
+    return effects
+
+
+def _post_tick_hand_end_turn_effects(hand: Sequence[str], player_instance_id: str) -> list[JsonDict]:
+    effects: list[JsonDict] = []
+    for card_instance_id in hand:
+        if card_id_from_instance_id(card_instance_id) != "doubt":
+            continue
+        effects.append(
+            {
+                "type": "weak",
+                "source_instance_id": card_instance_id,
+                "target_instance_id": player_instance_id,
+                "stacks": 1,
+            }
         )
     return effects
 
@@ -370,8 +386,9 @@ def end_turn(
     energy_per_turn: int = DEFAULT_ENERGY_PER_TURN,
 ) -> list[JsonDict]:
     resolved = []
+    hand_at_end_turn = tuple(state.hand)
     state.effect_queue.extend(_active_power_end_turn_effects(state))
-    state.effect_queue.extend(_burn_end_turn_effects(state))
+    state.effect_queue.extend(_burn_end_turn_effects(hand_at_end_turn, state.player.instance_id))
     if state.effect_queue:
         resolved.extend(resolve_effect_queue(state, hook_registrations=hook_registrations))
     state.discard_pile.extend(state.hand)
@@ -379,6 +396,9 @@ def end_turn(
     if state.player.hp <= 0:
         return resolved
     _tick_temporary_statuses(state.player)
+    state.effect_queue.extend(_post_tick_hand_end_turn_effects(hand_at_end_turn, state.player.instance_id))
+    if state.effect_queue:
+        resolved.extend(resolve_effect_queue(state, hook_registrations=hook_registrations))
     resolved.extend(
         run_enemy_turn(
         state,

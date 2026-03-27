@@ -335,6 +335,7 @@ def render_summary_bar(
 def render_player_panel(combat_state: CombatState, registry: ContentProviderPort) -> Panel:
     del registry
     lines = [
+        Text.assemble(("生命 ", "summary.label"), render_hp_bar(combat_state.player.hp, combat_state.player.max_hp)),
         Text.assemble(("格挡 ", "summary.label"), render_block(combat_state.player.block)),
         Text.assemble(("状态 ", "summary.label"), render_statuses(combat_state.player.statuses)),
         Text.assemble(("持续效果 ", "summary.label"), summarize_active_powers(combat_state.active_powers)),

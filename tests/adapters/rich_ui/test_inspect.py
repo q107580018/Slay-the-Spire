@@ -100,6 +100,16 @@ def test_format_card_detail_lines_explain_burn_end_turn_penalty() -> None:
     assert any("回合结束时若仍在手中，失去 2 点生命" in line.plain for line in lines)
 
 
+def test_format_card_detail_lines_explain_doubt_end_turn_penalty() -> None:
+    session = start_session(seed=5)
+    registry = StarterContentProvider(session.content_root)
+
+    lines = format_card_detail_lines("doubt#1", registry)
+
+    assert any("疑虑" in line.plain for line in lines)
+    assert any("回合结束时若仍在手中，获得 1 层虚弱" in line.plain for line in lines)
+
+
 def test_format_card_detail_lines_show_combust_power_text() -> None:
     session = start_session(seed=5)
     registry = StarterContentProvider(session.content_root)

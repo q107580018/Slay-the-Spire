@@ -7,7 +7,12 @@ from slay_the_spire.adapters.rich_ui.inspect import format_card_detail_lines
 from slay_the_spire.app.session import MenuState, start_session
 from slay_the_spire.adapters.rich_ui.renderer import render_room
 from slay_the_spire.adapters.rich_ui.theme import TERMINAL_THEME
-from slay_the_spire.adapters.rich_ui.screens.combat import _format_card_menu, _format_target_menu, _format_reward_menu as _format_combat_reward_menu
+from slay_the_spire.adapters.rich_ui.screens.combat import (
+    _format_card_menu,
+    _format_target_menu,
+    _format_reward_menu as _format_combat_reward_menu,
+    render_player_panel,
+)
 from slay_the_spire.adapters.rich_ui.screens.non_combat import (
     _format_event_remove_menu,
     _format_event_upgrade_menu,
@@ -423,6 +428,18 @@ def test_combat_renderer_shows_active_powers_in_player_panel() -> None:
 
     assert "持续效果" in output
     assert "金属化 3" in output
+
+
+def test_render_player_panel_shows_player_hp() -> None:
+    session = start_session(seed=5)
+    combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
+    combat_state.player.hp = 57
+    combat_state.player.max_hp = 80
+
+    output = _export(render_player_panel(combat_state, _provider(session)))
+
+    assert "生命" in output
+    assert "57/80" in output
 
 
 def test_combat_renderer_uses_dynamic_enemy_intent_for_awake_enemy() -> None:

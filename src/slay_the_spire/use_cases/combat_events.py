@@ -221,15 +221,15 @@ def build_enemy_turn_events(
         effect_type = effect.get("type")
         result = _result_mapping(effect)
         source_snapshot = entities.get(source_id) if isinstance(source_id, str) else None
+        actor_name = _effect_actor_name(
+            source_id=source_id,
+            source_snapshot=source_snapshot,
+            registry=registry,
+        )
         if effect_type == "damage":
             target_name = _target_name(entities, effect)
             if target_name is None:
                 continue
-            actor_name = _effect_actor_name(
-                source_id=source_id,
-                source_snapshot=source_snapshot,
-                registry=registry,
-            )
             if actor_name is None:
                 continue
             events.append(
@@ -243,9 +243,9 @@ def build_enemy_turn_events(
                 )
             )
             continue
-        if source_snapshot is None or source_snapshot.kind != "enemy":
-            continue
         if effect_type == "block":
+            if source_snapshot is None or source_snapshot.kind != "enemy":
+                continue
             events.append(
                 CombatEvent(
                     event_type="block_gained",
@@ -255,13 +255,15 @@ def build_enemy_turn_events(
             )
             continue
         if effect_type == "vulnerable":
+            if actor_name is None:
+                continue
             target_name = _target_name(entities, effect)
             if target_name is None:
                 continue
             events.append(
                 CombatEvent(
                     event_type="status_applied",
-                    actor_name=source_snapshot.name,
+                    actor_name=actor_name,
                     target_name=target_name,
                     status_id="vulnerable",
                     stacks=_result_int(result, "applied_stacks"),
@@ -269,13 +271,15 @@ def build_enemy_turn_events(
             )
             continue
         if effect_type == "weak":
+            if actor_name is None:
+                continue
             target_name = _target_name(entities, effect)
             if target_name is None:
                 continue
             events.append(
                 CombatEvent(
                     event_type="status_applied",
-                    actor_name=source_snapshot.name,
+                    actor_name=actor_name,
                     target_name=target_name,
                     status_id="weak",
                     stacks=_result_int(result, "applied_stacks"),
@@ -283,6 +287,8 @@ def build_enemy_turn_events(
             )
             continue
         if effect_type == "add_card_to_discard":
+            if source_snapshot is None or source_snapshot.kind != "enemy":
+                continue
             events.append(
                 CombatEvent(
                     event_type="add_card_to_discard",

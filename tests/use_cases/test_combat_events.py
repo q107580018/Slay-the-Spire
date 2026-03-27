@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from slay_the_spire.content.registries import EnemyRegistry
+from slay_the_spire.content.registries import CardRegistry, EnemyRegistry
 from slay_the_spire.use_cases.combat_log import describe_player_action
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
@@ -14,13 +14,14 @@ from slay_the_spire.use_cases.combat_events import (
 
 class _Provider:
     def __init__(self) -> None:
+        self._cards = CardRegistry()
         self._enemies = EnemyRegistry()
 
     def characters(self):
         raise NotImplementedError
 
-    def cards(self):
-        raise NotImplementedError
+    def cards(self) -> CardRegistry:
+        return self._cards
 
     def enemies(self) -> EnemyRegistry:
         return self._enemies
@@ -148,3 +149,37 @@ def test_build_player_action_events_include_created_card_copy_for_logs() -> None
     )
 
     assert describe_player_action(events=events) == ["你打出 愤怒，向弃牌堆加入 1 张anger。"]
+
+
+def test_build_enemy_turn_events_keeps_status_card_source_name() -> None:
+    state = _combat_state()
+    provider = _provider()
+    provider.cards().register(
+        {
+            "id": "doubt",
+            "name": "疑虑",
+            "cost": -1,
+            "playable": False,
+            "can_appear_in_shop": False,
+            "effects": [],
+        }
+    )
+    snapshots = capture_entity_snapshots(state, provider)
+
+    events = build_enemy_turn_events(
+        enemy_previews=[],
+        resolved_effects=[
+            {
+                "type": "weak",
+                "source_instance_id": "doubt#1",
+                "target_instance_id": "player-1",
+                "result": {"applied_stacks": 1},
+            }
+        ],
+        entities=snapshots,
+        registry=provider,
+    )
+
+    assert events == [
+        CombatEvent(event_type="status_applied", actor_name="疑虑", target_name="你", status_id="weak", stacks=1),
+    ]

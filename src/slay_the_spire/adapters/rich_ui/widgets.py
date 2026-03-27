@@ -20,10 +20,12 @@ _STATUS_LABELS: dict[str, tuple[str, str]] = {
 
 _SPECIAL_CARD_RULE_TEXT: dict[str, str] = {
     "burn": "回合结束时若仍在手中，失去 2 点生命",
+    "doubt": "回合结束时若仍在手中，获得 1 层虚弱",
 }
 
 _SPECIAL_CARD_LABELS: dict[str, str] = {
     "burn": "灼伤",
+    "doubt": "疑虑",
 }
 
 _CARD_RARITY_LABELS: dict[str, str] = {

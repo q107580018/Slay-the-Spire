@@ -42,7 +42,6 @@ from slay_the_spire.app.menu_definitions import (
 from slay_the_spire.app.session import (
     SessionState,
     _content_provider,
-    render_session,
     render_session_renderable,
     route_menu_choice,
 )
@@ -668,16 +667,16 @@ class SlayApp(App[None]):
             preview.display = False
 
     def _process_command(self, cmd: str) -> None:
-        running, new_session, message = route_menu_choice(cmd, session=self._session)
-        self._session = new_session
+        result = route_menu_choice(cmd, session=self._session)
+        self._session = result.session
         self._refresh_log()
         self._refresh_map()
         self._refresh_combat_summary()
         self._refresh_actions()
-        rendered = render_session(new_session)
-        self._set_flash("" if message == rendered else message)
-        if not running:
-            self._set_flash("游戏已结束，按 Ctrl+C 退出。")
+        self._set_flash(result.status_message or "")
+        if not result.running:
+            if self._session.run_phase in {"victory", "game_over"}:
+                self._set_flash("游戏已结束，按 Ctrl+C 退出。")
             self.query_one("#action-list", OptionList).disabled = True
 
     @on(OptionList.OptionSelected, "#action-list")

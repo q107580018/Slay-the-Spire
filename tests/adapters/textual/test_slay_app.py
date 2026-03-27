@@ -414,6 +414,54 @@ def test_textual_log_renderable_omits_combat_summary_panel() -> None:
     assert "战斗记录" in output
 
 
+def test_textual_log_renderable_keeps_player_hp_in_player_panel() -> None:
+    session = start_session(seed=5)
+    combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
+    combat_state.player.hp = 57
+    combat_state.player.max_hp = 80
+    session = replace(
+        session,
+        room_state=replace(session.room_state, payload={**session.room_state.payload, "combat_state": combat_state.to_dict()}),
+    )
+    buffer = StringIO()
+    console = Console(file=buffer, force_terminal=False, color_system=None, theme=TERMINAL_THEME)
+
+    console.print(_render_to_rich(session))
+
+    output = buffer.getvalue()
+    assert "玩家状态" in output
+    assert "生命" in output
+    assert "57/80" in output
+
+
+def test_flash_msg_stays_empty_after_render_only_play_flow() -> None:
+    async def scenario() -> None:
+        app = SlayApp(start_session(seed=5))
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            app._process_command("1")
+            await pilot.pause()
+            app._process_command("1")
+            await pilot.pause()
+            flash = app.query_one("#flash-msg", Static)
+            assert flash.render().plain == ""
+
+    asyncio.run(scenario())
+
+
+def test_flash_msg_keeps_short_invalid_option_error() -> None:
+    async def scenario() -> None:
+        app = SlayApp(start_session(seed=5))
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            app._process_command("99")
+            await pilot.pause()
+            flash = app.query_one("#flash-msg", Static)
+            assert flash.render().plain == "无效选项，请输入菜单编号。"
+
+    asyncio.run(scenario())
+
+
 def test_textual_log_renderable_omits_duplicate_map_panel() -> None:
     base_session = start_session(seed=5)
     session = replace(

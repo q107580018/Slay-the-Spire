@@ -115,6 +115,39 @@ def test_combat_root_menu_can_enter_inspect_root() -> None:
     assert "资料总览" in message
 
 
+def test_route_menu_choice_separates_status_and_render_messages_for_inspect_transition() -> None:
+    result = route_menu_choice("3", session=start_session(seed=5))
+
+    assert result.running is True
+    assert result.status_message == "资料总览"
+    assert result.render_message is not None
+    assert "战斗摘要" in result.render_message
+
+
+def test_route_menu_choice_leaves_status_empty_for_render_only_menu_transition() -> None:
+    result = route_menu_choice("1", session=replace(start_session(seed=5), room_state=_combat_room(hand=["strike#1"])))
+
+    assert result.running is True
+    assert result.status_message is None
+    assert result.render_message is not None
+    assert "手牌" in result.render_message
+
+
+def test_route_menu_choice_keeps_status_empty_after_nested_play_command() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=_combat_room(hand=["strike#1"]),
+        menu_state=MenuState(mode="select_card"),
+    )
+
+    result = route_menu_choice("1", session=session)
+
+    assert result.running is True
+    assert result.status_message is None
+    assert result.render_message is not None
+    assert "战斗记录" in result.render_message
+
+
 def test_single_enemy_attack_card_plays_without_entering_target_menu() -> None:
     session = replace(start_session(seed=5), room_state=_combat_room(hand=["strike#1"], enemy_count=1))
 

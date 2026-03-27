@@ -102,6 +102,27 @@ class SessionState:
 
 
 @dataclass(slots=True)
+class SessionRouteResult:
+    running: bool
+    session: SessionState
+    render_message: str | None = None
+    status_message: str | None = None
+
+    @property
+    def message(self) -> str:
+        if self.status_message and self.render_message:
+            return f"{self.status_message}\n\n{self.render_message}"
+        if self.status_message is not None:
+            return self.status_message
+        return self.render_message or ""
+
+    def __iter__(self):
+        yield self.running
+        yield self.session
+        yield self.message
+
+
+@dataclass(slots=True)
 class SessionLoopResult:
     outputs: list[str]
     final_session: SessionState
@@ -591,7 +612,25 @@ def render_session_renderable(session: SessionState) -> RenderableType:
     )
 
 
-def route_command(command: str, *, session: SessionState) -> tuple[bool, SessionState, str]:
+def _coerce_route_result(result: SessionRouteResult | tuple[bool, SessionState, str]) -> SessionRouteResult:
+    if isinstance(result, SessionRouteResult):
+        return result
+    running, session, message = result
+    rendered = render_session(session)
+    if message == rendered:
+        return SessionRouteResult(running=running, session=session, render_message=rendered)
+    render_suffix = f"\n\n{rendered}"
+    if rendered and message.endswith(render_suffix):
+        return SessionRouteResult(
+            running=running,
+            session=session,
+            status_message=message[: -len(render_suffix)],
+            render_message=rendered,
+        )
+    return SessionRouteResult(running=running, session=session, status_message=message)
+
+
+def _route_command_legacy(command: str, *, session: SessionState) -> tuple[bool, SessionState, str]:
     raw_command = command.strip()
     normalized = raw_command.lower()
     next_session = _with_command_history(session, normalized or "look")
@@ -671,6 +710,10 @@ def route_command(command: str, *, session: SessionState) -> tuple[bool, Session
     return True, next_session, f"Unknown command: {raw_command or '<empty>'}"
 
 
+def route_command(command: str, *, session: SessionState) -> SessionRouteResult:
+    return _coerce_route_result(_route_command_legacy(command, session=session))
+
+
 def _invalid_menu_choice(session: SessionState) -> tuple[bool, SessionState, str]:
     return True, session, "无效选项，请输入菜单编号。"
 
@@ -688,6 +731,14 @@ def _message_with_render(session: SessionState, message: str | None) -> str:
     if not message:
         return rendered
     return f"{message}\n\n{rendered}"
+
+
+def _retarget_route_result(result: SessionRouteResult, session: SessionState) -> tuple[bool, SessionState, str]:
+    if result.render_message is None:
+        return result.running, session, result.status_message or ""
+    if result.status_message is None:
+        return result.running, session, render_session(session)
+    return result.running, session, _message_with_render(session, result.status_message)
 
 
 def _save_current_session(session: SessionState) -> tuple[bool, SessionState, str]:
@@ -973,9 +1024,10 @@ def _route_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionS
         if isinstance(next_node_ids, list) and len(next_node_ids) > 1:
             next_session = replace(session, menu_state=MenuState(mode="select_next_room"))
             return True, next_session, render_session(next_session)
-        running, next_session, message = route_command("next", session=replace(session, menu_state=MenuState()))
-        next_session = _preserve_menu_history(next_session, history_session=session)
-        return running, replace(next_session, menu_state=_menu_state_for_room(next_session.room_state)), message
+        result = route_command("next", session=replace(session, menu_state=MenuState()))
+        next_session = _preserve_menu_history(result.session, history_session=session)
+        adjusted_session = replace(next_session, menu_state=_menu_state_for_room(next_session.room_state))
+        return _retarget_route_result(result, adjusted_session)
     if action_id == "inspect":
         next_session = _enter_inspect_root(session, parent_mode="root")
         return True, next_session, _menu_view_message(next_session, "资料总览")
@@ -992,9 +1044,10 @@ def _route_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionS
         next_session = replace(session, menu_state=MenuState(mode="select_card"))
         return True, next_session, render_session(next_session)
     if action_id == "end_turn":
-        running, next_session, message = route_command("end", session=replace(session, menu_state=MenuState()))
-        next_session = _preserve_menu_history(next_session, history_session=session)
-        return running, replace(next_session, menu_state=MenuState()), message
+        result = route_command("end", session=replace(session, menu_state=MenuState()))
+        next_session = _preserve_menu_history(result.session, history_session=session)
+        adjusted_session = replace(next_session, menu_state=MenuState())
+        return _retarget_route_result(result, adjusted_session)
     if action_id == "event_choice":
         next_session = replace(session, menu_state=MenuState(mode="select_event_choice"))
         return True, next_session, render_session(next_session)
@@ -1037,12 +1090,13 @@ def _route_card_menu(choice: str, session: SessionState) -> tuple[bool, SessionS
             menu_state=MenuState(mode="select_target", selected_card_instance_id=card_instance_id),
         )
         return True, next_session, render_session(next_session)
-    running, next_session, message = route_command(
+    result = route_command(
         f"play {choice_index}",
         session=replace(session, menu_state=MenuState()),
     )
-    next_session = _preserve_menu_history(next_session, history_session=session)
-    return running, replace(next_session, menu_state=_menu_state_for_post_play_session(next_session)), message
+    next_session = _preserve_menu_history(result.session, history_session=session)
+    adjusted_session = replace(next_session, menu_state=_menu_state_for_post_play_session(next_session))
+    return _retarget_route_result(result, adjusted_session)
 
 
 def _route_target_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
@@ -1082,12 +1136,13 @@ def _route_target_menu(choice: str, session: SessionState) -> tuple[bool, Sessio
         target_token = f"hand:{action_id.split(':', 1)[1]}"
     else:
         return _invalid_menu_choice(session)
-    running, next_session, message = route_command(
+    result = route_command(
         f"play {hand_index} {target_token}",
         session=replace(session, menu_state=MenuState()),
     )
-    next_session = _preserve_menu_history(next_session, history_session=session)
-    return running, replace(next_session, menu_state=_menu_state_for_post_play_session(next_session)), message
+    next_session = _preserve_menu_history(result.session, history_session=session)
+    adjusted_session = replace(next_session, menu_state=_menu_state_for_post_play_session(next_session))
+    return _retarget_route_result(result, adjusted_session)
 
 
 def _route_next_room_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
@@ -1385,7 +1440,7 @@ def _route_rest_upgrade_card_menu(choice: str, session: SessionState) -> tuple[b
     return True, next_session, _message_with_render(next_session, result.message)
 
 
-def route_menu_choice(choice: str, *, session: SessionState) -> tuple[bool, SessionState, str]:
+def _route_menu_choice_legacy(choice: str, *, session: SessionState) -> tuple[bool, SessionState, str]:
     next_session = _normalize_legacy_reward_inspect_mode(_with_menu_choice_history(session, choice.strip()))
     if next_session.menu_state.mode == "root":
         return _route_root_menu(choice.strip(), next_session)
@@ -1433,6 +1488,10 @@ def route_menu_choice(choice: str, *, session: SessionState) -> tuple[bool, Sess
     return _invalid_menu_choice(replace(next_session, menu_state=MenuState()))
 
 
+def route_menu_choice(choice: str, *, session: SessionState) -> SessionRouteResult:
+    return _coerce_route_result(_route_menu_choice_legacy(choice, session=session))
+
+
 def interactive_loop(
     *,
     session: SessionState,
@@ -1446,8 +1505,10 @@ def interactive_loop(
     running = True
     while running:
         command = input_port.read(_MENU_PROMPT)
-        running, session, message = route_menu_choice(command, session=session)
-        outputs.append(message)
+        result = route_menu_choice(command, session=session)
+        running = result.running
+        session = result.session
+        outputs.append(result.message)
         if output_writer is not None:
-            output_writer(message)
+            output_writer(result.message)
     return SessionLoopResult(outputs=outputs, final_session=session)
