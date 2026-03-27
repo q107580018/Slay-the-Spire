@@ -82,7 +82,7 @@ def test_generate_boss_rewards_returns_high_gold_and_three_unique_relics() -> No
 
     assert rewards["generated_by"] == "boss_reward_generator"
     assert rewards["gold_reward"] == 106
-    assert rewards["boss_relic_offers"] == ["black_blood", "anchor", "lantern"]
+    assert rewards["boss_relic_offers"] == ["black_blood", "ectoplasm", "coffee_dripper"]
     assert rewards["claimed_gold"] is False
     assert rewards["claimed_relic_id"] is None
 
@@ -97,7 +97,7 @@ def test_generate_combat_rewards_returns_gold_and_three_unique_card_offers() -> 
 
 
 def test_generate_boss_rewards_filters_owned_relics() -> None:
-    run_state = replace(_run_state(), relics=["burning_blood", "anchor"])
+    run_state = replace(_run_state(), relics=["burning_blood", "ectoplasm"])
 
     rewards = generate_boss_rewards(
         room_id="act1:boss",
@@ -106,7 +106,7 @@ def test_generate_boss_rewards_filters_owned_relics() -> None:
         registry=_content_provider(),
     )
 
-    assert "anchor" not in rewards["boss_relic_offers"]
+    assert "ectoplasm" not in rewards["boss_relic_offers"]
 
 
 def test_apply_reward_black_blood_replaces_burning_blood() -> None:
@@ -123,15 +123,15 @@ def test_apply_reward_black_blood_replaces_burning_blood() -> None:
 def test_apply_reward_adds_generic_relic_and_repeated_claim_is_no_op() -> None:
     updated = apply_reward(
         run_state=_run_state(),
-        reward_id="relic:anchor",
+        reward_id="relic:coffee_dripper",
         registry=_content_provider(),
     )
 
-    assert updated.relics == ["burning_blood", "anchor"]
+    assert updated.relics == ["burning_blood", "coffee_dripper"]
 
     repeated = apply_reward(
         run_state=updated,
-        reward_id="relic:anchor",
+        reward_id="relic:coffee_dripper",
         registry=_content_provider(),
     )
 

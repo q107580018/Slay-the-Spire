@@ -11,7 +11,7 @@ _IRONCLAD_EARLY_REWARD_CARDS = (
     "shrug_it_off",
 )
 
-_BOSS_RELIC_OFFERS = ("black_blood", "anchor", "lantern")
+_BOSS_RELIC_OFFERS = ("black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer")
 
 
 def _room_hash(room_id: str) -> int:

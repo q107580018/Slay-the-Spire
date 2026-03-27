@@ -127,6 +127,35 @@ def format_relic_detail_lines(relic_id: str, registry: ContentProviderPort) -> l
         Text.assemble(("遗物 ", "summary.label"), relic_id),
         Text.assemble(("效果 ", "summary.label"), summarize_relic_effects(relic_def.passive_effects)),
     ]
+    if relic_def.summary is not None:
+        lines.append(Text.assemble(("摘要 ", "summary.label"), relic_def.summary))
+    if relic_def.description is not None:
+        lines.append(Text.assemble(("描述 ", "summary.label"), relic_def.description))
+    if relic_def.replaces_relic_id is not None:
+        replacement = relic_def.replaces_relic_id
+        try:
+            replacement = registry.relics().get(relic_def.replaces_relic_id).name
+        except KeyError:
+            pass
+        lines.append(Text.assemble(("替换原遗物 ", "summary.label"), replacement))
+    disabled_actions = {
+        "gain_gold": "获得金币",
+        "rest_heal": "休息回复",
+        "smith": "锻造",
+    }
+    disabled_action_labels = [disabled_actions.get(action, action) for action in relic_def.disabled_actions]
+    lines.append(
+        Text.assemble(
+            ("禁用操作 ", "summary.label"),
+            " / ".join(disabled_action_labels) if disabled_action_labels else "无",
+        )
+    )
+    lines.append(
+        Text.assemble(
+            ("金币规则 ", "summary.label"),
+            "阻止获得金币" if relic_def.blocks_gold_gain else "可正常获得金币",
+        )
+    )
     if relic_def.trigger_hooks:
         lines.append(Text.assemble(("触发 ", "summary.label"), summarize_trigger_hooks(relic_def.trigger_hooks)))
     return lines
@@ -167,6 +196,35 @@ def format_reward_detail_lines(reward_id: str, registry: ContentProviderPort) ->
         lines.append(Text.assemble(("奖励类型: ", "summary.label"), "遗物"))
         lines.append(Text.assemble(("名称: ", "summary.label"), relic_def.name))
         lines.append(Text.assemble(("效果: ", "summary.label"), summarize_relic_effects(relic_def.passive_effects)))
+        if relic_def.summary is not None:
+            lines.append(Text.assemble(("摘要: ", "summary.label"), relic_def.summary))
+        if relic_def.description is not None:
+            lines.append(Text.assemble(("描述: ", "summary.label"), relic_def.description))
+        if relic_def.replaces_relic_id is not None:
+            replacement = relic_def.replaces_relic_id
+            try:
+                replacement = registry.relics().get(relic_def.replaces_relic_id).name
+            except KeyError:
+                pass
+            lines.append(Text.assemble(("替换原遗物: ", "summary.label"), replacement))
+        disabled_actions = {
+            "gain_gold": "获得金币",
+            "rest_heal": "休息回复",
+            "smith": "锻造",
+        }
+        disabled_action_labels = [disabled_actions.get(action, action) for action in relic_def.disabled_actions]
+        lines.append(
+            Text.assemble(
+                ("禁用操作: ", "summary.label"),
+                " / ".join(disabled_action_labels) if disabled_action_labels else "无",
+            )
+        )
+        lines.append(
+            Text.assemble(
+                ("金币规则: ", "summary.label"),
+                "阻止获得金币" if relic_def.blocks_gold_gain else "可正常获得金币",
+            )
+        )
         if relic_def.trigger_hooks:
             lines.append(Text.assemble(("触发: ", "summary.label"), summarize_trigger_hooks(relic_def.trigger_hooks)))
         return lines

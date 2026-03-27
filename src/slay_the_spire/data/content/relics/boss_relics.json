@@ -3,6 +3,11 @@
     {
       "id": "black_blood",
       "name": "黑色之血",
+      "summary": "战斗结束后回复 12 点生命",
+      "description": "取代燃烧之血，战斗结束后回复 12 点生命。",
+      "replaces_relic_id": "burning_blood",
+      "disabled_actions": [],
+      "blocks_gold_gain": false,
       "trigger_hooks": [
         "on_combat_end"
       ],
@@ -15,22 +20,55 @@
       "can_appear_in_shop": false
     },
     {
-      "id": "anchor",
-      "name": "锚",
+      "id": "ectoplasm",
+      "name": "虚空质",
+      "summary": "每场战斗开始时获得 1 点能量",
+      "description": "每场战斗开始时获得 1 点能量，你无法获得金币。",
+      "disabled_actions": [
+        "gain_gold"
+      ],
+      "blocks_gold_gain": true,
       "trigger_hooks": [
         "on_combat_start"
       ],
       "passive_effects": [
         {
-          "type": "block",
-          "amount": 10
+          "type": "gain_energy",
+          "amount": 1
         }
       ],
       "can_appear_in_shop": false
     },
     {
-      "id": "lantern",
-      "name": "灯笼",
+      "id": "coffee_dripper",
+      "name": "咖啡滴滤器",
+      "summary": "休息时不能恢复生命",
+      "description": "你可以在休息点锻造，但不能选择休息恢复生命。",
+      "disabled_actions": [
+        "rest_heal"
+      ],
+      "blocks_gold_gain": false,
+      "trigger_hooks": [
+        "on_combat_start"
+      ],
+      "passive_effects": [
+        {
+          "type": "gain_energy",
+          "amount": 1
+        }
+      ],
+      "can_appear_in_shop": false
+    },
+    {
+      "id": "fusion_hammer",
+      "name": "融合之锤",
+      "summary": "升级后不再能在休息点锻造卡牌",
+      "description": "每场战斗开始时获得 1 点能量，但休息点锻造卡牌的动作会被禁用。",
+      "replaces_relic_id": null,
+      "disabled_actions": [
+        "smith"
+      ],
+      "blocks_gold_gain": false,
       "trigger_hooks": [
         "on_combat_start"
       ],

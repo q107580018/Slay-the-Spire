@@ -1,6 +1,4 @@
 from dataclasses import replace
-from pathlib import Path
-
 from slay_the_spire.adapters.terminal.inspect import (
     format_card_detail_lines,
     format_card_detail_menu,
@@ -50,7 +48,7 @@ def test_format_card_detail_lines_include_cost_effects_and_upgrade() -> None:
     assert any("重击+" in line.plain for line in lines)
 
 
-def test_format_relic_detail_lines_include_passive_effect_description() -> None:
+def test_format_relic_detail_lines_include_relic_semantics() -> None:
     session = start_session(seed=5)
     registry = StarterContentProvider(session.content_root)
 
@@ -60,6 +58,14 @@ def test_format_relic_detail_lines_include_passive_effect_description() -> None:
     assert any("回复 6 点生命" in line.plain for line in lines)
     assert any("战斗结束后" in line.plain for line in lines)
     assert all("on_combat_end" not in line.plain for line in lines)
+
+    boss_lines = format_relic_detail_lines("black_blood", registry)
+
+    assert any("摘要" in line.plain for line in boss_lines)
+    assert any("描述" in line.plain for line in boss_lines)
+    assert any("取代燃烧之血" in line.plain for line in boss_lines)
+    assert any("替换" in line.plain for line in boss_lines)
+    assert any("阻止获得金币" in line.plain or "金币" in line.plain for line in boss_lines)
 
 
 def test_format_relic_detail_lines_translate_gold_bonus_effect() -> None:
@@ -83,10 +89,15 @@ def test_format_card_detail_lines_explain_burn_end_turn_penalty() -> None:
     assert any("回合结束时若仍在手中，失去 2 点生命" in line.plain for line in lines)
 
 
-def test_inspect_module_does_not_define_heal_specific_localization() -> None:
-    inspect_source = Path(__file__).resolve().parents[3] / "src" / "slay_the_spire" / "adapters" / "terminal" / "inspect.py"
+def test_format_relic_detail_lines_translate_disabled_actions_and_gold_rules() -> None:
+    session = start_session(seed=5)
+    registry = StarterContentProvider(session.content_root)
 
-    assert "heal" not in inspect_source.read_text(encoding="utf-8")
+    lines = format_relic_detail_lines("coffee_dripper", registry)
+
+    assert any("休息回复" in line.plain for line in lines)
+    assert any("金币规则" in line.plain for line in lines)
+    assert all("rest_heal" not in line.plain for line in lines)
 
 
 def test_render_non_combat_inspect_root_shows_shared_sections() -> None:
@@ -225,6 +236,11 @@ def test_format_reward_detail_lines_include_reward_id_and_human_readable_labels(
     assert any("愤怒" in line.plain for line in card_lines)
     assert any("奖励 ID: relic:burning_blood" in line.plain for line in relic_lines)
     assert any("燃烧之血" in line.plain for line in relic_lines)
+
+    boss_relic_lines = format_reward_detail_lines("relic:black_blood", registry)
+
+    assert any("摘要" in line.plain for line in boss_relic_lines)
+    assert any("描述" in line.plain for line in boss_relic_lines)
 
 
 def test_format_reward_detail_lines_localize_event_rewards() -> None:

@@ -75,22 +75,33 @@ def test_registry_loads_act2_definition(content_root: Path) -> None:
 
 
 @pytest.mark.parametrize("content_root", _content_roots())
-def test_boss_relic_catalog_exposes_black_blood_anchor_and_lantern(content_root: Path) -> None:
+def test_boss_relic_catalog_exposes_act1_boss_relic_details(content_root: Path) -> None:
     provider = StarterContentProvider(content_root)
 
     black_blood = provider.relics().get("black_blood")
-    anchor = provider.relics().get("anchor")
-    lantern = provider.relics().get("lantern")
+    ectoplasm = provider.relics().get("ectoplasm")
+    coffee_dripper = provider.relics().get("coffee_dripper")
+    fusion_hammer = provider.relics().get("fusion_hammer")
 
     assert black_blood.name == "黑色之血"
+    assert black_blood.summary == "战斗结束后回复 12 点生命"
+    assert black_blood.description == "取代燃烧之血，战斗结束后回复 12 点生命。"
+    assert black_blood.replaces_relic_id == "burning_blood"
+    assert black_blood.disabled_actions == []
+    assert black_blood.blocks_gold_gain is False
     assert black_blood.trigger_hooks == ["on_combat_end"]
     assert black_blood.passive_effects == [{"type": "heal", "amount": 12}]
-    assert anchor.name == "锚"
-    assert anchor.trigger_hooks == ["on_combat_start"]
-    assert anchor.passive_effects == [{"type": "block", "amount": 10}]
-    assert lantern.name == "灯笼"
-    assert lantern.trigger_hooks == ["on_combat_start"]
-    assert lantern.passive_effects == [{"type": "gain_energy", "amount": 1}]
+    assert ectoplasm.name == "虚空质"
+    assert ectoplasm.blocks_gold_gain is True
+    assert ectoplasm.disabled_actions == ["gain_gold"]
+    assert ectoplasm.replaces_relic_id is None
+    assert coffee_dripper.name == "咖啡滴滤器"
+    assert coffee_dripper.disabled_actions == ["rest_heal"]
+    assert coffee_dripper.blocks_gold_gain is False
+    assert fusion_hammer.name == "融合之锤"
+    assert fusion_hammer.summary == "升级后不再能在休息点锻造卡牌"
+    assert fusion_hammer.disabled_actions == ["smith"]
+    assert fusion_hammer.blocks_gold_gain is False
 
 
 @pytest.mark.parametrize("content_root", _content_roots())
@@ -98,8 +109,9 @@ def test_boss_relics_do_not_appear_in_shop_pool(content_root: Path) -> None:
     provider = StarterContentProvider(content_root)
 
     assert provider.relics().get("black_blood").can_appear_in_shop is False
-    assert provider.relics().get("anchor").can_appear_in_shop is False
-    assert provider.relics().get("lantern").can_appear_in_shop is False
+    assert provider.relics().get("ectoplasm").can_appear_in_shop is False
+    assert provider.relics().get("coffee_dripper").can_appear_in_shop is False
+    assert provider.relics().get("fusion_hammer").can_appear_in_shop is False
 
 
 @pytest.mark.parametrize("content_root", _content_roots())

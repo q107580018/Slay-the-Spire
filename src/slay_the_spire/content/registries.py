@@ -60,6 +60,12 @@ def _require_optional_mapping(value: object, field_name: str) -> Mapping[str, ob
     return _require_mapping(value, field_name)
 
 
+def _require_optional_str_list(value: object, field_name: str) -> list[str]:
+    if value is None:
+        return []
+    return [_require_str(item, f"{field_name} item") for item in _require_list(value, field_name)]
+
+
 @dataclass(slots=True, frozen=True)
 class CardDef:
     id: str
@@ -95,6 +101,11 @@ class RelicDef:
     name: str
     trigger_hooks: list[str]
     passive_effects: list[JsonDict]
+    summary: str | None = None
+    description: str | None = None
+    replaces_relic_id: str | None = None
+    disabled_actions: list[str] = field(default_factory=list)
+    blocks_gold_gain: bool = False
     can_appear_in_shop: bool = True
 
 
@@ -229,6 +240,15 @@ class RelicRegistry(_BaseRegistry[RelicDef]):
             name=_require_str(data.get("name"), "name"),
             trigger_hooks=trigger_hooks,
             passive_effects=[dict(item) for item in passive_effects],
+            summary=_require_optional_str(data.get("summary"), "summary"),
+            description=_require_optional_str(data.get("description"), "description"),
+            replaces_relic_id=_require_optional_str(data.get("replaces_relic_id"), "replaces_relic_id"),
+            disabled_actions=_require_optional_str_list(data.get("disabled_actions"), "disabled_actions"),
+            blocks_gold_gain=_require_optional_bool(
+                data.get("blocks_gold_gain"),
+                "blocks_gold_gain",
+                default=False,
+            ),
             can_appear_in_shop=_require_optional_bool(
                 data.get("can_appear_in_shop"),
                 "can_appear_in_shop",
