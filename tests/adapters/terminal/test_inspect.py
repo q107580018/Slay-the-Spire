@@ -10,6 +10,7 @@ from slay_the_spire.adapters.terminal.inspect_registry import format_shared_insp
 from slay_the_spire.adapters.terminal.renderer import render_room
 from slay_the_spire.app.session import MenuState, start_session
 from slay_the_spire.content.provider import StarterContentProvider
+from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
 from slay_the_spire.domain.models.room_state import RoomState
@@ -420,12 +421,16 @@ def test_render_combat_shared_inspect_pages_show_real_stats_and_relics() -> None
 
 def test_render_combat_inspect_list_pages_do_not_repeat_full_list_in_footer() -> None:
     session = start_session(seed=1)
+    registry = _provider(session)
+    combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
+    fifth_draw_card = combat_state.draw_pile[4]
+    fifth_draw_name = registry.cards().get(card_id_from_instance_id(fifth_draw_card)).name
 
     draw_pile_output = render_room(
         run_state=session.run_state,
         act_state=session.act_state,
         room_state=session.room_state,
-        registry=_provider(session),
+        registry=registry,
         menu_state=MenuState(mode="inspect_draw_pile", inspect_parent_mode="root", inspect_item_id="draw_pile"),
         run_phase=session.run_phase,
     )
@@ -439,7 +444,7 @@ def test_render_combat_inspect_list_pages_do_not_repeat_full_list_in_footer() ->
     )
 
     assert draw_pile_output.count("抽牌堆列表") == 1
-    assert draw_pile_output.count("5. 重击 | 费用 2 | 类型 攻击 | 造成 8 伤害 / 施加 2 易伤") == 1
+    assert draw_pile_output.count(f"5. {fifth_draw_name}") == 1
     assert enemy_list_output.count("敌人列表") == 1
     assert enemy_list_output.count("1. 绿史莱姆 | 生命: 12/12 | 格挡: 0 | 状态: 无 | 当前意图: 造成 3 伤害") == 1
 

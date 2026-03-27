@@ -4,6 +4,7 @@
       "id": "strike",
       "name": "打击",
       "cost": 1,
+      "rarity": "basic",
       "effects": [
         {
           "type": "damage",
@@ -15,6 +16,7 @@
       "id": "defend",
       "name": "防御",
       "cost": 1,
+      "rarity": "basic",
       "effects": [
         {
           "type": "block",
@@ -26,6 +28,7 @@
       "id": "strike_plus",
       "name": "打击+",
       "cost": 1,
+      "rarity": "special",
       "effects": [
         {
           "type": "damage",
@@ -37,6 +40,7 @@
       "id": "defend_plus",
       "name": "防御+",
       "cost": 1,
+      "rarity": "special",
       "effects": [
         {
           "type": "block",
@@ -48,6 +52,7 @@
       "id": "bash",
       "name": "重击",
       "cost": 2,
+      "rarity": "basic",
       "upgrades_to": "bash_plus",
       "effects": [
         {
@@ -64,6 +69,7 @@
       "id": "bash_plus",
       "name": "重击+",
       "cost": 2,
+      "rarity": "special",
       "effects": [
         {
           "type": "damage",
@@ -79,6 +85,7 @@
       "id": "anger",
       "name": "愤怒",
       "cost": 0,
+      "rarity": "common",
       "upgrades_to": "anger_plus",
       "effects": [
         {
@@ -96,6 +103,7 @@
       "id": "anger_plus",
       "name": "愤怒+",
       "cost": 0,
+      "rarity": "special",
       "effects": [
         {
           "type": "damage",
@@ -112,6 +120,7 @@
       "id": "pommel_strike",
       "name": "柄击",
       "cost": 1,
+      "rarity": "common",
       "upgrades_to": "pommel_strike_plus",
       "effects": [
         {
@@ -128,6 +137,7 @@
       "id": "pommel_strike_plus",
       "name": "柄击+",
       "cost": 1,
+      "rarity": "special",
       "effects": [
         {
           "type": "damage",
@@ -143,6 +153,7 @@
       "id": "shrug_it_off",
       "name": "耸肩无视",
       "cost": 1,
+      "rarity": "common",
       "upgrades_to": "shrug_it_off_plus",
       "effects": [
         {
@@ -159,6 +170,7 @@
       "id": "shrug_it_off_plus",
       "name": "耸肩无视+",
       "cost": 1,
+      "rarity": "special",
       "effects": [
         {
           "type": "block",
@@ -174,6 +186,7 @@
       "id": "cleave",
       "name": "旋风斩",
       "cost": 1,
+      "rarity": "common",
       "upgrades_to": "cleave_plus",
       "effects": [
         {
@@ -186,6 +199,7 @@
       "id": "cleave_plus",
       "name": "旋风斩+",
       "cost": 1,
+      "rarity": "special",
       "effects": [
         {
           "type": "damage",
@@ -197,6 +211,7 @@
       "id": "twin_strike",
       "name": "双重打击",
       "cost": 1,
+      "rarity": "common",
       "upgrades_to": "twin_strike_plus",
       "effects": [
         {
@@ -213,6 +228,7 @@
       "id": "twin_strike_plus",
       "name": "双重打击+",
       "cost": 1,
+      "rarity": "special",
       "effects": [
         {
           "type": "damage",
@@ -228,6 +244,7 @@
       "id": "inflame",
       "name": "燃烧",
       "cost": 1,
+      "rarity": "uncommon",
       "upgrades_to": "inflame_plus",
       "effects": [
         {
@@ -241,6 +258,7 @@
       "id": "inflame_plus",
       "name": "燃烧+",
       "cost": 1,
+      "rarity": "special",
       "effects": [
         {
           "type": "add_power",
@@ -253,6 +271,7 @@
       "id": "metallicize",
       "name": "金属化",
       "cost": 1,
+      "rarity": "uncommon",
       "upgrades_to": "metallicize_plus",
       "effects": [
         {
@@ -266,6 +285,7 @@
       "id": "metallicize_plus",
       "name": "金属化+",
       "cost": 1,
+      "rarity": "special",
       "effects": [
         {
           "type": "add_power",
@@ -278,6 +298,7 @@
       "id": "hemokinesis",
       "name": "献祭打击",
       "cost": 1,
+      "rarity": "uncommon",
       "upgrades_to": "hemokinesis_plus",
       "effects": [
         {
@@ -294,6 +315,7 @@
       "id": "hemokinesis_plus",
       "name": "献祭打击+",
       "cost": 1,
+      "rarity": "special",
       "effects": [
         {
           "type": "damage",
@@ -309,6 +331,7 @@
       "id": "sword_boomerang",
       "name": "剑刃回旋镖",
       "cost": 1,
+      "rarity": "common",
       "upgrades_to": "sword_boomerang_plus",
       "effects": [
         {
@@ -329,6 +352,7 @@
       "id": "sword_boomerang_plus",
       "name": "剑刃回旋镖+",
       "cost": 1,
+      "rarity": "special",
       "effects": [
         {
           "type": "damage",
@@ -352,6 +376,7 @@
       "id": "pummel",
       "name": "连击",
       "cost": 1,
+      "rarity": "uncommon",
       "upgrades_to": "pummel_plus",
       "exhausts": true,
       "effects": [
@@ -377,6 +402,7 @@
       "id": "pummel_plus",
       "name": "连击+",
       "cost": 1,
+      "rarity": "special",
       "exhausts": true,
       "effects": [
         {
@@ -405,6 +431,7 @@
       "id": "combust",
       "name": "燃烧躯体",
       "cost": 1,
+      "rarity": "uncommon",
       "upgrades_to": "combust_plus",
       "effects": [
         {
@@ -419,6 +446,7 @@
       "id": "combust_plus",
       "name": "燃烧躯体+",
       "cost": 1,
+      "rarity": "special",
       "effects": [
         {
           "type": "add_power",
@@ -432,6 +460,7 @@
       "id": "bloodletting",
       "name": "放血",
       "cost": 0,
+      "rarity": "uncommon",
       "upgrades_to": "bloodletting_plus",
       "effects": [
         {
@@ -448,6 +477,7 @@
       "id": "bloodletting_plus",
       "name": "放血+",
       "cost": 0,
+      "rarity": "special",
       "effects": [
         {
           "type": "gain_energy",
@@ -463,6 +493,7 @@
       "id": "true_grit",
       "name": "坚毅",
       "cost": 1,
+      "rarity": "common",
       "upgrades_to": "true_grit_plus",
       "effects": [
         {
@@ -479,6 +510,7 @@
       "id": "true_grit_plus",
       "name": "坚毅+",
       "cost": 1,
+      "rarity": "special",
       "effects": [
         {
           "type": "block",
@@ -493,6 +525,7 @@
       "id": "armaments",
       "name": "武装",
       "cost": 1,
+      "rarity": "common",
       "upgrades_to": "armaments_plus",
       "effects": [
         {
@@ -508,6 +541,7 @@
       "id": "armaments_plus",
       "name": "武装+",
       "cost": 1,
+      "rarity": "special",
       "effects": [
         {
           "type": "block",
@@ -522,6 +556,7 @@
       "id": "terror",
       "name": "恐怖",
       "cost": 1,
+      "rarity": "special",
       "upgrades_to": "terror_plus",
       "effects": [
         {
@@ -534,6 +569,7 @@
       "id": "terror_plus",
       "name": "恐怖+",
       "cost": 1,
+      "rarity": "special",
       "effects": [
         {
           "type": "vulnerable",

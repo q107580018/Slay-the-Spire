@@ -72,6 +72,7 @@ class CardDef:
     name: str
     cost: int
     effects: list[JsonDict]
+    rarity: str | None = None
     upgrades_to: str | None = None
     playable: bool = True
     can_appear_in_shop: bool = True
@@ -190,6 +191,7 @@ class CardRegistry(_BaseRegistry[CardDef]):
             name=_require_str(data.get("name"), "name"),
             cost=_require_int(data.get("cost"), "cost"),
             effects=[dict(item) for item in effects],
+            rarity=_require_optional_str(data.get("rarity"), "rarity"),
             upgrades_to=_require_optional_str(data.get("upgrades_to"), "upgrades_to"),
             playable=_require_optional_bool(data.get("playable"), "playable", default=True),
             can_appear_in_shop=_require_optional_bool(

@@ -133,22 +133,37 @@ def test_generate_boss_rewards_is_deterministic_for_same_inputs() -> None:
 
 
 def test_generate_combat_rewards_returns_gold_and_three_unique_card_offers() -> None:
-    rewards = generate_combat_rewards(room_id="act1:hallway_reward", seed=41)
+    rewards, next_rare_offset = generate_combat_rewards(
+        room_id="act1:hallway_reward",
+        run_state=_run_state(),
+        registry=_content_provider(),
+    )
 
     assert rewards[0].startswith("gold:")
     card_rewards = [reward for reward in rewards if reward.startswith("card_offer:")]
     assert len(card_rewards) == 3
     assert len(set(card_rewards)) == 3
+    assert isinstance(next_rare_offset, int)
 
 
-def test_generate_combat_rewards_uses_act_specific_card_pools() -> None:
-    act1_rewards = generate_combat_rewards(room_id="act1:r3c1:reward", seed=41, act_id="act1")
-    act2_rewards = generate_combat_rewards(room_id="act2:r3c1:reward", seed=41, act_id="act2")
+def test_generate_combat_rewards_samples_from_full_ironclad_reward_pool_in_act1() -> None:
+    seen_cards: set[str] = set()
 
-    act1_cards = {reward.split(":", 1)[1] for reward in act1_rewards if reward.startswith("card_offer:")}
-    act2_cards = {reward.split(":", 1)[1] for reward in act2_rewards if reward.startswith("card_offer:")}
+    for seed in range(1, 80):
+        rewards, _next_rare_offset = generate_combat_rewards(
+            room_id="act1:hallway_reward",
+            run_state=replace(_run_state(), seed=seed),
+            registry=_content_provider(),
+        )
+        seen_cards.update(reward.split(":", 1)[1] for reward in rewards if reward.startswith("card_offer:"))
 
-    assert act1_cards != act2_cards
+    assert "anger" in seen_cards
+    assert "inflame" in seen_cards
+    assert "metallicize" in seen_cards
+    assert "combust" in seen_cards
+    assert "strike" not in seen_cards
+    assert "defend" not in seen_cards
+    assert "bash" not in seen_cards
 
 
 def test_generate_boss_rewards_filters_owned_relics() -> None:

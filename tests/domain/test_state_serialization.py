@@ -57,6 +57,19 @@ def test_run_state_round_trips_seen_event_ids() -> None:
     assert restored.to_dict() == state.to_dict()
 
 
+def test_run_state_round_trips_rare_card_reward_offset() -> None:
+    state = RunState(
+        seed=7,
+        character_id="ironclad",
+        current_act_id="act1",
+        rare_card_reward_offset=-2,
+    )
+
+    restored = RunState.from_dict(state.to_dict())
+
+    assert restored.to_dict() == state.to_dict()
+
+
 def test_act_node_state_round_trips_row_col_room_type():
     node = ActNodeState(
         node_id="node-1",

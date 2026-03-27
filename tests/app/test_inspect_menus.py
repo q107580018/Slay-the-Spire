@@ -306,6 +306,7 @@ def test_combat_inspect_root_includes_potions_hand_enemy_pages_and_back() -> Non
 
 def test_combat_inspect_card_branch_round_trip_keeps_mode_and_parent_state() -> None:
     session = start_session(seed=5)
+    expected_first_hand_card = session.room_state.payload["combat_state"]["hand"][0]
 
     _running, inspect_session, inspect_message = route_menu_choice("4", session=session)
     _running, hand_session, hand_message = route_menu_choice("5", session=inspect_session)
@@ -321,7 +322,7 @@ def test_combat_inspect_card_branch_round_trip_keeps_mode_and_parent_state() -> 
     assert hand_message.splitlines()[0] == "手牌列表"
     assert detail_session.menu_state.mode == "inspect_card_detail"
     assert detail_session.menu_state.inspect_parent_mode == "inspect_hand"
-    assert detail_session.menu_state.inspect_item_id == "strike#1"
+    assert detail_session.menu_state.inspect_item_id == expected_first_hand_card
     assert detail_message.splitlines()[0] == "卡牌详情"
     assert back_to_list_session.menu_state.mode == "inspect_hand"
     assert back_to_list_session.menu_state.inspect_parent_mode == "inspect_root"

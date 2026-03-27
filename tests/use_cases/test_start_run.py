@@ -181,21 +181,32 @@ def test_enter_room_builds_playable_combat_state_for_combat_nodes() -> None:
 
     assert combat_state.energy == 3
     assert combat_state.round_number == 1
-    assert combat_state.hand == [
+    assert len(combat_state.hand) == 5
+    assert len(combat_state.draw_pile) == 5
+    assert sorted([*combat_state.hand, *combat_state.draw_pile]) == sorted(run_state.deck)
+    assert combat_state.hand != [
         "strike#1",
         "strike#2",
         "strike#3",
         "strike#4",
         "strike#5",
     ]
-    assert combat_state.draw_pile == [
-        "defend#6",
-        "defend#7",
-        "defend#8",
-        "defend#9",
-        "bash#10",
-    ]
     assert len(combat_state.enemies) == 1
+
+
+def test_enter_room_shuffles_opening_hand_deterministically_for_same_room_seed() -> None:
+    provider = _content_provider()
+    run_state = start_new_run("ironclad", seed=7, registry=provider)
+    first_act_state = generate_act_state("act1", seed=7, registry=provider)
+    second_act_state = generate_act_state("act1", seed=7, registry=provider)
+
+    first_room_state = enter_room(run_state, first_act_state, node_id="start", registry=provider)
+    second_room_state = enter_room(run_state, second_act_state, node_id="start", registry=provider)
+    first_combat_state = CombatState.from_dict(first_room_state.payload["combat_state"])
+    second_combat_state = CombatState.from_dict(second_room_state.payload["combat_state"])
+
+    assert first_combat_state.hand == second_combat_state.hand
+    assert first_combat_state.draw_pile == second_combat_state.draw_pile
 
 
 def test_enter_room_applies_ectoplasm_energy_on_combat_start() -> None:

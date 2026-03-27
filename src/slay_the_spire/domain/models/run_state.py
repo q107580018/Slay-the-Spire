@@ -54,6 +54,7 @@ class RunState:
     potions: list[str] = field(default_factory=list)
     seen_event_ids: list[str] = field(default_factory=list)
     card_removal_count: int = 0
+    rare_card_reward_offset: int = -5
 
     def __post_init__(self) -> None:
         self.seed = _require_int(self.seed, "seed")
@@ -62,6 +63,7 @@ class RunState:
         self.max_hp = _require_int(self.max_hp, "max_hp")
         self.gold = _require_int(self.gold, "gold")
         self.card_removal_count = _require_int(self.card_removal_count, "card_removal_count")
+        self.rare_card_reward_offset = _require_int(self.rare_card_reward_offset, "rare_card_reward_offset")
         if self.current_act_id is not None:
             self.current_act_id = _require_str(self.current_act_id, "current_act_id")
             if not self.current_act_id:
@@ -76,6 +78,10 @@ class RunState:
             raise ValueError("gold must be non-negative")
         if self.card_removal_count < 0:
             raise ValueError("card_removal_count must be non-negative")
+        if self.rare_card_reward_offset < -40:
+            raise ValueError("rare_card_reward_offset must be at least -40")
+        if self.rare_card_reward_offset > 40:
+            raise ValueError("rare_card_reward_offset must be at most 40")
         self.deck = _require_str_list(self.deck, "deck")
         self.relics = _require_str_list(self.relics, "relics")
         self.potions = _require_str_list(self.potions, "potions")
@@ -99,6 +105,7 @@ class RunState:
             "potions": list(self.potions),
             "seen_event_ids": list(self.seen_event_ids),
             "card_removal_count": self.card_removal_count,
+            "rare_card_reward_offset": self.rare_card_reward_offset,
         }
 
     @classmethod
@@ -122,4 +129,5 @@ class RunState:
             potions=_require_str_list(data.get("potions", []), "potions"),
             seen_event_ids=_require_str_list(data.get("seen_event_ids", []), "seen_event_ids"),
             card_removal_count=_require_int(data.get("card_removal_count", 0), "card_removal_count"),
+            rare_card_reward_offset=_require_int(data.get("rare_card_reward_offset", -5), "rare_card_reward_offset"),
         )

@@ -154,7 +154,11 @@ def test_reward_claim_is_not_reapplied_after_load(tmp_path: Path) -> None:
     provider = _content_provider()
     run_state = start_new_run("ironclad", seed=37, registry=provider)
     act_state = generate_act_state("act1", seed=37, registry=provider)
-    generated_rewards = generate_combat_rewards(room_id="act1:reward", seed=37)
+    generated_rewards, _next_rare_offset = generate_combat_rewards(
+        room_id="act1:reward",
+        run_state=run_state,
+        registry=provider,
+    )
     room_state = RoomState(
         room_id="act1:reward",
         room_type="reward",
@@ -179,7 +183,11 @@ def test_reward_claim_is_not_reapplied_after_load(tmp_path: Path) -> None:
 
 
 def test_claim_reward_marks_room_completed_immediately() -> None:
-    generated_rewards = generate_combat_rewards(room_id="act1:reward", seed=43)
+    generated_rewards, _next_rare_offset = generate_combat_rewards(
+        room_id="act1:reward",
+        run_state=start_new_run("ironclad", seed=43, registry=_content_provider()),
+        registry=_content_provider(),
+    )
     room_state = RoomState(
         room_id="act1:reward",
         room_type="reward",
@@ -198,7 +206,11 @@ def test_claim_reward_marks_room_completed_immediately() -> None:
 
 
 def test_claiming_card_offer_removes_other_card_offers() -> None:
-    generated_rewards = generate_combat_rewards(room_id="act1:reward", seed=43)
+    generated_rewards, _next_rare_offset = generate_combat_rewards(
+        room_id="act1:reward",
+        run_state=start_new_run("ironclad", seed=43, registry=_content_provider()),
+        registry=_content_provider(),
+    )
     room_state = RoomState(
         room_id="act1:reward",
         room_type="reward",
@@ -215,7 +227,11 @@ def test_claiming_card_offer_removes_other_card_offers() -> None:
 
 
 def test_generate_combat_rewards_feeds_reward_room_claim_flow() -> None:
-    rewards = generate_combat_rewards(room_id="act1:hallway_reward", seed=41)
+    rewards, _next_rare_offset = generate_combat_rewards(
+        room_id="act1:hallway_reward",
+        run_state=start_new_run("ironclad", seed=41, registry=_content_provider()),
+        registry=_content_provider(),
+    )
 
     assert rewards[0] == "gold:11"
     assert len([reward for reward in rewards if reward.startswith("card_offer:")]) == 3

@@ -4,25 +4,10 @@ from slay_the_spire.domain.models.run_state import RunState
 from slay_the_spire.ports.content_provider import ContentProviderPort
 from slay_the_spire.shared.rng import rng_for_room
 
-_IRONCLAD_ACT1_REWARD_CARDS = (
-    "bash",
-    "anger",
-    "pommel_strike",
-    "shrug_it_off",
-)
-
-_IRONCLAD_ACT2_REWARD_CARDS = (
-    "cleave",
-    "twin_strike",
-    "inflame",
-    "metallicize",
-    "hemokinesis",
-    "sword_boomerang",
-    "pummel",
-    "combust",
-)
-
 _BOSS_RELIC_OFFERS = ("black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer")
+_COMMON_RARITY = "common"
+_UNCOMMON_RARITY = "uncommon"
+_RARE_RARITY = "rare"
 
 
 def _room_hash(room_id: str) -> int:
@@ -39,21 +24,108 @@ def _require_seed(seed: object) -> int:
     return seed
 
 
-def _sample_unique_card_offers(*, room_id: str, seed: int, act_id: str) -> list[str]:
-    rng = rng_for_room(seed=seed, room_id=room_id, category="reward:card")
-    if act_id == "act2":
-        card_ids = list(_IRONCLAD_ACT2_REWARD_CARDS)
-    else:
-        card_ids = list(_IRONCLAD_ACT1_REWARD_CARDS)
-    rng.shuffle(card_ids)
-    return card_ids[:3]
+def _rewardable_cards_by_rarity(
+    *,
+    run_state: RunState,
+    registry: ContentProviderPort,
+) -> dict[str, list[str]]:
+    del run_state
+    cards_by_rarity = {
+        _COMMON_RARITY: [],
+        _UNCOMMON_RARITY: [],
+        _RARE_RARITY: [],
+    }
+    for card in registry.cards().all():
+        if card.rarity not in cards_by_rarity:
+            continue
+        cards_by_rarity[card.rarity].append(card.id)
+    return cards_by_rarity
 
 
-def generate_combat_rewards(*, room_id: str, seed: int, act_id: str = "act1") -> list[str]:
-    normalized_seed = _require_seed(seed)
+def _rarity_weights(offset: int) -> tuple[int, int, int]:
+    base_common = 60
+    base_uncommon = 37
+    base_rare = 3
+    if offset <= 0:
+        rare = base_rare + offset
+        uncommon = base_uncommon
+        if rare < 0:
+            uncommon += rare
+            rare = 0
+        common = 100 - rare - uncommon
+        return common, uncommon, rare
+
+    common = base_common - offset
+    uncommon = base_uncommon
+    if common < 0:
+        uncommon += common
+        common = 0
+    rare = 100 - common - uncommon
+    return common, uncommon, rare
+
+
+def _roll_rarity(*, rng, rare_offset: int) -> str:
+    common_weight, uncommon_weight, rare_weight = _rarity_weights(rare_offset)
+    roll = rng.randint(1, common_weight + uncommon_weight + rare_weight)
+    if roll <= rare_weight:
+        return _RARE_RARITY
+    if roll <= rare_weight + uncommon_weight:
+        return _UNCOMMON_RARITY
+    return _COMMON_RARITY
+
+
+def _fallback_rarity_order(target_rarity: str) -> tuple[str, ...]:
+    if target_rarity == _RARE_RARITY:
+        return (_RARE_RARITY, _UNCOMMON_RARITY, _COMMON_RARITY)
+    if target_rarity == _UNCOMMON_RARITY:
+        return (_UNCOMMON_RARITY, _COMMON_RARITY, _RARE_RARITY)
+    return (_COMMON_RARITY, _UNCOMMON_RARITY, _RARE_RARITY)
+
+
+def _sample_card_offer(
+    *,
+    rolled_rarity: str,
+    cards_by_rarity: dict[str, list[str]],
+    taken_card_ids: set[str],
+    rng,
+) -> tuple[str, str]:
+    for rarity in _fallback_rarity_order(rolled_rarity):
+        available = [card_id for card_id in cards_by_rarity[rarity] if card_id not in taken_card_ids]
+        if not available:
+            continue
+        return rng.choice(available), rarity
+    raise ValueError("reward card pool must contain at least one available card")
+
+
+def generate_combat_rewards(
+    *,
+    room_id: str,
+    run_state: RunState,
+    registry: ContentProviderPort,
+) -> tuple[list[str], int]:
+    normalized_seed = _require_seed(run_state.seed)
     gold_amount = 10 + (normalized_seed % 10)
-    card_offers = _sample_unique_card_offers(room_id=room_id, seed=normalized_seed, act_id=act_id)
-    return [f"gold:{gold_amount}", *[f"card_offer:{card_id}" for card_id in card_offers]]
+    rng = rng_for_room(seed=normalized_seed, room_id=room_id, category="reward:card")
+    cards_by_rarity = _rewardable_cards_by_rarity(run_state=run_state, registry=registry)
+
+    rewards = [f"gold:{gold_amount}"]
+    taken_card_ids: set[str] = set()
+    next_rare_offset = run_state.rare_card_reward_offset
+    for _ in range(3):
+        rolled_rarity = _roll_rarity(rng=rng, rare_offset=next_rare_offset)
+        card_id, actual_rarity = _sample_card_offer(
+            rolled_rarity=rolled_rarity,
+            cards_by_rarity=cards_by_rarity,
+            taken_card_ids=taken_card_ids,
+            rng=rng,
+        )
+        taken_card_ids.add(card_id)
+        rewards.append(f"card_offer:{card_id}")
+        if actual_rarity == _COMMON_RARITY:
+            next_rare_offset = min(next_rare_offset + 1, 40)
+        elif actual_rarity == _RARE_RARITY:
+            next_rare_offset = -5
+    return rewards, next_rare_offset
 
 
 def generate_boss_rewards(

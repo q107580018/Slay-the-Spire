@@ -76,6 +76,7 @@ def _build_combat_state(
 ) -> tuple[CombatState, str | None]:
     character = registry.characters().get(run_state.character_id)
     deck_instance_ids = list(run_state.deck) or _build_card_instance_ids(list(character.starter_deck))
+    _offer_rng(run_state, room_id, "combat:draw_order").shuffle(deck_instance_ids)
     encounter_id, enemy_ids = _select_combat_enemy_ids(
         run_state,
         room_id=room_id,

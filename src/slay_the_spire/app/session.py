@@ -393,16 +393,21 @@ def _session_with_combat_state(session: SessionState, combat_state: CombatState)
         )
         return replace(session, run_state=updated_run_state, room_state=room_state, run_phase="game_over")
     if _combat_is_won(combat_state):
+        reward_run_state = updated_run_state
+        room_rewards: list[str] = []
+        if session.room_state.room_type != "boss":
+            room_rewards, next_rare_offset = generate_combat_rewards(
+                room_id=session.room_state.room_id,
+                run_state=updated_run_state,
+                registry=_content_provider(session),
+            )
+            reward_run_state = replace(updated_run_state, rare_card_reward_offset=next_rare_offset)
         room_state = _room_with_combat_state(
             session.room_state,
             combat_state,
             stage="completed",
             is_resolved=True,
-            rewards=[] if session.room_state.room_type == "boss" else generate_combat_rewards(
-                room_id=session.room_state.room_id,
-                seed=session.run_state.seed,
-                act_id=session.run_state.current_act_id,
-            ),
+            rewards=room_rewards,
         )
         if session.room_state.room_type == "boss":
             room_state = replace(
@@ -412,16 +417,16 @@ def _session_with_combat_state(session: SessionState, combat_state: CombatState)
                     "boss_rewards": generate_boss_rewards(
                         room_id=session.room_state.room_id,
                         seed=session.run_state.seed,
-                        run_state=updated_run_state,
+                        run_state=reward_run_state,
                         registry=_content_provider(session),
                     ),
                 },
             )
         return replace(
             session,
-            run_state=updated_run_state,
+            run_state=reward_run_state,
             room_state=room_state,
-            run_phase=_derive_run_phase(updated_run_state, session.act_state, room_state, registry=_content_provider(session)),
+            run_phase=_derive_run_phase(reward_run_state, session.act_state, room_state, registry=_content_provider(session)),
         )
     room_state = _room_with_combat_state(
         session.room_state,
