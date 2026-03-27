@@ -252,6 +252,30 @@ def test_hover_preview_panel_is_present_in_reward_menu() -> None:
     asyncio.run(scenario())
 
 
+def test_hover_preview_panel_shows_guidance_in_reward_menu() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="combat",
+            stage="completed",
+            is_resolved=True,
+            rewards=["card_offer:anger", "gold:15"],
+        ),
+        menu_state=replace(base.menu_state, mode="select_reward"),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            preview = app.query_one("#hover-preview", Static)
+            assert "查看说明" in preview.render().plain
+
+    asyncio.run(scenario())
+
+
 def test_hover_preview_panel_is_present_in_shop_root_menu() -> None:
     base = start_session(seed=5)
     session = replace(

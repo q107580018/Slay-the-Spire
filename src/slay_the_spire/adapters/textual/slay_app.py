@@ -107,6 +107,10 @@ def _boss_rewards(session: SessionState) -> dict[str, object] | None:
     return rewards
 
 
+def _supports_hover_preview(menu_mode: str) -> bool:
+    return menu_mode in {"select_reward", "select_boss_reward", "select_boss_relic", "shop_root"}
+
+
 def _inspect_list_menu(title: str, labels: list[str]) -> MenuDefinition:
     options = [(f"item:{index}", label) for index, label in enumerate(labels, start=1)]
     options.append(("back", "返回上一步"))
@@ -280,6 +284,13 @@ class SlayApp(App[None]):
         color: $text-muted;
     }
 
+    #hover-preview {
+        height: 5;
+        border: solid grey;
+        padding: 0 1;
+        color: $text-muted;
+    }
+
     #action-list {
         height: 12;
         border: solid green;
@@ -319,6 +330,7 @@ class SlayApp(App[None]):
             with Vertical(id="right-panel"):
                 yield RichLog(id="game-log", highlight=True, markup=True, wrap=True)
                 yield Static("", id="action-summary")
+                yield Static("", id="hover-preview")
                 yield OptionList(id="action-list")
                 yield Static("", id="flash-msg")
         yield Footer()
@@ -357,6 +369,7 @@ class SlayApp(App[None]):
 
         if menu is None:
             action_summary.update("当前没有可点击操作。")
+            self._refresh_hover_preview()
             return
 
         summary_lines = [menu.title]
@@ -371,6 +384,17 @@ class SlayApp(App[None]):
             prompts.append(f"{index}. {_plain_label(option.label)}")
             self._action_choices.append(str(index))
         action_list.add_options(prompts)
+        self._refresh_hover_preview()
+
+    def _refresh_hover_preview(self) -> None:
+        preview = self.query_one("#hover-preview", Static)
+        menu_mode = self._session.menu_state.mode
+        if _supports_hover_preview(menu_mode):
+            preview.update("查看说明：将鼠标悬停在奖励或商品上查看详情。")
+            preview.display = True
+        else:
+            preview.update("")
+            preview.display = False
 
     def _process_command(self, cmd: str) -> None:
         running, new_session, message = route_menu_choice(cmd, session=self._session)
