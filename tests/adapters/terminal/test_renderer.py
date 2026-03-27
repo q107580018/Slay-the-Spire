@@ -1,11 +1,25 @@
 from dataclasses import replace
 
 from rich.console import Console
+from rich.text import Text
 
+from slay_the_spire.adapters.terminal.inspect import format_card_detail_lines
 from slay_the_spire.app.session import MenuState, start_session
 from slay_the_spire.adapters.terminal.renderer import render_room
 from slay_the_spire.adapters.terminal.theme import TERMINAL_THEME
-from slay_the_spire.adapters.terminal.screens.non_combat import render_full_map_panel
+from slay_the_spire.adapters.terminal.screens.combat import _format_card_menu, _format_target_menu, _format_reward_menu as _format_combat_reward_menu
+from slay_the_spire.adapters.terminal.screens.non_combat import (
+    _format_event_remove_menu,
+    _format_event_upgrade_menu,
+    _format_reward_menu as _format_non_combat_reward_menu,
+    _format_rest_upgrade_menu,
+    _format_shop_remove_menu,
+    _format_shop_root_menu,
+    render_rest_panel,
+    render_shop_panel,
+    render_full_map_panel,
+)
+from slay_the_spire.adapters.terminal.widgets import render_card_name
 from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.domain.models.act_state import ActNodeState, ActState
 from slay_the_spire.domain.models.combat_state import CombatState
@@ -28,6 +42,10 @@ def _export(renderable) -> str:
     )
     console.print(renderable)
     return console.export_text(clear=False)
+
+
+def _span_styles(text) -> set[str]:
+    return {str(span.style) for span in text.spans}
 
 
 def _hexaghost_combat_state(*, round_number: int) -> CombatState:
@@ -94,6 +112,142 @@ def test_select_card_menu_shows_current_energy_in_menu_title() -> None:
 
     assert "手牌（当前能量 3）:" in output
     assert "1. 打击 费用1 - 造成 6 伤害" in output
+
+
+def test_select_card_menu_keeps_card_name_styles() -> None:
+    session = start_session(seed=5)
+    combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
+
+    lines = _format_card_menu(combat_state, _provider(session))
+
+    assert isinstance(lines[1], Text)
+    assert lines[1].plain.startswith("1. ")
+    assert "card.rarity.basic" in _span_styles(lines[1])
+
+
+def test_target_menu_keeps_current_card_styles() -> None:
+    session = start_session(seed=5)
+    combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
+    combat_state.hand = ["anger_plus#1", "strike_plus#2"]
+
+    lines = _format_target_menu(combat_state, _provider(session), "anger_plus#1")
+
+    assert isinstance(lines[1], Text)
+    assert lines[1].plain == "当前卡牌: 愤怒+"
+    assert "card.rarity.common" in _span_styles(lines[1])
+    assert "card.upgraded" in _span_styles(lines[1])
+
+
+def test_combat_reward_menu_keeps_card_styles() -> None:
+    session = start_session(seed=5)
+    room_state = replace(
+        session.room_state,
+        is_resolved=True,
+        rewards=["card_offer:anger"],
+    )
+
+    lines = _format_combat_reward_menu(room_state, _provider(session))
+
+    assert isinstance(lines[1], Text)
+    assert lines[1].plain == "1. 卡牌 愤怒"
+    assert "card.rarity.common" in _span_styles(lines[1])
+
+
+def test_non_combat_reward_menu_keeps_card_styles() -> None:
+    session = start_session(seed=5)
+    room_state = replace(
+        session.room_state,
+        is_resolved=True,
+        rewards=["card_offer:anger"],
+    )
+
+    lines = _format_non_combat_reward_menu(room_state, _provider(session))
+
+    assert isinstance(lines[1], Text)
+    assert lines[1].plain == "1. 卡牌 愤怒"
+    assert "card.rarity.common" in _span_styles(lines[1])
+
+
+def test_event_upgrade_menu_keeps_card_styles() -> None:
+    session = start_session(seed=5)
+    room_state = RoomState(
+        room_id="act1:event",
+        room_type="event",
+        stage="select_event_upgrade_card",
+        payload={
+            "node_id": "r1c1",
+            "room_kind": "event",
+            "event_id": "shining_light",
+            "upgrade_options": ["anger_plus#1"],
+            "next_node_ids": ["r2c0"],
+        },
+        is_resolved=False,
+        rewards=[],
+    )
+
+    lines = _format_event_upgrade_menu(room_state, _provider(session))
+
+    assert isinstance(lines[1], Text)
+    assert "card.rarity.common" in _span_styles(lines[1])
+    assert "card.upgraded" in _span_styles(lines[1])
+
+
+def test_event_remove_menu_keeps_card_styles() -> None:
+    session = start_session(seed=5)
+    room_state = RoomState(
+        room_id="act1:event",
+        room_type="event",
+        stage="select_event_remove_card",
+        payload={
+            "node_id": "r1c1",
+            "room_kind": "event",
+            "event_id": "shining_light",
+            "remove_candidates": ["anger_plus#1"],
+            "next_node_ids": ["r2c0"],
+        },
+        is_resolved=False,
+        rewards=[],
+    )
+
+    lines = _format_event_remove_menu(room_state, _provider(session))
+
+    assert isinstance(lines[1], Text)
+    assert "card.rarity.common" in _span_styles(lines[1])
+    assert "card.upgraded" in _span_styles(lines[1])
+
+
+def test_render_card_name_uses_rarity_style_for_common_card() -> None:
+    session = start_session(seed=5)
+    card_def = _provider(session).cards().get("anger")
+
+    rendered = render_card_name(card_def)
+
+    assert rendered.plain == "愤怒"
+    assert "card.rarity.common" in _span_styles(rendered)
+    assert "card.upgraded" not in _span_styles(rendered)
+
+
+def test_render_card_name_keeps_rarity_style_and_marks_upgraded_card() -> None:
+    session = start_session(seed=5)
+    card_def = _provider(session).cards().get("anger_plus")
+
+    rendered = render_card_name(card_def)
+
+    assert rendered.plain == "愤怒+"
+    assert "card.rarity.common" in _span_styles(rendered)
+    assert "card.upgraded" in _span_styles(rendered)
+
+
+def test_card_detail_lines_include_rarity_and_upgrade_state() -> None:
+    session = start_session(seed=5)
+
+    lines = format_card_detail_lines("anger_plus#1", _provider(session))
+    rendered = "\n".join(line.plain for line in lines)
+
+    assert "稀有度 " in rendered
+    assert "普通" in rendered
+    assert "状态 " in rendered
+    assert "已升级" in rendered
 
 
 def test_combat_root_screen_uses_current_round_enemy_intent() -> None:
@@ -483,8 +637,8 @@ def test_non_combat_renderer_shows_reward_list_screen() -> None:
     )
 
     assert "奖励详情列表" in output
-    assert "1. gold:11" in output
-    assert "2. card_offer:anger" in output
+    assert "1. 金币 +11" in output
+    assert "2. 卡牌 愤怒" in output
     assert "3. 返回奖励主页" in output
 
 
@@ -869,6 +1023,70 @@ def test_shop_remove_renderer_uses_localized_card_labels() -> None:
     assert "2. defend#2" not in output
 
 
+def test_shop_menus_keep_styled_card_labels_in_terminal_entries() -> None:
+    session = start_session(seed=5)
+    shop_room = replace(
+        session.room_state,
+        room_type="shop",
+        payload={
+            "cards": [{"offer_id": "card-1", "card_id": "terror_plus", "price": 50}],
+            "relics": [],
+            "potions": [],
+            "remove_price": 75,
+            "remove_candidates": ["terror_plus#10"],
+        },
+        is_resolved=False,
+        rewards=[],
+    )
+
+    shop_lines = _format_shop_root_menu(shop_room, _provider(session), session.run_state)
+    remove_lines = _format_shop_remove_menu(shop_room, _provider(session))
+
+    assert isinstance(shop_lines[2], Text)
+    assert "card.rarity.uncommon" in _span_styles(shop_lines[2])
+    assert "card.upgraded" in _span_styles(shop_lines[2])
+    assert isinstance(remove_lines[1], Text)
+    assert "card.rarity.uncommon" in _span_styles(remove_lines[1])
+    assert "card.upgraded" in _span_styles(remove_lines[1])
+
+
+def test_shop_and_rest_panels_keep_styled_card_labels_in_body() -> None:
+    session = start_session(seed=5)
+    shop_room = replace(
+        session.room_state,
+        room_type="shop",
+        payload={
+            "cards": [{"offer_id": "card-1", "card_id": "terror_plus", "price": 50}],
+            "relics": [],
+            "potions": [],
+            "remove_price": 75,
+        },
+        is_resolved=False,
+        rewards=[],
+    )
+    rest_room = RoomState(
+        room_id="act1:rest",
+        room_type="rest",
+        stage="select_upgrade_card",
+        payload={"node_id": "r5c0", "upgrade_options": ["terror_plus#10"], "next_node_ids": ["r6c0"]},
+        is_resolved=False,
+        rewards=[],
+    )
+
+    shop_panel = render_shop_panel(shop_room, _provider(session), session.run_state)
+    rest_panel = render_rest_panel(rest_room, _provider(session))
+
+    shop_lines = shop_panel.renderable.renderables
+    rest_lines = rest_panel.renderable.renderables
+
+    assert isinstance(shop_lines[3], Text)
+    assert "card.rarity.uncommon" in _span_styles(shop_lines[3])
+    assert "card.upgraded" in _span_styles(shop_lines[3])
+    assert isinstance(rest_lines[1], Text)
+    assert "card.rarity.uncommon" in _span_styles(rest_lines[1])
+    assert "card.upgraded" in _span_styles(rest_lines[1])
+
+
 def test_rest_renderer_shows_root_and_upgrade_selection_states() -> None:
     session = start_session(seed=5)
     run_state = replace(session.run_state, relics=["burning_blood", "coffee_dripper", "fusion_hammer"])
@@ -906,6 +1124,24 @@ def test_rest_renderer_shows_root_and_upgrade_selection_states() -> None:
     assert "可升级卡牌" in upgrade_output
     assert "重击" in upgrade_output
     assert "bash#9" in upgrade_output
+
+
+def test_rest_upgrade_menu_keeps_styled_card_labels_in_terminal_entries() -> None:
+    session = start_session(seed=5)
+    room_state = RoomState(
+        room_id="act1:rest",
+        room_type="rest",
+        stage="select_upgrade_card",
+        payload={"node_id": "r5c0", "upgrade_options": ["terror_plus#10"], "next_node_ids": ["r6c0"]},
+        is_resolved=False,
+        rewards=[],
+    )
+
+    lines = _format_rest_upgrade_menu(room_state, _provider(session))
+
+    assert isinstance(lines[1], Text)
+    assert "card.rarity.uncommon" in _span_styles(lines[1])
+    assert "card.upgraded" in _span_styles(lines[1])
 
 
 def test_reward_renderer_uses_concrete_gold_and_card_labels() -> None:

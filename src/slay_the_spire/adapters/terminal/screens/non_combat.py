@@ -33,11 +33,12 @@ from slay_the_spire.app.menu_definitions import (
     build_shop_remove_menu,
     build_shop_root_menu,
     build_terminal_phase_menu,
+    format_menu_entries,
     format_menu_lines,
 )
 from slay_the_spire.adapters.terminal.screens.layout import build_standard_screen
 from slay_the_spire.adapters.terminal.theme import PANEL_BOX
-from slay_the_spire.adapters.terminal.widgets import render_menu
+from slay_the_spire.adapters.terminal.widgets import render_card_name, render_menu
 from slay_the_spire.domain.models.act_state import ActState, ActNodeState
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.room_state import RoomState
@@ -132,10 +133,10 @@ def _format_next_nodes(act_state: ActState, room_state: RoomState) -> str:
     return ", ".join(_format_node_choice(act_state, node_id) for node_id in next_node_ids)
 
 
-def _format_card_instance_label(card_instance_id: str, registry: ContentProviderPort) -> str:
+def _format_card_instance_label(card_instance_id: str, registry: ContentProviderPort) -> Text:
     card_id = card_id_from_instance_id(card_instance_id)
     card_def = registry.cards().get(card_id)
-    return f"{card_def.name} ({card_instance_id})"
+    return Text.assemble(render_card_name(card_def), f" ({card_instance_id})")
 
 
 def _reward_card_id(reward_name: str) -> str:
@@ -146,17 +147,17 @@ def _reward_card_id(reward_name: str) -> str:
     return reward_name
 
 
-def _format_reward_label(reward_id: str, registry: ContentProviderPort) -> str:
+def _format_reward_label(reward_id: str, registry: ContentProviderPort) -> str | Text:
     if reward_id.startswith("gold:"):
         return f"金币 +{reward_id.split(':', 1)[1]}"
     if reward_id.startswith("card_offer:"):
         reward_name = reward_id.split(":", 1)[1]
         card_def = registry.cards().get(_reward_card_id(reward_name))
-        return f"卡牌 {card_def.name}"
+        return Text.assemble("卡牌 ", render_card_name(card_def))
     if reward_id.startswith("card:"):
         reward_name = reward_id.split(":", 1)[1]
         card_def = registry.cards().get(_reward_card_id(reward_name))
-        return f"卡牌 {card_def.name}"
+        return Text.assemble("卡牌 ", render_card_name(card_def))
     if reward_id.startswith("event:"):
         result = reward_id.split(":", 1)[1]
         if result == "gain_upgrade":
@@ -167,10 +168,17 @@ def _format_reward_label(reward_id: str, registry: ContentProviderPort) -> str:
     return reward_id
 
 
-def _format_reward_lines(rewards: list[str], registry: ContentProviderPort) -> list[str]:
+def _format_reward_lines(rewards: list[str], registry: ContentProviderPort) -> list[str | Text]:
     if not rewards:
         return ["-"]
-    return [f"{index}. {_format_reward_label(reward, registry)}" for index, reward in enumerate(rewards, start=1)]
+    lines: list[str | Text] = []
+    for index, reward in enumerate(rewards, start=1):
+        label = _format_reward_label(reward, registry)
+        if isinstance(label, Text):
+            lines.append(Text.assemble(f"{index}. ", label))
+        else:
+            lines.append(f"{index}. {label}")
+    return lines
 
 
 def _format_event_result(room_state: RoomState) -> str | None:
@@ -515,11 +523,11 @@ def _format_event_menu(room_state: RoomState, registry: ContentProviderPort) -> 
     )
 
 
-def _format_event_upgrade_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str]:
+def _format_event_upgrade_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str | Text]:
     options = room_state.payload.get("upgrade_options", [])
     if not isinstance(options, list):
         options = []
-    return format_menu_lines(
+    return format_menu_entries(
         build_event_upgrade_menu(
             options=[
                 (f"upgrade_card:{card_instance_id}", _format_card_instance_label(card_instance_id, registry))
@@ -529,11 +537,11 @@ def _format_event_upgrade_menu(room_state: RoomState, registry: ContentProviderP
     )
 
 
-def _format_event_remove_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str]:
+def _format_event_remove_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str | Text]:
     candidates = room_state.payload.get("remove_candidates", [])
     if not isinstance(candidates, list):
         candidates = []
-    return format_menu_lines(
+    return format_menu_entries(
         build_event_remove_menu(
             options=[
                 (f"remove_card:{card_instance_id}", _format_card_instance_label(card_instance_id, registry))
@@ -543,17 +551,35 @@ def _format_event_remove_menu(room_state: RoomState, registry: ContentProviderPo
     )
 
 
-def _format_reward_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str]:
-    return format_menu_lines(build_reward_menu(room_state=room_state, registry=registry))
+def _format_reward_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str | Text]:
+    return format_menu_entries(build_reward_menu(room_state=room_state, registry=registry))
 
 
 def _format_reward_root_menu() -> list[str]:
     return format_menu_lines(build_reward_root_menu())
 
 
-def _format_reward_list_menu(room_state: RoomState) -> list[str]:
+def _format_reward_list_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str | Text]:
     rewards = room_state.rewards if isinstance(room_state.rewards, list) else []
-    return format_menu_lines(build_reward_list_menu(rewards))
+    return format_menu_entries(build_reward_list_menu(rewards, registry=registry))
+
+
+def _format_reward_list_lines(room_state: RoomState, registry: ContentProviderPort) -> list[str | Text]:
+    lines: list[str | Text] = ["当前可领取奖励:"]
+    rewards = room_state.rewards if isinstance(room_state.rewards, list) else []
+    if not rewards:
+        lines.append("-")
+        return lines
+    for index, reward in enumerate(rewards, start=1):
+        if isinstance(reward, str):
+            label = _format_reward_label(reward, registry)
+            if isinstance(label, Text):
+                lines.append(Text.assemble(f"{index}. ", label))
+            else:
+                lines.append(f"{index}. {label}")
+        else:
+            lines.append(f"{index}. {reward}")
+    return lines
 
 
 def _format_reward_detail_menu(menu_state: Any) -> list[str]:
@@ -579,12 +605,12 @@ def format_non_combat_inspect_menu(
     room_state: RoomState,
     registry: ContentProviderPort,
     menu_state: Any,
-) -> list[str]:
+) -> list[str | Text]:
     mode = _menu_mode(menu_state)
     if mode == "inspect_reward_root":
         return _format_reward_root_menu()
     if mode == "inspect_reward_list":
-        return _format_reward_list_menu(room_state)
+        return _format_reward_list_menu(room_state, registry)
     if mode == "inspect_reward_detail":
         return _format_reward_detail_menu(menu_state)
     shared_menu = format_shared_inspect_menu(
@@ -608,23 +634,27 @@ def render_non_combat_inspect_panel(
 ) -> Panel:
     mode = _menu_mode(menu_state)
     if mode == "inspect_reward_root":
-        lines = ["当前可领取奖励:"]
+        lines: list[str | Text] = ["当前可领取奖励:"]
         if not room_state.rewards:
             lines.append("-")
         else:
             for reward in room_state.rewards:
                 if isinstance(reward, str):
-                    lines.append(f"- {_format_reward_label(reward, registry)}")
+                    label = _format_reward_label(reward, registry)
+                    if isinstance(label, Text):
+                        lines.append(Text.assemble("- ", label))
+                    else:
+                        lines.append(f"- {label}")
         lines.extend(["", "可先查看奖励详情，再决定是否领取。"])
-        return Panel(Group(*[Text(line) for line in lines]), title="奖励主页", box=PANEL_BOX, expand=False)
+        return Panel(Group(*[line if isinstance(line, Text) else Text(line) for line in lines]), title="奖励主页", box=PANEL_BOX, expand=False)
     if mode == "inspect_reward_list":
-        lines = ["当前可领取奖励:"]
-        if not room_state.rewards:
-            lines.append("-")
-        else:
-            for index, reward in enumerate(room_state.rewards, start=1):
-                lines.append(f"{index}. {reward}")
-        return Panel(Group(*[Text(line) for line in lines]), title="奖励详情列表", box=PANEL_BOX, expand=False)
+        lines = _format_reward_list_lines(room_state, registry)
+        return Panel(
+            Group(*[line if isinstance(line, Text) else Text(line) for line in lines]),
+            title="奖励详情列表",
+            box=PANEL_BOX,
+            expand=False,
+        )
     if mode == "inspect_reward_detail":
         reward_id = getattr(menu_state, "inspect_item_id", None)
         if isinstance(reward_id, str):
@@ -664,20 +694,20 @@ def _remove_service_status(*, remove_used: bool, remove_price: object, current_g
     return "可购买"
 
 
-def _format_shop_root_menu(room_state: RoomState, registry: ContentProviderPort, run_state: RunState) -> list[str]:
-    return format_menu_lines(build_shop_root_menu(run_state=run_state, room_state=room_state, registry=registry))
+def _format_shop_root_menu(room_state: RoomState, registry: ContentProviderPort, run_state: RunState) -> list[str | Text]:
+    return format_menu_entries(build_shop_root_menu(run_state=run_state, room_state=room_state, registry=registry))
 
 
-def _format_shop_remove_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str]:
-    return format_menu_lines(build_shop_remove_menu(room_state=room_state, registry=registry))
+def _format_shop_remove_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str | Text]:
+    return format_menu_entries(build_shop_remove_menu(room_state=room_state, registry=registry))
 
 
 def _format_rest_root_menu(room_state: RoomState, run_state: RunState) -> list[str]:
     return format_menu_lines(build_rest_root_menu(room_state=room_state, run_state=run_state))
 
 
-def _format_rest_upgrade_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str]:
-    return format_menu_lines(build_rest_upgrade_menu(room_state=room_state, registry=registry))
+def _format_rest_upgrade_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str | Text]:
+    return format_menu_entries(build_rest_upgrade_menu(room_state=room_state, registry=registry))
 
 
 def _format_terminal_phase_menu(run_phase: str) -> list[str]:
@@ -735,12 +765,13 @@ def render_event_body(room_state: RoomState, registry: ContentProviderPort) -> P
     if room_state.stage == "select_event_upgrade_card":
         lines.extend(["", "可升级卡牌:"])
         for option in room_state.payload.get("upgrade_options", []) if isinstance(room_state.payload.get("upgrade_options", []), list) else []:
-            lines.append(f"- {_format_card_instance_label(option, registry)}")
+            lines.append(Text.assemble("- ", _format_card_instance_label(option, registry)))
     if room_state.stage == "select_event_remove_card":
         lines.extend(["", "可移除卡牌:"])
         for option in room_state.payload.get("remove_candidates", []) if isinstance(room_state.payload.get("remove_candidates", []), list) else []:
-            lines.append(f"- {_format_card_instance_label(option, registry)}")
-    return Panel(Group(*[Text(line) for line in lines]), title="事件正文", box=PANEL_BOX, expand=False)
+            lines.append(Text.assemble("- ", _format_card_instance_label(option, registry)))
+    body = [line if isinstance(line, Text) else Text(line) for line in lines]
+    return Panel(Group(*body), title="事件正文", box=PANEL_BOX, expand=False)
 
 
 def render_reward_panel(room_state: RoomState, registry: ContentProviderPort) -> Panel:
@@ -748,7 +779,7 @@ def render_reward_panel(room_state: RoomState, registry: ContentProviderPort) ->
     event_result = _format_event_result(room_state) if room_state.room_type == "event" else None
     if event_result is not None:
         body.append(Text.assemble(("结果: ", "summary.label"), event_result))
-    body.extend(Text(line) for line in _format_reward_lines(room_state.rewards, registry))
+    body.extend(line if isinstance(line, Text) else Text(line) for line in _format_reward_lines(room_state.rewards, registry))
     return Panel(Group(*body), title="奖励", box=PANEL_BOX, expand=False)
 
 
@@ -783,19 +814,19 @@ def render_shop_panel(room_state: RoomState, registry: ContentProviderPort, run_
     relics = room_state.payload.get("relics", [])
     potions = room_state.payload.get("potions", [])
     remove_price = room_state.payload.get("remove_price", 75)
-    lines = [f"当前金币: {run_state.gold}", "", "卡牌商品:"]
+    lines: list[RenderableType] = [Text(f"当前金币: {run_state.gold}"), Text(""), Text("卡牌商品:")]
     for offer in cards if isinstance(cards, list) else []:
         if isinstance(offer, dict):
             card_id = offer.get("card_id")
-            card_name = registry.cards().get(card_id).name if isinstance(card_id, str) else card_id
+            card_name = render_card_name(registry.cards().get(card_id)) if isinstance(card_id, str) else Text(str(card_id))
             status = _shop_offer_status(
                 price=offer.get("price"),
                 sold=offer.get("sold") is True,
                 current_gold=run_state.gold,
             )
-            lines.append(f"- {card_name} / {offer.get('price')} 金币 [{status}]")
-    lines.append("")
-    lines.append("遗物商品:")
+            lines.append(Text.assemble("- ", card_name, f" / {offer.get('price')} 金币 [{status}]"))
+    lines.append(Text(""))
+    lines.append(Text("遗物商品:"))
     for offer in relics if isinstance(relics, list) else []:
         if isinstance(offer, dict):
             relic_id = offer.get("relic_id")
@@ -805,9 +836,9 @@ def render_shop_panel(room_state: RoomState, registry: ContentProviderPort, run_
                 sold=offer.get("sold") is True,
                 current_gold=run_state.gold,
             )
-            lines.append(f"- {relic_name} / {offer.get('price')} 金币 [{status}]")
-    lines.append("")
-    lines.append("药水商品:")
+            lines.append(Text(f"- {relic_name} / {offer.get('price')} 金币 [{status}]"))
+    lines.append(Text(""))
+    lines.append(Text("药水商品:"))
     for offer in potions if isinstance(potions, list) else []:
         if isinstance(offer, dict):
             potion_id = offer.get("potion_id")
@@ -817,26 +848,26 @@ def render_shop_panel(room_state: RoomState, registry: ContentProviderPort, run_
                 sold=offer.get("sold") is True,
                 current_gold=run_state.gold,
             )
-            lines.append(f"- {potion_name} / {offer.get('price')} 金币 [{status}]")
-    lines.append("")
+            lines.append(Text(f"- {potion_name} / {offer.get('price')} 金币 [{status}]"))
+    lines.append(Text(""))
     remove_status = _remove_service_status(
         remove_used=room_state.payload.get("remove_used") is True,
         remove_price=remove_price,
         current_gold=run_state.gold,
     )
-    lines.append(f"删牌服务: {remove_price} 金币 [{remove_status}]")
-    return Panel(Group(*[Text(line) for line in lines]), title="商店", box=PANEL_BOX, expand=False)
+    lines.append(Text(f"删牌服务: {remove_price} 金币 [{remove_status}]"))
+    return Panel(Group(*lines), title="商店", box=PANEL_BOX, expand=False)
 
 
 def render_rest_panel(room_state: RoomState, registry: ContentProviderPort) -> Panel:
     if room_state.stage == "select_upgrade_card":
         options = room_state.payload.get("upgrade_options", [])
-        lines = ["可升级卡牌:"]
+        lines: list[RenderableType] = [Text("可升级卡牌:")]
         for option in options if isinstance(options, list) else []:
-            lines.append(f"- {_format_card_instance_label(option, registry)}")
-        return Panel(Group(*[Text(line) for line in lines]), title="休息点", box=PANEL_BOX, expand=False)
-    lines = ["可用动作:", "- 休息", "- 锻造"]
-    return Panel(Group(*[Text(line) for line in lines]), title="休息点", box=PANEL_BOX, expand=False)
+            lines.append(Text.assemble("- ", _format_card_instance_label(option, registry)))
+        return Panel(Group(*lines), title="休息点", box=PANEL_BOX, expand=False)
+    lines: list[RenderableType] = [Text("可用动作:"), Text("- 休息"), Text("- 锻造")]
+    return Panel(Group(*lines), title="休息点", box=PANEL_BOX, expand=False)
 
 
 def render_terminal_phase_panel(run_phase: str) -> Panel:

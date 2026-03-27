@@ -24,6 +24,7 @@ from slay_the_spire.adapters.terminal.screens.layout import build_standard_scree
 from slay_the_spire.adapters.terminal.theme import PANEL_BOX
 from slay_the_spire.adapters.terminal.widgets import (
     render_block,
+    render_card_name,
     render_hp_bar,
     render_menu,
     render_statuses,
@@ -179,20 +180,20 @@ def _format_event_menu(room_state: RoomState, registry: ContentProviderPort) -> 
 
 
 def _format_reward_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str]:
-    return format_menu_lines(build_reward_menu(room_state=room_state, registry=registry))
+    return format_menu_entries(build_reward_menu(room_state=room_state, registry=registry))
 
 
-def _format_card_menu(combat_state: CombatState, registry: ContentProviderPort) -> list[str]:
-    return format_menu_lines(build_select_card_menu(combat_state=combat_state, registry=registry))
+def _format_card_menu(combat_state: CombatState, registry: ContentProviderPort) -> list[str | Text]:
+    return format_menu_entries(build_select_card_menu(combat_state=combat_state, registry=registry))
 
 
 def _format_target_menu(combat_state: CombatState, registry: ContentProviderPort, selected_card: str | None) -> list[str | Text]:
-    current_card_name: str | None = None
+    current_card_name: Text | None = None
     requires_enemy_target = False
     requires_hand_target = False
     if selected_card is not None:
         card_def = registry.cards().get(card_id_from_instance_id(selected_card))
-        current_card_name = card_def.name
+        current_card_name = render_card_name(card_def)
         effect_types = {effect.get("type") for effect in card_def.effects}
         requires_enemy_target = bool(effect_types & {"damage", "vulnerable"})
         requires_hand_target = bool(effect_types & {"exhaust_target_card", "upgrade_target_card"})
@@ -212,7 +213,7 @@ def _format_target_menu(combat_state: CombatState, registry: ContentProviderPort
         for index, card_instance_id in enumerate(selectable_hand_cards, start=1):
             card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
             label = Text()
-            label.append(card_def.name, style="card.name")
+            label.append_text(render_card_name(card_def))
             label.append(f" ({card_instance_id})")
             hand_target_options.append((f"target_hand:{index}", label))
 
@@ -377,7 +378,13 @@ def render_hand_panel(combat_state: CombatState, registry: ContentProviderPort) 
     lines: list[RenderableType] = []
     for index, card_instance_id in enumerate(combat_state.hand, start=1):
         card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
-        lines.append(f"{index}. {card_def.name} ({card_def.cost}) - {summarize_card_definition(card_def)}")
+        lines.append(
+            Text.assemble(
+                f"{index}. ",
+                render_card_name(card_def),
+                f" ({card_def.cost}) - {summarize_card_definition(card_def)}",
+            )
+        )
     return Panel(Group(*lines), title=title, box=PANEL_BOX, expand=False)
 
 

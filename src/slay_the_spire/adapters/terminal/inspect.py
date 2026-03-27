@@ -8,9 +8,12 @@ from rich.text import Text
 
 from slay_the_spire.adapters.terminal.theme import PANEL_BOX
 from slay_the_spire.adapters.terminal.widgets import (
+    card_rarity_label,
     card_label,
     format_card_cost,
+    is_upgraded_card,
     render_statuses,
+    render_card_name,
     special_card_rule_text,
     summarize_card_definition,
     summarize_card_effects,
@@ -109,14 +112,16 @@ def _upgrade_target_label(card_def: CardDef, registry: ContentProviderPort) -> s
 def format_card_detail_lines(card_instance_id: str, registry: ContentProviderPort) -> list[Text]:
     card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
     lines = [
-        Text.assemble(("名称 ", "summary.label"), card_def.name),
+        Text.assemble(("名称 ", "summary.label"), render_card_name(card_def)),
         Text.assemble(("实例 ", "summary.label"), card_instance_id),
+        Text.assemble(("稀有度 ", "summary.label"), card_rarity_label(card_def)),
+        Text.assemble(("状态 ", "summary.label"), "已升级" if is_upgraded_card(card_def) else "未升级"),
         Text.assemble(("费用 ", "summary.label"), format_card_cost(card_def.cost)),
         Text.assemble(("效果 ", "summary.label"), summarize_card_definition(card_def)),
     ]
     if card_def.upgrades_to is not None:
         upgraded = registry.cards().get(card_def.upgrades_to)
-        lines.append(Text.assemble(("升级为 ", "summary.label"), upgraded.name))
+        lines.append(Text.assemble(("升级为 ", "summary.label"), render_card_name(upgraded)))
     return lines
 
 
@@ -196,7 +201,7 @@ def format_reward_detail_lines(reward_id: str, registry: ContentProviderPort) ->
         reward_name = reward_id.split(":", 1)[1]
         card_def = registry.cards().get(_reward_card_id(reward_name))
         lines.append(Text.assemble(("奖励类型: ", "summary.label"), "卡牌"))
-        lines.append(Text.assemble(("名称: ", "summary.label"), card_def.name))
+        lines.append(Text.assemble(("名称: ", "summary.label"), render_card_name(card_def)))
         lines.append(Text.assemble(("效果: ", "summary.label"), summarize_card_definition(card_def)))
         return lines
     if reward_id.startswith("relic:"):
@@ -253,24 +258,23 @@ def render_reward_detail_panel(reward_id: str, registry: ContentProviderPort) ->
     return Panel(Group(*format_reward_detail_lines(reward_id, registry)), title="奖励详情", box=PANEL_BOX, expand=False)
 
 
-def format_card_instance_menu(title: str, card_instance_ids: list[str], registry: ContentProviderPort) -> list[str]:
+def format_card_instance_menu(title: str, card_instance_ids: list[str], registry: ContentProviderPort) -> list[str | Text]:
     del title
-    lines: list[str] = []
+    lines: list[str | Text] = []
     if not card_instance_ids:
         lines.append("-")
     else:
         for index, card_instance_id in enumerate(card_instance_ids, start=1):
             card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
             effect_summary = summarize_card_definition(card_def)
-            lines.append(
-                f"{index}. {card_def.name} | 费用 {_card_cost_label(card_def)} | 类型 {_card_type_label(card_def)} | {effect_summary}"
-            )
+            lines.append(Text.assemble(f"{index}. ", render_card_name(card_def), f" | 费用 {_card_cost_label(card_def)} | 类型 {_card_type_label(card_def)} | {effect_summary}"))
     lines.append(f"{len(card_instance_ids) + 1}. 返回资料总览")
     return lines
 
 
 def render_card_pile_panel(title: str, card_instance_ids: list[str], registry: ContentProviderPort) -> Panel:
-    return Panel(Group(*[Text(line) for line in format_card_instance_menu(title, card_instance_ids, registry)]), title=title, box=PANEL_BOX, expand=False)
+    body = [line if isinstance(line, Text) else Text(line) for line in format_card_instance_menu(title, card_instance_ids, registry)]
+    return Panel(Group(*body), title=title, box=PANEL_BOX, expand=False)
 
 
 def format_card_list_footer(*, back_choice: int) -> list[str]:
@@ -352,15 +356,17 @@ def format_card_detail_menu() -> list[str]:
 def render_card_detail_panel(card_instance_id: str, registry: ContentProviderPort) -> Panel:
     card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
     lines = [
-        f"名称: {card_def.name}",
-        f"实例 ID: {card_instance_id}",
-        f"费用: {_card_cost_label(card_def)}",
-        f"类型: {_card_type_label(card_def)}",
-        f"是否可打出: {'是' if card_def.playable and card_def.cost >= 0 else '否'}",
-        f"完整效果: {_full_effect_summary(card_def, registry)}",
-        f"升级目标: {_upgrade_target_label(card_def, registry)}",
+        Text.assemble(("名称: ", "summary.label"), render_card_name(card_def)),
+        Text.assemble(("实例 ID: ", "summary.label"), card_instance_id),
+        Text.assemble(("稀有度: ", "summary.label"), card_rarity_label(card_def)),
+        Text.assemble(("状态: ", "summary.label"), "已升级" if is_upgraded_card(card_def) else "未升级"),
+        Text.assemble(("费用: ", "summary.label"), _card_cost_label(card_def)),
+        Text.assemble(("类型: ", "summary.label"), _card_type_label(card_def)),
+        Text.assemble(("是否可打出: ", "summary.label"), "是" if card_def.playable and card_def.cost >= 0 else "否"),
+        Text.assemble(("完整效果: ", "summary.label"), _full_effect_summary(card_def, registry)),
+        Text.assemble(("升级目标: ", "summary.label"), _upgrade_target_label(card_def, registry)),
     ]
-    return Panel(Group(*[Text(line) for line in lines]), title="卡牌详情", box=PANEL_BOX, expand=False)
+    return Panel(Group(*lines), title="卡牌详情", box=PANEL_BOX, expand=False)
 
 
 def _move_summary(move: Mapping[str, object], registry: ContentProviderPort) -> str:

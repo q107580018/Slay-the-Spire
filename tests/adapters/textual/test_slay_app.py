@@ -7,6 +7,7 @@ from io import StringIO
 
 import pytest
 from rich.console import Console
+from rich.text import Text
 from textual.widgets import OptionList, Static
 
 from slay_the_spire.adapters.textual.map_widget import MapWidget
@@ -22,6 +23,11 @@ from slay_the_spire.app.menu_definitions import build_next_room_menu, build_root
 from slay_the_spire.app.session import render_session_renderable, start_session
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
+from slay_the_spire.domain.models.room_state import RoomState
+
+
+def _span_styles(text) -> set[str]:
+    return {str(span.style) for span in text.spans}
 
 
 def test_menu_choice_for_root_next_room_action() -> None:
@@ -77,6 +83,153 @@ def test_current_action_menu_marks_disabled_rest_actions() -> None:
     assert menu is not None
     assert menu.options[0].label == "休息 [已禁用]"
     assert menu.options[1].label == "锻造 [已禁用]"
+
+
+def test_current_action_menu_preserves_card_style_for_hand_targets() -> None:
+    session = start_session(seed=5)
+    combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
+    combat_state.hand = ["true_grit_plus#1", "strike_plus#2"]
+    session = replace(
+        session,
+        room_state=replace(session.room_state, payload={**session.room_state.payload, "combat_state": combat_state.to_dict()}),
+        menu_state=replace(session.menu_state, mode="select_target", selected_card_instance_id="true_grit_plus#1"),
+    )
+
+    menu = _current_action_menu(session)
+
+    assert menu is not None
+    label = menu.options[0].label
+    assert label.plain == "手牌 打击+ (strike_plus#2)"
+    assert "card.rarity.basic" in _span_styles(label)
+    assert "card.upgraded" in _span_styles(label)
+
+
+def test_current_action_menu_preserves_current_card_style_in_target_menu() -> None:
+    session = start_session(seed=5)
+    combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
+    combat_state.hand = ["anger_plus#1", "strike_plus#2"]
+    session = replace(
+        session,
+        room_state=replace(session.room_state, payload={**session.room_state.payload, "combat_state": combat_state.to_dict()}),
+        menu_state=replace(session.menu_state, mode="select_target", selected_card_instance_id="anger_plus#1"),
+    )
+
+    menu = _current_action_menu(session)
+
+    assert menu is not None
+    assert isinstance(menu.header_lines[0], Text)
+    assert menu.header_lines[0].plain == "当前卡牌: 愤怒+"
+    assert "card.rarity.common" in _span_styles(menu.header_lines[0])
+    assert "card.upgraded" in _span_styles(menu.header_lines[0])
+
+
+def test_action_summary_refresh_keeps_current_card_styles_in_target_menu() -> None:
+    session = start_session(seed=5)
+    combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
+    combat_state.hand = ["anger_plus#1", "strike_plus#2"]
+    session = replace(
+        session,
+        room_state=replace(session.room_state, payload={**session.room_state.payload, "combat_state": combat_state.to_dict()}),
+        menu_state=replace(session.menu_state, mode="select_target", selected_card_instance_id="anger_plus#1"),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            summary = app.query_one("#action-summary", Static)
+            rendered = summary.render()
+            assert rendered.plain.startswith("选择目标")
+            assert "当前卡牌: 愤怒+" in rendered.plain
+            assert rendered.spans
+            card_name_start = rendered.plain.index("愤怒+")
+            assert any(span.start <= card_name_start < span.end for span in rendered.spans)
+
+    asyncio.run(scenario())
+
+
+def test_current_action_menu_preserves_rarity_style_for_event_upgrade_choices() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=RoomState(
+            room_id="act1:event",
+            room_type="event",
+            stage="select_event_upgrade_card",
+            payload={
+                "node_id": "r1c1",
+                "room_kind": "event",
+                "event_id": "shining_light",
+                "upgrade_options": ["anger_plus#1"],
+                "next_node_ids": ["r2c0"],
+            },
+            is_resolved=False,
+            rewards=[],
+        ),
+        menu_state=replace(start_session(seed=5).menu_state, mode="event_upgrade_card"),
+    )
+
+    menu = _current_action_menu(session)
+
+    assert menu is not None
+    label = menu.options[0].label
+    assert isinstance(label, Text)
+    assert label.plain == "愤怒+"
+    assert "card.rarity.common" in _span_styles(label)
+    assert "card.upgraded" in _span_styles(label)
+
+
+def test_current_action_menu_preserves_rarity_style_for_event_remove_choices() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=RoomState(
+            room_id="act1:event",
+            room_type="event",
+            stage="select_event_remove_card",
+            payload={
+                "node_id": "r1c1",
+                "room_kind": "event",
+                "event_id": "shining_light",
+                "remove_candidates": ["anger_plus#1"],
+                "next_node_ids": ["r2c0"],
+            },
+            is_resolved=False,
+            rewards=[],
+        ),
+        menu_state=replace(start_session(seed=5).menu_state, mode="event_remove_card"),
+    )
+
+    menu = _current_action_menu(session)
+
+    assert menu is not None
+    label = menu.options[0].label
+    assert isinstance(label, Text)
+    assert label.plain == "愤怒+"
+    assert "card.rarity.common" in _span_styles(label)
+    assert "card.upgraded" in _span_styles(label)
+
+
+def test_action_list_refresh_keeps_text_styles_for_hand_targets() -> None:
+    session = start_session(seed=5)
+    combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
+    combat_state.hand = ["true_grit_plus#1", "strike_plus#2"]
+    session = replace(
+        session,
+        room_state=replace(session.room_state, payload={**session.room_state.payload, "combat_state": combat_state.to_dict()}),
+        menu_state=replace(session.menu_state, mode="select_target", selected_card_instance_id="true_grit_plus#1"),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            action_list = app.query_one("#action-list", OptionList)
+            prompt = action_list.get_option_at_index(0).prompt
+            assert isinstance(prompt, Text)
+            assert prompt.plain == "1. 手牌 打击+ (strike_plus#2)"
+            assert "card.rarity.basic" in _span_styles(prompt)
+            assert "card.upgraded" in _span_styles(prompt)
+
+    asyncio.run(scenario())
 
 
 def test_clicking_action_list_drives_menu_choice() -> None:
@@ -309,7 +462,57 @@ def test_hover_preview_shows_card_reward_details_on_mouse_hover() -> None:
             assert "费用" in preview.render().plain
             assert "效果" in preview.render().plain
 
-    asyncio.run(scenario())
+
+def test_hover_preview_shows_card_rarity_and_upgrade_state_for_reward_card() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="combat",
+            stage="completed",
+            is_resolved=True,
+            rewards=["card_offer:anger"],
+        ),
+        menu_state=replace(base.menu_state, mode="select_reward"),
+    )
+
+    preview = _hover_preview_renderable(session, "claim_reward:card_offer:anger")
+
+    assert preview is not None
+    assert "稀有度" in preview.plain
+    assert "普通" in preview.plain
+    assert "状态" in preview.plain
+    assert "未升级" in preview.plain
+    assert "card.rarity.common" in _span_styles(preview)
+
+
+def test_hover_preview_keeps_rarity_color_for_upgraded_shop_card() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="shop",
+            stage="waiting_input",
+            payload={
+                "cards": [{"offer_id": "offer-1", "card_id": "anger_plus", "price": 99, "sold": False}],
+                "relics": [],
+                "potions": [],
+                "remove_price": 75,
+                "remove_used": False,
+            },
+        ),
+        menu_state=replace(base.menu_state, mode="shop_root"),
+    )
+
+    preview = _hover_preview_renderable(session, "buy_card:offer-1")
+
+    assert preview is not None
+    assert "愤怒+" in preview.plain
+    assert "已升级" in preview.plain
+    assert "card.rarity.common" in _span_styles(preview)
+    assert "card.upgraded" in _span_styles(preview)
 
 
 def test_hover_preview_shows_selected_hand_card_effects_in_combat_menu() -> None:

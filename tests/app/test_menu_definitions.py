@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import replace
 
+from rich.text import Text
+
 from slay_the_spire.app.menu_definitions import (
     build_boss_relic_menu,
     build_boss_reward_menu,
@@ -19,8 +21,13 @@ from slay_the_spire.app.menu_definitions import (
     format_menu_lines,
     resolve_menu_action,
 )
+from slay_the_spire.adapters.terminal.widgets import render_card_name
 from slay_the_spire.app.session import start_session
 from slay_the_spire.content.provider import StarterContentProvider
+
+
+def _span_styles(text: Text) -> set[str]:
+    return {str(span.style) for span in text.spans}
 
 
 def test_build_root_menu_binds_resolved_combat_without_rewards_to_inspect_action() -> None:
@@ -226,12 +233,14 @@ def test_build_reward_root_menu_binds_claim_detail_and_back_actions() -> None:
 
 
 def test_build_reward_list_menu_lists_rewards_and_back_to_reward_root() -> None:
-    menu = build_reward_list_menu(["gold:11", "card_offer:anger"])
+    session = start_session(seed=5)
+    registry = StarterContentProvider(session.content_root)
+    menu = build_reward_list_menu(["gold:11", "card_offer:anger"], registry=registry)
 
     assert format_menu_lines(menu) == [
         "奖励详情列表:",
-        "1. gold:11",
-        "2. card_offer:anger",
+        "1. 金币 +11",
+        "2. 卡牌 愤怒",
         "3. 返回奖励主页",
     ]
     assert resolve_menu_action("1", menu) == "inspect_reward:gold:11"
@@ -329,6 +338,22 @@ def test_build_target_menu_supports_hand_target_headers() -> None:
     ]
     assert resolve_menu_action("1", menu) == "target_hand:1"
     assert resolve_menu_action("2", menu) == "back"
+
+
+def test_build_target_menu_keeps_current_card_text_style() -> None:
+    session = start_session(seed=5)
+    registry = StarterContentProvider(session.content_root)
+    current_card_name = render_card_name(registry.cards().get("anger_plus"))
+
+    menu = build_target_menu(
+        target_options=[("target_enemy:1", "绿史莱姆")],
+        current_card_name=current_card_name,
+    )
+
+    assert isinstance(menu.header_lines[0], Text)
+    assert menu.header_lines[0].plain == "当前卡牌: 愤怒+"
+    assert "card.rarity.common" in _span_styles(menu.header_lines[0])
+    assert "card.upgraded" in _span_styles(menu.header_lines[0])
 
 
 def test_build_boss_reward_menu_marks_claimed_relic_as_completed() -> None:

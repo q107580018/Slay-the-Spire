@@ -53,6 +53,7 @@ from slay_the_spire.adapters.terminal.inspect import (
     format_relic_detail_lines,
     format_reward_detail_lines,
 )
+from slay_the_spire.adapters.terminal.widgets import render_card_name
 
 _ROOM_LABELS: dict[str, str] = {
     "combat": "战斗房",
@@ -306,12 +307,12 @@ def _build_target_action_menu(session: SessionState) -> MenuDefinition | None:
 
     registry = _content_provider(session)
     card_def = registry.cards().get(card_id_from_instance_id(selected_card))
-    current_card_name = card_def.name
+    current_card_name = render_card_name(card_def)
     effect_types = {str(effect.get("type")) for effect in card_def.effects}
     requires_enemy_target = bool(effect_types & {"damage", "vulnerable", "weak"})
     requires_hand_target = bool(effect_types & {"exhaust_target_card", "upgrade_target_card"})
 
-    target_options: list[tuple[str, str]] = []
+    target_options: list[tuple[str, str | Text]] = []
     if requires_enemy_target or not requires_hand_target:
         living_enemies = [enemy for enemy in combat_state.enemies if enemy.hp > 0]
         for index, enemy in enumerate(living_enemies, start=1):
@@ -320,8 +321,13 @@ def _build_target_action_menu(session: SessionState) -> MenuDefinition | None:
     if requires_hand_target:
         selectable_cards = [card_instance_id for card_instance_id in combat_state.hand if card_instance_id != selected_card]
         for index, card_instance_id in enumerate(selectable_cards, start=1):
-            card_name = registry.cards().get(card_id_from_instance_id(card_instance_id)).name
-            target_options.append((f"target_hand:{index}", f"手牌 {card_name}"))
+            card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
+            target_options.append(
+                (
+                    f"target_hand:{index}",
+                    Text.assemble("手牌 ", render_card_name(card_def), f" ({card_instance_id})"),
+                )
+            )
 
     return build_target_menu(target_options=target_options, current_card_name=current_card_name)
 
@@ -354,7 +360,10 @@ def _current_action_menu(session: SessionState) -> MenuDefinition | None:
             options = []
         return build_event_upgrade_menu(
             options=[
-                (f"upgrade_card:{card_instance_id}", registry.cards().get(card_id_from_instance_id(card_instance_id)).name)
+                (
+                    f"upgrade_card:{card_instance_id}",
+                    render_card_name(registry.cards().get(card_id_from_instance_id(card_instance_id))),
+                )
                 for card_instance_id in options
             ]
         )
@@ -364,7 +373,10 @@ def _current_action_menu(session: SessionState) -> MenuDefinition | None:
             candidates = []
         return build_event_remove_menu(
             options=[
-                (f"remove_card:{card_instance_id}", registry.cards().get(card_id_from_instance_id(card_instance_id)).name)
+                (
+                    f"remove_card:{card_instance_id}",
+                    render_card_name(registry.cards().get(card_id_from_instance_id(card_instance_id))),
+                )
                 for card_instance_id in candidates
             ]
         )
@@ -556,16 +568,22 @@ class SlayApp(App[None]):
             self._refresh_hover_preview()
             return
 
-        summary_lines = [menu.title]
-        summary_lines.extend(_plain_label(line) for line in menu.header_lines)
+        summary = Text(menu.title)
+        for line in menu.header_lines:
+            summary.append("\n")
+            if isinstance(line, Text):
+                summary.append_text(line)
+            else:
+                summary.append(str(line))
         hover_summary = self._hover_summary()
         if hover_summary is not None:
-            summary_lines.append(hover_summary)
-        action_summary.update("\n".join(summary_lines))
+            summary.append("\n")
+            summary.append(hover_summary)
+        action_summary.update(summary)
 
-        prompts = []
+        prompts: list[str | Text] = []
         for index, option in enumerate(menu.options, start=1):
-            prompts.append(f"{index}. {_plain_label(option.label)}")
+            prompts.append(Text.assemble(f"{index}. ", option.label))
             self._action_choices.append(str(index))
             self._action_ids.append(option.action_id)
         action_list.add_options(prompts)

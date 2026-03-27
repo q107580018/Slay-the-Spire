@@ -4,6 +4,7 @@
       "id": "doubt",
       "name": "疑虑",
       "cost": -1,
+      "rarity": "curse",
       "playable": false,
       "can_appear_in_shop": false,
       "effects": []
@@ -12,6 +13,7 @@
       "id": "injury",
       "name": "伤口",
       "cost": -1,
+      "rarity": "curse",
       "playable": false,
       "can_appear_in_shop": false,
       "effects": []
@@ -20,6 +22,7 @@
       "id": "burn",
       "name": "灼伤",
       "cost": -1,
+      "rarity": "curse",
       "playable": false,
       "can_appear_in_shop": false,
       "effects": []
