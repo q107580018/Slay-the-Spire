@@ -46,6 +46,7 @@ def _combat_state() -> CombatState:
             )
         ],
         effect_queue=[{"type": "damage", "target": "enemy-1", "amount": 6}],
+        active_powers=[{"power_id": "inflame", "stacks": 1}],
         log=["player turn starts"],
     )
 

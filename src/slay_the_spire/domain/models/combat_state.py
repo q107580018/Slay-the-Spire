@@ -57,26 +57,26 @@ def _require_field(data: Mapping[str, object], field_name: str) -> object:
     return data[field_name]
 
 
-def _normalize_json_dict(effect: Mapping[str, object]) -> JsonDict:
+def _normalize_json_dict(value: Mapping[str, object], field_name: str) -> JsonDict:
     result: JsonDict = {}
-    for key, value in effect.items():
+    for key, nested_value in value.items():
         normalized_key = _require_json_key(key)
-        if value is None or isinstance(value, (str, int, float, bool)):
-            result[normalized_key] = value
-        elif isinstance(value, list):
+        if nested_value is None or isinstance(nested_value, (str, int, float, bool)):
+            result[normalized_key] = nested_value
+        elif isinstance(nested_value, list):
             normalized_list: list[JsonValue] = []
-            for item in value:
+            for item in nested_value:
                 if item is None or isinstance(item, (str, int, float, bool)):
                     normalized_list.append(item)
                 elif isinstance(item, Mapping):
-                    normalized_list.append(_normalize_json_dict(item))
+                    normalized_list.append(_normalize_json_dict(item, field_name))
                 else:
-                    raise TypeError("effect_queue must contain JSON-compatible values")
+                    raise TypeError(f"{field_name} must contain JSON-compatible values")
             result[normalized_key] = normalized_list
-        elif isinstance(value, Mapping):
-            result[normalized_key] = _normalize_json_dict(value)
+        elif isinstance(nested_value, Mapping):
+            result[normalized_key] = _normalize_json_dict(nested_value, field_name)
         else:
-            raise TypeError("effect_queue must contain JSON-compatible values")
+            raise TypeError(f"{field_name} must contain JSON-compatible values")
     return result
 
 
@@ -92,6 +92,7 @@ class CombatState:
     player: PlayerCombatState
     enemies: list[EnemyState] = field(default_factory=list)
     effect_queue: list[JsonDict] = field(default_factory=list)
+    active_powers: list[JsonDict] = field(default_factory=list)
     log: list[str] = field(default_factory=list)
     _entity_by_id: dict[str, PlayerCombatState | EnemyState] = field(
         init=False,
@@ -124,6 +125,8 @@ class CombatState:
             raise TypeError("enemies must be a list")
         if not isinstance(self.effect_queue, list):
             raise TypeError("effect_queue must be a list")
+        if not isinstance(self.active_powers, list):
+            raise TypeError("active_powers must be a list")
         if not isinstance(self.log, list):
             raise TypeError("log must be a list")
         self.hand = [_require_str(item, "hand item") for item in self.hand]
@@ -132,8 +135,12 @@ class CombatState:
         self.exhaust_pile = [_require_str(item, "exhaust_pile item") for item in self.exhaust_pile]
         self.enemies = list(self.enemies)
         self.effect_queue = [
-            _normalize_json_dict(_require_mapping(effect, "effect_queue item"))
+            _normalize_json_dict(_require_mapping(effect, "effect_queue item"), "effect_queue")
             for effect in self.effect_queue
+        ]
+        self.active_powers = [
+            _normalize_json_dict(_require_mapping(power, "active_powers item"), "active_powers")
+            for power in self.active_powers
         ]
         self.log = [_require_str(item, "log item") for item in self.log]
         self._refresh_entity_index()
@@ -164,7 +171,8 @@ class CombatState:
             "exhaust_pile": list(self.exhaust_pile),
             "player": self.player.to_dict(),
             "enemies": [enemy.to_dict() for enemy in self.enemies],
-            "effect_queue": [_normalize_json_dict(effect) for effect in self.effect_queue],
+            "effect_queue": [_normalize_json_dict(effect, "effect_queue") for effect in self.effect_queue],
+            "active_powers": [_normalize_json_dict(power, "active_powers") for power in self.active_powers],
             "log": list(self.log),
         }
 
@@ -180,6 +188,7 @@ class CombatState:
         exhaust_pile = _require_list(_require_field(data, "exhaust_pile"), "exhaust_pile")
         enemies_raw = _require_list(_require_field(data, "enemies"), "enemies")
         effect_queue_raw = _require_list(_require_field(data, "effect_queue"), "effect_queue")
+        active_powers_raw = _require_list(data.get("active_powers", []), "active_powers")
         log = _require_list(_require_field(data, "log"), "log")
         return cls(
             schema_version=SCHEMA_VERSION,
@@ -191,6 +200,13 @@ class CombatState:
             exhaust_pile=[_require_str(item, "exhaust_pile item") for item in exhaust_pile],
             player=PlayerCombatState.from_dict(_require_mapping(data["player"], "player")),
             enemies=[EnemyState.from_dict(_require_mapping(item, "enemies item")) for item in enemies_raw],
-            effect_queue=[_normalize_json_dict(_require_mapping(effect, "effect_queue item")) for effect in effect_queue_raw],
+            effect_queue=[
+                _normalize_json_dict(_require_mapping(effect, "effect_queue item"), "effect_queue")
+                for effect in effect_queue_raw
+            ],
+            active_powers=[
+                _normalize_json_dict(_require_mapping(power, "active_powers item"), "active_powers")
+                for power in active_powers_raw
+            ],
             log=[_require_str(item, "log item") for item in log],
         )

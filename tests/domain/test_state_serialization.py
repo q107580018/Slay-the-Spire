@@ -116,6 +116,7 @@ def test_room_and_combat_state_round_trip_without_python_object_refs():
         player=player,
         enemies=[enemy],
         effect_queue=[],
+        active_powers=[{"power_id": "inflame", "stacks": 2, "meta": {"source": "relic"}}],
         log=["combat starts"],
     )
     room_state = RoomState(
@@ -154,6 +155,59 @@ def test_room_state_to_dict_returns_deep_snapshot():
 
     assert state.payload["nested"]["cards"] == ["strike"]
     assert state.to_dict()["payload"]["nested"]["cards"] == ["strike"]
+
+
+def test_combat_state_round_trips_active_powers() -> None:
+    state = CombatState(
+        schema_version=1,
+        round_number=1,
+        energy=3,
+        hand=[],
+        draw_pile=[],
+        discard_pile=[],
+        exhaust_pile=[],
+        player=PlayerCombatState(
+            instance_id="player-1",
+            hp=80,
+            max_hp=80,
+            block=0,
+            statuses=[],
+        ),
+        enemies=[],
+        effect_queue=[],
+        active_powers=[{"power_id": "inflame", "stacks": 2, "meta": {"source": "relic"}}],
+        log=[],
+    )
+
+    assert CombatState.from_dict(state.to_dict()).to_dict() == state.to_dict()
+
+
+def test_combat_state_from_dict_defaults_missing_active_powers_to_empty_list() -> None:
+    restored = CombatState.from_dict(
+        {
+            "schema_version": 1,
+            "round_number": 1,
+            "energy": 3,
+            "hand": [],
+            "draw_pile": [],
+            "discard_pile": [],
+            "exhaust_pile": [],
+            "player": {
+                "schema_version": 1,
+                "instance_id": "player-1",
+                "hp": 80,
+                "max_hp": 80,
+                "block": 0,
+                "statuses": [],
+                "kind": "player",
+            },
+            "enemies": [],
+            "effect_queue": [],
+            "log": [],
+        }
+    )
+
+    assert restored.active_powers == []
 
 
 def test_act_state_constructor_rejects_dangling_next_node_edges():
@@ -795,6 +849,30 @@ def test_combat_state_constructor_rejects_non_mapping_effect_queue_items():
             ),
             enemies=[],
             effect_queue=["not-a-mapping"],  # type: ignore[list-item]
+            log=[],
+        )
+
+
+def test_combat_state_constructor_rejects_non_mapping_active_powers_items():
+    with pytest.raises(TypeError, match="active_powers item"):
+        CombatState(
+            schema_version=1,
+            round_number=1,
+            energy=3,
+            hand=[],
+            draw_pile=[],
+            discard_pile=[],
+            exhaust_pile=[],
+            player=PlayerCombatState(
+                instance_id="player-1",
+                hp=80,
+                max_hp=80,
+                block=0,
+                statuses=[],
+            ),
+            enemies=[],
+            effect_queue=[],
+            active_powers=["not-a-mapping"],  # type: ignore[list-item]
             log=[],
         )
 
