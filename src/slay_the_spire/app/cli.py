@@ -1,9 +1,14 @@
 from __future__ import annotations
 
 import argparse
+import secrets
 
 from slay_the_spire.adapters.textual.textual_runner import run_textual_session
 from slay_the_spire.app.session import load_session, start_session
+
+
+def _generate_seed() -> int:
+    return secrets.randbelow(2**63)
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -11,7 +16,7 @@ def _build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command")
 
     new_parser = subparsers.add_parser("new")
-    new_parser.add_argument("--seed", type=int, required=True)
+    new_parser.add_argument("--seed", type=int)
     new_parser.add_argument("--character", default="ironclad")
     new_parser.add_argument("--content-root")
     new_parser.add_argument("--save-path")
@@ -32,7 +37,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "new":
         session = start_session(
-            seed=args.seed,
+            seed=args.seed if args.seed is not None else _generate_seed(),
             character_id=args.character,
             content_root=args.content_root,
             save_path=args.save_path,
