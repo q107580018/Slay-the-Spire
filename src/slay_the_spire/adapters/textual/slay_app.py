@@ -48,6 +48,7 @@ from slay_the_spire.app.session import (
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.adapters.terminal.inspect import (
+    format_card_detail_lines,
     format_potion_detail_lines,
     format_relic_detail_lines,
     format_reward_detail_lines,
@@ -192,6 +193,9 @@ def _hover_preview_renderable(session: SessionState, action_id: str) -> Text | N
             return Text("控制项：读取存档")
         if action_id == "quit":
             return Text("控制项：退出游戏")
+        card_id = _shop_offer_by_action_id(session, action_id, offer_type="buy_card", item_key="card")
+        if card_id is not None:
+            return _text_from_lines(format_card_detail_lines(f"{card_id}#shop", _content_provider(session)))
         relic_id = _shop_offer_by_action_id(session, action_id, offer_type="buy_relic", item_key="relic")
         if relic_id is not None:
             return _text_from_lines(format_relic_detail_lines(relic_id, _content_provider(session)))
@@ -375,10 +379,11 @@ class SlayApp(App[None]):
     }
 
     #hover-preview {
-        height: 5;
+        height: 7;
         border: solid grey;
         padding: 0 1;
         color: $text-muted;
+        overflow-y: auto;
     }
 
     #action-list {

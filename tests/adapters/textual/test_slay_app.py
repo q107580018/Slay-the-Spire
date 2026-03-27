@@ -497,6 +497,42 @@ def test_hover_preview_shows_shop_relic_details() -> None:
     asyncio.run(scenario())
 
 
+def test_hover_preview_shows_shop_card_details() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="shop",
+            stage="waiting_input",
+            is_resolved=False,
+            payload={
+                "cards": [{"offer_id": "card-1", "card_id": "anger", "price": 65}],
+                "relics": [],
+                "potions": [],
+                "remove_price": 75,
+            },
+        ),
+        menu_state=replace(base.menu_state, mode="shop_root"),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            action_list = app.query_one("#action-list", OptionList)
+            action_list.highlighted = 0
+            await pilot.pause()
+            preview = app.query_one("#hover-preview", Static)
+            rendered = preview.render().plain
+            assert "愤怒" in rendered
+            assert "费用" in rendered
+            assert "效果" in rendered
+            assert "查看说明" not in rendered
+
+    asyncio.run(scenario())
+
+
 def test_hover_preview_shows_shop_remove_service_hint() -> None:
     base = start_session(seed=5)
     session = replace(
@@ -622,3 +658,39 @@ def test_hover_preview_ignores_unsupported_claim_reward_prefix() -> None:
     )
 
     assert _hover_preview_renderable(session, "claim_reward:potion:fire_potion") is None
+
+
+def test_hover_preview_has_usable_height_for_boss_relic_details_at_default_size() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="boss",
+            stage="completed",
+            is_resolved=True,
+            payload={
+                "boss_rewards": {
+                    "gold_reward": 100,
+                    "claimed_gold": True,
+                    "claimed_relic_id": None,
+                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper"],
+                }
+            },
+        ),
+        menu_state=replace(base.menu_state, mode="select_boss_relic"),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test(size=(80, 24)) as pilot:
+            await pilot.pause()
+            action_list = app.query_one("#action-list", OptionList)
+            action_list.highlighted = 0
+            await pilot.pause()
+            preview = app.query_one("#hover-preview", Static)
+            rendered = preview.render().plain
+            assert "黑色之血" in rendered
+            assert preview.size.height > 3
+
+    asyncio.run(scenario())
