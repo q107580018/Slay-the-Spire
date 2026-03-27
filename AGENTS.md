@@ -100,6 +100,7 @@
 ## 维护建议
 
 - 优先相信 `src/slay_the_spire/app/session.py`、`tests/`、`content/` 和 `src/slay_the_spire/data/content/`，不要优先相信旧文档。
+- 需要参考原版《Slay the Spire》资料时，优先查询官方社区 Wiki：[Slay the Spire Wiki](https://slay-the-spire.fandom.com/wiki/)。
 - 新增房间类型前，先确认三层都补齐：地图内容、use case / session 路由、终端渲染。
 - 新增角色、卡牌、敌人、事件、遗物或药水时，先改根目录 `content/`，再同步到 `src/slay_the_spire/data/content/`。
 - 新增战斗后奖励或 Boss 奖励时，同时检查 `src/slay_the_spire/domain/rewards/reward_generator.py`、`src/slay_the_spire/use_cases/apply_reward.py` 和对应测试。
