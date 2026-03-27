@@ -59,7 +59,7 @@ def test_build_root_menu_binds_pending_boss_rewards_to_reward_actions() -> None:
                     "generated_by": "boss_reward_generator",
                     "gold_reward": 95,
                     "claimed_gold": False,
-                    "boss_relic_offers": ["black_blood", "anchor", "lantern"],
+                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"],
                     "claimed_relic_id": None,
                 },
             },
@@ -122,7 +122,7 @@ def test_build_inspect_root_menu_binds_pending_boss_rewards_to_non_combat_choice
                     "generated_by": "boss_reward_generator",
                     "gold_reward": 95,
                     "claimed_gold": False,
-                    "boss_relic_offers": ["black_blood", "anchor", "lantern"],
+                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"],
                     "claimed_relic_id": None,
                 },
             },
@@ -257,7 +257,7 @@ def test_build_boss_reward_menu_binds_gold_relic_and_back_actions() -> None:
             "generated_by": "boss_reward_generator",
             "gold_reward": 99,
             "claimed_gold": False,
-            "boss_relic_offers": ["black_blood", "anchor", "lantern"],
+            "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"],
             "claimed_relic_id": None,
         }
     )
@@ -279,7 +279,7 @@ def test_build_boss_reward_menu_marks_claimed_gold_as_completed() -> None:
             "generated_by": "boss_reward_generator",
             "gold_reward": 99,
             "claimed_gold": True,
-            "boss_relic_offers": ["black_blood", "anchor", "lantern"],
+            "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"],
             "claimed_relic_id": None,
         }
     )
@@ -337,7 +337,7 @@ def test_build_boss_reward_menu_marks_claimed_relic_as_completed() -> None:
             "generated_by": "boss_reward_generator",
             "gold_reward": 99,
             "claimed_gold": True,
-            "boss_relic_offers": ["black_blood", "anchor", "lantern"],
+            "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"],
             "claimed_relic_id": "black_blood",
         }
     )
@@ -356,18 +356,22 @@ def test_build_boss_relic_menu_binds_three_relic_choices_and_back() -> None:
     session = start_session(seed=5)
     registry = StarterContentProvider(session.content_root)
 
-    menu = build_boss_relic_menu(["black_blood", "anchor", "lantern"], registry=registry)
+    menu = build_boss_relic_menu(
+        ["black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"],
+        registry=registry,
+    )
 
     assert format_menu_lines(menu) == [
         "选择Boss遗物:",
         "1. 黑色之血",
-        "2. 锚",
-        "3. 灯笼",
-        "4. 返回上一步",
+        "2. 虚空质",
+        "3. 咖啡滴滤器",
+        "4. 融合之锤",
+        "5. 返回上一步",
     ]
     assert resolve_menu_action("1", menu) == "claim_boss_relic:black_blood"
-    assert resolve_menu_action("3", menu) == "claim_boss_relic:lantern"
-    assert resolve_menu_action("4", menu) == "back"
+    assert resolve_menu_action("4", menu) == "claim_boss_relic:fusion_hammer"
+    assert resolve_menu_action("5", menu) == "back"
 
 
 def test_build_terminal_phase_menu_binds_result_and_system_actions() -> None:

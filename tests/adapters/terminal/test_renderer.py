@@ -457,7 +457,7 @@ def test_boss_reward_renderer_shows_reward_actions_on_root_screen() -> None:
                     "generated_by": "boss_reward_generator",
                     "gold_reward": 99,
                     "claimed_gold": False,
-                    "boss_relic_offers": ["black_blood", "anchor", "lantern"],
+                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"],
                     "claimed_relic_id": None,
                 },
             },
@@ -498,7 +498,7 @@ def test_boss_reward_renderer_shows_boss_reward_menu() -> None:
                     "generated_by": "boss_reward_generator",
                     "gold_reward": 99,
                     "claimed_gold": False,
-                    "boss_relic_offers": ["black_blood", "anchor", "lantern"],
+                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"],
                     "claimed_relic_id": None,
                 },
             },
@@ -539,7 +539,7 @@ def test_boss_reward_renderer_shows_boss_relic_menu() -> None:
                     "generated_by": "boss_reward_generator",
                     "gold_reward": 99,
                     "claimed_gold": True,
-                    "boss_relic_offers": ["black_blood", "anchor", "lantern"],
+                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"],
                     "claimed_relic_id": None,
                 },
             },
@@ -559,9 +559,10 @@ def test_boss_reward_renderer_shows_boss_relic_menu() -> None:
 
     assert "Boss奖励" in output
     assert "1. 黑色之血" in output
-    assert "2. 锚" in output
-    assert "3. 灯笼" in output
-    assert "4. 返回上一步" in output
+    assert "2. 虚空质" in output
+    assert "3. 咖啡滴滤器" in output
+    assert "4. 融合之锤" in output
+    assert "5. 返回上一步" in output
 
 
 def test_boss_reward_renderer_shows_claimed_status_labels() -> None:
@@ -579,7 +580,7 @@ def test_boss_reward_renderer_shows_claimed_status_labels() -> None:
                     "generated_by": "boss_reward_generator",
                     "gold_reward": 99,
                     "claimed_gold": True,
-                    "boss_relic_offers": ["black_blood", "anchor", "lantern"],
+                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"],
                     "claimed_relic_id": "black_blood",
                 },
             },

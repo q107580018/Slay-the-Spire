@@ -131,7 +131,7 @@ def test_single_act_smoke_simulates_map_shop_rest_and_boss_reward_transition_int
                     "generated_by": "boss_reward_generator",
                     "gold_reward": 99,
                     "claimed_gold": False,
-                    "boss_relic_offers": ["black_blood", "anchor", "lantern"],
+                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"],
                     "claimed_relic_id": None,
                 },
             },
