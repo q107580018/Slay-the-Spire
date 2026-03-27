@@ -395,12 +395,17 @@ def build_shop_remove_menu(*, room_state: RoomState, registry: ContentProviderPo
     return build_menu(title="选择要移除的卡牌", options=options)
 
 
-def build_rest_root_menu(*, room_state: RoomState) -> MenuDefinition:
+def build_rest_root_menu(*, room_state: RoomState, run_state: RunState | None = None) -> MenuDefinition:
     options: list[tuple[str, str]] = []
     for action in room_state.payload.get("actions", []):
         if not isinstance(action, str):
             continue
         label = "休息" if action == "rest" else "锻造" if action == "smith" else action
+        if run_state is not None:
+            if action == "rest" and "coffee_dripper" in run_state.relics:
+                label = f"{label} [已禁用]"
+            if action == "smith" and "fusion_hammer" in run_state.relics:
+                label = f"{label} [已禁用]"
         options.append((action, label))
     options.extend([("inspect", "查看资料"), ("save", "保存游戏"), ("load", "读取存档"), ("quit", "退出游戏")])
     return build_menu(title="休息点操作", options=options)

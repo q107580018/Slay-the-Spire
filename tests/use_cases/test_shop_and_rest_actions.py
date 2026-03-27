@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 from slay_the_spire.domain.models.room_state import RoomState
@@ -180,6 +181,16 @@ def test_rest_heal_restores_thirty_percent_of_max_hp_and_caps() -> None:
     assert result.room_state.is_resolved is True
 
 
+def test_rest_is_blocked_by_coffee_dripper() -> None:
+    run_state = replace(_run_state(), current_hp=50, relics=["burning_blood", "coffee_dripper"])
+
+    result = rest_action(run_state=run_state, room_state=_rest_room(), action_id="rest", registry=_content_provider())
+
+    assert result.run_state.current_hp == 50
+    assert result.room_state.stage == "waiting_input"
+    assert result.room_state.is_resolved is False
+
+
 def test_rest_smith_transitions_to_select_upgrade_card() -> None:
     result = rest_action(
         run_state=_run_state(),
@@ -190,6 +201,16 @@ def test_rest_smith_transitions_to_select_upgrade_card() -> None:
 
     assert result.room_state.stage == "select_upgrade_card"
     assert result.room_state.payload["upgrade_options"] == ["bash#3"]
+
+
+def test_rest_is_blocked_by_fusion_hammer() -> None:
+    run_state = replace(_run_state(), relics=["burning_blood", "fusion_hammer"])
+
+    result = rest_action(run_state=run_state, room_state=_rest_room(), action_id="smith", registry=_content_provider())
+
+    assert result.room_state.stage == "waiting_input"
+    assert "upgrade_options" not in result.room_state.payload
+    assert result.room_state.is_resolved is False
 
 
 def test_rest_select_upgrade_card_rewrites_card_instance_to_upgraded_card() -> None:

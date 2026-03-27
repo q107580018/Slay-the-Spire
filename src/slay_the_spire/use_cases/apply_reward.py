@@ -16,6 +16,8 @@ def _next_instance_id(deck: list[str], card_id: str) -> str:
 
 
 def _gold_amount(run_state: RunState, amount: int) -> int:
+    if "ectoplasm" in run_state.relics:
+        return 0
     if "golden_idol" not in run_state.relics:
         return amount
     return amount + (amount // 4)

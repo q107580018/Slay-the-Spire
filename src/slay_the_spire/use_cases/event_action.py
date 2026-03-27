@@ -48,6 +48,8 @@ def _with_added_relic(run_state: RunState, relic_id: str) -> RunState:
 
 
 def _event_gold_bonus(run_state: RunState, amount: int) -> int:
+    if "ectoplasm" in run_state.relics:
+        return 0
     if "golden_idol" not in run_state.relics:
         return amount
     return amount + (amount // 4)

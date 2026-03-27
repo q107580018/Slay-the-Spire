@@ -82,6 +82,8 @@ def rest_action(
         )
 
     if action_id == "rest":
+        if "coffee_dripper" in run_state.relics:
+            return _result(run_state, room_state)
         heal_amount = ceil(run_state.max_hp * 0.3)
         healed_hp = min(run_state.max_hp, run_state.current_hp + heal_amount)
         return _result(
@@ -97,6 +99,8 @@ def rest_action(
             ),
         )
     if action_id == "smith":
+        if "fusion_hammer" in run_state.relics:
+            return _result(run_state, room_state)
         options = _upgrade_options(run_state, registry)
         if not options:
             return _result(run_state, room_state)

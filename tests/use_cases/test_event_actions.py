@@ -1,9 +1,17 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from pathlib import Path
 
+from slay_the_spire.content.provider import StarterContentProvider
+from slay_the_spire.domain.models.run_state import RunState
 from slay_the_spire.app.session import MenuState, route_menu_choice, start_session
 from slay_the_spire.domain.models.room_state import RoomState
+from slay_the_spire.use_cases.event_action import event_action
+
+
+def _content_provider() -> StarterContentProvider:
+    return StarterContentProvider(Path(__file__).resolve().parents[2] / "content")
 
 
 def _event_session(event_id: str):
@@ -26,6 +34,21 @@ def _event_session(event_id: str):
         menu_state=MenuState(),
     )
     return session
+
+
+def _run_state(*, relics: list[str] | None = None) -> RunState:
+    return RunState(
+        seed=7,
+        character_id="ironclad",
+        current_act_id="act1",
+        current_hp=80,
+        max_hp=80,
+        gold=99,
+        deck=["strike#1", "strike#2", "strike#3", "strike#4", "strike#5", "defend#6", "defend#7", "defend#8", "defend#9", "bash#10"],
+        relics=["burning_blood", *(relics or [])],
+        potions=[],
+        card_removal_count=0,
+    )
 
 
 def test_shining_light_accept_enters_upgrade_subflow_and_upgrades_selected_card() -> None:
@@ -120,6 +143,21 @@ def test_golden_shrine_pray_grants_gold_without_other_side_effects() -> None:
     assert session.room_state.is_resolved is True
     assert session.run_state.gold == 199
     assert session.run_state.current_hp == 80
+
+
+def test_event_gain_gold_is_blocked_by_ectoplasm() -> None:
+    room_state = _event_session("golden_shrine").room_state
+    run_state = _run_state(relics=["ectoplasm"])
+
+    result = event_action(
+        run_state=run_state,
+        room_state=room_state,
+        action_id="choice:pray",
+        registry=_content_provider(),
+    )
+
+    assert result.run_state.gold == run_state.gold
+    assert result.room_state.is_resolved is True
 
 
 def test_masked_bandits_pay_spends_gold_without_other_side_effects() -> None:

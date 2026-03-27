@@ -1388,7 +1388,10 @@ def _route_shop_remove_card_menu(choice: str, session: SessionState) -> tuple[bo
 
 
 def _route_rest_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
-    action_id = resolve_menu_action(choice, build_rest_root_menu(room_state=session.room_state))
+    action_id = resolve_menu_action(
+        choice,
+        build_rest_root_menu(room_state=session.room_state, run_state=session.run_state),
+    )
     if action_id is None:
         return _invalid_menu_choice(session)
     if action_id == "inspect":

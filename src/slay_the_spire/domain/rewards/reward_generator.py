@@ -57,6 +57,8 @@ def generate_boss_rewards(
         for relic_id in _BOSS_RELIC_OFFERS
         if relic_id in available_relic_ids and relic_id not in run_state.relics
     ]
+    rng = rng_for_room(seed=normalized_seed, room_id=room_id, category="reward:boss")
+    rng.shuffle(boss_pool)
     return {
         "generated_by": "boss_reward_generator",
         "gold_reward": 90 + (normalized_seed % 21),

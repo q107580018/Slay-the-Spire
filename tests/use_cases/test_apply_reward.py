@@ -34,6 +34,14 @@ def test_apply_reward_adds_gold_to_run_state() -> None:
     assert updated.gold == 110
 
 
+def test_apply_reward_gold_is_blocked_by_ectoplasm() -> None:
+    run_state = replace(_run_state(), relics=["burning_blood", "ectoplasm"])
+
+    updated = apply_reward(run_state=run_state, reward_id="gold:11", registry=_content_provider())
+
+    assert updated.gold == run_state.gold
+
+
 def test_apply_reward_adds_real_card_instance_to_run_state() -> None:
     updated = apply_reward(run_state=_run_state(), reward_id="card:anger", registry=_content_provider())
 
@@ -82,9 +90,27 @@ def test_generate_boss_rewards_returns_high_gold_and_three_unique_relics() -> No
 
     assert rewards["generated_by"] == "boss_reward_generator"
     assert rewards["gold_reward"] == 106
-    assert rewards["boss_relic_offers"] == ["black_blood", "ectoplasm", "coffee_dripper"]
+    assert len(rewards["boss_relic_offers"]) == 3
+    assert len(set(rewards["boss_relic_offers"])) == 3
+    assert set(rewards["boss_relic_offers"]).issubset({"black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"})
     assert rewards["claimed_gold"] is False
     assert rewards["claimed_relic_id"] is None
+
+
+def test_generate_boss_rewards_can_offer_fusion_hammer_across_seeds() -> None:
+    seen_fusion_hammer = False
+    for seed in range(1, 40):
+        rewards = generate_boss_rewards(
+            room_id="act1:boss",
+            seed=seed,
+            run_state=_run_state(),
+            registry=_content_provider(),
+        )
+        if "fusion_hammer" in rewards["boss_relic_offers"]:
+            seen_fusion_hammer = True
+            break
+
+    assert seen_fusion_hammer is True
 
 
 def test_generate_combat_rewards_returns_gold_and_three_unique_card_offers() -> None:
