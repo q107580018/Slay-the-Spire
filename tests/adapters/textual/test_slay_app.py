@@ -55,6 +55,21 @@ def test_current_action_menu_matches_root_menu() -> None:
     assert menu.options[0].action_id == "view_current"
 
 
+def test_current_action_menu_marks_disabled_rest_actions() -> None:
+    session = replace(
+        start_session(seed=5),
+        run_state=replace(start_session(seed=5).run_state, relics=["burning_blood", "coffee_dripper", "fusion_hammer"]),
+        room_state=replace(start_session(seed=5).room_state, room_type="rest", stage="waiting_input", payload={"actions": ["rest", "smith"]}),
+        menu_state=replace(start_session(seed=5).menu_state, mode="rest_root"),
+    )
+
+    menu = _current_action_menu(session)
+
+    assert menu is not None
+    assert menu.options[0].label == "休息 [已禁用]"
+    assert menu.options[1].label == "锻造 [已禁用]"
+
+
 def test_clicking_action_list_drives_menu_choice() -> None:
     async def scenario() -> None:
         app = SlayApp(start_session(seed=5))

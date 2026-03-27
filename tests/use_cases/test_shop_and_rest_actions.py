@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import replace
 from pathlib import Path
 
+from slay_the_spire.app.session import MenuState, route_menu_choice, start_session
 from slay_the_spire.domain.models.room_state import RoomState
 from slay_the_spire.domain.models.run_state import RunState
 from slay_the_spire.content.provider import StarterContentProvider
@@ -189,6 +190,7 @@ def test_rest_is_blocked_by_coffee_dripper() -> None:
     assert result.run_state.current_hp == 50
     assert result.room_state.stage == "waiting_input"
     assert result.room_state.is_resolved is False
+    assert result.message == "该动作被遗物效果禁用。"
 
 
 def test_rest_smith_transitions_to_select_upgrade_card() -> None:
@@ -211,6 +213,21 @@ def test_rest_is_blocked_by_fusion_hammer() -> None:
     assert result.room_state.stage == "waiting_input"
     assert "upgrade_options" not in result.room_state.payload
     assert result.room_state.is_resolved is False
+    assert result.message == "该动作被遗物效果禁用。"
+
+
+def test_rest_menu_route_surfaces_disabled_action_message() -> None:
+    session = replace(
+        start_session(seed=5),
+        run_state=replace(start_session(seed=5).run_state, relics=["burning_blood", "coffee_dripper"]),
+        room_state=replace(_rest_room(), room_id="act1:rest", payload={"actions": ["rest", "smith"]}),
+        menu_state=MenuState(mode="rest_root"),
+    )
+
+    _running, next_session, message = route_menu_choice("1", session=session)
+
+    assert message.startswith("该动作被遗物效果禁用。")
+    assert next_session.room_state.stage == "waiting_input"
 
 
 def test_rest_select_upgrade_card_rewrites_card_instance_to_upgraded_card() -> None:

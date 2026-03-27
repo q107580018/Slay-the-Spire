@@ -672,8 +672,8 @@ def _format_shop_remove_menu(room_state: RoomState, registry: ContentProviderPor
     return format_menu_lines(build_shop_remove_menu(room_state=room_state, registry=registry))
 
 
-def _format_rest_root_menu(room_state: RoomState) -> list[str]:
-    return format_menu_lines(build_rest_root_menu(room_state=room_state))
+def _format_rest_root_menu(room_state: RoomState, run_state: RunState) -> list[str]:
+    return format_menu_lines(build_rest_root_menu(room_state=room_state, run_state=run_state))
 
 
 def _format_rest_upgrade_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str]:
@@ -906,7 +906,7 @@ def render_non_combat_screen(
     elif mode == "shop_remove_card":
         footer = render_menu(_format_shop_remove_menu(room_state, registry))
     elif mode == "rest_root":
-        footer = render_menu(_format_rest_root_menu(room_state))
+        footer = render_menu(_format_rest_root_menu(room_state, run_state))
     elif mode == "rest_upgrade_card":
         footer = render_menu(_format_rest_upgrade_menu(room_state, registry))
     else:

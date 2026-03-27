@@ -802,6 +802,7 @@ def test_shop_remove_renderer_uses_localized_card_labels() -> None:
 
 def test_rest_renderer_shows_root_and_upgrade_selection_states() -> None:
     session = start_session(seed=5)
+    run_state = replace(session.run_state, relics=["burning_blood", "coffee_dripper", "fusion_hammer"])
     root_room = RoomState(
         room_id="act1:rest",
         room_type="rest",
@@ -811,7 +812,7 @@ def test_rest_renderer_shows_root_and_upgrade_selection_states() -> None:
         rewards=[],
     )
     root_output = render_room(
-        run_state=session.run_state,
+        run_state=run_state,
         act_state=session.act_state,
         room_state=root_room,
         registry=_provider(session),
@@ -828,8 +829,8 @@ def test_rest_renderer_shows_root_and_upgrade_selection_states() -> None:
     )
 
     assert "休息点" in root_output
-    assert "休息" in root_output
-    assert "锻造" in root_output
+    assert "休息 [已禁用]" in root_output
+    assert "锻造 [已禁用]" in root_output
     assert "3. 查看资料" in root_output
     assert "Rest" not in root_output
     assert "Smith" not in root_output

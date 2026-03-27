@@ -113,6 +113,25 @@ def test_generate_boss_rewards_can_offer_fusion_hammer_across_seeds() -> None:
     assert seen_fusion_hammer is True
 
 
+def test_generate_boss_rewards_is_deterministic_for_same_inputs() -> None:
+    run_state = replace(_run_state(), relics=["burning_blood", "ectoplasm"])
+
+    first = generate_boss_rewards(
+        room_id="act1:boss",
+        seed=37,
+        run_state=run_state,
+        registry=_content_provider(),
+    )
+    second = generate_boss_rewards(
+        room_id="act1:boss",
+        seed=37,
+        run_state=run_state,
+        registry=_content_provider(),
+    )
+
+    assert first["boss_relic_offers"] == second["boss_relic_offers"]
+
+
 def test_generate_combat_rewards_returns_gold_and_three_unique_card_offers() -> None:
     rewards = generate_combat_rewards(room_id="act1:hallway_reward", seed=41)
 

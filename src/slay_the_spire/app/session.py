@@ -1415,7 +1415,7 @@ def _route_rest_root_menu(choice: str, session: SessionState) -> tuple[bool, Ses
         room_state=result.room_state,
         menu_state=_menu_state_for_room(result.room_state),
     )
-    return True, next_session, render_session(next_session)
+    return True, next_session, _message_with_render(next_session, result.message)
 
 
 def _route_rest_upgrade_card_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
@@ -1443,7 +1443,7 @@ def _route_rest_upgrade_card_menu(choice: str, session: SessionState) -> tuple[b
         room_state=result.room_state,
         menu_state=_menu_state_for_room(result.room_state),
     )
-    return True, next_session, render_session(next_session)
+    return True, next_session, _message_with_render(next_session, result.message)
 
 
 def route_menu_choice(choice: str, *, session: SessionState) -> tuple[bool, SessionState, str]:

@@ -182,7 +182,7 @@ def _current_action_menu(session: SessionState) -> MenuDefinition | None:
     if menu_mode == "shop_remove_card":
         return build_shop_remove_menu(room_state=room_state, registry=registry)
     if menu_mode == "rest_root":
-        return build_rest_root_menu(room_state=room_state)
+        return build_rest_root_menu(room_state=room_state, run_state=session.run_state)
     if menu_mode == "rest_upgrade_card":
         return build_rest_upgrade_menu(room_state=room_state, registry=registry)
     if menu_mode == "select_card":

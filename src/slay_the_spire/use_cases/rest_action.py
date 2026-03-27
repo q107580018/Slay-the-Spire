@@ -13,10 +13,11 @@ from slay_the_spire.ports.content_provider import ContentProviderPort
 class RestActionResult:
     run_state: RunState
     room_state: RoomState
+    message: str | None = None
 
 
-def _result(run_state: RunState, room_state: RoomState) -> RestActionResult:
-    return RestActionResult(run_state=run_state, room_state=room_state)
+def _result(run_state: RunState, room_state: RoomState, message: str | None = None) -> RestActionResult:
+    return RestActionResult(run_state=run_state, room_state=room_state, message=message)
 
 
 def _upgrade_options(run_state: RunState, registry: ContentProviderPort) -> list[str]:
@@ -83,7 +84,7 @@ def rest_action(
 
     if action_id == "rest":
         if "coffee_dripper" in run_state.relics:
-            return _result(run_state, room_state)
+            return _result(run_state, room_state, "该动作被遗物效果禁用。")
         heal_amount = ceil(run_state.max_hp * 0.3)
         healed_hp = min(run_state.max_hp, run_state.current_hp + heal_amount)
         return _result(
@@ -100,7 +101,7 @@ def rest_action(
         )
     if action_id == "smith":
         if "fusion_hammer" in run_state.relics:
-            return _result(run_state, room_state)
+            return _result(run_state, room_state, "该动作被遗物效果禁用。")
         options = _upgrade_options(run_state, registry)
         if not options:
             return _result(run_state, room_state)
