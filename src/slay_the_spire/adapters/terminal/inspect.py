@@ -25,7 +25,7 @@ from slay_the_spire.app.menu_definitions import (
     format_menu_lines,
 )
 from slay_the_spire.content.registries import CardDef, EnemyDef
-from slay_the_spire.domain.combat.turn_flow import preview_enemy_move
+from slay_the_spire.domain.combat.turn_flow import preview_enemy_move_for_display
 from slay_the_spire.domain.models.act_state import ActState
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
@@ -369,7 +369,7 @@ def render_enemy_list_panel(combat_state: CombatState, registry: ContentProvider
         line.append(f" | 生命: {enemy.hp}/{enemy.max_hp}")
         line.append(f" | 格挡: {enemy.block}")
         line.append(f" | 状态: {_enemy_status_label(enemy)}")
-        line.append(f" | 当前意图: {_move_summary(preview_enemy_move(combat_state, enemy, enemy_def) or {}, registry)}")
+        line.append(f" | 当前意图: {_move_summary(preview_enemy_move_for_display(combat_state, enemy, enemy_def) or {}, registry)}")
         lines.append(line)
     return Panel(Group(*lines), title="敌人列表", box=PANEL_BOX, expand=False)
 
@@ -387,7 +387,7 @@ def format_enemy_list_footer(*, back_choice: int) -> list[str]:
 
 def render_enemy_detail_panel(combat_state: CombatState, enemy: EnemyState, registry: ContentProviderPort) -> Panel:
     enemy_def = registry.enemies().get(enemy.enemy_id)
-    current_move = preview_enemy_move(combat_state, enemy, enemy_def)
+    current_move = preview_enemy_move_for_display(combat_state, enemy, enemy_def)
     lines = [
         Text.assemble("名称: ", (enemy_def.name, "enemy.name")),
         Text(f"当前生命: {enemy.hp}/{enemy.max_hp}"),

@@ -479,3 +479,59 @@ def test_render_hexaghost_enemy_detail_localizes_divider_summary() -> None:
     assert "当前状态: 力量 2" in output
     assert "当前意图摘要: 6 段攻击（每段伤害随生命变化）" in output
     assert "招式表预览: divider: 6 段攻击（每段伤害随生命变化）" in output
+
+
+def test_render_inspect_enemy_list_and_detail_apply_strength_to_intent_preview() -> None:
+    session = start_session(seed=5)
+    combat_state = CombatState(
+        round_number=1,
+        energy=3,
+        hand=[],
+        draw_pile=[],
+        discard_pile=[],
+        exhaust_pile=[],
+        player=PlayerCombatState(
+            instance_id="player-1",
+            hp=80,
+            max_hp=80,
+            block=0,
+            statuses=[],
+        ),
+        enemies=[
+            EnemyState(
+                instance_id="enemy-1",
+                enemy_id="jaw_worm",
+                hp=16,
+                max_hp=16,
+                block=0,
+                statuses=[StatusState(status_id="strength", stacks=2)],
+            )
+        ],
+        effect_queue=[],
+        log=[],
+    )
+    room_state = replace(
+        session.room_state,
+        payload={**session.room_state.payload, "combat_state": combat_state.to_dict()},
+    )
+
+    enemy_list_output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=room_state,
+        registry=_provider(session),
+        menu_state=MenuState(mode="inspect_enemy_list", inspect_parent_mode="inspect_root", inspect_item_id="enemies"),
+        run_phase=session.run_phase,
+    )
+    enemy_detail_output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=room_state,
+        registry=_provider(session),
+        menu_state=MenuState(mode="inspect_enemy_detail", inspect_parent_mode="inspect_enemy_list", inspect_item_id="enemy-1"),
+        run_phase=session.run_phase,
+    )
+
+    assert "当前意图: 造成 7 伤害" in enemy_list_output
+    assert "当前意图摘要: 造成 7 伤害" in enemy_detail_output
+    assert "招式表预览: bite: 造成 5 伤害；chomp: 造成 7 伤害" in enemy_detail_output

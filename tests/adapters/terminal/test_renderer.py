@@ -284,6 +284,56 @@ def test_combat_renderer_uses_dynamic_enemy_intent_for_awake_enemy() -> None:
     assert "意图: 造成 18 伤害" in output
 
 
+def test_combat_renderer_includes_enemy_strength_in_intent_preview() -> None:
+    session = start_session(seed=5)
+    combat_state = CombatState(
+        round_number=1,
+        energy=3,
+        hand=[],
+        draw_pile=[],
+        discard_pile=[],
+        exhaust_pile=[],
+        player=PlayerCombatState(
+            instance_id="player-1",
+            hp=80,
+            max_hp=80,
+            block=0,
+            statuses=[],
+        ),
+        enemies=[
+            EnemyState(
+                instance_id="enemy-1",
+                enemy_id="jaw_worm",
+                hp=16,
+                max_hp=16,
+                block=0,
+                statuses=[StatusState(status_id="strength", stacks=2)],
+            )
+        ],
+        effect_queue=[],
+        log=[],
+    )
+    room_state = RoomState(
+        room_id="act1:combat",
+        room_type="combat",
+        stage="waiting_input",
+        payload={"node_id": "combat", "room_kind": "combat", "combat_state": combat_state.to_dict(), "next_node_ids": ["next"]},
+        is_resolved=False,
+        rewards=[],
+    )
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=room_state,
+        registry=_provider(session),
+        menu_state=MenuState(),
+        run_phase="active",
+    )
+
+    assert "意图: 造成 7 伤害" in output
+
+
 def test_combat_renderer_shows_inspect_root_menu_when_in_inspect_mode() -> None:
     session = start_session(seed=5)
     output = render_room(

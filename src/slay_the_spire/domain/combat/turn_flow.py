@@ -150,6 +150,46 @@ def preview_enemy_move(state: CombatState, enemy: EnemyState, enemy_def: EnemyDe
     return _active_enemy_move(state, enemy_def)
 
 
+def _strength_bonus(entity: PlayerCombatState | EnemyState) -> int:
+    return sum(status.stacks for status in entity.statuses if status.status_id == "strength" and status.stacks > 0)
+
+
+def _adjust_damage_for_strength(effect: Mapping[str, object], strength_bonus: int) -> JsonDict:
+    adjusted = copy_effect(effect)
+    if adjusted.get("type") != "damage":
+        return adjusted
+    adjusted["amount"] = max(int(adjusted.get("amount", 0)), 0) + strength_bonus
+    return adjusted
+
+
+def preview_enemy_move_for_display(
+    state: CombatState,
+    enemy: EnemyState,
+    enemy_def: EnemyDef,
+) -> Mapping[str, object] | None:
+    preview = preview_enemy_move(state, enemy, enemy_def)
+    if preview is None:
+        return None
+
+    strength_bonus = _strength_bonus(enemy)
+    if strength_bonus <= 0:
+        return copy_effect(preview)
+
+    adjusted_preview = copy_effect(preview)
+    if adjusted_preview.get("move") == "sleep":
+        return adjusted_preview
+
+    effects = adjusted_preview.get("effects")
+    if isinstance(effects, list):
+        adjusted_preview["effects"] = [
+            _adjust_damage_for_strength(effect, strength_bonus) if isinstance(effect, Mapping) else effect
+            for effect in effects
+        ]
+        return adjusted_preview
+
+    return _adjust_damage_for_strength(adjusted_preview, strength_bonus)
+
+
 def _select_enemy_move(state: CombatState, enemy: EnemyState, enemy_def: EnemyDef) -> Mapping[str, object] | None:
     preview = preview_enemy_move(state, enemy, enemy_def)
     if preview is None:
