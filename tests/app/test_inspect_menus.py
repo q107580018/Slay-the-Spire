@@ -217,6 +217,49 @@ def test_non_combat_inspect_deck_can_open_card_detail_and_return() -> None:
     assert back_to_root_message.splitlines()[0] == "资料总览"
 
 
+def test_reward_home_can_open_reward_list_and_detail_then_return_to_claim_flow() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=replace(
+            start_session(seed=5).room_state,
+            stage="completed",
+            is_resolved=True,
+            rewards=["gold:11", "card_offer:anger"],
+        ),
+    )
+
+    _running, reward_root_session, reward_root_message = route_menu_choice("1", session=session)
+    _running, reward_list_session, reward_list_message = route_menu_choice("2", session=reward_root_session)
+    _running, reward_detail_session, reward_detail_message = route_menu_choice("1", session=reward_list_session)
+    _running, reward_list_back_session, reward_list_back_message = route_menu_choice("1", session=reward_detail_session)
+    _running, reward_root_back_session, reward_root_back_message = route_menu_choice("3", session=reward_list_back_session)
+    _running, claim_menu_session, claim_menu_message = route_menu_choice("1", session=reward_root_back_session)
+
+    assert reward_root_session.menu_state.mode == "inspect_reward_root"
+    assert reward_root_session.menu_state.inspect_parent_mode == "root"
+    assert reward_root_session.menu_state.inspect_item_id is None
+    assert reward_root_message.splitlines()[0] == "奖励主页"
+    assert reward_list_session.menu_state.mode == "inspect_reward_list"
+    assert reward_list_session.menu_state.inspect_parent_mode == "inspect_reward_root"
+    assert reward_list_session.menu_state.inspect_item_id is None
+    assert reward_list_message.splitlines()[0] == "奖励详情列表"
+    assert reward_detail_session.menu_state.mode == "inspect_reward_detail"
+    assert reward_detail_session.menu_state.inspect_parent_mode == "inspect_reward_root"
+    assert reward_detail_session.menu_state.inspect_item_id == "gold:11"
+    assert reward_detail_message.splitlines()[0] == "奖励详情"
+    assert reward_list_back_session.menu_state.mode == "inspect_reward_list"
+    assert reward_list_back_session.menu_state.inspect_parent_mode == "inspect_reward_root"
+    assert reward_list_back_session.menu_state.inspect_item_id is None
+    assert reward_list_back_message.splitlines()[0] == "奖励详情列表"
+    assert reward_root_back_session.menu_state.mode == "inspect_reward_root"
+    assert reward_root_back_session.menu_state.inspect_parent_mode == "root"
+    assert reward_root_back_session.menu_state.inspect_item_id is None
+    assert reward_root_back_message.splitlines()[0] == "奖励主页"
+    assert claim_menu_session.menu_state.mode == "select_reward"
+    assert claim_menu_session.room_state.rewards == ["gold:11", "card_offer:anger"]
+    assert "奖励:" in claim_menu_message
+
+
 def test_inspect_leaf_pages_keep_transition_messages_consistent() -> None:
     session = start_session(seed=5)
 

@@ -21,6 +21,7 @@ from slay_the_spire.adapters.terminal.widgets import (
 from slay_the_spire.app.menu_definitions import (
     build_card_detail_menu,
     build_enemy_detail_menu,
+    build_reward_detail_menu,
     format_menu_lines,
 )
 from slay_the_spire.content.registries import CardDef, EnemyDef
@@ -129,6 +130,48 @@ def format_relic_detail_lines(relic_id: str, registry: ContentProviderPort) -> l
     if relic_def.trigger_hooks:
         lines.append(Text.assemble(("触发 ", "summary.label"), summarize_trigger_hooks(relic_def.trigger_hooks)))
     return lines
+
+
+def _reward_card_id(reward_name: str) -> str:
+    if reward_name == "reward_strike":
+        return "strike_plus"
+    if reward_name == "reward_defend":
+        return "defend_plus"
+    return reward_name
+
+
+def format_reward_detail_lines(reward_id: str, registry: ContentProviderPort) -> list[Text]:
+    lines = [Text.assemble(("奖励 ID: ", "summary.label"), reward_id)]
+    if reward_id.startswith("gold:"):
+        amount = reward_id.split(":", 1)[1]
+        lines.append(Text.assemble(("奖励类型: ", "summary.label"), f"金币 +{amount}"))
+        return lines
+    if reward_id.startswith("card_offer:") or reward_id.startswith("card:"):
+        reward_name = reward_id.split(":", 1)[1]
+        card_def = registry.cards().get(_reward_card_id(reward_name))
+        lines.append(Text.assemble(("奖励类型: ", "summary.label"), "卡牌"))
+        lines.append(Text.assemble(("名称: ", "summary.label"), card_def.name))
+        lines.append(Text.assemble(("效果: ", "summary.label"), summarize_card_definition(card_def)))
+        return lines
+    if reward_id.startswith("relic:"):
+        relic_id = reward_id.split(":", 1)[1]
+        relic_def = registry.relics().get(relic_id)
+        lines.append(Text.assemble(("奖励类型: ", "summary.label"), "遗物"))
+        lines.append(Text.assemble(("名称: ", "summary.label"), relic_def.name))
+        lines.append(Text.assemble(("效果: ", "summary.label"), summarize_relic_effects(relic_def.passive_effects)))
+        if relic_def.trigger_hooks:
+            lines.append(Text.assemble(("触发: ", "summary.label"), summarize_trigger_hooks(relic_def.trigger_hooks)))
+        return lines
+    lines.append(Text.assemble(("说明: ", "summary.label"), reward_id))
+    return lines
+
+
+def format_reward_detail_menu(reward_id: str) -> list[str]:
+    return format_menu_lines(build_reward_detail_menu(reward_id))
+
+
+def render_reward_detail_panel(reward_id: str, registry: ContentProviderPort) -> Panel:
+    return Panel(Group(*format_reward_detail_lines(reward_id, registry)), title="奖励详情", box=PANEL_BOX, expand=False)
 
 
 def format_card_instance_menu(title: str, card_instance_ids: list[str], registry: ContentProviderPort) -> list[str]:

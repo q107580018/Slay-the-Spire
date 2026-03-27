@@ -436,6 +436,61 @@ def test_non_boss_reward_claim_returns_to_map_selection() -> None:
     assert next_session.run_state.gold == 110
 
 
+def test_reward_detail_menu_round_trip_after_load_session_keeps_claim_flow(tmp_path: Path) -> None:
+    session = replace(
+        start_session(seed=7),
+        room_state=RoomState(
+            room_id="act1:hallway",
+            room_type="combat",
+            stage="completed",
+            payload={"node_id": "r1c0", "next_node_ids": ["r2c0"]},
+            is_resolved=True,
+            rewards=["gold:11", "card_offer:anger"],
+        ),
+    )
+    repository = JsonFileSaveRepository(tmp_path / "reward_detail.json")
+    save_game(
+        repository=repository,
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+    )
+
+    restored_session = load_session(
+        save_path=tmp_path / "reward_detail.json",
+        content_root=Path(__file__).resolve().parents[2] / "content",
+    )
+    _running, reward_root_session, reward_root_message = route_menu_choice("1", session=restored_session)
+    _running, list_session, list_message = route_menu_choice("2", session=reward_root_session)
+    _running, detail_session, detail_message = route_menu_choice("1", session=list_session)
+    _running, list_back_session, list_back_message = route_menu_choice("1", session=detail_session)
+    _running, reward_root_back_session, reward_root_back_message = route_menu_choice("3", session=list_back_session)
+    _running, claim_menu_session, claim_menu_message = route_menu_choice("1", session=reward_root_back_session)
+    _running, claimed_session, claimed_message = route_menu_choice("1", session=claim_menu_session)
+
+    assert restored_session.menu_state.mode == "root"
+    assert restored_session.room_state.rewards == ["gold:11", "card_offer:anger"]
+    assert reward_root_session.menu_state.mode == "inspect_reward_root"
+    assert reward_root_message.splitlines()[0] == "奖励主页"
+    assert list_session.menu_state.mode == "inspect_reward_list"
+    assert list_session.menu_state.inspect_parent_mode == "inspect_reward_root"
+    assert list_message.splitlines()[0] == "奖励详情列表"
+    assert detail_session.menu_state.mode == "inspect_reward_detail"
+    assert detail_session.menu_state.inspect_item_id == "gold:11"
+    assert detail_message.splitlines()[0] == "奖励详情"
+    assert list_back_session.menu_state.mode == "inspect_reward_list"
+    assert list_back_message.splitlines()[0] == "奖励详情列表"
+    assert reward_root_back_session.menu_state.mode == "inspect_reward_root"
+    assert reward_root_back_message.splitlines()[0] == "奖励主页"
+    assert claim_menu_session.menu_state.mode == "select_reward"
+    assert claim_menu_session.room_state.rewards == ["gold:11", "card_offer:anger"]
+    assert "奖励:" in claim_menu_message
+    assert claimed_session.menu_state.mode == "root"
+    assert claimed_session.room_state.rewards == ["card_offer:anger"]
+    assert claimed_session.run_state.gold == 110
+    assert "前往下一个房间" in claimed_message
+
+
 def test_event_room_inspect_round_trip_keeps_choice_flow() -> None:
     session = replace(
         start_session(seed=7),

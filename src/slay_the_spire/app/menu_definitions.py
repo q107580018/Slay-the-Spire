@@ -239,6 +239,38 @@ def build_reward_menu(*, room_state: RoomState, registry: ContentProviderPort) -
     )
 
 
+def build_reward_root_menu() -> MenuDefinition:
+    return build_menu(
+        title="奖励主页",
+        options=[
+            ("claim_rewards", "领取奖励"),
+            ("view_reward_details", "查看奖励详情"),
+            ("back", "返回"),
+        ],
+    )
+
+
+def build_reward_list_menu(reward_ids: list[str] | tuple[str, ...]) -> MenuDefinition:
+    return build_menu(
+        title="奖励详情列表",
+        options=[
+            *[(f"inspect_reward:{reward_id}", reward_id) for reward_id in reward_ids],
+            ("back", "返回奖励主页"),
+        ],
+    )
+
+
+def build_reward_detail_menu(reward_id: str) -> MenuDefinition:
+    del reward_id
+    return build_menu(
+        title="奖励详情",
+        options=[
+            ("back_to_list", "返回奖励列表"),
+            ("back_to_root", "返回奖励主页"),
+        ],
+    )
+
+
 def build_boss_reward_menu(boss_rewards: Mapping[str, object]) -> MenuDefinition:
     gold_reward = boss_rewards.get("gold_reward")
     claimed_gold = boss_rewards.get("claimed_gold") is True

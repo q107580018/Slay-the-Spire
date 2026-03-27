@@ -5,6 +5,9 @@ from dataclasses import replace
 from slay_the_spire.app.menu_definitions import (
     build_boss_relic_menu,
     build_boss_reward_menu,
+    build_reward_detail_menu,
+    build_reward_list_menu,
+    build_reward_root_menu,
     build_next_room_menu,
     build_inspect_root_menu,
     build_reward_menu,
@@ -206,6 +209,46 @@ def test_build_reward_menu_lists_skip_card_rewards_when_card_offers_exist() -> N
     ]
     assert resolve_menu_action("2", menu) == "claim_reward:card_offer:anger"
     assert resolve_menu_action("5", menu) == "skip_card_rewards"
+
+
+def test_build_reward_root_menu_binds_claim_detail_and_back_actions() -> None:
+    menu = build_reward_root_menu()
+
+    assert format_menu_lines(menu) == [
+        "奖励主页:",
+        "1. 领取奖励",
+        "2. 查看奖励详情",
+        "3. 返回",
+    ]
+    assert resolve_menu_action("1", menu) == "claim_rewards"
+    assert resolve_menu_action("2", menu) == "view_reward_details"
+    assert resolve_menu_action("3", menu) == "back"
+
+
+def test_build_reward_list_menu_lists_rewards_and_back_to_reward_root() -> None:
+    menu = build_reward_list_menu(["gold:11", "card_offer:anger"])
+
+    assert format_menu_lines(menu) == [
+        "奖励详情列表:",
+        "1. gold:11",
+        "2. card_offer:anger",
+        "3. 返回奖励主页",
+    ]
+    assert resolve_menu_action("1", menu) == "inspect_reward:gold:11"
+    assert resolve_menu_action("2", menu) == "inspect_reward:card_offer:anger"
+    assert resolve_menu_action("3", menu) == "back"
+
+
+def test_build_reward_detail_menu_binds_back_to_list_and_root_actions() -> None:
+    menu = build_reward_detail_menu("gold:11")
+
+    assert format_menu_lines(menu) == [
+        "奖励详情:",
+        "1. 返回奖励列表",
+        "2. 返回奖励主页",
+    ]
+    assert resolve_menu_action("1", menu) == "back_to_list"
+    assert resolve_menu_action("2", menu) == "back_to_root"
 
 
 def test_build_boss_reward_menu_binds_gold_relic_and_back_actions() -> None:

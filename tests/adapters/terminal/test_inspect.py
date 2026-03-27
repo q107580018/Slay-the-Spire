@@ -4,7 +4,9 @@ from pathlib import Path
 from slay_the_spire.adapters.terminal.inspect import (
     format_card_detail_lines,
     format_card_detail_menu,
+    format_reward_detail_lines,
     format_relic_detail_lines,
+    render_reward_detail_panel,
 )
 from slay_the_spire.adapters.terminal.inspect_registry import format_shared_inspect_menu
 from slay_the_spire.adapters.terminal.renderer import render_room
@@ -204,6 +206,38 @@ def test_render_non_combat_card_detail_does_not_fall_back_to_root_menu() -> None
     assert "名称: 打击" in output
     assert "返回卡牌列表" in output
     assert "前往下一个房间" not in output
+
+
+def test_format_reward_detail_lines_include_reward_id_and_human_readable_labels() -> None:
+    session = start_session(seed=5)
+    registry = StarterContentProvider(session.content_root)
+
+    gold_lines = format_reward_detail_lines("gold:11", registry)
+    card_offer_lines = format_reward_detail_lines("card_offer:anger", registry)
+    card_lines = format_reward_detail_lines("card:anger", registry)
+    relic_lines = format_reward_detail_lines("relic:burning_blood", registry)
+
+    assert any("奖励 ID: gold:11" in line.plain for line in gold_lines)
+    assert any("金币 +11" in line.plain for line in gold_lines)
+    assert any("奖励 ID: card_offer:anger" in line.plain for line in card_offer_lines)
+    assert any("愤怒" in line.plain for line in card_offer_lines)
+    assert any("奖励 ID: card:anger" in line.plain for line in card_lines)
+    assert any("愤怒" in line.plain for line in card_lines)
+    assert any("奖励 ID: relic:burning_blood" in line.plain for line in relic_lines)
+    assert any("燃烧之血" in line.plain for line in relic_lines)
+
+
+def test_render_reward_detail_panel_shows_reward_detail_and_return_choices() -> None:
+    session = start_session(seed=5)
+    registry = StarterContentProvider(session.content_root)
+
+    panel = render_reward_detail_panel("gold:11", registry)
+    panel_text = "\n".join(item.plain for item in panel.renderable.renderables)
+
+    assert "奖励详情" in panel.title
+    assert "奖励 ID" in panel_text
+    assert "gold:11" in panel_text
+    assert "金币 +11" in panel_text
 
 
 def test_render_combat_inspect_root_includes_piles_and_enemy_details() -> None:

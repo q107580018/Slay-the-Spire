@@ -374,6 +374,74 @@ def test_combat_renderer_shows_inspect_slot_after_resolved_combat_with_rewards()
     assert "4. 保存游戏" not in output
 
 
+def test_non_combat_renderer_shows_reward_home_screen() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=replace(start_session(seed=5).room_state, stage="completed", is_resolved=True, rewards=["gold:11", "card_offer:anger"]),
+        menu_state=MenuState(mode="inspect_reward_root", inspect_parent_mode="root"),
+    )
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=_provider(session),
+        menu_state=session.menu_state,
+        run_phase=session.run_phase,
+    )
+
+    assert "奖励主页" in output
+    assert "1. 领取奖励" in output
+    assert "2. 查看奖励详情" in output
+    assert "3. 返回" in output
+    assert "查看资料" not in output
+
+
+def test_non_combat_renderer_shows_reward_list_screen() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=replace(start_session(seed=5).room_state, stage="completed", is_resolved=True, rewards=["gold:11", "card_offer:anger"]),
+        menu_state=MenuState(mode="inspect_reward_list", inspect_parent_mode="inspect_reward_root"),
+    )
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=_provider(session),
+        menu_state=session.menu_state,
+        run_phase=session.run_phase,
+    )
+
+    assert "奖励详情列表" in output
+    assert "1. gold:11" in output
+    assert "2. card_offer:anger" in output
+    assert "3. 返回奖励主页" in output
+
+
+def test_non_combat_renderer_shows_reward_detail_screen() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=replace(start_session(seed=5).room_state, stage="completed", is_resolved=True, rewards=["gold:11", "card_offer:anger"]),
+        menu_state=MenuState(mode="inspect_reward_detail", inspect_parent_mode="inspect_reward_list", inspect_item_id="gold:11"),
+    )
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=session.room_state,
+        registry=_provider(session),
+        menu_state=session.menu_state,
+        run_phase=session.run_phase,
+    )
+
+    assert "奖励详情" in output
+    assert "奖励 ID: gold:11" in output
+    assert "金币 +11" in output
+    assert "返回奖励列表" in output
+    assert "返回奖励主页" in output
+
+
 def test_boss_reward_renderer_shows_reward_actions_on_root_screen() -> None:
     session = replace(
         start_session(seed=5),
