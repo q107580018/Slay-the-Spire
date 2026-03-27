@@ -15,6 +15,7 @@ from textual.widgets import Footer, Header, OptionList, RichLog, Static
 from slay_the_spire.adapters.rich_ui.theme import TERMINAL_THEME
 from slay_the_spire.adapters.textual.map_widget import MapWidget
 from slay_the_spire.app.inspect_registry import COMBAT_INSPECT_CARD_LIST_MODES, inspect_leaf_title
+from slay_the_spire.app.map_labels import format_next_room_labels
 from slay_the_spire.app.menu_definitions import (
     MenuDefinition,
     build_boss_relic_menu,
@@ -350,7 +351,10 @@ def _current_action_menu(session: SessionState) -> MenuDefinition | None:
         next_node_ids = room_state.payload.get("next_node_ids", [])
         if not isinstance(next_node_ids, list):
             next_node_ids = []
-        return build_next_room_menu(options=[(f"next_node:{node_id}", str(node_id)) for node_id in next_node_ids])
+        labels = format_next_room_labels(session.act_state, next_node_ids)
+        return build_next_room_menu(
+            options=[(f"next_node:{node_id}", label) for node_id, label in zip(next_node_ids, labels, strict=False)]
+        )
     if menu_mode == "select_event_choice":
         event_id = room_state.payload.get("event_id")
         if not isinstance(event_id, str):
@@ -679,7 +683,10 @@ class SlayApp(App[None]):
         next_node_ids = self._session.room_state.payload.get("next_node_ids", [])
         if not isinstance(next_node_ids, list) or node_id not in next_node_ids:
             return None
-        menu = build_next_room_menu(options=[(f"next_node:{next_id}", str(next_id)) for next_id in next_node_ids])
+        labels = format_next_room_labels(self._session.act_state, next_node_ids)
+        menu = build_next_room_menu(
+            options=[(f"next_node:{next_id}", label) for next_id, label in zip(next_node_ids, labels, strict=False)]
+        )
         return _menu_choice_for_action(menu, f"next_node:{node_id}")
 
     def _hover_summary(self) -> str | None:
