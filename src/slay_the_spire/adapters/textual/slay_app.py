@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Any
 
 from rich.console import Group
+from rich.panel import Panel
 from textual import on
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
@@ -56,14 +57,29 @@ _ROOM_LABELS: dict[str, str] = {
 }
 
 
+def _is_full_map_panel(renderable: object) -> bool:
+    return isinstance(renderable, Panel) and _plain_label(renderable.title) == "完整地图"
+
+
+def _strip_full_map_panel(renderable: Any) -> Any:
+    if _is_full_map_panel(renderable):
+        return None
+    if isinstance(renderable, Group):
+        filtered = [_strip_full_map_panel(item) for item in renderable.renderables]
+        kept = [item for item in filtered if item is not None]
+        return Group(*kept)
+    return renderable
+
+
 def _render_to_rich(session: SessionState) -> Any:
     """把 session 转成 Rich renderable，供 RichLog 显示。"""
     renderable = render_session_renderable(session)
     if isinstance(renderable, Group):
         renderables = list(renderable.renderables)
         if len(renderables) >= 3:
-            return Group(*renderables[:-1])
-    return renderable
+            renderable = Group(*renderables[:-1])
+    stripped = _strip_full_map_panel(renderable)
+    return renderable if stripped is None else stripped
 
 
 def _menu_choice_for_action(menu: MenuDefinition, action_id: str) -> str | None:

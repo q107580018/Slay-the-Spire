@@ -207,6 +207,28 @@ def test_textual_log_renderable_still_omits_footer_menu_after_map_polish() -> No
     assert "可选操作" not in buffer.getvalue()
 
 
+def test_textual_log_renderable_omits_duplicate_map_panel() -> None:
+    base_session = start_session(seed=5)
+    session = replace(
+        base_session,
+        room_state=replace(
+            base_session.room_state,
+            room_type="rest",
+            stage="waiting_input",
+            is_resolved=False,
+            payload={"actions": ["rest", "smith"], "node_id": "1"},
+        ),
+    )
+    buffer = StringIO()
+    console = Console(file=buffer, force_terminal=False, color_system=None, theme=TERMINAL_THEME)
+
+    console.print(_render_to_rich(session))
+
+    output = buffer.getvalue()
+    assert "TIP |" not in output
+    assert "TYPE |" not in output
+
+
 def test_hover_preview_panel_is_present_in_reward_menu() -> None:
     base = start_session(seed=5)
     session = replace(
