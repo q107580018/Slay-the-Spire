@@ -8,45 +8,15 @@
       "move_table": [
         {
           "move": "tackle",
-          "weight": 1,
-          "effects": [
-            {
-              "type": "damage",
-              "amount": 3
-            }
-          ]
-        }
-      ],
-      "intent_policy": "weighted_random"
-    },
-    {
-      "id": "jaw_worm",
-      "pool_weight": 4,
-      "name": "颚虫",
-      "hp": 16,
-      "move_table": [
-        {
-          "move": "bite",
-          "weight": 2,
           "effects": [
             {
               "type": "damage",
               "amount": 5
             }
           ]
-        },
-        {
-          "move": "chomp",
-          "weight": 1,
-          "effects": [
-            {
-              "type": "damage",
-              "amount": 7
-            }
-          ]
         }
       ],
-      "intent_policy": "cycle"
+      "intent_policy": "weighted_random"
     },
     {
       "id": "acid_slime",
@@ -69,6 +39,367 @@
             {
               "type": "damage",
               "amount": 3
+            }
+          ]
+        }
+      ],
+      "intent_policy": "scripted"
+    },
+    {
+      "id": "jaw_worm",
+      "pool_weight": 4,
+      "name": "颚虫",
+      "hp": 40,
+      "move_table": [
+        {
+          "move": "bite",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 7
+            }
+          ]
+        },
+        {
+          "move": "chomp",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 11
+            }
+          ]
+        },
+        {
+          "move": "headbutt",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 7
+            },
+            {
+              "type": "weak",
+              "stacks": 1
+            }
+          ]
+        }
+      ],
+      "intent_policy": "scripted"
+    },
+    {
+      "id": "cultist",
+      "pool_weight": 3,
+      "name": "邪教徒",
+      "hp": 48,
+      "move_table": [
+        {
+          "move": "incantation",
+          "once": true,
+          "effects": [
+            {
+              "type": "strength",
+              "amount": 3
+            }
+          ]
+        },
+        {
+          "move": "dark_strike",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 6
+            }
+          ]
+        }
+      ],
+      "intent_policy": "scripted"
+    },
+    {
+      "id": "red_louse",
+      "pool_weight": 2,
+      "name": "红色虱子",
+      "hp": 15,
+      "move_table": [
+        {
+          "move": "bite",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 5
+            }
+          ]
+        },
+        {
+          "move": "bite",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 5
+            }
+          ]
+        },
+        {
+          "move": "nip",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 5
+            },
+            {
+              "type": "weak",
+              "stacks": 1
+            }
+          ]
+        }
+      ],
+      "intent_policy": "scripted"
+    },
+    {
+      "id": "green_louse",
+      "pool_weight": 2,
+      "name": "绿色虱子",
+      "hp": 11,
+      "move_table": [
+        {
+          "move": "nip",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 4
+            }
+          ]
+        },
+        {
+          "move": "lick",
+          "effects": [
+            {
+              "type": "weak",
+              "stacks": 1
+            }
+          ]
+        },
+        {
+          "move": "nip",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 4
+            }
+          ]
+        }
+      ],
+      "intent_policy": "scripted"
+    },
+    {
+      "id": "looter",
+      "pool_weight": 1,
+      "name": "劫掠者",
+      "hp": 20,
+      "move_table": [
+        {
+          "move": "stab",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 7
+            }
+          ]
+        },
+        {
+          "move": "slash",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 10
+            }
+          ]
+        }
+      ],
+      "intent_policy": "scripted"
+    },
+    {
+      "id": "fungi_beast",
+      "pool_weight": 2,
+      "name": "真菌兽",
+      "hp": 26,
+      "move_table": [
+        {
+          "move": "bite",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 6
+            }
+          ]
+        },
+        {
+          "move": "spore_cloud",
+          "effects": [
+            {
+              "type": "weak",
+              "stacks": 1
+            }
+          ]
+        },
+        {
+          "move": "bite",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 8
+            }
+          ]
+        }
+      ],
+      "intent_policy": "scripted"
+    },
+    {
+      "id": "sentry",
+      "pool_weight": 1,
+      "name": "哨卫",
+      "hp": 40,
+      "move_table": [
+        {
+          "move": "beam",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 6
+            }
+          ]
+        },
+        {
+          "move": "bolt",
+          "effects": [
+            {
+              "type": "add_card_to_discard",
+              "card_id": "burn",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "move": "beam",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 8
+            }
+          ]
+        }
+      ],
+      "intent_policy": "scripted"
+    },
+    {
+      "id": "fat_gremlin",
+      "pool_weight": 1,
+      "name": "肥胖地精",
+      "hp": 16,
+      "move_table": [
+        {
+          "move": "smash",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 6
+            }
+          ]
+        }
+      ],
+      "intent_policy": "weighted_random"
+    },
+    {
+      "id": "mad_gremlin",
+      "pool_weight": 1,
+      "name": "狂乱地精",
+      "hp": 12,
+      "move_table": [
+        {
+          "move": "flurry",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 2
+            },
+            {
+              "type": "damage",
+              "amount": 2
+            }
+          ]
+        }
+      ],
+      "intent_policy": "weighted_random"
+    },
+    {
+      "id": "shield_gremlin",
+      "pool_weight": 1,
+      "name": "盾牌地精",
+      "hp": 14,
+      "move_table": [
+        {
+          "move": "jab",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 3
+            }
+          ]
+        },
+        {
+          "move": "jab",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 3
+            }
+          ]
+        }
+      ],
+      "intent_policy": "scripted"
+    },
+    {
+      "id": "sneaky_gremlin",
+      "pool_weight": 1,
+      "name": "鬼祟地精",
+      "hp": 14,
+      "move_table": [
+        {
+          "move": "stab",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 8
+            }
+          ]
+        },
+        {
+          "move": "stab",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 8
+            }
+          ]
+        }
+      ],
+      "intent_policy": "scripted"
+    },
+    {
+      "id": "gremlin_wizard",
+      "pool_weight": 1,
+      "name": "地精法师",
+      "hp": 22,
+      "move_table": [
+        {
+          "move": "charge",
+          "once": true,
+          "effects": []
+        },
+        {
+          "move": "fireball",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 10
             }
           ]
         }

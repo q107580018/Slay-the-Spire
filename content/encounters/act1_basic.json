@@ -1,12 +1,41 @@
 {
   "encounters": [
     {
-      "id": "single_slime",
-      "name": "单只绿史莱姆",
+      "id": "single_red_louse",
+      "name": "单只红色虱子",
       "enemy_ids": [
-        "slime"
+        "red_louse"
       ],
-      "pool_weight": 1
+      "pool_weight": 1,
+      "max_combat_count": 2
+    },
+    {
+      "id": "single_green_louse",
+      "name": "单只绿色虱子",
+      "enemy_ids": [
+        "green_louse"
+      ],
+      "pool_weight": 1,
+      "max_combat_count": 2
+    },
+    {
+      "id": "pair_louses",
+      "name": "两只虱子",
+      "enemy_ids": [
+        "red_louse",
+        "green_louse"
+      ],
+      "pool_weight": 1,
+      "max_combat_count": 2
+    },
+    {
+      "id": "cultist",
+      "name": "邪教徒",
+      "enemy_ids": [
+        "cultist"
+      ],
+      "pool_weight": 1,
+      "max_combat_count": 2
     },
     {
       "id": "single_jaw_worm",
@@ -14,15 +43,8 @@
       "enemy_ids": [
         "jaw_worm"
       ],
-      "pool_weight": 3
-    },
-    {
-      "id": "single_acid_slime",
-      "name": "单只酸液史莱姆",
-      "enemy_ids": [
-        "acid_slime"
-      ],
-      "pool_weight": 1
+      "pool_weight": 1,
+      "max_combat_count": 2
     },
     {
       "id": "double_slime",
@@ -31,7 +53,122 @@
         "slime",
         "slime"
       ],
-      "pool_weight": 1
+      "pool_weight": 1,
+      "max_combat_count": 2
+    },
+    {
+      "id": "single_slime",
+      "name": "单只绿史莱姆",
+      "enemy_ids": [
+        "slime"
+      ],
+      "pool_weight": 2,
+      "min_combat_count": 3
+    },
+    {
+      "id": "single_acid_slime",
+      "name": "单只酸液史莱姆",
+      "enemy_ids": [
+        "acid_slime"
+      ],
+      "pool_weight": 2,
+      "min_combat_count": 3
+    },
+    {
+      "id": "blue_slaver",
+      "name": "蓝色奴隶贩子",
+      "enemy_ids": [
+        "slaver_blue"
+      ],
+      "pool_weight": 2,
+      "min_combat_count": 3
+    },
+    {
+      "id": "red_slaver",
+      "name": "红色奴隶贩子",
+      "enemy_ids": [
+        "slaver_red"
+      ],
+      "pool_weight": 2,
+      "min_combat_count": 3
+    },
+    {
+      "id": "looter",
+      "name": "劫掠者",
+      "enemy_ids": [
+        "looter"
+      ],
+      "pool_weight": 1,
+      "min_combat_count": 3
+    },
+    {
+      "id": "fungi_beast",
+      "name": "真菌兽",
+      "enemy_ids": [
+        "fungi_beast"
+      ],
+      "pool_weight": 2,
+      "min_combat_count": 3
+    },
+    {
+      "id": "gremlin_gang_no_fat",
+      "name": "地精团伙-缺肥胖地精",
+      "enemy_ids": [
+        "mad_gremlin",
+        "shield_gremlin",
+        "sneaky_gremlin",
+        "gremlin_wizard"
+      ],
+      "pool_weight": 1,
+      "min_combat_count": 3
+    },
+    {
+      "id": "gremlin_gang_no_mad",
+      "name": "地精团伙-缺狂乱地精",
+      "enemy_ids": [
+        "fat_gremlin",
+        "shield_gremlin",
+        "sneaky_gremlin",
+        "gremlin_wizard"
+      ],
+      "pool_weight": 1,
+      "min_combat_count": 3
+    },
+    {
+      "id": "gremlin_gang_no_shield",
+      "name": "地精团伙-缺盾牌地精",
+      "enemy_ids": [
+        "fat_gremlin",
+        "mad_gremlin",
+        "sneaky_gremlin",
+        "gremlin_wizard"
+      ],
+      "pool_weight": 1,
+      "min_combat_count": 3
+    },
+    {
+      "id": "gremlin_gang_no_sneaky",
+      "name": "地精团伙-缺鬼祟地精",
+      "enemy_ids": [
+        "fat_gremlin",
+        "mad_gremlin",
+        "shield_gremlin",
+        "gremlin_wizard"
+      ],
+      "pool_weight": 1,
+      "min_combat_count": 3
+    },
+    {
+      "id": "gremlin_gang_no_wizard",
+      "name": "地精团伙-缺地精法师",
+      "enemy_ids": [
+        "fat_gremlin",
+        "mad_gremlin",
+        "shield_gremlin",
+        "sneaky_gremlin"
+      ],
+      "pool_weight": 1,
+      "min_combat_count": 3
     }
   ]
 }

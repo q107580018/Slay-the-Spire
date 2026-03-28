@@ -118,6 +118,20 @@ def play_card(
         target_id=target_id,
         energy_spent=energy_spent,
     )
+
+    punishment_effects: list[JsonDict] = []
+    if card_def.card_type == "skill":
+        for enemy in combat_state.enemies:
+            if enemy.hp <= 0 or enemy.enemy_id != "gremlin_nob":
+                continue
+            punishment_effects.append(
+                {
+                    "type": "strength",
+                    "amount": 2,
+                    "source_instance_id": combat_state.player.instance_id,
+                    "target_instance_id": enemy.instance_id,
+                }
+            )
     snapshots_before = capture_entity_snapshots(combat_state, registry)
 
     combat_state.energy -= energy_spent
@@ -126,6 +140,7 @@ def play_card(
         combat_state.exhaust_pile.append(card_instance_id)
     else:
         combat_state.discard_pile.append(card_instance_id)
+    combat_state.effect_queue.extend(punishment_effects)
     combat_state.effect_queue.extend(materialized_effects)
     resolved_effects = resolve_player_actions(
         combat_state,

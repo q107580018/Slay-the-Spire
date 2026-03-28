@@ -117,6 +117,9 @@ def describe_enemy_turn(*, events: Sequence[CombatEvent]) -> list[str]:
                 damage_line += f"，实际受到 {event.actual_damage}"
                 parts.append(damage_line)
                 continue
+            if event.event_type == "gain_strength" and event.amount > 0:
+                parts.append(f"获得 {event.amount} 层力量")
+                continue
             if event.event_type == "add_card_to_discard" and event.card_name is not None and event.count > 0:
                 parts.append(f"向你的弃牌堆加入 {event.count} 张{event.card_name}")
                 continue

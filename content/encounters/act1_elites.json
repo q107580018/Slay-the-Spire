@@ -7,6 +7,24 @@
         "lagavulin"
       ],
       "pool_weight": 1
+    },
+    {
+      "id": "single_gremlin_nob",
+      "name": "单只地精头目",
+      "enemy_ids": [
+        "gremlin_nob"
+      ],
+      "pool_weight": 1
+    },
+    {
+      "id": "three_sentries",
+      "name": "三台哨卫",
+      "enemy_ids": [
+        "sentry",
+        "sentry",
+        "sentry"
+      ],
+      "pool_weight": 1
     }
   ]
 }

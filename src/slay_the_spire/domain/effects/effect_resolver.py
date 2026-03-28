@@ -288,7 +288,10 @@ def resolve_next_effect(
         return _with_result(effect, gained_block=gained_block)
 
     if effect_type == EFFECT_STRENGTH:
-        target = _get_target(state, effect.get("target_instance_id"))
+        target_instance_id = effect.get("target_instance_id")
+        if target_instance_id is None:
+            target_instance_id = effect.get("source_instance_id")
+        target = _get_target(state, target_instance_id)
         if _is_dead(target):
             return noop_effect(reason="dead_target")
         applied_stacks = max(int(effect.get("amount", 0)), 0)

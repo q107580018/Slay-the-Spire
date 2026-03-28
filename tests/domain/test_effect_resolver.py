@@ -233,6 +233,23 @@ def test_add_power_effect_appends_active_power_and_applies_inflame_strength() ->
     assert state.player.statuses == [StatusState(status_id="strength", stacks=2)]
 
 
+def test_strength_effect_defaults_to_source_target_when_target_is_missing() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 3)],
+        effect_queue=[{"type": "strength", "source_instance_id": "enemy-1", "amount": 3}],
+    )
+
+    resolved = resolve_next_effect(state)
+
+    assert resolved == {
+        "type": "strength",
+        "source_instance_id": "enemy-1",
+        "amount": 3,
+        "result": {"applied_stacks": 3},
+    }
+    assert state.enemies[0].statuses == [StatusState(status_id="strength", stacks=3)]
+
+
 def test_damage_effect_reports_structured_resolution_details():
     enemy = make_enemy("enemy-1", 10)
     enemy.block = 2

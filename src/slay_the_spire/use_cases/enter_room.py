@@ -28,6 +28,14 @@ def _build_card_instance_ids(card_ids: list[str]) -> list[str]:
     return [f"{card_id}#{index}" for index, card_id in enumerate(card_ids, start=1)]
 
 
+def _combat_encounter_count(act_state: ActState) -> int:
+    return sum(
+        1
+        for node_id in act_state.visited_node_ids
+        if act_state.get_node(node_id).room_type == "combat"
+    )
+
+
 def _build_enemy_state(enemy_id: str, registry: ContentProviderPort, *, instance_id: str) -> EnemyState:
     enemy_def = registry.enemies().get(enemy_id)
     statuses: list[StatusState] = []
@@ -51,6 +59,7 @@ def _build_enemy_state(enemy_id: str, registry: ContentProviderPort, *, instance
 
 def _select_combat_enemy_ids(
     run_state: RunState,
+    act_state: ActState,
     *,
     room_id: str,
     enemy_pool_id: str,
@@ -59,9 +68,20 @@ def _select_combat_enemy_ids(
     encounter_entries = list(registry.encounter_pool_entries(enemy_pool_id))
     if not encounter_entries:
         raise ValueError(f"encounter pool {enemy_pool_id} must contain at least one encounter")
+    combat_count = _combat_encounter_count(act_state)
+    eligible_entries = [
+        entry
+        for entry in encounter_entries
+        if (entry.min_combat_count is None or combat_count >= entry.min_combat_count)
+        and (entry.max_combat_count is None or combat_count <= entry.max_combat_count)
+    ]
+    if not eligible_entries:
+        raise ValueError(
+            f"no encounter entries match combat count {combat_count} for pool {enemy_pool_id}"
+        )
     encounter_rng = _offer_rng(run_state, room_id, "enemy")
     encounter_id = weighted_choice(
-        [(entry.member_id, entry.weight) for entry in encounter_entries],
+        [(entry.member_id, entry.weight) for entry in eligible_entries],
         rng=encounter_rng,
     )
     encounter = registry.encounters().get(encounter_id)
@@ -70,6 +90,7 @@ def _select_combat_enemy_ids(
 
 def _build_combat_state(
     run_state: RunState,
+    act_state: ActState,
     *,
     room_id: str,
     enemy_pool_id: str,
@@ -80,6 +101,7 @@ def _build_combat_state(
     _offer_rng(run_state, room_id, "combat:draw_order").shuffle(deck_instance_ids)
     encounter_id, enemy_ids = _select_combat_enemy_ids(
         run_state,
+        act_state,
         room_id=room_id,
         enemy_pool_id=enemy_pool_id,
         registry=registry,
@@ -217,6 +239,7 @@ def enter_room(run_state: RunState, act_state: ActState, node_id: str, registry:
         payload["enemy_pool_id"] = enemy_pool_id
         combat_state, encounter_id = _build_combat_state(
             run_state,
+            act_state,
             room_id=room_id,
             enemy_pool_id=enemy_pool_id,
             registry=registry,

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from slay_the_spire.content.registries import CardRegistry, EnemyRegistry
-from slay_the_spire.use_cases.combat_log import describe_player_action
+from slay_the_spire.use_cases.combat_log import describe_enemy_turn, describe_player_action
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
 from slay_the_spire.use_cases.combat_events import (
@@ -183,3 +183,26 @@ def test_build_enemy_turn_events_keeps_status_card_source_name() -> None:
     assert events == [
         CombatEvent(event_type="status_applied", actor_name="疑虑", target_name="你", status_id="weak", stacks=1),
     ]
+
+
+def test_build_enemy_turn_events_include_strength_gain_for_enemy_sources() -> None:
+    state = _combat_state()
+    snapshots = capture_entity_snapshots(state, _provider())
+
+    events = build_enemy_turn_events(
+        enemy_previews=[],
+        resolved_effects=[
+            {
+                "type": "strength",
+                "source_instance_id": "enemy-1",
+                "result": {"applied_stacks": 3},
+            }
+        ],
+        entities=snapshots,
+        registry=_provider(),
+    )
+
+    assert events == [
+        CombatEvent(event_type="gain_strength", actor_name="Training Dummy", amount=3),
+    ]
+    assert describe_enemy_turn(events=events) == ["Training Dummy获得 3 层力量。"]

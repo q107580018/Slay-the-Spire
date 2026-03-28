@@ -389,12 +389,18 @@ def test_render_combat_inspect_root_includes_piles_and_enemy_details() -> None:
 
 def test_render_combat_inspect_pages_show_pile_summary_card_detail_and_enemy_detail() -> None:
     session = start_session(seed=1)
+    registry = _provider(session)
+    combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
+    first_enemy = combat_state.enemies[0]
+    first_enemy_def = registry.enemies().get(first_enemy.enemy_id)
+    current_hp_text = f"当前生命: {first_enemy.hp}/{first_enemy.max_hp}"
+    first_move_name = str(first_enemy_def.move_table[0]["move"])
 
     hand_output = render_room(
         run_state=session.run_state,
         act_state=session.act_state,
         room_state=session.room_state,
-        registry=_provider(session),
+        registry=registry,
         menu_state=MenuState(mode="inspect_hand", inspect_parent_mode="root", inspect_item_id="hand"),
         run_phase=session.run_phase,
     )
@@ -402,7 +408,7 @@ def test_render_combat_inspect_pages_show_pile_summary_card_detail_and_enemy_det
         run_state=session.run_state,
         act_state=session.act_state,
         room_state=session.room_state,
-        registry=_provider(session),
+        registry=registry,
         menu_state=MenuState(
             mode="inspect_card_detail",
             inspect_parent_mode="inspect_hand",
@@ -414,7 +420,7 @@ def test_render_combat_inspect_pages_show_pile_summary_card_detail_and_enemy_det
         run_state=session.run_state,
         act_state=session.act_state,
         room_state=session.room_state,
-        registry=_provider(session),
+        registry=registry,
         menu_state=MenuState(mode="inspect_enemy_list", inspect_parent_mode="inspect_root", inspect_item_id="enemies"),
         run_phase=session.run_phase,
     )
@@ -422,7 +428,7 @@ def test_render_combat_inspect_pages_show_pile_summary_card_detail_and_enemy_det
         run_state=session.run_state,
         act_state=session.act_state,
         room_state=session.room_state,
-        registry=_provider(session),
+        registry=registry,
         menu_state=MenuState(mode="inspect_enemy_detail", inspect_parent_mode="inspect_enemy_list", inspect_item_id="enemy-1"),
         run_phase=session.run_phase,
     )
@@ -443,19 +449,19 @@ def test_render_combat_inspect_pages_show_pile_summary_card_detail_and_enemy_det
     assert "升级目标: -" in card_output
     assert "返回卡牌列表" in card_output
     assert "敌人列表" in enemy_list_output
-    assert "绿史莱姆" in enemy_list_output
+    assert first_enemy_def.name in enemy_list_output
     assert "生命:" in enemy_list_output
     assert "格挡:" in enemy_list_output
     assert "状态:" in enemy_list_output
     assert "当前意图:" in enemy_list_output
     assert "敌人详情" in enemy_output
-    assert "绿史莱姆" in enemy_output
-    assert "当前生命: 12/12" in enemy_output
+    assert first_enemy_def.name in enemy_output
+    assert current_hp_text in enemy_output
     assert "当前格挡: 0" in enemy_output
     assert "当前状态: 无" in enemy_output
     assert "当前意图摘要:" in enemy_output
     assert "招式表预览:" in enemy_output
-    assert "tackle" in enemy_output
+    assert first_move_name in enemy_output
     assert "返回敌人列表" in enemy_output
 
 
@@ -510,6 +516,9 @@ def test_render_combat_inspect_list_pages_do_not_repeat_full_list_in_footer() ->
     combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
     fifth_draw_card = combat_state.draw_pile[4]
     fifth_draw_name = registry.cards().get(card_id_from_instance_id(fifth_draw_card)).name
+    first_enemy = combat_state.enemies[0]
+    first_enemy_name = registry.enemies().get(first_enemy.enemy_id).name
+    first_enemy_line = f"1. {first_enemy_name} | 生命: {first_enemy.hp}/{first_enemy.max_hp}"
 
     draw_pile_output = render_room(
         run_state=session.run_state,
@@ -531,7 +540,7 @@ def test_render_combat_inspect_list_pages_do_not_repeat_full_list_in_footer() ->
     assert draw_pile_output.count("抽牌堆列表") == 1
     assert draw_pile_output.count(f"5. {fifth_draw_name}") == 1
     assert enemy_list_output.count("敌人列表") == 1
-    assert enemy_list_output.count("1. 绿史莱姆 | 生命: 12/12 | 格挡: 0 | 状态: 无 | 当前意图: 造成 3 伤害") == 1
+    assert enemy_list_output.count(first_enemy_line) == 1
 
 
 def test_render_hexaghost_enemy_detail_localizes_divider_summary() -> None:
@@ -633,6 +642,8 @@ def test_render_inspect_enemy_list_and_detail_apply_strength_to_intent_preview()
         run_phase=session.run_phase,
     )
 
-    assert "当前意图: 造成 7 伤害" in enemy_list_output
-    assert "当前意图摘要: 造成 7 伤害" in enemy_detail_output
-    assert "招式表预览: bite: 造成 5 伤害；chomp: 造成 7 伤害" in enemy_detail_output
+    assert "当前意图: 造成 9 伤害" in enemy_list_output
+    assert "当前意图摘要: 造成 9 伤害" in enemy_detail_output
+    assert "招式表预览:" in enemy_detail_output
+    assert "造成 9 伤害" in enemy_detail_output
+    assert "chomp: 造成 11 伤害" in enemy_detail_output

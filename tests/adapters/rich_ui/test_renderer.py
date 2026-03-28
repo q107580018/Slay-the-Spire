@@ -569,7 +569,7 @@ def test_combat_renderer_includes_enemy_strength_in_intent_preview() -> None:
         run_phase="active",
     )
 
-    assert "意图: 造成 7 伤害" in output
+    assert "意图: 造成 9 伤害" in output
 
 
 def test_combat_renderer_shows_inspect_root_menu_when_in_inspect_mode() -> None:

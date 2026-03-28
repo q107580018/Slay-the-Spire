@@ -40,8 +40,10 @@ def _combat_state(
     hand: list[str] | None = None,
     energy: int = 3,
     enemy_hps: list[int] | None = None,
+    enemy_ids: list[str] | None = None,
 ) -> CombatState:
     enemy_hps = enemy_hps or [10]
+    enemy_ids = enemy_ids or ["training_dummy"] * len(enemy_hps)
     return CombatState(
         round_number=1,
         energy=energy,
@@ -59,7 +61,7 @@ def _combat_state(
         enemies=[
             EnemyState(
                 instance_id=f"enemy-{index}",
-                enemy_id="training_dummy",
+                enemy_id=enemy_ids[index - 1],
                 hp=hp,
                 max_hp=hp,
                 block=0,
@@ -80,6 +82,7 @@ def _provider_with_card(*, card_id: str = "custom_strike", cost: int = 1, effect
             "name": "Custom Strike",
             "cost": cost,
             "effects": effects or [{"type": "damage", "amount": 4}],
+            "card_type": "skill" if card_id.startswith("skill_") else "attack",
         }
     )
     provider.enemies().register(
@@ -91,7 +94,31 @@ def _provider_with_card(*, card_id: str = "custom_strike", cost: int = 1, effect
             "intent_policy": "scripted",
         }
     )
+    provider.enemies().register(
+        {
+            "id": "gremlin_nob",
+            "name": "地精头目",
+            "hp": 84,
+            "move_table": [],
+            "intent_policy": "scripted",
+        }
+    )
     return provider
+
+
+def test_playing_skill_grants_strength_to_gremlin_nob() -> None:
+    state = _combat_state(
+        hand=["skill_guard#1"],
+        enemy_ids=["gremlin_nob"],
+        enemy_hps=[40],
+    )
+    provider = _provider_with_card(card_id="skill_guard", cost=1, effects=[{"type": "block", "amount": 5}])
+
+    result = play_card(state, "skill_guard#1", None, provider)
+
+    assert result.combat_state is state
+    assert [effect["type"] for effect in result.resolved_effects] == ["strength", "block"]
+    assert state.enemies[0].statuses == [StatusState(status_id="strength", stacks=2)]
 
 
 def test_play_card_rejects_card_not_in_hand() -> None:
@@ -290,6 +317,7 @@ def test_play_card_appends_block_log_entry() -> None:
     play_card(state, "guard#1", None, provider)
 
     assert state.log == ["你打出 Custom Strike，获得 5 格挡。"]
+
 
 
 def test_play_card_x_cost_whirlwind_spends_all_energy_and_hits_all_enemies() -> None:

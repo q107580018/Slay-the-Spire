@@ -82,6 +82,15 @@ def test_provider_exposes_registry_accessors(content_root: Path) -> None:
     ]
     assert provider.enemies().get("slime").name == "绿史莱姆"
     assert provider.enemies().get("acid_slime").name == "酸液史莱姆"
+    assert provider.enemies().get("jaw_worm").hp == 40
+    assert provider.enemies().get("cultist").name == "邪教徒"
+    assert provider.enemies().get("red_louse").name == "红色虱子"
+    assert provider.enemies().get("green_louse").name == "绿色虱子"
+    assert provider.enemies().get("sentry").name == "哨卫"
+    assert provider.enemies().get("looter").name == "劫掠者"
+    assert provider.enemies().get("fungi_beast").name == "真菌兽"
+    assert provider.enemies().get("fat_gremlin").name == "肥胖地精"
+    assert provider.enemies().get("gremlin_wizard").name == "地精法师"
     assert provider.enemies().get("hexaghost").name == "六火幽魂"
     assert provider.cards().get("burn").playable is False
     assert provider.cards().get("burn").acquisition_tags == ["generated", "status"]
@@ -274,8 +283,16 @@ def test_content_provider_loads_encounter_pool_entries(content_root: Path) -> No
 
     entries = provider.encounter_pool_entries("act1_basic")
 
-    assert any(entry.member_id == "double_slime" for entry in entries)
+    assert any(entry.member_id == "cultist" for entry in entries)
+    assert any(entry.member_id == "single_slime" for entry in entries)
+    assert any(entry.member_id == "single_red_louse" for entry in entries)
+    assert any(entry.member_id == "gremlin_gang_no_wizard" for entry in entries)
     assert provider.encounters().get("double_slime").enemy_ids == ["slime", "slime"]
+    assert provider.encounters().get("three_sentries").enemy_ids == ["sentry", "sentry", "sentry"]
+    cultist_entry = next(entry for entry in entries if entry.member_id == "cultist")
+    assert cultist_entry.max_combat_count == 2
+    late_slime_entry = next(entry for entry in entries if entry.member_id == "single_slime")
+    assert late_slime_entry.min_combat_count == 3
 
 
 def test_encounter_registry_rejects_empty_enemy_ids() -> None:

@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
+from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.content.registries import CardRegistry, EnemyRegistry
 from slay_the_spire.domain.combat.turn_flow import end_turn, preview_enemy_move, resolve_player_actions
 from slay_the_spire.domain.effects.effect_types import damage_effect
@@ -112,6 +115,10 @@ def _hexaghost_registry() -> _Registry:
         }
     )
     return registry
+
+
+def _content_provider() -> StarterContentProvider:
+    return StarterContentProvider(Path(__file__).resolve().parents[2] / "content")
 
 
 def test_playing_strike_spends_energy_and_deals_damage() -> None:
@@ -249,6 +256,42 @@ def test_end_turn_use_case_logs_triggered_active_powers_with_lethal_overkill() -
     assert state.log == [
         "燃烧躯体触发，对 Training Slime 造成 3 伤害，并失去 1 点生命。",
     ]
+
+
+def test_cultist_incantation_applies_strength_to_self() -> None:
+    registry = _content_provider()
+    state = CombatState(
+        round_number=1,
+        energy=3,
+        hand=[],
+        draw_pile=[],
+        discard_pile=[],
+        exhaust_pile=[],
+        player=PlayerCombatState(
+            instance_id="player-1",
+            hp=40,
+            max_hp=40,
+            block=0,
+            statuses=[],
+        ),
+        enemies=[
+            EnemyState(
+                instance_id="enemy-1",
+                enemy_id="cultist",
+                hp=48,
+                max_hp=48,
+                block=0,
+                statuses=[],
+            )
+        ],
+        effect_queue=[],
+        log=[],
+    )
+
+    resolved = end_turn(state, registry)
+
+    assert any(effect["type"] == "strength" for effect in resolved)
+    assert state.enemies[0].statuses == [StatusState(status_id="strength", stacks=3)]
 
 
 def test_end_turn_clears_battle_trance_before_next_player_draw() -> None:
@@ -553,6 +596,64 @@ def test_end_turn_log_reports_burn_trigger_and_enemy_adding_burn() -> None:
         "灼伤在回合结束时触发，对你造成 2，实际受到 2。",
         "Hexaghost攻击你 6，实际受到 6，并向你的弃牌堆加入 1 张灼伤。",
     ]
+
+
+def test_cultist_incantation_grants_strength_and_logs_it() -> None:
+    registry = _Registry()
+    registry.enemies().register(
+        {
+            "id": "cultist",
+            "name": "邪教徒",
+            "hp": 48,
+            "move_table": [
+                {
+                    "move": "incantation",
+                    "once": True,
+                    "effects": [
+                        {"type": "strength", "amount": 3},
+                    ],
+                },
+                {
+                    "move": "dark_strike",
+                    "effects": [{"type": "damage", "amount": 6}],
+                },
+            ],
+            "intent_policy": "scripted",
+        }
+    )
+    state = CombatState(
+        round_number=1,
+        energy=3,
+        hand=[],
+        draw_pile=[],
+        discard_pile=[],
+        exhaust_pile=[],
+        player=PlayerCombatState(
+            instance_id="player-1",
+            hp=40,
+            max_hp=40,
+            block=0,
+            statuses=[],
+        ),
+        enemies=[
+            EnemyState(
+                instance_id="enemy-1",
+                enemy_id="cultist",
+                hp=48,
+                max_hp=48,
+                block=0,
+                statuses=[],
+            )
+        ],
+        effect_queue=[],
+        log=[],
+    )
+
+    result = run_end_turn(state, registry)
+
+    assert [effect["type"] for effect in result.resolved_effects] == ["strength"]
+    assert state.enemies[0].statuses == [StatusState(status_id="strength", stacks=3)]
+    assert state.log == ["邪教徒获得 3 层力量。"]
 
 
 def test_end_turn_doubt_applies_weak_after_existing_weak_expires() -> None:

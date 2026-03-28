@@ -286,6 +286,17 @@ def build_enemy_turn_events(
                 )
             )
             continue
+        if effect_type == "strength":
+            if actor_name is None:
+                continue
+            events.append(
+                CombatEvent(
+                    event_type="gain_strength",
+                    actor_name=actor_name,
+                    amount=_result_int(result, "applied_stacks"),
+                )
+            )
+            continue
         if effect_type == "add_card_to_discard":
             if source_snapshot is None or source_snapshot.kind != "enemy":
                 continue

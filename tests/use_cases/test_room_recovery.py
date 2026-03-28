@@ -1114,7 +1114,7 @@ def test_burning_blood_heals_after_winning_combat() -> None:
     base_session = start_session(seed=7)
     combat_state = CombatState.from_dict(base_session.room_state.payload["combat_state"])
     combat_state.player.hp = 50
-    combat_state.enemies[0].hp = 6
+    combat_state.enemies = [replace(combat_state.enemies[0], hp=6, max_hp=6)]
     session = replace(
         base_session,
         run_state=replace(base_session.run_state, current_hp=50),

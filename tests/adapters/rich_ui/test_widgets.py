@@ -14,6 +14,7 @@ from slay_the_spire.adapters.presentation.widgets import (
 from slay_the_spire.app.session import MenuState, start_session
 from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.content.registries import EnemyDef
+from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.statuses import StatusState
 
 
@@ -116,7 +117,7 @@ def test_preview_enemy_intent_uses_first_move_for_multi_move_enemy() -> None:
 
     output = preview_enemy_intent(enemy_def)
 
-    assert output == "造成 5 伤害"
+    assert output == "造成 7 伤害"
 
 
 def test_preview_enemy_intent_shows_readable_summary_for_divider() -> None:
@@ -135,6 +136,7 @@ def test_preview_enemy_intent_shows_readable_summary_for_divider() -> None:
 
 def test_render_room_uses_shared_box_and_no_duplicate_hp_text() -> None:
     session = start_session(seed=1)
+    combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
     output = render_room(
         run_state=session.run_state,
         act_state=session.act_state,
@@ -148,7 +150,8 @@ def test_render_room_uses_shared_box_and_no_duplicate_hp_text() -> None:
     assert "┌" in output
     assert "┐" in output
     assert output.count("80/80") == 1
-    assert output.count("12/12") == 1
+    for enemy in combat_state.enemies:
+        assert output.count(f"{enemy.hp}/{enemy.max_hp}") == 1
 
 
 def test_render_room_select_target_menu_uses_shared_hp_bar_contract() -> None:
@@ -167,6 +170,9 @@ def test_render_room_select_target_menu_uses_shared_hp_bar_contract() -> None:
 
 def test_render_room_inspect_enemy_detail_uses_shared_hp_bar_contract() -> None:
     session = start_session(seed=1)
+    combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
+    first_enemy = combat_state.enemies[0]
+    first_enemy_name = StarterContentProvider(session.content_root).enemies().get(first_enemy.enemy_id).name
     output = render_room(
         run_state=session.run_state,
         act_state=session.act_state,
@@ -176,5 +182,5 @@ def test_render_room_inspect_enemy_detail_uses_shared_hp_bar_contract() -> None:
     )
 
     assert "敌人详情" in output
-    assert "绿史莱姆" in output
-    assert "12/12 12/12" not in output
+    assert first_enemy_name in output
+    assert f"{first_enemy.hp}/{first_enemy.max_hp} {first_enemy.hp}/{first_enemy.max_hp}" not in output

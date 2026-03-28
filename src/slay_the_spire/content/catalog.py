@@ -36,6 +36,14 @@ def _require_mapping(value: object, field_name: str) -> Mapping[str, object]:
     return value
 
 
+def _require_optional_int(value: object, field_name: str) -> int | None:
+    if value is None:
+        return None
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise TypeError(f"{field_name} must be an int")
+    return value
+
+
 def _load_list_payload(path: Path, key: str) -> object:
     payload = load_json_file(path)
     if not isinstance(payload, Mapping):
@@ -50,6 +58,8 @@ class WeightedPoolEntry:
     member_id: str
     weight: int
     once_per_run: bool = False
+    min_combat_count: int | None = None
+    max_combat_count: int | None = None
 
 
 @dataclass(slots=True)
@@ -122,6 +132,14 @@ class ContentCatalog:
                 WeightedPoolEntry(
                     member_id=_require_str(_require_mapping(record, "encounter").get("id"), "encounter.id"),
                     weight=int(_require_mapping(record, "encounter").get("pool_weight", 1)),
+                    min_combat_count=_require_optional_int(
+                        _require_mapping(record, "encounter").get("min_combat_count"),
+                        "encounter.min_combat_count",
+                    ),
+                    max_combat_count=_require_optional_int(
+                        _require_mapping(record, "encounter").get("max_combat_count"),
+                        "encounter.max_combat_count",
+                    ),
                 )
                 for record in encounter_records
             )

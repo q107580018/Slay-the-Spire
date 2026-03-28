@@ -4,7 +4,7 @@
       "id": "lagavulin",
       "pool_weight": 1,
       "name": "沉睡巨像",
-      "hp": 109,
+      "hp": 110,
       "move_table": [
         {
           "move": "sleep",
@@ -25,6 +25,42 @@
             {
               "type": "damage",
               "amount": 18
+            }
+          ]
+        }
+      ],
+      "intent_policy": "scripted"
+    },
+    {
+      "id": "gremlin_nob",
+      "pool_weight": 1,
+      "name": "地精头目",
+      "hp": 84,
+      "move_table": [
+        {
+          "move": "taunt",
+          "effects": [
+            {
+              "type": "weak",
+              "stacks": 1
+            }
+          ]
+        },
+        {
+          "move": "skull_bash",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 10
+            }
+          ]
+        },
+        {
+          "move": "rush",
+          "effects": [
+            {
+              "type": "damage",
+              "amount": 16
             }
           ]
         }

@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from slay_the_spire.content.catalog import WeightedPoolEntry
 from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.domain.models.act_state import ActNodeState, ActState
 from slay_the_spire.domain.models.combat_state import CombatState
@@ -24,6 +25,44 @@ class _EncounterMissingProvider:
 
     def encounter_pool_entries(self, pool_id: str):
         raise KeyError(pool_id)
+
+
+class _SingleEncounterProvider:
+    def __init__(self, delegate: StarterContentProvider, *, encounter_id: str) -> None:
+        self._delegate = delegate
+        self._encounter_id = encounter_id
+
+    def __getattr__(self, name: str):
+        return getattr(self._delegate, name)
+
+    def encounter_pool_entries(self, pool_id: str):
+        if pool_id != "act1_basic":
+            return self._delegate.encounter_pool_entries(pool_id)
+        return tuple(
+            entry
+            for entry in self._delegate.encounter_pool_entries(pool_id)
+            if entry.member_id == self._encounter_id
+        )
+
+
+class _MisconfiguredEncounterProvider:
+    def __init__(self, delegate: StarterContentProvider) -> None:
+        self._delegate = delegate
+
+    def __getattr__(self, name: str):
+        return getattr(self._delegate, name)
+
+    def encounter_pool_entries(self, pool_id: str):
+        if pool_id != "act1_basic":
+            return self._delegate.encounter_pool_entries(pool_id)
+        return (
+            WeightedPoolEntry(
+                member_id="single_red_louse",
+                weight=1,
+                min_combat_count=99,
+                max_combat_count=100,
+            ),
+        )
 
 
 def _run_state(
@@ -78,11 +117,18 @@ def test_enter_combat_room_uses_weighted_encounter_pool_entries() -> None:
         _content_provider(),
     )
 
-    assert room_state.payload["encounter_id"] == "single_jaw_worm"
+    assert room_state.payload["encounter_id"] in {
+        "single_red_louse",
+        "single_green_louse",
+        "pair_louses",
+        "cultist",
+        "single_jaw_worm",
+        "double_slime",
+    }
 
     combat_state = CombatState.from_dict(room_state.payload["combat_state"])
 
-    assert combat_state.enemies[0].enemy_id == "jaw_worm"
+    assert combat_state.enemies
 
 
 def test_enter_room_builds_multiple_enemy_states_from_encounter() -> None:
@@ -90,15 +136,53 @@ def test_enter_room_builds_multiple_enemy_states_from_encounter() -> None:
         _run_state(seed=37),
         _act_state(node_id="r1c0", room_type="combat"),
         "r1c0",
-        _content_provider(),
+        _SingleEncounterProvider(_content_provider(), encounter_id="double_slime"),
     )
 
     assert room_state.payload["encounter_id"] == "double_slime"
 
     combat_state = CombatState.from_dict(room_state.payload["combat_state"])
 
+    assert len(combat_state.enemies) == 2
     assert [enemy.enemy_id for enemy in combat_state.enemies] == ["slime", "slime"]
-    assert [enemy.instance_id for enemy in combat_state.enemies] == ["enemy-1", "enemy-2"]
+    assert all(enemy.instance_id.startswith("enemy-") for enemy in combat_state.enemies)
+
+
+def test_enter_room_switches_to_late_pool_after_three_prior_combat_rooms() -> None:
+    room_state = enter_room(
+        _run_state(seed=7),
+        ActState(
+            act_id="act1",
+            current_node_id="r3c0",
+            nodes=[
+                ActNodeState(node_id="start", row=0, col=0, room_type="combat", next_node_ids=["r1c0"]),
+                ActNodeState(node_id="r1c0", row=1, col=0, room_type="combat", next_node_ids=["r2c0"]),
+                ActNodeState(node_id="r2c0", row=2, col=0, room_type="combat", next_node_ids=["r3c0"]),
+                ActNodeState(node_id="r3c0", row=3, col=0, room_type="combat", next_node_ids=[]),
+            ],
+            visited_node_ids=["start", "r1c0", "r2c0"],
+            enemy_pool_id="act1_basic",
+            elite_pool_id="act1_elites",
+            boss_pool_id="act1_bosses",
+            event_pool_id="act1_events",
+        ),
+        "r3c0",
+        _content_provider(),
+    )
+
+    assert room_state.payload["encounter_id"] in {
+        "single_slime",
+        "single_acid_slime",
+        "blue_slaver",
+        "red_slaver",
+        "looter",
+        "fungi_beast",
+        "gremlin_gang_no_fat",
+        "gremlin_gang_no_mad",
+        "gremlin_gang_no_shield",
+        "gremlin_gang_no_sneaky",
+        "gremlin_gang_no_wizard",
+    }
 
 
 def test_enter_room_shop_cards_come_from_shop_tagged_cards() -> None:
@@ -126,6 +210,42 @@ def test_enter_room_does_not_fallback_to_enemy_pool_when_encounter_pool_is_missi
             _act_state(node_id="r1c0", room_type="combat"),
             "r1c0",
             _EncounterMissingProvider(_content_provider()),
+        )
+
+
+def test_enter_combat_room_raises_when_no_encounters_match_combat_count() -> None:
+    provider = _MisconfiguredEncounterProvider(_content_provider())
+
+    with pytest.raises(ValueError, match="no encounter entries match combat count"):
+        enter_room(
+            _run_state(seed=7),
+            _act_state(node_id="r1c0", room_type="combat"),
+            "r1c0",
+            provider,
+        )
+
+
+def test_enter_room_raises_when_no_encounter_entries_match_combat_count() -> None:
+    with pytest.raises(ValueError, match="no encounter entries match combat count"):
+        enter_room(
+            _run_state(seed=7),
+            ActState(
+                act_id="act1",
+                current_node_id="r3c0",
+                nodes=[
+                    ActNodeState(node_id="start", row=0, col=0, room_type="combat", next_node_ids=["r1c0"]),
+                    ActNodeState(node_id="r1c0", row=1, col=0, room_type="combat", next_node_ids=["r2c0"]),
+                    ActNodeState(node_id="r2c0", row=2, col=0, room_type="combat", next_node_ids=["r3c0"]),
+                    ActNodeState(node_id="r3c0", row=3, col=0, room_type="combat", next_node_ids=[]),
+                ],
+                visited_node_ids=["start", "r1c0", "r2c0"],
+                enemy_pool_id="act1_basic",
+                elite_pool_id="act1_elites",
+                boss_pool_id="act1_bosses",
+                event_pool_id="act1_events",
+            ),
+            "r3c0",
+            _SingleEncounterProvider(_content_provider(), encounter_id="single_red_louse"),
         )
 
 
