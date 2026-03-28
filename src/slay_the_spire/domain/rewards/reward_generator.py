@@ -56,10 +56,14 @@ def _normalize_room_type(room_type: str) -> str:
 
 def _rarity_weights(offset: int, room_type: str = _COMBAT_ROOM_TYPE) -> tuple[int, int, int]:
     normalized_room_type = _normalize_room_type(room_type)
-    rare_bonus = 10 if normalized_room_type == _ELITE_ROOM_TYPE else 0
-    base_common = 60 - rare_bonus
-    base_uncommon = 37
-    base_rare = 3 + rare_bonus
+    if normalized_room_type == _ELITE_ROOM_TYPE:
+        base_common = 50
+        base_uncommon = 40
+        base_rare = 10
+    else:
+        base_common = 60
+        base_uncommon = 37
+        base_rare = 3
     if offset <= 0:
         rare = base_rare + offset
         uncommon = base_uncommon

@@ -147,6 +147,31 @@ def test_generate_combat_rewards_returns_gold_and_three_unique_card_offers() -> 
     assert isinstance(next_rare_offset, int)
 
 
+def test_generate_combat_rewards_from_a_new_run_does_not_offer_rare_cards_in_normal_combat() -> None:
+    provider = _content_provider()
+    run_state = RunState.new(character_id="ironclad", seed=7)
+    run_state = replace(
+        run_state,
+        current_act_id="act1",
+        current_hp=80,
+        max_hp=80,
+        gold=99,
+        deck=["strike#1", "strike#2", "strike#3", "strike#4", "defend#5", "defend#6", "defend#7", "defend#8", "bash#9"],
+        relics=["burning_blood"],
+    )
+
+    assert run_state.rare_card_reward_offset == -5
+
+    rewards, _next_rare_offset = generate_combat_rewards(
+        room_id="act1:hallway_reward",
+        run_state=run_state,
+        registry=provider,
+    )
+
+    card_rewards = [reward.split(":", 1)[1] for reward in rewards if reward.startswith("card_offer:")]
+    assert all(provider.cards().get(card_id).rarity != "rare" for card_id in card_rewards)
+
+
 def test_generate_combat_rewards_normal_gold_stays_in_10_to_20_range() -> None:
     for seed in range(1, 80):
         rewards, _next_rare_offset = generate_combat_rewards(
@@ -183,7 +208,9 @@ def test_generate_combat_rewards_elite_gold_stays_in_25_to_35_range_and_grants_r
 
 def test_generate_combat_rewards_elite_uses_higher_rare_weight_baseline() -> None:
     assert _rarity_weights(offset=0, room_type="combat") == (60, 37, 3)
-    assert _rarity_weights(offset=0, room_type="elite") == (50, 37, 13)
+    assert _rarity_weights(offset=0, room_type="elite") == (50, 40, 10)
+    assert _rarity_weights(offset=-5, room_type="combat") == (65, 35, 0)
+    assert _rarity_weights(offset=-5, room_type="elite") == (55, 40, 5)
 
 
 def test_generate_combat_rewards_samples_from_full_ironclad_reward_pool_in_act1() -> None:
