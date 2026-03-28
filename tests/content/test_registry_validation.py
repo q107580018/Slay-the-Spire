@@ -64,6 +64,12 @@ def test_provider_exposes_registry_accessors(content_root: Path) -> None:
     assert provider.cards().get("offering_plus").name == "献祭+"
     assert provider.cards().get("impervious").name == "坚不可摧"
     assert provider.cards().get("impervious_plus").name == "坚不可摧+"
+    assert provider.cards().get("offering").exhausts is True
+    assert provider.cards().get("offering_plus").exhausts is True
+    assert provider.cards().get("impervious").rarity == "rare"
+    assert provider.cards().get("impervious").exhausts is True
+    assert provider.cards().get("impervious_plus").rarity == "rare"
+    assert provider.cards().get("impervious_plus").exhausts is True
     assert provider.cards().get("terror").cost == 1
     assert provider.cards().get("terror").rarity == "uncommon"
     assert provider.cards().get("terror").effects == [

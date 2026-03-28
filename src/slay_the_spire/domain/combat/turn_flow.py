@@ -25,6 +25,11 @@ def _require_mapping(value: object, field_name: str) -> Mapping[str, object]:
 
 
 def _draw_cards(state: CombatState, *, amount: int) -> None:
+    for power in state.active_powers:
+        if power.get("power_id") == "battle_trance":
+            raw_amount = power.get("amount")
+            if isinstance(raw_amount, int) and raw_amount > 0:
+                return
     for _ in range(max(amount, 0)):
         if not state.draw_pile:
             if not state.discard_pile:
@@ -320,6 +325,12 @@ def _active_power_end_turn_effects(state: CombatState) -> list[JsonDict]:
     return effects
 
 
+def _clear_temporary_power(state: CombatState, power_id: str) -> None:
+    state.active_powers = [
+        power for power in state.active_powers if power.get("power_id") != power_id
+    ]
+
+
 def start_turn(
     state: CombatState,
     *,
@@ -387,6 +398,7 @@ def end_turn(
 ) -> list[JsonDict]:
     resolved = []
     hand_at_end_turn = tuple(state.hand)
+    _clear_temporary_power(state, "battle_trance")
     state.effect_queue.extend(_active_power_end_turn_effects(state))
     state.effect_queue.extend(_burn_end_turn_effects(hand_at_end_turn, state.player.instance_id))
     if state.effect_queue:

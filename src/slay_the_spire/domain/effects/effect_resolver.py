@@ -168,6 +168,11 @@ def _pseudo_random_hand_selection(state: CombatState, candidates: list[str], *, 
 
 
 def _draw_cards(state: CombatState, *, amount: int) -> int:
+    for power in state.active_powers:
+        if power.get("power_id") == "battle_trance":
+            raw_amount = power.get("amount")
+            if isinstance(raw_amount, int) and raw_amount > 0:
+                return 0
     drawn_count = 0
     for _ in range(max(amount, 0)):
         if not state.draw_pile:

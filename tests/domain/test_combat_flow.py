@@ -251,6 +251,19 @@ def test_end_turn_use_case_logs_triggered_active_powers_with_lethal_overkill() -
     ]
 
 
+def test_end_turn_clears_battle_trance_before_next_player_draw() -> None:
+    registry = _enemy_registry_without_attacks()
+    state = _combat_state()
+    state.active_powers = [{"power_id": "battle_trance", "amount": 1}]
+    state.hand = []
+    state.draw_pile = ["strike#2", "defend#2", "strike#3", "defend#3", "strike#4"]
+
+    end_turn(state, registry)
+
+    assert state.active_powers == []
+    assert state.hand == ["strike#2", "defend#2", "strike#3", "defend#3", "strike#4"]
+
+
 def test_end_turn_stops_before_next_turn_when_player_dies() -> None:
     registry = _enemy_registry()
     state = _combat_state()

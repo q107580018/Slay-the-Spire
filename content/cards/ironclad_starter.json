@@ -742,6 +742,11 @@
         {
           "type": "draw",
           "amount": 3
+        },
+        {
+          "type": "add_power",
+          "power_id": "battle_trance",
+          "amount": 1
         }
       ],
       "card_type": "skill",
@@ -759,6 +764,11 @@
         {
           "type": "draw",
           "amount": 4
+        },
+        {
+          "type": "add_power",
+          "power_id": "battle_trance",
+          "amount": 1
         }
       ],
       "card_type": "skill",
@@ -770,6 +780,7 @@
       "cost": 0,
       "rarity": "rare",
       "upgrades_to": "offering_plus",
+      "exhausts": true,
       "effects": [
         {
           "type": "gain_energy",
@@ -795,6 +806,7 @@
       "name": "献祭+",
       "cost": 0,
       "rarity": "rare",
+      "exhausts": true,
       "effects": [
         {
           "type": "gain_energy",
@@ -816,8 +828,9 @@
       "id": "impervious",
       "name": "坚不可摧",
       "cost": 2,
-      "rarity": "uncommon",
+      "rarity": "rare",
       "upgrades_to": "impervious_plus",
+      "exhausts": true,
       "effects": [
         {
           "type": "block",
@@ -834,7 +847,8 @@
       "id": "impervious_plus",
       "name": "坚不可摧+",
       "cost": 2,
-      "rarity": "uncommon",
+      "rarity": "rare",
+      "exhausts": true,
       "effects": [
         {
           "type": "block",

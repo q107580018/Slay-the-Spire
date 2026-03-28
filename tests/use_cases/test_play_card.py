@@ -371,6 +371,39 @@ def test_play_card_bloodletting_gains_energy_and_loses_hp() -> None:
     assert state.log == ["你打出 Custom Strike，获得 2 点能量，并失去 3 点生命。"]
 
 
+def test_play_card_battle_trance_draws_and_blocks_later_draw_effects() -> None:
+    state = _combat_state(hand=["battle_trance#1", "draw_card#2"])
+    state.draw_pile = ["bonus_card#1"]
+    provider = _provider_with_card(
+        card_id="battle_trance",
+        cost=0,
+        effects=[
+            {"type": "draw", "amount": 1},
+            {"type": "add_power", "power_id": "battle_trance", "amount": 1},
+        ],
+    )
+    provider.cards().register(
+        {
+            "id": "draw_card",
+            "name": "Draw Card",
+            "cost": 0,
+            "effects": [{"type": "draw", "amount": 1}],
+        }
+    )
+
+    first_result = play_card(state, "battle_trance#1", None, provider)
+    second_result = play_card(state, "draw_card#2", None, provider)
+
+    assert [effect["type"] for effect in first_result.resolved_effects] == [
+        "draw",
+        "add_power",
+    ]
+    assert [effect["type"] for effect in second_result.resolved_effects] == ["draw"]
+    assert state.hand == ["bonus_card#1"]
+    assert state.discard_pile == ["battle_trance#1", "draw_card#2"]
+    assert state.active_powers == [{"power_id": "battle_trance", "amount": 1}]
+
+
 def test_play_card_true_grit_plus_can_target_a_hand_card_to_exhaust() -> None:
     state = _combat_state(hand=["true_grit_plus#1", "strike#2"])
     provider = _provider_with_card(
