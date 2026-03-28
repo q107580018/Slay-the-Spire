@@ -101,6 +101,24 @@ def test_enter_room_builds_multiple_enemy_states_from_encounter() -> None:
     assert [enemy.instance_id for enemy in combat_state.enemies] == ["enemy-1", "enemy-2"]
 
 
+def test_enter_room_shop_cards_come_from_shop_tagged_cards() -> None:
+    provider = _content_provider()
+    room_state = enter_room(
+        _run_state(seed=7),
+        _act_state(node_id="shop-1", room_type="shop"),
+        "shop-1",
+        provider,
+    )
+
+    offered_cards = [item["card_id"] for item in room_state.payload["cards"]]
+
+    assert offered_cards
+    assert all("shop" in provider.cards().get(card_id).acquisition_tags for card_id in offered_cards)
+    assert "burn" not in offered_cards
+    assert "doubt" not in offered_cards
+    assert "injury" not in offered_cards
+
+
 def test_enter_room_does_not_fallback_to_enemy_pool_when_encounter_pool_is_missing() -> None:
     with pytest.raises(KeyError, match="act1_basic"):
         enter_room(

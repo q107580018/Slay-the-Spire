@@ -64,7 +64,7 @@ def test_provider_exposes_registry_accessors(content_root: Path) -> None:
     assert provider.enemies().get("acid_slime").name == "酸液史莱姆"
     assert provider.enemies().get("hexaghost").name == "六火幽魂"
     assert provider.cards().get("burn").playable is False
-    assert provider.cards().get("burn").can_appear_in_shop is False
+    assert provider.cards().get("burn").acquisition_tags == ["generated", "status"]
     assert provider.relics().get("burning_blood").id == "burning_blood"
     assert provider.events().get("shining_light").text.startswith("一道圣洁的光")
     assert provider.acts().get("act1").boss_pool_id == "act1_bosses"
@@ -81,6 +81,7 @@ def test_cards_define_rarity_and_upgrades_keep_base_rarity(content_root: Path) -
         assert card_def.rarity in allowed_rarities
         assert card_def.card_type in allowed_card_types
         assert set(card_def.acquisition_tags).issubset(allowed_acquisition_tags)
+        assert not hasattr(card_def, "can_appear_in_shop")
         if card_def.upgrades_to is not None:
             upgraded = provider.cards().get(card_def.upgrades_to)
             assert upgraded.rarity == card_def.rarity
@@ -94,6 +95,20 @@ def test_cards_define_rarity_and_upgrades_keep_base_rarity(content_root: Path) -
     assert provider.cards().get("injury").rarity == "curse"
     assert provider.cards().get("injury").card_type == "curse"
     assert provider.cards().get("injury").acquisition_tags == ["event", "curse"]
+
+
+@pytest.mark.parametrize("content_root", _content_roots())
+def test_shop_eligible_cards_are_marked_with_shop_tags(content_root: Path) -> None:
+    provider = StarterContentProvider(content_root)
+
+    shop_card_ids = {card.id for card in provider.cards().all() if "shop" in card.acquisition_tags}
+
+    assert {"anger", "pommel_strike", "shrug_it_off", "whirlwind", "twin_strike", "inflame", "metallicize", "combust"}.issubset(
+        shop_card_ids
+    )
+    assert "doubt" not in shop_card_ids
+    assert "injury" not in shop_card_ids
+    assert "burn" not in shop_card_ids
 
 
 @pytest.mark.parametrize("content_root", _content_roots())

@@ -96,7 +96,6 @@ class CardDef:
     rarity: str | None = None
     upgrades_to: str | None = None
     playable: bool = True
-    can_appear_in_shop: bool = True
     exhausts: bool = False
 
 
@@ -247,11 +246,6 @@ class CardRegistry(_BaseRegistry[CardDef]):
             rarity=_require_optional_str(data.get("rarity"), "rarity"),
             upgrades_to=_require_optional_str(data.get("upgrades_to"), "upgrades_to"),
             playable=_require_optional_bool(data.get("playable"), "playable", default=True),
-            can_appear_in_shop=_require_optional_bool(
-                data.get("can_appear_in_shop"),
-                "can_appear_in_shop",
-                default=True,
-            ),
             exhausts=_require_optional_bool(data.get("exhausts"), "exhausts", default=False),
         )
 
