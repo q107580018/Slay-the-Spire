@@ -236,6 +236,33 @@ def test_resolved_combat_without_rewards_can_enter_inspect_root_from_choice_two(
     assert "资料总览" in message
 
 
+def test_boss_chest_root_menu_can_enter_inspect_root_from_choice_two() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=RoomState(
+            room_id="act1:boss_chest",
+            room_type="boss_chest",
+            stage="completed",
+            payload={
+                "act_id": "act1",
+                "node_id": "boss_chest",
+                "next_node_ids": [],
+                "next_act_id": "act2",
+            },
+            is_resolved=True,
+            rewards=[],
+        ),
+    )
+
+    running, next_session, message = route_menu_choice("2", session=session)
+
+    assert running is True
+    assert next_session.menu_state.mode == "inspect_root"
+    assert next_session.menu_state.inspect_parent_mode == "root"
+    assert next_session.menu_state.inspect_item_id is None
+    assert "资料总览" in message
+
+
 def test_inspect_root_can_open_deck_and_return() -> None:
     session = replace(start_session(seed=5), menu_state=MenuState(mode="inspect_root"))
 

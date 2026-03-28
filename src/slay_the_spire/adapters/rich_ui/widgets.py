@@ -61,11 +61,13 @@ def hp_style_for_ratio(ratio: float) -> str:
     return "hp.high"
 
 
-def render_hp_bar(current: int, maximum: int, *, width: int = HP_BAR_WIDTH) -> Text:
+def render_hp_bar(current: int, maximum: int, *, width: int = HP_BAR_WIDTH, show_values: bool = True) -> Text:
     ratio = 0 if maximum <= 0 else max(0, min(current / maximum, 1))
     filled = round(width * ratio)
     bar = "█" * filled + "░" * (width - filled)
-    return Text.assemble(f"{current}/{maximum} ", (bar, hp_style_for_ratio(ratio)))
+    if show_values:
+        return Text.assemble(f"{current}/{maximum} ", (bar, hp_style_for_ratio(ratio)))
+    return Text(bar, style=hp_style_for_ratio(ratio))
 
 
 def _status_label(status_id: str) -> tuple[str, str]:

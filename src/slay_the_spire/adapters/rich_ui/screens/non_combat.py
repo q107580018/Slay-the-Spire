@@ -46,9 +46,11 @@ _ROOM_TYPE_LABELS = {
     "combat": "普通战斗",
     "elite": "精英战斗",
     "boss": "Boss战",
+    "boss_chest": "Boss宝箱",
     "event": "事件",
     "shop": "商店",
     "rest": "休息点",
+    "treasure": "宝箱",
 }
 
 _MAP_ROOM_TYPE_LABELS = {
@@ -58,6 +60,7 @@ _MAP_ROOM_TYPE_LABELS = {
     "event": "事件",
     "shop": "商店",
     "rest": "休息",
+    "treasure": "宝箱",
 }
 
 _MAP_NODE_CELL_WIDTH = 8
@@ -378,6 +381,7 @@ def _type_legend_line() -> Text:
         ("事件", "map.room.event"),
         ("商店", "map.room.shop"),
         ("休息", "map.room.rest"),
+        ("宝箱", "map.room.treasure"),
     ]
     for index, (name, style) in enumerate(entries):
         line.append(name, style=style)
@@ -718,6 +722,23 @@ def render_boss_reward_panel(room_state: RoomState, registry: ContentProviderPor
     return Panel(Group(*lines), title="Boss奖励", box=PANEL_BOX, expand=False)
 
 
+def render_boss_chest_panel(room_state: RoomState, registry: ContentProviderPort) -> Panel:
+    next_act_id = room_state.payload.get("next_act_id")
+    if isinstance(next_act_id, str) and next_act_id:
+        next_act_name = registry.acts().get(next_act_id).name
+        lines: list[RenderableType] = [
+            Text("首领战奖励已收下，宝箱已经开启。"),
+            Text.assemble(("下一步：", "summary.label"), "前往下一幕"),
+            Text.assemble(("目标章节：", "summary.label"), next_act_name),
+        ]
+    else:
+        lines = [
+            Text("首领战奖励已收下，攀登已经来到终点。"),
+            Text.assemble(("下一步：", "summary.label"), "完成攀登"),
+        ]
+    return Panel(Group(*lines), title="Boss宝箱", box=PANEL_BOX, expand=False)
+
+
 def render_shop_panel(room_state: RoomState, registry: ContentProviderPort, run_state: RunState) -> Panel:
     cards = room_state.payload.get("cards", [])
     relics = room_state.payload.get("relics", [])
@@ -779,6 +800,22 @@ def render_rest_panel(room_state: RoomState, registry: ContentProviderPort) -> P
     return Panel(Group(*lines), title="休息点", box=PANEL_BOX, expand=False)
 
 
+def render_treasure_panel(room_state: RoomState, registry: ContentProviderPort) -> Panel:
+    treasure_relic_id = room_state.payload.get("treasure_relic_id")
+    claimed_relic_id = room_state.payload.get("claimed_treasure_relic_id")
+    preview_relic_id = claimed_relic_id if isinstance(claimed_relic_id, str) and claimed_relic_id else treasure_relic_id
+    relic_name = "-"
+    if isinstance(preview_relic_id, str) and preview_relic_id:
+        relic_name = registry.relics().get(preview_relic_id).name
+    status = "已打开" if room_state.is_resolved else "未打开"
+    label = "已获得遗物：" if room_state.is_resolved else "将获得遗物："
+    lines: list[RenderableType] = [
+        Text.assemble(("宝箱状态：", "summary.label"), status),
+        Text.assemble((label, "summary.label"), relic_name),
+    ]
+    return Panel(Group(*lines), title="宝箱", box=PANEL_BOX, expand=False)
+
+
 def render_terminal_phase_panel(run_phase: str) -> Panel:
     title = "胜利" if run_phase == "victory" else "游戏结束"
     message = "首领已被击败，本轮冒险已完成。" if run_phase == "victory" else "玩家已倒下，本轮冒险结束。"
@@ -814,6 +851,10 @@ def render_non_combat_screen(
         body.append(render_shop_panel(room_state, registry, run_state))
     elif room_state.room_type == "rest":
         body.append(render_rest_panel(room_state, registry))
+    elif room_state.room_type == "treasure":
+        body.append(render_treasure_panel(room_state, registry))
+    elif room_state.room_type == "boss_chest":
+        body.append(render_boss_chest_panel(room_state, registry))
     elif mode in {"select_boss_reward", "select_boss_relic"} or _has_pending_boss_rewards(room_state):
         body.append(render_boss_reward_panel(room_state, registry))
     elif room_state.is_resolved and room_state.rewards:

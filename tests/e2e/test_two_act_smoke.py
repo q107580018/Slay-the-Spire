@@ -46,7 +46,17 @@ def test_act1_boss_reward_transitions_into_act2_start_room() -> None:
 
     _running, session, _message = route_menu_choice("1", session=session)
     _running, session, _message = route_menu_choice("2", session=session)
-    _running, session, _message = route_menu_choice("2", session=session)
+    _running, session, boss_chest_message = route_menu_choice("2", session=session)
+
+    assert session.run_phase == "active"
+    assert session.run_state.relics[-1] == "ectoplasm"
+    assert session.act_state.act_id == "act1"
+    assert session.room_state.room_type == "boss_chest"
+    assert session.room_state.payload["next_act_id"] == "act2"
+    assert "Boss宝箱" in boss_chest_message
+    assert "前往下一幕" in boss_chest_message
+
+    _running, session, _message = route_menu_choice("1", session=session)
 
     assert session.run_phase == "active"
     assert session.run_state.relics[-1] == "ectoplasm"
@@ -85,6 +95,13 @@ def test_act2_boss_reward_finishes_run_with_victory() -> None:
 
     _running, session, _message = route_menu_choice("1", session=session)
     _running, session, _message = route_menu_choice("2", session=session)
+    _running, session, boss_chest_message = route_menu_choice("1", session=session)
+
+    assert session.run_phase == "active"
+    assert session.room_state.room_type == "boss_chest"
+    assert "Boss宝箱" in boss_chest_message
+    assert "完成攀登" in boss_chest_message
+
     _running, session, _message = route_menu_choice("1", session=session)
 
     assert session.run_phase == "victory"

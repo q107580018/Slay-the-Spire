@@ -64,6 +64,7 @@ _ROOM_LABELS: dict[str, str] = {
     "event": "事件房",
     "shop": "商店",
     "rest": "休息点",
+    "treasure": "宝箱",
 }
 
 _CARD_PREVIEW_MENU_MODES = frozenset(
@@ -289,6 +290,14 @@ def _shop_offer_by_action_id(session: SessionState, action_id: str, *, offer_typ
 
 
 def _hover_preview_renderable(session: SessionState, action_id: str) -> Text | None:
+    if session.menu_state.mode == "root":
+        if session.room_state.room_type == "treasure" and action_id == "open_treasure":
+            return Text("控制项：打开宝箱并领取遗物")
+        if session.room_state.room_type == "boss_chest" and action_id == "advance_boss_chest":
+            next_act_id = session.room_state.payload.get("next_act_id")
+            if isinstance(next_act_id, str) and next_act_id:
+                return Text("控制项：前往下一幕")
+            return Text("控制项：完成攀登")
     if session.menu_state.mode == "select_reward":
         return _reward_preview_renderable(session, action_id)
     card_instance_id = _card_preview_instance_id(session, action_id)

@@ -235,6 +235,75 @@ def test_load_game_restores_run_state_seen_event_ids(tmp_path: Path) -> None:
     assert restored["run_state"].seen_event_ids == ["shining_light", "golden_idol"]
 
 
+def test_save_load_round_trips_treasure_room_payload(tmp_path: Path) -> None:
+    repository = JsonFileSaveRepository(tmp_path / "treasure.json")
+    room_state = RoomState(
+        room_id="act1:treasure",
+        room_type="treasure",
+        stage="completed",
+        payload={
+            "act_id": "act1",
+            "node_id": "treasure-1",
+            "next_node_ids": ["rest-1"],
+            "treasure_relic_id": "golden_idol",
+            "claimed_treasure_relic_id": "golden_idol",
+        },
+        is_resolved=True,
+        rewards=[],
+    )
+
+    save_game(
+        repository=repository,
+        run_state=_run_state(),
+        act_state=_act_state(),
+        room_state=room_state,
+        combat_state=None,
+    )
+
+    restored = load_game(repository=repository)
+
+    assert restored["room_state"] is not None
+    assert restored["room_state"].to_dict() == room_state.to_dict()
+    assert restored["combat_state"] is None
+
+
+def test_save_load_round_trips_boss_chest_room_state(tmp_path: Path) -> None:
+    repository = JsonFileSaveRepository(tmp_path / "boss_chest.json")
+    room_state = RoomState(
+        room_id="act1:boss_chest",
+        room_type="boss_chest",
+        stage="completed",
+        payload={
+            "act_id": "act1",
+            "node_id": "boss_chest",
+            "next_node_ids": [],
+            "next_act_id": "act2",
+            "boss_rewards": {
+                "gold_reward": 100,
+                "claimed_gold": True,
+                "claimed_relic_id": "black_blood",
+                "boss_relic_offers": ["black_blood", "anchor", "lantern"],
+            },
+        },
+        is_resolved=True,
+        rewards=[],
+    )
+
+    save_game(
+        repository=repository,
+        run_state=_run_state(),
+        act_state=_act_state(),
+        room_state=room_state,
+        combat_state=None,
+    )
+
+    restored = load_game(repository=repository)
+
+    assert restored["room_state"] is not None
+    assert restored["room_state"].to_dict() == room_state.to_dict()
+    assert restored["combat_state"] is None
+
+
 def test_save_game_rejects_mismatched_combat_state_sources(tmp_path: Path) -> None:
     run_state = _run_state()
     act_state = _act_state()
@@ -358,6 +427,79 @@ def test_save_game_persists_new_run_state_fields(tmp_path: Path) -> None:
     assert raw_document["run_state"]["relics"] == ["burning_blood"]
     assert raw_document["run_state"]["potions"] == ["fire_potion"]
     assert raw_document["run_state"]["card_removal_count"] == 2
+
+
+def test_save_load_preserves_treasure_room_state(tmp_path: Path) -> None:
+    run_state = _run_state()
+    act_state = _act_state()
+    room_state = RoomState(
+        room_id="act1:treasure",
+        room_type="treasure",
+        stage="waiting_input",
+        payload={
+            "act_id": "act1",
+            "node_id": "r9c0",
+            "next_node_ids": [],
+            "treasure_relic_id": "golden_idol",
+        },
+        is_resolved=False,
+        rewards=[],
+    )
+    repository = JsonFileSaveRepository(tmp_path / "treasure.json")
+
+    save_game(
+        repository=repository,
+        run_state=run_state,
+        act_state=act_state,
+        room_state=room_state,
+    )
+
+    restored = load_game(repository=repository)
+
+    assert restored["room_state"] is not None
+    assert restored["room_state"].room_type == "treasure"
+    assert restored["room_state"].payload["treasure_relic_id"] == "golden_idol"
+    assert restored["room_state"].payload["next_node_ids"] == []
+
+
+def test_save_load_preserves_boss_chest_room_state(tmp_path: Path) -> None:
+    run_state = _run_state()
+    act_state = _act_state()
+    room_state = RoomState(
+        room_id="act1:boss_chest",
+        room_type="boss_chest",
+        stage="completed",
+        payload={
+            "act_id": "act1",
+            "node_id": "boss_chest",
+            "next_node_ids": [],
+            "next_act_id": "act2",
+            "boss_rewards": {
+                "gold_reward": 100,
+                "claimed_gold": True,
+                "claimed_relic_id": "black_blood",
+                "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper"],
+            },
+        },
+        is_resolved=True,
+        rewards=[],
+    )
+    repository = JsonFileSaveRepository(tmp_path / "boss_chest.json")
+
+    save_game(
+        repository=repository,
+        run_state=run_state,
+        act_state=act_state,
+        room_state=room_state,
+    )
+
+    restored = load_game(repository=repository)
+
+    assert restored["room_state"] is not None
+    assert restored["room_state"].room_type == "boss_chest"
+    assert restored["room_state"].is_resolved is True
+    assert restored["room_state"].payload["next_act_id"] == "act2"
+    assert restored["room_state"].payload["boss_rewards"]["claimed_relic_id"] == "black_blood"
 
 
 def test_load_game_rejects_previous_schema_version_with_clear_error(tmp_path: Path) -> None:

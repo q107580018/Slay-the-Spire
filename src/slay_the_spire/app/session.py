@@ -277,6 +277,46 @@ def _skip_card_offer_rewards(session: SessionState) -> SessionState:
     return replace(session, room_state=updated_room_state, menu_state=next_menu_state)
 
 
+def _open_treasure(session: SessionState) -> SessionState:
+    if session.room_state.is_resolved:
+        return session
+    claimed_relic_id = session.room_state.payload.get("claimed_treasure_relic_id")
+    if isinstance(claimed_relic_id, str) and claimed_relic_id:
+        updated_room_state = replace(
+            session.room_state,
+            stage="completed",
+            is_resolved=True,
+        )
+        return replace(
+            session,
+            room_state=updated_room_state,
+            run_phase=_derive_run_phase(session.run_state, session.act_state, updated_room_state, registry=_content_provider(session)),
+            menu_state=MenuState(),
+        )
+    relic_id = session.room_state.payload.get("treasure_relic_id")
+    if not isinstance(relic_id, str) or not relic_id:
+        return session
+    provider = _content_provider(session)
+    updated_run_state = apply_reward(
+        run_state=session.run_state,
+        reward_id=f"relic:{relic_id}",
+        registry=provider,
+    )
+    updated_room_state = replace(
+        session.room_state,
+        stage="completed",
+        is_resolved=True,
+        payload={**session.room_state.payload, "claimed_treasure_relic_id": relic_id},
+    )
+    return replace(
+        session,
+        run_state=updated_run_state,
+        room_state=updated_room_state,
+        run_phase=_derive_run_phase(updated_run_state, session.act_state, updated_room_state, registry=provider),
+        menu_state=MenuState(),
+    )
+
+
 def _claim_boss_gold(session: SessionState) -> SessionState:
     boss_rewards = _boss_rewards(session.room_state)
     if boss_rewards is None:
@@ -345,19 +385,49 @@ def _resolve_boss_reward_completion(
     *,
     registry: StarterContentProvider,
 ) -> SessionState:
+    if session.room_state.room_type == "boss_chest":
+        return replace(session, run_phase="active", menu_state=_menu_state_for_room(session.room_state))
     if not _boss_rewards_complete(session.room_state):
         return session
     current_act = registry.acts().get(session.act_state.act_id)
-    if current_act.next_act_id is None:
+    boss_chest_payload = {
+        "act_id": session.act_state.act_id,
+        "node_id": "boss_chest",
+        "next_node_ids": [],
+    }
+    boss_rewards = _boss_rewards(session.room_state)
+    if boss_rewards is not None:
+        boss_chest_payload["boss_rewards"] = boss_rewards
+    if current_act.next_act_id is not None:
+        boss_chest_payload["next_act_id"] = current_act.next_act_id
+    next_room_state = RoomState(
+        room_id=f"{session.act_state.act_id}:boss_chest",
+        room_type="boss_chest",
+        stage="completed",
+        payload=boss_chest_payload,
+        is_resolved=True,
+        rewards=[],
+    )
+    return replace(
+        session,
+        room_state=next_room_state,
+        run_phase="active",
+        menu_state=_menu_state_for_room(next_room_state),
+    )
+
+
+def _advance_boss_chest(session: SessionState) -> SessionState:
+    provider = _content_provider(session)
+    next_act_id = session.room_state.payload.get("next_act_id")
+    if not isinstance(next_act_id, str) or not next_act_id:
         return replace(session, run_phase="victory", menu_state=MenuState())
-    next_act_id = current_act.next_act_id
     updated_run_state = replace(session.run_state, current_act_id=next_act_id)
-    next_act_state = generate_act_state(next_act_id, seed=updated_run_state.seed, registry=registry)
+    next_act_state = generate_act_state(next_act_id, seed=updated_run_state.seed, registry=provider)
     next_room_state = enter_room(
         updated_run_state,
         next_act_state,
         node_id=next_act_state.current_node_id,
-        registry=registry,
+        registry=provider,
     )
     return replace(
         session,
@@ -524,6 +594,8 @@ def _hand_index_for_card(combat_state: CombatState, card_instance_id: str) -> in
 
 
 def _advance_to_next_room(session: SessionState) -> SessionState:
+    if session.room_state.room_type == "boss_chest":
+        return _advance_boss_chest(session)
     return _advance_to_node(session, None)
 
 
@@ -803,6 +875,8 @@ def _return_from_inspect(session: SessionState) -> SessionState:
 def _root_view_title(session: SessionState) -> str:
     if session.room_state.is_resolved and (session.room_state.rewards or _has_pending_boss_rewards(session.room_state)):
         return "领取奖励"
+    if session.room_state.room_type == "boss_chest":
+        return "Boss宝箱"
     if session.room_state.room_type in {"combat", "elite", "boss"}:
         return "战斗"
     if session.room_state.room_type == "event":
@@ -1071,6 +1145,9 @@ def _route_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionS
         next_session = _preserve_menu_history(result.session, history_session=session)
         adjusted_session = replace(next_session, menu_state=_menu_state_for_room(next_session.room_state))
         return _retarget_route_result(result, adjusted_session)
+    if action_id == "advance_boss_chest":
+        next_session = _advance_boss_chest(replace(session, menu_state=MenuState()))
+        return True, next_session, render_session(next_session)
     if action_id == "inspect":
         next_session = _enter_inspect_root(session, parent_mode="root")
         return True, next_session, _menu_view_message(next_session, "资料总览")
@@ -1093,6 +1170,9 @@ def _route_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionS
         return _retarget_route_result(result, adjusted_session)
     if action_id == "event_choice":
         next_session = replace(session, menu_state=MenuState(mode="select_event_choice"))
+        return True, next_session, render_session(next_session)
+    if action_id == "open_treasure":
+        next_session = _open_treasure(session)
         return True, next_session, render_session(next_session)
     return _invalid_menu_choice(session)
 

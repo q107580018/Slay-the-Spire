@@ -9,7 +9,7 @@ from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.room_state import RoomState
 
 
-def _path_with_shop_and_rest(act_state) -> list[str]:
+def _path_with_shop_rest_and_treasure(act_state) -> list[str]:
     found: list[str] | None = None
 
     def dfs(node_id: str, path: list[str]) -> None:
@@ -20,7 +20,7 @@ def _path_with_shop_and_rest(act_state) -> list[str]:
         next_path = [*path, node_id]
         room_types = [act_state.get_node(item).room_type for item in next_path]
         if not node.next_node_ids:
-            if "shop" in room_types and "rest" in room_types and room_types[-1] == "boss":
+            if "shop" in room_types and "rest" in room_types and "treasure" in room_types and room_types[-1] == "boss":
                 found = next_path
             return
         for next_node_id in node.next_node_ids:
@@ -28,7 +28,7 @@ def _path_with_shop_and_rest(act_state) -> list[str]:
 
     dfs(act_state.current_node_id, [])
     if found is None:
-        raise AssertionError("expected a path containing shop, rest, and boss")
+        raise AssertionError("expected a path containing shop, rest, treasure, and boss")
     return found
 
 
@@ -91,7 +91,7 @@ def test_single_act_smoke_simulates_map_shop_rest_and_boss_reward_transition_int
     _running, session, _message = route_menu_choice("1", session=session)
     _running, session, _message = route_menu_choice("2", session=session)
     _running, session, _message = route_menu_choice("10", session=session)
-    path = _path_with_shop_and_rest(session.act_state)
+    path = _path_with_shop_rest_and_treasure(session.act_state)
     visited_types: list[str] = [session.room_state.room_type]
 
     for next_node_id in path[1:]:
@@ -110,6 +110,8 @@ def test_single_act_smoke_simulates_map_shop_rest_and_boss_reward_transition_int
             _running, session, _message = route_menu_choice("3", session=session)
             session = _inspect_relics_and_return_to_parent(session)
             _running, session, _message = route_menu_choice("2", session=session)
+            _running, session, _message = route_menu_choice("1", session=session)
+        elif session.room_state.room_type == "treasure":
             _running, session, _message = route_menu_choice("1", session=session)
         else:
             session = _complete_current_room(session)
@@ -147,10 +149,24 @@ def test_single_act_smoke_simulates_map_shop_rest_and_boss_reward_transition_int
 
     _running, session, _message = route_menu_choice("2", session=session)
     assert session.menu_state.mode == "select_boss_relic"
-    _running, session, _message = route_menu_choice("1", session=session)
+    _running, session, boss_chest_message = route_menu_choice("1", session=session)
 
     assert "shop" in visited_types
     assert "rest" in visited_types
+    assert "treasure" in visited_types
+    assert session.run_phase == "active"
+    assert session.run_state.current_act_id == "act1"
+    assert session.act_state.act_id == "act1"
+    assert session.room_state.room_type == "boss_chest"
+    assert session.room_state.payload["next_act_id"] == "act2"
+    assert "Boss宝箱" in boss_chest_message
+    assert "前往下一幕" in boss_chest_message
+    assert session.run_state.gold == 198
+    assert "black_blood" in session.run_state.relics
+    assert "bash_plus#10" in session.run_state.deck
+
+    _running, session, _message = route_menu_choice("1", session=session)
+
     assert session.run_phase == "active"
     assert session.run_state.current_act_id == "act2"
     assert session.act_state.act_id == "act2"
@@ -168,7 +184,7 @@ def test_single_act_smoke_boss_room_uses_act1_bosses_and_hexaghost() -> None:
     _running, session, _message = route_menu_choice("1", session=session)
     _running, session, _message = route_menu_choice("2", session=session)
     _running, session, _message = route_menu_choice("10", session=session)
-    path = _path_with_shop_and_rest(session.act_state)
+    path = _path_with_shop_rest_and_treasure(session.act_state)
 
     for next_node_id in path[1:]:
         if session.room_state.room_type == "event":
@@ -186,6 +202,8 @@ def test_single_act_smoke_boss_room_uses_act1_bosses_and_hexaghost() -> None:
             _running, session, _message = route_menu_choice("3", session=session)
             session = _inspect_relics_and_return_to_parent(session)
             _running, session, _message = route_menu_choice("2", session=session)
+            _running, session, _message = route_menu_choice("1", session=session)
+        elif session.room_state.room_type == "treasure":
             _running, session, _message = route_menu_choice("1", session=session)
         else:
             session = _complete_current_room(session)

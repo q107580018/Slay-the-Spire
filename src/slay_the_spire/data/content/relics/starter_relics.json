@@ -14,6 +14,22 @@
       ]
     },
     {
+      "id": "blood_vial",
+      "name": "鲜血药瓶",
+      "summary": "每场战斗开始时回复 2 点生命",
+      "description": "每场战斗开始时回复 2 点生命。",
+      "trigger_hooks": [
+        "on_combat_start"
+      ],
+      "passive_effects": [
+        {
+          "type": "heal",
+          "amount": 2
+        }
+      ],
+      "can_appear_in_shop": false
+    },
+    {
       "id": "golden_idol",
       "name": "金神像",
       "trigger_hooks": [],
@@ -21,6 +37,22 @@
         {
           "type": "event_gold_bonus",
           "percent": 25
+        }
+      ],
+      "can_appear_in_shop": false
+    },
+    {
+      "id": "guarding_totem",
+      "name": "守护图腾",
+      "summary": "每场战斗开始时获得 10 点格挡",
+      "description": "每场战斗开始时获得 10 点格挡。",
+      "trigger_hooks": [
+        "on_combat_start"
+      ],
+      "passive_effects": [
+        {
+          "type": "block",
+          "amount": 10
         }
       ],
       "can_appear_in_shop": false

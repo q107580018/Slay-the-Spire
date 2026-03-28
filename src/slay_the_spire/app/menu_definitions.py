@@ -91,6 +91,19 @@ def _has_pending_boss_rewards(room_state: RoomState) -> bool:
 
 def build_root_menu(*, room_state: RoomState) -> MenuDefinition:
     if room_state.is_resolved:
+        if room_state.room_type == "boss_chest":
+            next_act_id = room_state.payload.get("next_act_id")
+            advance_label = "前往下一幕" if isinstance(next_act_id, str) and next_act_id else "完成攀登"
+            return build_menu(
+                title="可选操作",
+                options=[
+                    ("advance_boss_chest", advance_label),
+                    ("inspect", "查看资料"),
+                    ("save", "保存游戏"),
+                    ("load", "读取存档"),
+                    ("quit", "退出游戏"),
+                ],
+            )
         if _has_pending_boss_rewards(room_state):
             return build_menu(
                 title="可选操作",
@@ -141,6 +154,17 @@ def build_root_menu(*, room_state: RoomState) -> MenuDefinition:
             title="可选操作",
             options=[
                 ("event_choice", "进行选择"),
+                ("inspect", "查看资料"),
+                ("save", "保存游戏"),
+                ("load", "读取存档"),
+                ("quit", "退出游戏"),
+            ],
+        )
+    if room_state.room_type == "treasure":
+        return build_menu(
+            title="可选操作",
+            options=[
+                ("open_treasure", "打开宝箱"),
                 ("inspect", "查看资料"),
                 ("save", "保存游戏"),
                 ("load", "读取存档"),

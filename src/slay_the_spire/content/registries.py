@@ -60,6 +60,25 @@ def _require_optional_mapping(value: object, field_name: str) -> Mapping[str, ob
     return _require_mapping(value, field_name)
 
 
+def _require_optional_int_keyed_str_mapping(value: object, field_name: str) -> dict[int, str]:
+    if value is None:
+        return {}
+    mapping = _require_mapping(value, field_name)
+    parsed: dict[int, str] = {}
+    for raw_key, raw_value in mapping.items():
+        try:
+            key = int(raw_key)
+        except (TypeError, ValueError) as exc:
+            raise TypeError(f"{field_name} keys must be int-like strings") from exc
+        if key in parsed:
+            raise ValueError(f"{field_name} contains duplicate normalized key: {raw_key}")
+        parsed[_require_int(key, f"{field_name} key")] = _require_str(
+            raw_value,
+            f"{field_name}.{raw_key}",
+        )
+    return parsed
+
+
 def _require_optional_str_list(value: object, field_name: str) -> list[str]:
     if value is None:
         return []
@@ -134,6 +153,8 @@ class ActMapConfig:
     min_branch_choices: int
     max_branch_choices: int
     boss_room_type: str
+    fixed_floor_room_types: dict[int, str]
+    post_boss_room_type: str | None
     room_rules: JsonDict
 
 
@@ -361,6 +382,16 @@ class ActRegistry(_BaseRegistry[ActDef]):
     def _build(self, payload: Mapping[str, object]) -> ActDef:
         data = _require_mapping(payload, "payload")
         map_config_data = _require_mapping(data.get("map_config"), "map_config")
+        floor_count = _require_int(map_config_data.get("floor_count"), "map_config.floor_count")
+        fixed_floor_room_types = _require_optional_int_keyed_str_mapping(
+            map_config_data.get("fixed_floor_room_types"),
+            "map_config.fixed_floor_room_types",
+        )
+        for floor in fixed_floor_room_types:
+            if floor < 1 or floor > floor_count:
+                raise ValueError(
+                    "map_config.fixed_floor_room_types floor must be between 1 and floor_count",
+                )
         room_rules_data = _require_mapping(map_config_data.get("room_rules"), "map_config.room_rules")
         room_weights_data = _require_optional_mapping(room_rules_data.get("room_weights"), "map_config.room_rules.room_weights")
         minimum_counts_data = _require_optional_mapping(
@@ -424,7 +455,7 @@ class ActRegistry(_BaseRegistry[ActDef]):
             event_pool_id=_require_str(data.get("event_pool_id"), "event_pool_id"),
             boss_pool_id=_require_str(data.get("boss_pool_id"), "boss_pool_id"),
             map_config=ActMapConfig(
-                floor_count=_require_int(map_config_data.get("floor_count"), "map_config.floor_count"),
+                floor_count=floor_count,
                 starting_columns=_require_int(map_config_data.get("starting_columns"), "map_config.starting_columns"),
                 min_branch_choices=_require_int(
                     map_config_data.get("min_branch_choices"),
@@ -435,6 +466,11 @@ class ActRegistry(_BaseRegistry[ActDef]):
                     "map_config.max_branch_choices",
                 ),
                 boss_room_type=_require_str(map_config_data.get("boss_room_type"), "map_config.boss_room_type"),
+                fixed_floor_room_types=fixed_floor_room_types,
+                post_boss_room_type=_require_optional_str(
+                    map_config_data.get("post_boss_room_type"),
+                    "map_config.post_boss_room_type",
+                ),
                 room_rules=room_rules,
             ),
             next_act_id=_require_optional_str(data.get("next_act_id"), "next_act_id"),

@@ -9,11 +9,18 @@
       "boss_pool_id": "act1_bosses",
       "next_act_id": "act2",
       "map_config": {
-        "floor_count": 13,
+        "floor_count": 16,
         "starting_columns": 1,
         "min_branch_choices": 1,
         "max_branch_choices": 2,
         "boss_room_type": "boss",
+        "fixed_floor_room_types": {
+          "1": "combat",
+          "9": "treasure",
+          "15": "rest",
+          "16": "boss"
+        },
+        "post_boss_room_type": "boss_chest",
         "room_rules": {
           "early_floors": ["combat", "event"],
           "mid_floors": ["combat", "event", "shop", "rest"],

@@ -22,6 +22,29 @@ def _node_id(row: int, col: int) -> str:
     return f"r{row}c{col}"
 
 
+def _fixed_room_type_for_row(row: int, config: ActMapConfig) -> str | None:
+    return config.fixed_floor_room_types.get(row + 1)
+
+
+def _fixed_rows(config: ActMapConfig) -> set[int]:
+    return {floor - 1 for floor in config.fixed_floor_room_types}
+
+
+def _is_special_room_type(room_type: str) -> bool:
+    return room_type in {"event", "elite", "shop", "rest"}
+
+
+def _fixed_special_run_after_row(row: int, config: ActMapConfig) -> int:
+    run_length = 0
+    next_row = row + 1
+    while (fixed_room_type := _fixed_room_type_for_row(next_row, config)) is not None:
+        if not _is_special_room_type(fixed_room_type):
+            break
+        run_length += 1
+        next_row += 1
+    return run_length
+
+
 def _build_layered_topology(config: ActMapConfig, rng: Random) -> dict[tuple[int, int], list[tuple[int, int]]]:
     if config.floor_count < 2:
         raise ValueError("map_config.floor_count must be at least 2")
@@ -198,19 +221,25 @@ def _assign_room_types(
     nodes_by_coord: dict[tuple[int, int], ActNodeState] = {}
     last_row = config.floor_count - 1
     parents = _parent_coords(topology)
+    fixed_rows = _fixed_rows(config)
     max_special_streak = int(config.room_rules.get("max_path_special_streak", 99))
     special_streaks: dict[tuple[int, int], int] = {}
 
     for (row, col), next_coords in sorted(topology.items()):
-        if row == 0:
+        parent_streak = max((special_streaks[parent_coord] for parent_coord in parents.get((row, col), [])), default=0)
+        fixed_room_type = _fixed_room_type_for_row(row, config)
+        if fixed_room_type is not None:
+            room_type = fixed_room_type
+        elif row == 0:
             room_type = "combat"
         elif row == last_row:
             room_type = config.boss_room_type
         else:
             weights = _room_weight_map(row, config)
             candidate_room_type = weighted_choice(list(weights.items()), rng=rng)
-            parent_streak = max((special_streaks[parent_coord] for parent_coord in parents.get((row, col), [])), default=0)
-            if candidate_room_type in {"event", "elite", "shop", "rest"} and parent_streak >= max_special_streak:
+            if _is_special_room_type(candidate_room_type) and (
+                parent_streak + 1 + _fixed_special_run_after_row(row, config) > max_special_streak
+            ):
                 room_type = "combat"
             else:
                 room_type = candidate_room_type
@@ -223,7 +252,7 @@ def _assign_room_types(
         )
         special_streaks[(row, col)] = (
             parent_streak + 1
-            if room_type in {"event", "elite", "shop", "rest"}
+            if _is_special_room_type(room_type)
             else 0
         ) if row > 0 else 0
 
@@ -234,6 +263,7 @@ def _assign_room_types(
         minimum_count=int(minimum_counts.get("shop", 1)),
         min_row=int(config.room_rules["min_floor_for_shop"]),
         max_special_streak=max_special_streak,
+        fixed_rows=fixed_rows,
         rng=rng,
     )
     _ensure_minimum_room_count(
@@ -242,6 +272,7 @@ def _assign_room_types(
         minimum_count=int(minimum_counts.get("rest", 1)),
         min_row=int(config.room_rules["min_floor_for_rest"]),
         max_special_streak=max_special_streak,
+        fixed_rows=fixed_rows,
         rng=rng,
     )
     _ensure_minimum_room_count(
@@ -250,6 +281,7 @@ def _assign_room_types(
         minimum_count=int(minimum_counts.get("elite", 0)),
         min_row=int(config.room_rules["min_floor_for_elite"]),
         max_special_streak=max_special_streak,
+        fixed_rows=fixed_rows,
         rng=rng,
     )
     _ensure_minimum_room_count(
@@ -258,6 +290,7 @@ def _assign_room_types(
         minimum_count=int(minimum_counts.get("event", 0)),
         min_row=1,
         max_special_streak=max_special_streak,
+        fixed_rows=fixed_rows,
         rng=rng,
     )
 
@@ -271,6 +304,7 @@ def _ensure_minimum_room_count(
     minimum_count: int,
     min_row: int,
     max_special_streak: int,
+    fixed_rows: set[int],
     rng: Random,
 ) -> None:
     while sum(1 for node in nodes_by_coord.values() if node.room_type == room_type) < minimum_count:
@@ -279,6 +313,7 @@ def _ensure_minimum_room_count(
             for coord, node in nodes_by_coord.items()
             if node.row >= min_row
             and node.row > 0
+            and node.row not in fixed_rows
             and node.next_node_ids
             and node.room_type not in {"boss", room_type}
             and _replacement_respects_special_streak(
@@ -313,15 +348,25 @@ def _validate_generated_nodes(nodes: list[ActNodeState], *, config: ActMapConfig
         raise ValueError("generated map must end with exactly one boss node")
     if any(len(nodes_in_row) > _MAX_WIDTH for nodes_in_row in by_row.values()):
         raise ValueError("generated map exceeds width limit")
+    for floor, room_type in config.fixed_floor_room_types.items():
+        row = floor - 1
+        if row not in by_row:
+            raise ValueError(f"generated map is missing fixed floor: {floor}")
+        if any(node.room_type != room_type for node in by_row[row]):
+            raise ValueError(f"generated map violates fixed floor room type: {floor}")
+    if _longest_special_streak({(node.row, node.col): node for node in nodes}) > int(
+        config.room_rules.get("max_path_special_streak", 99)
+    ):
+        raise ValueError("generated map exceeds max special room streak")
 
 
 def generate_act_state(act_id: str, seed: int, registry: ContentProviderPort) -> ActState:
     act_def = _act_def_from_registry(act_id, registry)
     for attempt in range(_MAX_GENERATION_ATTEMPTS):
-        rng = rng_for_run(seed=seed, category=f"map:{act_id}:{attempt}")
-        topology = _build_layered_topology(act_def.map_config, rng)
-        typed_nodes = _assign_room_types(topology, config=act_def.map_config, rng=rng)
         try:
+            rng = rng_for_run(seed=seed, category=f"map:{act_id}:{attempt}")
+            topology = _build_layered_topology(act_def.map_config, rng)
+            typed_nodes = _assign_room_types(topology, config=act_def.map_config, rng=rng)
             _validate_generated_nodes(typed_nodes, config=act_def.map_config)
             return ActState(
                 act_id=act_def.id,

@@ -1375,6 +1375,92 @@ def test_hover_preview_maps_task5_control_actions() -> None:
         assert "Boss" not in preview.plain
 
 
+def test_hover_preview_shows_treasure_room_open_action_hint() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="treasure",
+            stage="waiting_input",
+            is_resolved=False,
+            payload={
+                "act_id": "act1",
+                "node_id": "r9c0",
+                "next_node_ids": [],
+                "treasure_relic_id": "golden_idol",
+            },
+        ),
+        menu_state=replace(base.menu_state, mode="root"),
+    )
+
+    preview = _hover_preview_renderable(session, "open_treasure")
+    assert preview is not None
+    assert "打开宝箱" in preview.plain
+    assert "遗物" in preview.plain
+
+
+def test_hover_preview_shows_boss_chest_transition_hint() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="boss_chest",
+            stage="completed",
+            is_resolved=True,
+            payload={
+                "act_id": "act1",
+                "node_id": "boss_chest",
+                "next_node_ids": [],
+                "next_act_id": "act2",
+                "boss_rewards": {
+                    "gold_reward": 100,
+                    "claimed_gold": True,
+                    "claimed_relic_id": "black_blood",
+                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper"],
+                },
+            },
+        ),
+        menu_state=replace(base.menu_state, mode="root"),
+    )
+
+    preview = _hover_preview_renderable(session, "advance_boss_chest")
+    assert preview is not None
+    assert "前往下一幕" in preview.plain
+    assert "Boss宝箱" not in preview.plain
+
+
+def test_hover_preview_shows_final_boss_chest_completion_hint() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="boss_chest",
+            stage="completed",
+            is_resolved=True,
+            payload={
+                "act_id": "act2",
+                "node_id": "boss_chest",
+                "next_node_ids": [],
+                "boss_rewards": {
+                    "gold_reward": 100,
+                    "claimed_gold": True,
+                    "claimed_relic_id": "black_blood",
+                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper"],
+                },
+            },
+        ),
+        menu_state=replace(base.menu_state, mode="root"),
+    )
+
+    preview = _hover_preview_renderable(session, "advance_boss_chest")
+    assert preview is not None
+    assert "完成攀登" in preview.plain
+    assert "Boss宝箱" not in preview.plain
+
+
 def test_hover_preview_ignores_unsupported_claim_reward_prefix() -> None:
     base = start_session(seed=5)
     session = replace(

@@ -5,7 +5,7 @@ from dataclasses import replace
 
 import pytest
 
-from slay_the_spire.app.session import MenuState, load_session, route_command, route_menu_choice, start_session
+from slay_the_spire.app.session import MenuState, _open_treasure, load_session, render_session, route_command, route_menu_choice, start_session
 from slay_the_spire.adapters.persistence.save_files import JsonFileSaveRepository
 from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.domain.models.combat_state import CombatState
@@ -148,6 +148,116 @@ def test_rest_upgrade_subflow_survives_load_session(tmp_path: Path) -> None:
     assert restored_room.stage == "select_upgrade_card"
     assert restored_room.payload["upgrade_options"] == ["bash#10"]
     assert restored_session.menu_state.mode == "rest_upgrade_card"
+
+
+def test_open_treasure_via_menu_grants_relic_marks_room_resolved_and_is_not_reapplied_after_load(tmp_path: Path) -> None:
+    session = replace(
+        start_session(seed=41),
+        room_state=RoomState(
+            room_id="act1:treasure",
+            room_type="treasure",
+            stage="waiting_input",
+            payload={
+                "act_id": "act1",
+                "node_id": "r9c0",
+                "next_node_ids": [],
+                "treasure_relic_id": "golden_idol",
+            },
+            is_resolved=False,
+            rewards=[],
+        ),
+        menu_state=MenuState(),
+    )
+
+    unopened_render = render_session(session)
+
+    assert "宝箱" in unopened_render
+    assert "未打开" in unopened_render
+    assert "金神像" in unopened_render
+
+    _running, opened_session, opened_message = route_menu_choice("1", session=session)
+
+    assert opened_session.run_state.relics == ["burning_blood", "golden_idol"]
+    assert opened_session.room_state.is_resolved is True
+    assert opened_session.room_state.stage == "completed"
+    assert opened_session.room_state.payload["claimed_treasure_relic_id"] == "golden_idol"
+    assert "已获得" in opened_message
+    assert "金神像" in opened_message
+
+    repository = JsonFileSaveRepository(tmp_path / "treasure.json")
+    save_game(
+        repository=repository,
+        run_state=opened_session.run_state,
+        act_state=opened_session.act_state,
+        room_state=opened_session.room_state,
+    )
+
+    restored_session = load_session(save_path=tmp_path / "treasure.json", content_root=Path(__file__).resolve().parents[2] / "content")
+    before_relics = list(restored_session.run_state.relics)
+
+    assert restored_session.room_state.is_resolved is True
+    assert restored_session.room_state.payload["claimed_treasure_relic_id"] == "golden_idol"
+
+    _running, final_session, _message = route_menu_choice("1", session=restored_session)
+
+    assert final_session.run_state.relics == before_relics
+    assert final_session.room_state.payload["claimed_treasure_relic_id"] == "golden_idol"
+
+
+def test_open_treasure_is_idempotent_when_room_is_already_resolved() -> None:
+    session = replace(
+        start_session(seed=41),
+        run_state=replace(start_session(seed=41).run_state, relics=["burning_blood", "golden_idol"]),
+        room_state=RoomState(
+            room_id="act1:treasure",
+            room_type="treasure",
+            stage="completed",
+            payload={
+                "act_id": "act1",
+                "node_id": "r9c0",
+                "next_node_ids": [],
+                "treasure_relic_id": "golden_idol",
+                "claimed_treasure_relic_id": "golden_idol",
+            },
+            is_resolved=True,
+            rewards=[],
+        ),
+        menu_state=MenuState(),
+    )
+
+    reopened_session = _open_treasure(session)
+
+    assert reopened_session.run_state.to_dict() == session.run_state.to_dict()
+    assert reopened_session.room_state.to_dict() == session.room_state.to_dict()
+
+
+def test_open_treasure_with_existing_claim_marker_converges_room_via_menu_choice() -> None:
+    session = replace(
+        start_session(seed=41),
+        run_state=replace(start_session(seed=41).run_state, relics=["burning_blood", "golden_idol"]),
+        room_state=RoomState(
+            room_id="act1:treasure",
+            room_type="treasure",
+            stage="waiting_input",
+            payload={
+                "act_id": "act1",
+                "node_id": "r9c0",
+                "next_node_ids": [],
+                "treasure_relic_id": "golden_idol",
+                "claimed_treasure_relic_id": "golden_idol",
+            },
+            is_resolved=False,
+            rewards=[],
+        ),
+        menu_state=MenuState(),
+    )
+
+    _running, reopened_session, _message = route_menu_choice("1", session=session)
+
+    assert reopened_session.run_state.to_dict() == session.run_state.to_dict()
+    assert reopened_session.room_state.stage == "completed"
+    assert reopened_session.room_state.is_resolved is True
+    assert reopened_session.room_state.payload["claimed_treasure_relic_id"] == "golden_idol"
 
 
 def test_reward_claim_is_not_reapplied_after_load(tmp_path: Path) -> None:
@@ -362,7 +472,8 @@ def test_partial_boss_reward_progress_survives_load_session(tmp_path: Path) -> N
     )
     _running, reward_menu_session, _message = route_menu_choice("1", session=restored_session)
     _running, relic_menu_session, _message = route_menu_choice("2", session=reward_menu_session)
-    _running, transitioned_session, _message = route_menu_choice("1", session=relic_menu_session)
+    _running, boss_chest_session, boss_chest_message = route_menu_choice("1", session=relic_menu_session)
+    _running, transitioned_session, _message = route_menu_choice("1", session=boss_chest_session)
 
     assert claimed_gold_session.run_phase == "active"
     assert claimed_gold_session.room_state.payload["boss_rewards"]["claimed_gold"] is True
@@ -376,6 +487,11 @@ def test_partial_boss_reward_progress_survives_load_session(tmp_path: Path) -> N
     )
     assert reward_menu_session.menu_state.mode == "select_boss_reward"
     assert relic_menu_session.menu_state.mode == "select_boss_relic"
+    assert boss_chest_session.room_state.room_type == "boss_chest"
+    assert boss_chest_session.room_state.payload["next_act_id"] == "act2"
+    assert boss_chest_session.run_phase == "active"
+    assert "Boss宝箱" in boss_chest_message
+    assert "前往下一幕" in boss_chest_message
     assert transitioned_session.run_phase == "active"
     assert transitioned_session.run_state.current_act_id == "act2"
     assert transitioned_session.act_state.act_id == "act2"
@@ -383,7 +499,7 @@ def test_partial_boss_reward_progress_survives_load_session(tmp_path: Path) -> N
     assert "black_blood" in transitioned_session.run_state.relics
 
 
-def test_completed_boss_reward_state_advances_to_act2_on_load(tmp_path: Path) -> None:
+def test_completed_boss_reward_state_enters_boss_chest_on_load(tmp_path: Path) -> None:
     provider = _content_provider()
     base_session = start_session(seed=11)
     initial_session = replace(
@@ -422,11 +538,14 @@ def test_completed_boss_reward_state_advances_to_act2_on_load(tmp_path: Path) ->
         content_root=Path(__file__).resolve().parents[2] / "content",
     )
 
-    assert restored_session.run_state.current_act_id == "act2"
-    assert restored_session.act_state.act_id == "act2"
-    assert restored_session.room_state.room_id != "act1:boss"
-    assert restored_session.room_state.payload["act_id"] == "act2"
-    assert restored_session.room_state.payload["node_id"] == restored_session.act_state.current_node_id
+    assert restored_session.run_state.current_act_id == "act1"
+    assert restored_session.act_state.act_id == "act1"
+    assert restored_session.room_state.room_id == "act1:boss_chest"
+    assert restored_session.room_state.room_type == "boss_chest"
+    assert restored_session.room_state.payload["act_id"] == "act1"
+    assert restored_session.room_state.payload["node_id"] == "boss_chest"
+    assert restored_session.room_state.payload["next_act_id"] == "act2"
+    assert restored_session.menu_state.mode == "root"
     assert restored_session.run_phase == "active"
 
 
@@ -755,26 +874,45 @@ def test_claim_all_rewards_clears_non_boss_room_rewards() -> None:
     assert next_session.run_state.deck[-1] == "anger#11"
 
 
-def test_claiming_boss_relic_after_gold_enters_victory() -> None:
+def test_claiming_boss_relic_after_gold_enters_final_boss_chest_before_victory() -> None:
     session = _boss_reward_ready_session(act_id="act2", next_act_id=None)
 
     _running, session, _message = route_menu_choice("1", session=session)
     _running, session, _message = route_menu_choice("2", session=session)
-    _running, next_session, _message = route_menu_choice("1", session=session)
+    _running, next_session, render_message = route_menu_choice("1", session=session)
 
-    assert next_session.run_phase == "victory"
+    assert next_session.run_phase == "active"
     assert next_session.run_state.current_act_id == "act2"
-    assert next_session.room_state.payload["boss_rewards"]["claimed_relic_id"] == "black_blood"
+    assert next_session.room_state.room_type == "boss_chest"
     assert next_session.menu_state.mode == "root"
+    assert next_session.room_state.payload["boss_rewards"]["claimed_relic_id"] == "black_blood"
+    assert "Boss宝箱" in render_message
+    assert "完成攀登" in render_message
     assert "black_blood" in next_session.run_state.relics
 
+    _running, victory_session, _message = route_menu_choice("1", session=next_session)
 
-def test_claiming_final_boss_reward_in_act1_enters_act2_instead_of_victory() -> None:
+    assert victory_session.run_phase == "victory"
+    assert victory_session.run_state.current_act_id == "act2"
+
+
+def test_claiming_final_boss_reward_in_act1_enters_boss_chest_before_act2() -> None:
     session = _boss_reward_ready_session(act_id="act1", next_act_id="act2")
 
     _running, gold_session, _message = route_menu_choice("1", session=session)
     _running, relic_menu_session, _message = route_menu_choice("2", session=gold_session)
-    _running, next_session, _message = route_menu_choice("1", session=relic_menu_session)
+    _running, boss_chest_session, render_message = route_menu_choice("1", session=relic_menu_session)
+
+    assert boss_chest_session.run_phase == "active"
+    assert boss_chest_session.run_state.current_act_id == "act1"
+    assert boss_chest_session.act_state.act_id == "act1"
+    assert boss_chest_session.room_state.room_type == "boss_chest"
+    assert boss_chest_session.room_state.payload["act_id"] == "act1"
+    assert boss_chest_session.room_state.payload["next_act_id"] == "act2"
+    assert "Boss宝箱" in render_message
+    assert "前往下一幕" in render_message
+
+    _running, next_session, _message = route_menu_choice("1", session=boss_chest_session)
 
     assert next_session.run_phase == "active"
     assert next_session.run_state.current_act_id == "act2"

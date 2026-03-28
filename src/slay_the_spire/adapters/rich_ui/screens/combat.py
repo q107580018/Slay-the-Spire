@@ -305,6 +305,10 @@ def render_summary_bar(
     room_kind = room_state.payload.get("room_kind", room_state.room_type)
     character_name = registry.characters().get(run_state.character_id).name
     act_name = registry.acts().get(act_state.act_id).name
+    player_hp_line = Text.assemble(
+        ("玩家生命 ", "summary.label"),
+        render_hp_bar(combat_state.player.hp, combat_state.player.max_hp, show_values=False),
+    )
     lines = [
         Text.assemble(("种子 ", "summary.label"), str(run_state.seed), f" (种子: {run_state.seed})"),
         Text.assemble(("角色 ", "summary.label"), (character_name, "player.name")),

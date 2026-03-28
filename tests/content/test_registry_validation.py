@@ -106,6 +106,31 @@ def test_registry_loads_act2_definition(content_root: Path) -> None:
 
 
 @pytest.mark.parametrize("content_root", _content_roots())
+def test_registry_loads_extended_act_map_schema(content_root: Path) -> None:
+    provider = StarterContentProvider(content_root)
+
+    act1 = provider.acts().get("act1")
+    act2 = provider.acts().get("act2")
+
+    assert act1.map_config.floor_count == 16
+    assert act1.map_config.fixed_floor_room_types == {
+        1: "combat",
+        9: "treasure",
+        15: "rest",
+        16: "boss",
+    }
+    assert act1.map_config.post_boss_room_type == "boss_chest"
+    assert act2.map_config.floor_count == 16
+    assert act2.map_config.fixed_floor_room_types == {
+        1: "combat",
+        9: "treasure",
+        15: "rest",
+        16: "boss",
+    }
+    assert act2.map_config.post_boss_room_type == "boss_chest"
+
+
+@pytest.mark.parametrize("content_root", _content_roots())
 def test_boss_relic_catalog_exposes_act1_boss_relic_details(content_root: Path) -> None:
     provider = StarterContentProvider(content_root)
 
@@ -234,6 +259,35 @@ def test_catalog_rejects_missing_encounter_pool_referenced_by_non_starting_act(c
 
 
 @pytest.mark.parametrize("content_root", _content_roots())
+def test_catalog_rejects_duplicate_fixed_floor_keys_after_normalization(content_root: Path, tmp_path: Path) -> None:
+    copied_root = tmp_path / content_root.name
+    shutil.copytree(content_root, copied_root)
+    acts_path = copied_root / "acts" / "act1_map.json"
+    payload = load_json_file(acts_path)
+    payload["acts"][0]["map_config"]["fixed_floor_room_types"] = {
+        "1": "combat",
+        "01": "event",
+    }
+    acts_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="duplicate normalized key"):
+        ContentCatalog.from_content_root(copied_root)
+
+
+@pytest.mark.parametrize("content_root", _content_roots())
+def test_catalog_rejects_fixed_floor_room_types_out_of_range(content_root: Path, tmp_path: Path) -> None:
+    copied_root = tmp_path / content_root.name
+    shutil.copytree(content_root, copied_root)
+    acts_path = copied_root / "acts" / "act1_map.json"
+    payload = load_json_file(acts_path)
+    payload["acts"][0]["map_config"]["fixed_floor_room_types"]["17"] = "boss"
+    acts_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="must be between 1 and floor_count"):
+        ContentCatalog.from_content_root(copied_root)
+
+
+@pytest.mark.parametrize("content_root", _content_roots())
 def test_provider_exposes_event_pool_entry_metadata(content_root: Path) -> None:
     provider = StarterContentProvider(content_root)
 
@@ -257,7 +311,9 @@ def test_act_registry_accepts_map_config_instead_of_static_nodes(content_root: P
     provider = StarterContentProvider(content_root)
     act = provider.acts().get("act1")
 
-    assert act.map_config.floor_count == 13
+    assert act.map_config.floor_count == 16
     assert act.map_config.starting_columns == 1
     assert act.map_config.boss_room_type == "boss"
+    assert act.map_config.fixed_floor_room_types[9] == "treasure"
+    assert act.map_config.post_boss_room_type == "boss_chest"
     assert act.map_config.room_rules["min_floor_for_shop"] == 2

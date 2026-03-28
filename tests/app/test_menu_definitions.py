@@ -85,6 +85,71 @@ def test_build_root_menu_binds_pending_boss_rewards_to_reward_actions() -> None:
     assert "前往下一个房间" not in format_menu_lines(menu)
 
 
+def test_build_root_menu_binds_boss_chest_transition_into_next_act() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=replace(
+            start_session(seed=5).room_state,
+            room_id="act1:boss_chest",
+            room_type="boss_chest",
+            stage="completed",
+            is_resolved=True,
+            rewards=[],
+            payload={
+                "act_id": "act1",
+                "node_id": "boss_chest",
+                "next_node_ids": [],
+                "next_act_id": "act2",
+            },
+        ),
+    )
+
+    menu = build_root_menu(room_state=session.room_state)
+
+    assert format_menu_lines(menu) == [
+        "可选操作:",
+        "1. 前往下一幕",
+        "2. 查看资料",
+        "3. 保存游戏",
+        "4. 读取存档",
+        "5. 退出游戏",
+    ]
+    assert resolve_menu_action("1", menu) == "advance_boss_chest"
+    assert resolve_menu_action("2", menu) == "inspect"
+
+
+def test_build_root_menu_binds_final_boss_chest_to_climb_completion() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=replace(
+            start_session(seed=5).room_state,
+            room_id="act2:boss_chest",
+            room_type="boss_chest",
+            stage="completed",
+            is_resolved=True,
+            rewards=[],
+            payload={
+                "act_id": "act2",
+                "node_id": "boss_chest",
+                "next_node_ids": [],
+            },
+        ),
+    )
+
+    menu = build_root_menu(room_state=session.room_state)
+
+    assert format_menu_lines(menu) == [
+        "可选操作:",
+        "1. 完成攀登",
+        "2. 查看资料",
+        "3. 保存游戏",
+        "4. 读取存档",
+        "5. 退出游戏",
+    ]
+    assert resolve_menu_action("1", menu) == "advance_boss_chest"
+    assert resolve_menu_action("2", menu) == "inspect"
+
+
 def test_build_inspect_root_menu_binds_combat_choices_to_actions() -> None:
     session = start_session(seed=5)
 
@@ -247,6 +312,68 @@ def test_build_root_menu_binds_event_choices_without_view_current() -> None:
     ]
     assert resolve_menu_action("1", menu) == "event_choice"
     assert resolve_menu_action("2", menu) == "inspect"
+
+
+def test_build_root_menu_binds_unresolved_treasure_to_open_chest_action() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=replace(
+            start_session(seed=5).room_state,
+            room_type="treasure",
+            stage="waiting_input",
+            is_resolved=False,
+            payload={
+                "node_id": "r9c0",
+                "next_node_ids": ["boss"],
+                "treasure_relic_id": "golden_idol",
+            },
+        ),
+    )
+
+    menu = build_root_menu(room_state=session.room_state)
+
+    assert format_menu_lines(menu) == [
+        "可选操作:",
+        "1. 打开宝箱",
+        "2. 查看资料",
+        "3. 保存游戏",
+        "4. 读取存档",
+        "5. 退出游戏",
+    ]
+    assert resolve_menu_action("1", menu) == "open_treasure"
+    assert "查看当前状态" not in format_menu_lines(menu)
+    assert "前往下一个房间" not in format_menu_lines(menu)
+
+
+def test_build_root_menu_returns_resolved_treasure_to_next_room_flow() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=replace(
+            start_session(seed=5).room_state,
+            room_type="treasure",
+            stage="completed",
+            is_resolved=True,
+            rewards=[],
+            payload={
+                "node_id": "r9c0",
+                "next_node_ids": ["boss"],
+                "treasure_relic_id": "golden_idol",
+                "claimed_treasure_relic_id": "golden_idol",
+            },
+        ),
+    )
+
+    menu = build_root_menu(room_state=session.room_state)
+
+    assert format_menu_lines(menu) == [
+        "可选操作:",
+        "1. 前往下一个房间",
+        "2. 查看资料",
+        "3. 保存游戏",
+        "4. 读取存档",
+        "5. 退出游戏",
+    ]
+    assert resolve_menu_action("1", menu) == "next_room"
 
 
 def test_build_boss_reward_menu_binds_gold_relic_and_back_actions() -> None:

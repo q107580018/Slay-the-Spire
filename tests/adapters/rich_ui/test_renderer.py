@@ -1374,9 +1374,9 @@ def test_map_renderer_applies_light_rich_styles_to_priority_tokens() -> None:
     styled_lines = {line.plain: {span.style for span in line.spans} for line in text_lines}
 
     assert "POS  (0, 0)" in styled_lines
-    assert "TYPE | 战斗 精英 Boss 事件 商店 休息" in styled_lines
+    assert "TYPE | 战斗 精英 Boss 事件 商店 休息 宝箱" in styled_lines
     assert "map.metric.label" in styled_lines["POS  (0, 0)"]
-    assert "map.legend.label" in styled_lines["TYPE | 战斗 精英 Boss 事件 商店 休息"]
+    assert "map.legend.label" in styled_lines["TYPE | 战斗 精英 Boss 事件 商店 休息 宝箱"]
 
     current_line_styles = next(styles for line, styles in styled_lines.items() if ">战斗<" in line)
     assert "map.node.current" in current_line_styles
