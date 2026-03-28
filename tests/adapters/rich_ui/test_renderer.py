@@ -3,17 +3,17 @@ from dataclasses import replace
 from rich.console import Console
 from rich.text import Text
 
-from slay_the_spire.adapters.rich_ui.inspect import format_card_detail_lines
+from slay_the_spire.adapters.presentation.inspect import format_card_detail_lines
 from slay_the_spire.app.session import MenuState, start_session
-from slay_the_spire.adapters.rich_ui.renderer import render_room
-from slay_the_spire.adapters.rich_ui.theme import TERMINAL_THEME
-from slay_the_spire.adapters.rich_ui.screens.combat import (
+from slay_the_spire.adapters.presentation.renderer import render_room
+from slay_the_spire.adapters.presentation.theme import TERMINAL_THEME
+from slay_the_spire.adapters.presentation.screens.combat import (
     _format_card_menu,
     _format_target_menu,
     _format_reward_menu as _format_combat_reward_menu,
     render_player_panel,
 )
-from slay_the_spire.adapters.rich_ui.screens.non_combat import (
+from slay_the_spire.adapters.presentation.screens.non_combat import (
     _format_event_remove_menu,
     _format_event_upgrade_menu,
     _format_reward_menu as _format_non_combat_reward_menu,
@@ -24,7 +24,7 @@ from slay_the_spire.adapters.rich_ui.screens.non_combat import (
     render_shop_panel,
     render_full_map_panel,
 )
-from slay_the_spire.adapters.rich_ui.widgets import render_card_name
+from slay_the_spire.adapters.presentation.widgets import render_card_name
 from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.domain.models.act_state import ActNodeState, ActState
 from slay_the_spire.domain.models.combat_state import CombatState

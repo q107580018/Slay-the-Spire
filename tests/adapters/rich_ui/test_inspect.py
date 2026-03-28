@@ -1,6 +1,6 @@
 from dataclasses import replace
 from rich.console import Console
-from slay_the_spire.adapters.rich_ui.inspect import (
+from slay_the_spire.adapters.presentation.inspect import (
     format_card_detail_lines,
     format_card_detail_menu,
     format_card_upgrade_preview_lines,
@@ -9,8 +9,8 @@ from slay_the_spire.adapters.rich_ui.inspect import (
     render_card_detail_panel,
     render_reward_detail_panel,
 )
-from slay_the_spire.adapters.rich_ui.inspect_registry import format_shared_inspect_menu
-from slay_the_spire.adapters.rich_ui.renderer import render_room
+from slay_the_spire.adapters.presentation.inspect_registry import format_shared_inspect_menu
+from slay_the_spire.adapters.presentation.renderer import render_room
 from slay_the_spire.app.session import MenuState, start_session
 from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.domain.models.cards import card_id_from_instance_id

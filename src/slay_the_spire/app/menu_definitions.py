@@ -5,7 +5,7 @@ from typing import Any, Mapping
 
 from rich.text import Text
 
-from slay_the_spire.adapters.rich_ui.widgets import format_card_cost, render_card_name, summarize_card_definition
+from slay_the_spire.adapters.presentation.widgets import format_card_cost, render_card_name, summarize_card_definition
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.room_state import RoomState

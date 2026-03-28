@@ -6,7 +6,7 @@ from typing import Callable
 
 from rich.console import RenderableType
 
-from slay_the_spire.adapters.rich_ui.renderer import render_room, render_room_renderable
+from slay_the_spire.adapters.presentation.renderer import render_room, render_room_renderable
 from slay_the_spire.adapters.persistence.save_files import JsonFileSaveRepository
 from slay_the_spire.app.map_labels import format_next_room_labels
 from slay_the_spire.app.menu_definitions import (

@@ -12,7 +12,7 @@ from rich.text import Text
 from textual.widgets import OptionList, Static
 
 from slay_the_spire.adapters.textual.map_widget import MapWidget
-from slay_the_spire.adapters.rich_ui.theme import TERMINAL_THEME
+from slay_the_spire.adapters.presentation.theme import TERMINAL_THEME
 from slay_the_spire.adapters.textual.slay_app import (
     SlayApp,
     _current_action_menu,

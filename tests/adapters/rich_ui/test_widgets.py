@@ -1,8 +1,8 @@
 from rich.console import Console
 
-from slay_the_spire.adapters.rich_ui.theme import TERMINAL_THEME
-from slay_the_spire.adapters.rich_ui.renderer import render_room
-from slay_the_spire.adapters.rich_ui.widgets import (
+from slay_the_spire.adapters.presentation.theme import TERMINAL_THEME
+from slay_the_spire.adapters.presentation.renderer import render_room
+from slay_the_spire.adapters.presentation.widgets import (
     render_block,
     render_hp_bar,
     render_menu,

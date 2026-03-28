@@ -3,8 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
-from slay_the_spire.adapters.rich_ui.widgets import card_label
-from slay_the_spire.adapters.rich_ui.widgets import active_power_label
+from slay_the_spire.adapters.presentation.widgets import card_label
+from slay_the_spire.adapters.presentation.widgets import active_power_label
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.entities import EnemyState
