@@ -6,7 +6,6 @@
       "cost": -1,
       "rarity": "curse",
       "playable": false,
-      "can_appear_in_shop": false,
       "effects": [],
       "card_type": "curse",
       "acquisition_tags": [
@@ -20,7 +19,6 @@
       "cost": -1,
       "rarity": "curse",
       "playable": false,
-      "can_appear_in_shop": false,
       "effects": [],
       "card_type": "curse",
       "acquisition_tags": [
@@ -34,7 +32,6 @@
       "cost": -1,
       "rarity": "special",
       "playable": false,
-      "can_appear_in_shop": false,
       "effects": [],
       "card_type": "status",
       "acquisition_tags": [

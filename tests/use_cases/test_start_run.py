@@ -166,8 +166,10 @@ def test_enter_room_shop_payload_excludes_curse_cards_and_event_only_relics() ->
     offered_cards = [item["card_id"] for item in room_state.payload["cards"]]
     offered_relics = [item["relic_id"] for item in room_state.payload["relics"]]
 
+    assert all("shop" in provider.cards().get(card_id).acquisition_tags for card_id in offered_cards)
     assert "doubt" not in offered_cards
     assert "injury" not in offered_cards
+    assert "burn" not in offered_cards
     assert "golden_idol" not in offered_relics
 
 
