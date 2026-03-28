@@ -20,6 +20,7 @@ from slay_the_spire.app.menu_definitions import (
     build_inspect_root_menu,
     build_leaf_menu,
     build_next_room_menu,
+    build_potion_target_menu,
     build_select_potion_menu,
     build_relic_detail_menu,
     build_reward_menu,
@@ -605,11 +606,6 @@ def _card_requires_enemy_target(card_instance_id: str, session: SessionState) ->
     return any(effect.get("type") in {"damage", "vulnerable"} for effect in card_def.effects)
 
 
-def _potion_requires_enemy_target(potion_id: str, session: SessionState) -> bool:
-    potion_def = _content_provider(session).potions().get(potion_id)
-    return potion_def.target == "enemy"
-
-
 def _hand_index_for_card(combat_state: CombatState, card_instance_id: str) -> int:
     for index, current in enumerate(combat_state.hand, start=1):
         if current == card_instance_id:
@@ -1146,7 +1142,10 @@ def _route_combat_inspect_enemy_detail_menu(choice: str, session: SessionState) 
 def _route_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
     if session.run_phase in {"victory", "game_over"}:
         return _route_terminal_phase_menu(choice, session)
-    action_id = resolve_menu_action(choice, build_root_menu(room_state=session.room_state, run_state=session.run_state))
+    action_id = resolve_menu_action(
+        choice,
+        build_root_menu(room_state=session.room_state, run_state=session.run_state, registry=_content_provider(session)),
+    )
     if action_id is None:
         return _invalid_menu_choice(session)
     if action_id == "view_current":
@@ -1243,14 +1242,15 @@ def _route_potion_menu(choice: str, session: SessionState) -> tuple[bool, Sessio
     if potion_index <= 0 or potion_index > len(session.run_state.potions):
         return _invalid_menu_choice(session)
     potion_id = session.run_state.potions[potion_index - 1]
+    potion_def = _content_provider(session).potions().get(potion_id)
     enemy_targets = _combat_target_ids(combat_state)
-    if _potion_requires_enemy_target(potion_id, session) and len(enemy_targets) > 1:
+    if potion_def.target == "any" or (potion_def.target == "enemy" and len(enemy_targets) > 1):
         next_session = replace(
             session,
             menu_state=MenuState(mode="select_target", selected_potion_index=potion_index),
         )
         return True, next_session, render_session(next_session)
-    if _potion_requires_enemy_target(potion_id, session):
+    if potion_def.target == "enemy":
         if len(enemy_targets) == 0:
             return True, session, "当前没有可选敌人，无法使用该药水。"
         target_id = enemy_targets[0]
@@ -1321,28 +1321,30 @@ def _route_target_menu(choice: str, session: SessionState) -> tuple[bool, Sessio
         if potion_id is None:
             next_session = replace(session, menu_state=MenuState())
             return True, next_session, "所选药水已发生变化，请重新选择。"
-        enemy_targets = _combat_target_ids(combat_state)
-        target_options = [(f"target_enemy:{index}", target_id) for index, target_id in enumerate(enemy_targets, start=1)]
         action_id = resolve_menu_action(
             choice,
-            build_target_menu(
-                target_options=target_options,
-                current_card_name=None,
-                title="选择敌人",
+            build_potion_target_menu(
+                combat_state=combat_state,
+                potion_id=potion_id,
+                registry=_content_provider(session),
             ),
         )
         if action_id == "back":
             next_session = replace(session, menu_state=MenuState(mode="select_potion"))
             return True, next_session, render_session(next_session)
-        if action_id is None or not action_id.startswith("target_enemy:"):
+        if action_id == "target_self":
+            target_id = combat_state.player.instance_id
+        elif action_id is not None and action_id.startswith("target_enemy:"):
+            enemy_targets = _combat_target_ids(combat_state)
+            try:
+                enemy_index = int(action_id.split(":", 1)[1])
+            except ValueError:
+                return _invalid_menu_choice(session)
+            if enemy_index <= 0 or enemy_index > len(enemy_targets):
+                return _invalid_menu_choice(session)
+            target_id = enemy_targets[enemy_index - 1]
+        else:
             return _invalid_menu_choice(session)
-        try:
-            enemy_index = int(action_id.split(":", 1)[1])
-        except ValueError:
-            return _invalid_menu_choice(session)
-        if enemy_index <= 0 or enemy_index > len(enemy_targets):
-            return _invalid_menu_choice(session)
-        target_id = enemy_targets[enemy_index - 1]
         result = use_potion(
             combat_state,
             potion_id=potion_id,

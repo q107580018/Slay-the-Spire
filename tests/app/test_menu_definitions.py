@@ -7,6 +7,7 @@ from rich.text import Text
 from slay_the_spire.app.menu_definitions import (
     build_boss_relic_menu,
     build_boss_reward_menu,
+    build_potion_target_menu,
     build_select_potion_menu,
     build_next_room_menu,
     build_inspect_root_menu,
@@ -22,11 +23,33 @@ from slay_the_spire.app.menu_definitions import (
 )
 from slay_the_spire.app.session import start_session
 from slay_the_spire.content.provider import StarterContentProvider
+from slay_the_spire.content.registries import EnemyDef, PotionDef
 from slay_the_spire.domain.models.combat_state import CombatState
+from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
 
 
 def _span_styles(text: Text) -> set[str]:
     return {str(span.style) for span in text.spans}
+
+
+class _RegistryMap:
+    def __init__(self, items: dict[str, object]) -> None:
+        self._items = items
+
+    def get(self, content_id: str) -> object:
+        return self._items[content_id]
+
+
+class _PotionTestProvider:
+    def __init__(self, *, potions: dict[str, PotionDef], enemies: dict[str, EnemyDef] | None = None) -> None:
+        self._potions = _RegistryMap(potions)
+        self._enemies = _RegistryMap(enemies or {})
+
+    def potions(self) -> _RegistryMap:
+        return self._potions
+
+    def enemies(self) -> _RegistryMap:
+        return self._enemies
 
 
 def test_build_root_menu_binds_resolved_combat_without_rewards_to_inspect_action() -> None:
@@ -65,6 +88,111 @@ def test_build_root_menu_binds_combat_use_potion_action() -> None:
         "7. 退出游戏",
     ]
     assert resolve_menu_action("2", menu) == "use_potion"
+
+
+def test_build_root_menu_hides_out_of_combat_potions_when_registry_is_provided() -> None:
+    session = start_session(seed=5)
+    registry = _PotionTestProvider(
+        potions={
+            "rest_potion": PotionDef(
+                id="rest_potion",
+                name="休息药水",
+                effect={"type": "heal", "amount": 5},
+                timing="out_of_combat",
+                target="self",
+            )
+        }
+    )
+
+    menu = build_root_menu(room_state=session.room_state, run_state=replace(session.run_state, potions=["rest_potion"]), registry=registry)
+
+    assert "使用药水" not in format_menu_lines(menu)
+
+
+def test_build_select_potion_menu_hides_out_of_combat_potions() -> None:
+    session = start_session(seed=5)
+    registry = _PotionTestProvider(
+        potions={
+            "rest_potion": PotionDef(
+                id="rest_potion",
+                name="休息药水",
+                effect={"type": "heal", "amount": 5},
+                timing="out_of_combat",
+                target="self",
+            )
+        }
+    )
+
+    menu = build_select_potion_menu(run_state=replace(session.run_state, potions=["rest_potion"]), registry=registry)
+
+    assert format_menu_lines(menu) == [
+        "药水:",
+        "1. 返回上一步",
+    ]
+    assert resolve_menu_action("1", menu) == "back"
+
+
+def test_build_potion_target_menu_for_any_target_includes_self_and_enemies() -> None:
+    combat_state = CombatState(
+        round_number=1,
+        energy=3,
+        hand=[],
+        draw_pile=[],
+        discard_pile=[],
+        exhaust_pile=[],
+        player=PlayerCombatState(
+            instance_id="player-1",
+            hp=40,
+            max_hp=40,
+            block=0,
+            statuses=[],
+        ),
+        enemies=[
+            EnemyState(
+                instance_id="enemy-1",
+                enemy_id="slime",
+                hp=20,
+                max_hp=20,
+                block=0,
+                statuses=[],
+            )
+        ],
+        effect_queue=[],
+        log=[],
+    )
+    registry = _PotionTestProvider(
+        potions={
+            "flex_potion": PotionDef(
+                id="flex_potion",
+                name="灵活药水",
+                effect={"type": "damage", "amount": 7},
+                timing="in_combat",
+                target="any",
+            )
+        },
+        enemies={
+            "slime": EnemyDef(
+                id="slime",
+                name="绿史莱姆",
+                hp=20,
+                move_table=[],
+                intent_policy="random",
+            )
+        },
+    )
+
+    menu = build_potion_target_menu(combat_state=combat_state, potion_id="flex_potion", registry=registry)
+
+    assert format_menu_lines(menu) == [
+        "选择目标:",
+        "当前药水: 灵活药水",
+        "效果: 造成 7 伤害（目标：任意目标 / 时机：战斗中）",
+        "1. 自己",
+        "2. 绿史莱姆",
+        "3. 返回上一步",
+    ]
+    assert resolve_menu_action("1", menu) == "target_self"
+    assert resolve_menu_action("2", menu) == "target_enemy:1"
 
 
 def test_build_root_menu_binds_pending_boss_rewards_to_reward_actions() -> None:

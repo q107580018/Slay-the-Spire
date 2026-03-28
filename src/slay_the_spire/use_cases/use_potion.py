@@ -99,7 +99,9 @@ def _resolve_target_id(
             raise ValueError("self-targeted potions can only target the player")
         return combat_state.player.instance_id
     if potion_target == "any":
-        return target_id or combat_state.player.instance_id
+        if target_id is None:
+            raise ValueError("any-target potions require an explicit target")
+        return target_id
     raise ValueError(f"unsupported potion target: {potion_target}")
 
 

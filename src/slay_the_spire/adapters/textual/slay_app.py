@@ -29,6 +29,7 @@ from slay_the_spire.app.menu_definitions import (
     build_leaf_menu,
     build_menu,
     build_next_room_menu,
+    build_potion_target_menu,
     build_select_potion_menu,
     build_relic_detail_menu,
     build_rest_root_menu,
@@ -172,8 +173,10 @@ def _hover_preview_guidance(menu_mode: str) -> Text | None:
         return Text("查看说明：将鼠标悬停在卡牌上查看详情。")
     if menu_mode == "inspect_relics":
         return Text("查看说明：将鼠标悬停在遗物上查看详情。")
-    if menu_mode in {"select_reward", "select_boss_reward", "select_boss_relic", "shop_root", "select_potion"}:
+    if menu_mode in {"select_reward", "select_boss_reward", "select_boss_relic", "shop_root"}:
         return Text("查看说明：将鼠标悬停在奖励或商品上查看详情。")
+    if menu_mode == "select_potion":
+        return Text("查看说明：将鼠标悬停在药水上查看详情。")
     return None
 
 
@@ -375,22 +378,21 @@ def _build_target_action_menu(session: SessionState) -> MenuDefinition | None:
     if combat_state is None or (not isinstance(selected_card, str) and not isinstance(selected_potion_index, int)):
         return None
     registry = _content_provider(session)
-    current_card_name: Text | None = None
-    requires_enemy_target = False
-    requires_hand_target = False
-    if isinstance(selected_card, str):
-        card_def = registry.cards().get(card_id_from_instance_id(selected_card))
-        current_card_name = render_card_name(card_def)
-        effect_types = {str(effect.get("type")) for effect in card_def.effects}
-        requires_enemy_target = bool(effect_types & {"damage", "vulnerable", "weak"})
-        requires_hand_target = bool(effect_types & {"exhaust_target_card", "upgrade_target_card"})
-    elif isinstance(selected_potion_index, int):
+    if isinstance(selected_potion_index, int):
         potion_ids = session.run_state.potions
         if selected_potion_index <= 0 or selected_potion_index > len(potion_ids):
             return None
         potion_id = potion_ids[selected_potion_index - 1]
-        potion_def = registry.potions().get(potion_id)
-        requires_enemy_target = potion_def.target == "enemy"
+        return build_potion_target_menu(combat_state=combat_state, potion_id=potion_id, registry=registry)
+
+    current_card_name: Text | None = None
+    requires_enemy_target = False
+    requires_hand_target = False
+    card_def = registry.cards().get(card_id_from_instance_id(selected_card))
+    current_card_name = render_card_name(card_def)
+    effect_types = {str(effect.get("type")) for effect in card_def.effects}
+    requires_enemy_target = bool(effect_types & {"damage", "vulnerable", "weak"})
+    requires_hand_target = bool(effect_types & {"exhaust_target_card", "upgrade_target_card"})
 
     target_options: list[tuple[str, str | Text]] = []
     if requires_enemy_target or not requires_hand_target:
@@ -420,7 +422,7 @@ def _current_action_menu(session: SessionState) -> MenuDefinition | None:
     if session.run_phase != "active":
         return build_terminal_phase_menu(run_phase=session.run_phase)
     if menu_mode == "root":
-        return build_root_menu(room_state=room_state, run_state=session.run_state)
+        return build_root_menu(room_state=room_state, run_state=session.run_state, registry=registry)
     if menu_mode == "select_next_room":
         next_node_ids = room_state.payload.get("next_node_ids", [])
         if not isinstance(next_node_ids, list):
@@ -773,7 +775,10 @@ class SlayApp(App[None]):
         if session.menu_state.mode != "root" or not session.room_state.is_resolved:
             return
 
-        root_choice = _menu_choice_for_action(build_root_menu(room_state=session.room_state, run_state=session.run_state), "next_room")
+        root_choice = _menu_choice_for_action(
+            build_root_menu(room_state=session.room_state, run_state=session.run_state, registry=_content_provider(session)),
+            "next_room",
+        )
         if root_choice is None:
             return
         self._process_command(root_choice)

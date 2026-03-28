@@ -15,6 +15,20 @@ def _content_provider() -> StarterContentProvider:
     return StarterContentProvider(Path(__file__).resolve().parents[2] / "content")
 
 
+def _content_provider_with_any_target_potion() -> StarterContentProvider:
+    provider = _content_provider()
+    provider._catalog.potions.register(
+        {
+            "id": "any_block_potion",
+            "name": "任意格挡药水",
+            "effect": {"type": "block", "amount": 5},
+            "timing": "in_combat",
+            "target": "any",
+        }
+    )
+    return provider
+
+
 def _combat_state() -> CombatState:
     return CombatState(
         round_number=1,
@@ -137,3 +151,29 @@ def test_route_menu_choice_uses_enemy_potion_without_target_selection_for_single
     assert next_session.room_state.payload["combat_state"]["enemies"][0]["hp"] == 0
     assert next_session.room_state.is_resolved is True
     assert "火焰药水" in message
+
+
+def test_route_menu_choice_allows_any_target_potions_to_pick_self() -> None:
+    provider = _content_provider_with_any_target_potion()
+    session = replace(
+        start_session(seed=5),
+        run_state=replace(start_session(seed=5).run_state, potions=["any_block_potion"]),
+        menu_state=MenuState(mode="root"),
+    )
+
+    from slay_the_spire.app import session as session_module
+
+    original_content_provider = session_module._content_provider
+    session_module._content_provider = lambda _session: provider
+    try:
+        _running, potion_session, _potion_message = route_menu_choice("2", session=session)
+        _running, target_session, _target_message = route_menu_choice("1", session=potion_session)
+        _running, final_session, final_message = route_menu_choice("1", session=target_session)
+    finally:
+        session_module._content_provider = original_content_provider
+
+    assert potion_session.menu_state.mode == "select_potion"
+    assert target_session.menu_state.mode == "select_target"
+    assert final_session.run_state.potions == []
+    assert final_session.room_state.payload["combat_state"]["player"]["block"] == 5
+    assert "任意格挡药水" in final_message

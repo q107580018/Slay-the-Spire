@@ -164,6 +164,33 @@ def test_target_menu_keeps_current_card_styles() -> None:
     assert "card.upgraded" in _span_styles(lines[1])
 
 
+def test_target_menu_shows_self_for_any_target_potions() -> None:
+    session = start_session(seed=5)
+    provider = _provider(session)
+    provider._catalog.potions.register(
+        {
+            "id": "any_block_potion",
+            "name": "任意格挡药水",
+            "effect": {"type": "block", "amount": 5},
+            "timing": "in_combat",
+            "target": "any",
+        }
+    )
+    combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
+    run_state = replace(session.run_state, potions=["any_block_potion"])
+
+    lines = _format_target_menu(
+        combat_state,
+        run_state,
+        provider,
+        selected_potion_index=1,
+    )
+
+    rendered = "".join(line.plain if isinstance(line, Text) else line for line in lines)
+    assert "自己" in rendered
+    assert "绿史莱姆" in rendered
+
+
 def test_combat_reward_menu_keeps_card_styles() -> None:
     session = start_session(seed=5)
     room_state = replace(

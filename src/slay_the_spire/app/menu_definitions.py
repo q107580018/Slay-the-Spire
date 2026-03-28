@@ -97,7 +97,28 @@ def _has_pending_boss_rewards(room_state: RoomState) -> bool:
     return not (boss_rewards.get("claimed_gold") is True and isinstance(claimed_relic_id, str) and bool(claimed_relic_id))
 
 
-def build_root_menu(*, room_state: RoomState, run_state: RunState | None = None) -> MenuDefinition:
+def _usable_combat_potion_ids(run_state: RunState, registry: ContentProviderPort | None) -> list[str]:
+    usable_timing_ids = {"in_combat", "any"}
+    usable_potions: list[str] = []
+    for potion_id in run_state.potions:
+        if registry is None:
+            usable_potions.append(potion_id)
+            continue
+        try:
+            potion_def = registry.potions().get(potion_id)
+        except KeyError:
+            continue
+        if potion_def.timing in usable_timing_ids:
+            usable_potions.append(potion_id)
+    return usable_potions
+
+
+def build_root_menu(
+    *,
+    room_state: RoomState,
+    run_state: RunState | None = None,
+    registry: ContentProviderPort | None = None,
+) -> MenuDefinition:
     if room_state.is_resolved:
         if room_state.room_type == "boss_chest":
             next_act_id = room_state.payload.get("next_act_id")
@@ -147,7 +168,7 @@ def build_root_menu(*, room_state: RoomState, run_state: RunState | None = None)
         )
     if room_state.room_type in {"combat", "elite", "boss"}:
         combat_options: list[tuple[str, str | Text]] = [("play_card", "出牌")]
-        if run_state is not None and run_state.potions:
+        if run_state is not None and _usable_combat_potion_ids(run_state, registry):
             combat_options.append(("use_potion", "使用药水"))
         combat_options.extend(
             [
@@ -233,7 +254,7 @@ def build_leaf_menu(*, title: str) -> MenuDefinition:
 
 def build_select_potion_menu(*, run_state: RunState, registry: ContentProviderPort) -> MenuDefinition:
     options: list[tuple[str, str | Text]] = []
-    for index, potion_id in enumerate(run_state.potions, start=1):
+    for index, potion_id in enumerate(_usable_combat_potion_ids(run_state, registry), start=1):
         potion_def = registry.potions().get(potion_id)
         options.append(
             (
@@ -248,6 +269,35 @@ def build_select_potion_menu(*, run_state: RunState, registry: ContentProviderPo
         )
     options.append(("back", "返回上一步"))
     return build_menu(title="药水", options=options)
+
+
+def build_potion_target_menu(
+    *,
+    combat_state: CombatState,
+    potion_id: str,
+    registry: ContentProviderPort,
+) -> MenuDefinition:
+    potion_def = registry.potions().get(potion_id)
+    options: list[tuple[str, str | Text]] = []
+    header_lines: list[str | Text] = [
+        f"当前药水: {potion_def.name}",
+        f"效果: {summarize_effect(potion_def.effect)}（目标：{potion_target_label(potion_def.target)} / 时机：{potion_timing_label(potion_def.timing)}）",
+    ]
+    if potion_def.target == "any":
+        options.append(("target_self", "自己"))
+    if potion_def.target in {"enemy", "any"}:
+        living_enemies = [enemy for enemy in combat_state.enemies if enemy.hp > 0]
+        for index, enemy in enumerate(living_enemies, start=1):
+            enemy_name = registry.enemies().get(enemy.enemy_id).name
+            options.append((f"target_enemy:{index}", enemy_name))
+    if potion_def.target == "self":
+        options.append(("target_self", "自己"))
+    return build_target_menu(
+        target_options=options,
+        current_card_name=None,
+        title="选择目标",
+        header_lines=header_lines,
+    )
 
 
 def build_card_detail_menu() -> MenuDefinition:
