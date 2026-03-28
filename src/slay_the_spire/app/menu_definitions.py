@@ -426,8 +426,9 @@ def build_select_card_menu(*, combat_state: CombatState, registry: ContentProvid
         cost_label = "无法打出" if not getattr(card_def, "playable", True) else f"费用{format_card_cost(card_def.cost)}"
         effect_summary = summarize_card_definition(card_def)
         options.append((f"play_card:{index}", Text.assemble(render_card_name(card_def), f" {cost_label} - {effect_summary}")))
+    options.append(("end_turn", "结束回合"))
     options.append(("back", "返回上一步"))
-    return build_menu(title=f"手牌（当前能量 {combat_state.energy}）", options=options)
+    return build_menu(title=f"手牌（第{combat_state.round_number}回合，当前能量 {combat_state.energy}）", options=options)
 
 
 def build_target_menu(

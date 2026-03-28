@@ -12,6 +12,7 @@ from slay_the_spire.app.menu_definitions import (
     build_reward_menu,
     build_rest_upgrade_menu,
     build_root_menu,
+    build_select_card_menu,
     build_shop_root_menu,
     build_target_menu,
     build_terminal_phase_menu,
@@ -21,6 +22,7 @@ from slay_the_spire.app.menu_definitions import (
 from slay_the_spire.adapters.rich_ui.widgets import render_card_name
 from slay_the_spire.app.session import start_session
 from slay_the_spire.content.provider import StarterContentProvider
+from slay_the_spire.domain.models.combat_state import CombatState
 
 
 def _span_styles(text: Text) -> set[str]:
@@ -292,6 +294,20 @@ def test_build_root_menu_binds_combat_choices_without_view_current() -> None:
     ]
     assert resolve_menu_action("1", menu) == "play_card"
     assert resolve_menu_action("3", menu) == "inspect"
+
+
+def test_build_select_card_menu_includes_round_end_turn_and_back() -> None:
+    session = start_session(seed=5)
+    registry = StarterContentProvider(session.content_root)
+    combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
+
+    menu = build_select_card_menu(combat_state=combat_state, registry=registry)
+    lines = format_menu_lines(menu)
+
+    assert menu.title == "手牌（第1回合，当前能量 3）"
+    assert lines[-2] == f"{len(combat_state.hand) + 1}. 结束回合"
+    assert lines[-1] == f"{len(combat_state.hand) + 2}. 返回上一步"
+    assert resolve_menu_action(str(len(combat_state.hand) + 1), menu) == "end_turn"
 
 
 def test_build_root_menu_binds_event_choices_without_view_current() -> None:

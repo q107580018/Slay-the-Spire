@@ -365,7 +365,7 @@ def render_enemy_panel(combat_state: CombatState, registry: ContentProviderPort)
 
 
 def render_hand_panel(combat_state: CombatState, registry: ContentProviderPort) -> Panel:
-    title = f"手牌（能量 {combat_state.energy}）"
+    title = f"手牌（第{combat_state.round_number}回合，能量 {combat_state.energy}）"
     if not combat_state.hand:
         return Panel(Group(Text("-")), title=title, box=PANEL_BOX, expand=False)
     lines: list[RenderableType] = []

@@ -221,6 +221,20 @@ def test_targeted_card_play_keeps_select_card_menu_open_after_target_choice() ->
     assert "造成 6 伤害" in message
 
 
+def test_end_turn_can_be_triggered_inside_select_card_menu() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=_combat_room(hand=["defend#1"], enemy_count=1),
+        menu_state=MenuState(mode="select_card"),
+    )
+
+    _running, next_session, _message = route_menu_choice("2", session=session)
+    combat_state = CombatState.from_dict(next_session.room_state.payload["combat_state"])
+
+    assert combat_state.round_number == 2
+    assert next_session.menu_state.mode == "select_card"
+
+
 def test_resolved_combat_without_rewards_can_enter_inspect_root_from_choice_two() -> None:
     session = replace(
         start_session(seed=5),

@@ -95,7 +95,7 @@ def test_combat_root_screen_keeps_full_context_and_hand_panel() -> None:
     )
 
     assert "当前能量" in output
-    assert "手牌（能量 3）" in output
+    assert "手牌（第1回合，能量 3）" in output
     assert "敌人意图" in output
     assert "战斗记录" in output
     assert "3. 查看资料" in output
@@ -104,7 +104,7 @@ def test_combat_root_screen_keeps_full_context_and_hand_panel() -> None:
     assert "6. 退出游戏" in output
 
 
-def test_select_card_menu_shows_current_energy_in_menu_title() -> None:
+def test_select_card_menu_shows_current_round_and_energy_in_menu_title() -> None:
     session = start_session(seed=5)
     output = render_room(
         run_state=session.run_state,
@@ -115,8 +115,10 @@ def test_select_card_menu_shows_current_energy_in_menu_title() -> None:
         run_phase=session.run_phase,
     )
 
-    assert "手牌（当前能量 3）:" in output
+    assert "手牌（第1回合，当前能量 3）:" in output
     assert "1. 打击 费用1 - 造成 6 伤害" in output
+    assert "6. 结束回合" in output
+    assert "7. 返回上一步" in output
 
 
 def test_render_hand_panel_keeps_unplayable_curse_as_unplayable() -> None:

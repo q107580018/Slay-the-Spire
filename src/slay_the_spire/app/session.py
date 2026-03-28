@@ -1197,6 +1197,11 @@ def _route_card_menu(choice: str, session: SessionState) -> tuple[bool, SessionS
     if action_id == "back":
         next_session = replace(session, menu_state=MenuState())
         return True, next_session, render_session(next_session)
+    if action_id == "end_turn":
+        result = route_command("end", session=replace(session, menu_state=MenuState()))
+        next_session = _preserve_menu_history(result.session, history_session=session)
+        adjusted_session = replace(next_session, menu_state=_menu_state_for_post_play_session(next_session))
+        return _retarget_route_result(result, adjusted_session)
     if action_id is None or not action_id.startswith("play_card:"):
         return _invalid_menu_choice(session)
     choice_index = action_id.split(":", 1)[1]
