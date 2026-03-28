@@ -343,7 +343,9 @@ def test_generate_combat_rewards_feeds_reward_room_claim_flow() -> None:
         registry=_content_provider(),
     )
 
-    assert rewards[0] == "gold:11"
+    assert rewards[0].startswith("gold:")
+    gold_amount = int(rewards[0].split(":", 1)[1])
+    assert 10 <= gold_amount <= 20
     assert len([reward for reward in rewards if reward.startswith("card_offer:")]) == 3
 
 

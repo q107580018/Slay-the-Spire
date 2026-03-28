@@ -5,6 +5,7 @@ from pathlib import Path
 
 from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.domain.models.run_state import RunState
+from slay_the_spire.domain.rewards.reward_generator import _rarity_weights
 from slay_the_spire.domain.rewards.reward_generator import generate_boss_rewards, generate_combat_rewards
 from slay_the_spire.use_cases.apply_reward import apply_reward
 
@@ -144,6 +145,45 @@ def test_generate_combat_rewards_returns_gold_and_three_unique_card_offers() -> 
     assert len(card_rewards) == 3
     assert len(set(card_rewards)) == 3
     assert isinstance(next_rare_offset, int)
+
+
+def test_generate_combat_rewards_normal_gold_stays_in_10_to_20_range() -> None:
+    for seed in range(1, 80):
+        rewards, _next_rare_offset = generate_combat_rewards(
+            room_id="act1:hallway_reward",
+            run_state=replace(_run_state(), seed=seed),
+            registry=_content_provider(),
+        )
+        gold_reward = rewards[0]
+        assert gold_reward.startswith("gold:")
+        gold_amount = int(gold_reward.split(":", 1)[1])
+        assert 10 <= gold_amount <= 20
+
+
+def test_generate_combat_rewards_elite_gold_stays_in_25_to_35_range_and_grants_relic() -> None:
+    rewards, _next_rare_offset = generate_combat_rewards(
+        room_id="act1:elite_reward",
+        run_state=_run_state(),
+        registry=_content_provider(),
+        room_type="elite",
+    )
+
+    gold_reward = rewards[0]
+    assert gold_reward.startswith("gold:")
+    gold_amount = int(gold_reward.split(":", 1)[1])
+    assert 25 <= gold_amount <= 35
+
+    relic_rewards = [reward for reward in rewards if reward.startswith("relic:")]
+    assert len(relic_rewards) == 1
+    assert relic_rewards[0].split(":", 1)[1] in {"blood_vial", "golden_idol", "guarding_totem"}
+
+    card_rewards = [reward for reward in rewards if reward.startswith("card_offer:")]
+    assert len(card_rewards) == 3
+
+
+def test_generate_combat_rewards_elite_uses_higher_rare_weight_baseline() -> None:
+    assert _rarity_weights(offset=0, room_type="combat") == (60, 37, 3)
+    assert _rarity_weights(offset=0, room_type="elite") == (50, 37, 13)
 
 
 def test_generate_combat_rewards_samples_from_full_ironclad_reward_pool_in_act1() -> None:

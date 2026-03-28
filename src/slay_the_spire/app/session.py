@@ -494,6 +494,7 @@ def _session_with_combat_state(session: SessionState, combat_state: CombatState)
                 room_id=session.room_state.room_id,
                 run_state=updated_run_state,
                 registry=_content_provider(session),
+                room_type=session.room_state.room_type,
             )
             reward_run_state = replace(updated_run_state, rare_card_reward_offset=next_rare_offset)
         room_state = _room_with_combat_state(
