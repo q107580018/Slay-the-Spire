@@ -166,6 +166,22 @@ def test_generate_combat_rewards_samples_from_full_ironclad_reward_pool_in_act1(
     assert "bash" not in seen_cards
 
 
+def test_generate_combat_rewards_excludes_status_and_curse_cards() -> None:
+    seen_cards: set[str] = set()
+
+    for seed in range(1, 80):
+        rewards, _next_rare_offset = generate_combat_rewards(
+            room_id="act1:hallway_reward",
+            run_state=replace(_run_state(), seed=seed),
+            registry=_content_provider(),
+        )
+        seen_cards.update(reward.split(":", 1)[1] for reward in rewards if reward.startswith("card_offer:"))
+
+    assert "burn" not in seen_cards
+    assert "doubt" not in seen_cards
+    assert "injury" not in seen_cards
+
+
 def test_generate_boss_rewards_filters_owned_relics() -> None:
     run_state = replace(_run_state(), relics=["burning_blood", "ectoplasm"])
 

@@ -74,16 +74,26 @@ def test_provider_exposes_registry_accessors(content_root: Path) -> None:
 def test_cards_define_rarity_and_upgrades_keep_base_rarity(content_root: Path) -> None:
     provider = StarterContentProvider(content_root)
     allowed_rarities = {"basic", "common", "uncommon", "rare", "curse", "special"}
+    allowed_card_types = {"attack", "skill", "power", "status", "curse"}
+    allowed_acquisition_tags = {"starter", "combat_reward", "shop", "event", "generated", "status", "curse"}
 
     for card_def in provider.cards().all():
         assert card_def.rarity in allowed_rarities
+        assert card_def.card_type in allowed_card_types
+        assert set(card_def.acquisition_tags).issubset(allowed_acquisition_tags)
         if card_def.upgrades_to is not None:
             upgraded = provider.cards().get(card_def.upgrades_to)
             assert upgraded.rarity == card_def.rarity
 
-    assert provider.cards().get("burn").rarity == "curse"
+    assert provider.cards().get("burn").rarity == "special"
+    assert provider.cards().get("burn").card_type == "status"
+    assert provider.cards().get("burn").acquisition_tags == ["generated", "status"]
     assert provider.cards().get("doubt").rarity == "curse"
+    assert provider.cards().get("doubt").card_type == "curse"
+    assert provider.cards().get("doubt").acquisition_tags == ["event", "curse"]
     assert provider.cards().get("injury").rarity == "curse"
+    assert provider.cards().get("injury").card_type == "curse"
+    assert provider.cards().get("injury").acquisition_tags == ["event", "curse"]
 
 
 @pytest.mark.parametrize("content_root", _content_roots())

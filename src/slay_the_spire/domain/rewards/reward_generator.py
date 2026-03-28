@@ -36,6 +36,8 @@ def _rewardable_cards_by_rarity(
         _RARE_RARITY: [],
     }
     for card in registry.cards().all():
+        if "combat_reward" not in card.acquisition_tags:
+            continue
         if card.rarity not in cards_by_rarity:
             continue
         cards_by_rarity[card.rarity].append(card.id)

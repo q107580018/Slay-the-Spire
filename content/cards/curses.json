@@ -7,7 +7,12 @@
       "rarity": "curse",
       "playable": false,
       "can_appear_in_shop": false,
-      "effects": []
+      "effects": [],
+      "card_type": "curse",
+      "acquisition_tags": [
+        "event",
+        "curse"
+      ]
     },
     {
       "id": "injury",
@@ -16,16 +21,26 @@
       "rarity": "curse",
       "playable": false,
       "can_appear_in_shop": false,
-      "effects": []
+      "effects": [],
+      "card_type": "curse",
+      "acquisition_tags": [
+        "event",
+        "curse"
+      ]
     },
     {
       "id": "burn",
       "name": "灼伤",
       "cost": -1,
-      "rarity": "curse",
+      "rarity": "special",
       "playable": false,
       "can_appear_in_shop": false,
-      "effects": []
+      "effects": [],
+      "card_type": "status",
+      "acquisition_tags": [
+        "generated",
+        "status"
+      ]
     }
   ]
 }

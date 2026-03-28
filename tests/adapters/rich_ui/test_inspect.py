@@ -116,6 +116,7 @@ def test_format_card_detail_lines_show_combust_power_text() -> None:
 
     lines = format_card_detail_lines("combust#1", registry)
 
+    assert any("类型" in line.plain and "能力" in line.plain for line in lines)
     assert any("回合结束" in line.plain for line in lines)
     assert any("所有敌人" in line.plain for line in lines)
     assert any("失去" in line.plain for line in lines)
@@ -164,7 +165,17 @@ def test_format_card_detail_lines_keep_unplayable_curse_as_unplayable() -> None:
 
     lines = format_card_detail_lines("doubt#1", registry)
 
+    assert any("类型" in line.plain and "诅咒" in line.plain for line in lines)
     assert any("费用" in line.plain and "无法打出" in line.plain for line in lines)
+
+
+def test_format_card_detail_lines_show_status_type_for_burn() -> None:
+    session = start_session(seed=5)
+    registry = StarterContentProvider(session.content_root)
+
+    lines = format_card_detail_lines("burn#1", registry)
+
+    assert any("类型" in line.plain and "状态" in line.plain for line in lines)
 
 
 def test_format_relic_detail_lines_translate_disabled_actions_and_gold_rules() -> None:

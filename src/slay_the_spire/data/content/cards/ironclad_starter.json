@@ -10,6 +10,10 @@
           "type": "damage",
           "amount": 6
         }
+      ],
+      "card_type": "attack",
+      "acquisition_tags": [
+        "starter"
       ]
     },
     {
@@ -22,6 +26,10 @@
           "type": "block",
           "amount": 5
         }
+      ],
+      "card_type": "skill",
+      "acquisition_tags": [
+        "starter"
       ]
     },
     {
@@ -34,7 +42,9 @@
           "type": "damage",
           "amount": 9
         }
-      ]
+      ],
+      "card_type": "attack",
+      "acquisition_tags": []
     },
     {
       "id": "defend_plus",
@@ -46,7 +56,9 @@
           "type": "block",
           "amount": 8
         }
-      ]
+      ],
+      "card_type": "skill",
+      "acquisition_tags": []
     },
     {
       "id": "bash",
@@ -63,6 +75,10 @@
           "type": "vulnerable",
           "stacks": 2
         }
+      ],
+      "card_type": "attack",
+      "acquisition_tags": [
+        "starter"
       ]
     },
     {
@@ -79,7 +95,9 @@
           "type": "vulnerable",
           "stacks": 3
         }
-      ]
+      ],
+      "card_type": "attack",
+      "acquisition_tags": []
     },
     {
       "id": "anger",
@@ -97,6 +115,11 @@
           "card_id": "anger",
           "zone": "discard_pile"
         }
+      ],
+      "card_type": "attack",
+      "acquisition_tags": [
+        "combat_reward",
+        "shop"
       ]
     },
     {
@@ -114,7 +137,9 @@
           "card_id": "anger_plus",
           "zone": "discard_pile"
         }
-      ]
+      ],
+      "card_type": "attack",
+      "acquisition_tags": []
     },
     {
       "id": "pommel_strike",
@@ -131,6 +156,11 @@
           "type": "draw",
           "amount": 1
         }
+      ],
+      "card_type": "attack",
+      "acquisition_tags": [
+        "combat_reward",
+        "shop"
       ]
     },
     {
@@ -147,7 +177,9 @@
           "type": "draw",
           "amount": 2
         }
-      ]
+      ],
+      "card_type": "attack",
+      "acquisition_tags": []
     },
     {
       "id": "shrug_it_off",
@@ -164,6 +196,11 @@
           "type": "draw",
           "amount": 1
         }
+      ],
+      "card_type": "skill",
+      "acquisition_tags": [
+        "combat_reward",
+        "shop"
       ]
     },
     {
@@ -180,7 +217,9 @@
           "type": "draw",
           "amount": 1
         }
-      ]
+      ],
+      "card_type": "skill",
+      "acquisition_tags": []
     },
     {
       "id": "cleave",
@@ -193,6 +232,11 @@
           "type": "damage",
           "amount": 8
         }
+      ],
+      "card_type": "attack",
+      "acquisition_tags": [
+        "combat_reward",
+        "shop"
       ]
     },
     {
@@ -205,7 +249,9 @@
           "type": "damage",
           "amount": 11
         }
-      ]
+      ],
+      "card_type": "attack",
+      "acquisition_tags": []
     },
     {
       "id": "whirlwind",
@@ -218,6 +264,11 @@
           "type": "damage_all_enemies_x_times",
           "amount": 5
         }
+      ],
+      "card_type": "attack",
+      "acquisition_tags": [
+        "combat_reward",
+        "shop"
       ]
     },
     {
@@ -230,7 +281,9 @@
           "type": "damage_all_enemies_x_times",
           "amount": 8
         }
-      ]
+      ],
+      "card_type": "attack",
+      "acquisition_tags": []
     },
     {
       "id": "twin_strike",
@@ -247,6 +300,11 @@
           "type": "damage",
           "amount": 5
         }
+      ],
+      "card_type": "attack",
+      "acquisition_tags": [
+        "combat_reward",
+        "shop"
       ]
     },
     {
@@ -263,7 +321,9 @@
           "type": "damage",
           "amount": 7
         }
-      ]
+      ],
+      "card_type": "attack",
+      "acquisition_tags": []
     },
     {
       "id": "inflame",
@@ -277,6 +337,11 @@
           "power_id": "inflame",
           "amount": 2
         }
+      ],
+      "card_type": "power",
+      "acquisition_tags": [
+        "combat_reward",
+        "shop"
       ]
     },
     {
@@ -290,7 +355,9 @@
           "power_id": "inflame",
           "amount": 3
         }
-      ]
+      ],
+      "card_type": "power",
+      "acquisition_tags": []
     },
     {
       "id": "metallicize",
@@ -304,6 +371,11 @@
           "power_id": "metallicize",
           "amount": 3
         }
+      ],
+      "card_type": "power",
+      "acquisition_tags": [
+        "combat_reward",
+        "shop"
       ]
     },
     {
@@ -317,7 +389,9 @@
           "power_id": "metallicize",
           "amount": 4
         }
-      ]
+      ],
+      "card_type": "power",
+      "acquisition_tags": []
     },
     {
       "id": "hemokinesis",
@@ -334,6 +408,11 @@
           "type": "lose_hp",
           "amount": 2
         }
+      ],
+      "card_type": "attack",
+      "acquisition_tags": [
+        "combat_reward",
+        "shop"
       ]
     },
     {
@@ -350,7 +429,9 @@
           "type": "lose_hp",
           "amount": 2
         }
-      ]
+      ],
+      "card_type": "attack",
+      "acquisition_tags": []
     },
     {
       "id": "sword_boomerang",
@@ -371,6 +452,11 @@
           "type": "damage",
           "amount": 3
         }
+      ],
+      "card_type": "attack",
+      "acquisition_tags": [
+        "combat_reward",
+        "shop"
       ]
     },
     {
@@ -395,7 +481,9 @@
           "type": "damage",
           "amount": 4
         }
-      ]
+      ],
+      "card_type": "attack",
+      "acquisition_tags": []
     },
     {
       "id": "pummel",
@@ -421,6 +509,11 @@
           "type": "damage",
           "amount": 2
         }
+      ],
+      "card_type": "attack",
+      "acquisition_tags": [
+        "combat_reward",
+        "shop"
       ]
     },
     {
@@ -450,7 +543,9 @@
           "type": "damage",
           "amount": 2
         }
-      ]
+      ],
+      "card_type": "attack",
+      "acquisition_tags": []
     },
     {
       "id": "combust",
@@ -465,6 +560,11 @@
           "amount": 5,
           "self_damage": 1
         }
+      ],
+      "card_type": "power",
+      "acquisition_tags": [
+        "combat_reward",
+        "shop"
       ]
     },
     {
@@ -479,7 +579,9 @@
           "amount": 7,
           "self_damage": 1
         }
-      ]
+      ],
+      "card_type": "power",
+      "acquisition_tags": []
     },
     {
       "id": "bloodletting",
@@ -496,6 +598,11 @@
           "type": "lose_hp",
           "amount": 3
         }
+      ],
+      "card_type": "skill",
+      "acquisition_tags": [
+        "combat_reward",
+        "shop"
       ]
     },
     {
@@ -512,7 +619,9 @@
           "type": "lose_hp",
           "amount": 3
         }
-      ]
+      ],
+      "card_type": "skill",
+      "acquisition_tags": []
     },
     {
       "id": "true_grit",
@@ -529,6 +638,11 @@
           "type": "exhaust_random_hand",
           "count": 1
         }
+      ],
+      "card_type": "skill",
+      "acquisition_tags": [
+        "combat_reward",
+        "shop"
       ]
     },
     {
@@ -544,7 +658,9 @@
         {
           "type": "exhaust_target_card"
         }
-      ]
+      ],
+      "card_type": "skill",
+      "acquisition_tags": []
     },
     {
       "id": "armaments",
@@ -560,6 +676,11 @@
         {
           "type": "upgrade_target_card"
         }
+      ],
+      "card_type": "skill",
+      "acquisition_tags": [
+        "combat_reward",
+        "shop"
       ]
     },
     {
@@ -575,7 +696,9 @@
         {
           "type": "upgrade_all_hand"
         }
-      ]
+      ],
+      "card_type": "skill",
+      "acquisition_tags": []
     },
     {
       "id": "terror",
@@ -588,6 +711,11 @@
           "type": "vulnerable",
           "stacks": 2
         }
+      ],
+      "card_type": "skill",
+      "acquisition_tags": [
+        "combat_reward",
+        "shop"
       ]
     },
     {
@@ -600,7 +728,9 @@
           "type": "vulnerable",
           "stacks": 3
         }
-      ]
+      ],
+      "card_type": "skill",
+      "acquisition_tags": []
     }
   ]
 }

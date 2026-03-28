@@ -72,6 +72,8 @@ class CardDef:
     name: str
     cost: int
     effects: list[JsonDict]
+    card_type: str
+    acquisition_tags: list[str] = field(default_factory=list)
     rarity: str | None = None
     upgrades_to: str | None = None
     playable: bool = True
@@ -176,12 +178,40 @@ class _BaseRegistry(Generic[T]):
 
 
 class CardRegistry(_BaseRegistry[CardDef]):
+    _ALLOWED_CARD_TYPES = frozenset({"attack", "skill", "power", "status", "curse"})
+    _ALLOWED_ACQUISITION_TAGS = frozenset({"starter", "combat_reward", "shop", "event", "generated", "status", "curse"})
+
     def register(self, payload: Mapping[str, object]) -> CardDef:
         record = self._build(payload)
         if record.id in self._items:
             raise ValueError(f"duplicate card id: {record.id}")
         self._items[record.id] = record
         return record
+
+    def _infer_card_type(self, data: Mapping[str, object], effects: list[Mapping[str, object]]) -> str:
+        explicit_type = _require_optional_str(data.get("card_type"), "card_type")
+        if explicit_type is not None:
+            if explicit_type not in self._ALLOWED_CARD_TYPES:
+                raise ValueError("card_type must be a supported card type")
+            return explicit_type
+
+        rarity = _require_optional_str(data.get("rarity"), "rarity")
+        if rarity == "curse":
+            return "curse"
+
+        effect_types = {str(effect.get("type")) for effect in effects}
+        if "add_power" in effect_types:
+            return "power"
+        if effect_types & {"damage", "damage_all_enemies_x_times", "vulnerable", "weak"}:
+            return "attack"
+        return "skill"
+
+    def _normalize_acquisition_tags(self, data: Mapping[str, object]) -> list[str]:
+        tags = _require_optional_str_list(data.get("acquisition_tags"), "acquisition_tags")
+        for tag in tags:
+            if tag not in self._ALLOWED_ACQUISITION_TAGS:
+                raise ValueError("acquisition_tags must contain only supported tags")
+        return tags
 
     def _build(self, payload: Mapping[str, object]) -> CardDef:
         data = _require_mapping(payload, "payload")
@@ -191,6 +221,8 @@ class CardRegistry(_BaseRegistry[CardDef]):
             name=_require_str(data.get("name"), "name"),
             cost=_require_int(data.get("cost"), "cost"),
             effects=[dict(item) for item in effects],
+            card_type=self._infer_card_type(data, effects),
+            acquisition_tags=self._normalize_acquisition_tags(data),
             rarity=_require_optional_str(data.get("rarity"), "rarity"),
             upgrades_to=_require_optional_str(data.get("upgrades_to"), "upgrades_to"),
             playable=_require_optional_bool(data.get("playable"), "playable", default=True),

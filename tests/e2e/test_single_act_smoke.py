@@ -62,6 +62,12 @@ def _shop_inspect_choice(room_state: RoomState) -> str:
     return str(int(_shop_leave_choice(room_state)) + 1)
 
 
+def _inspect_relics_and_return_to_parent(session: SessionState) -> SessionState:
+    for choice in ["3", "1", "2", "5"]:
+        _running, session, _message = route_menu_choice(choice, session=session)
+    return session
+
+
 def test_main_new_run_dispatches_first_room_to_textual(monkeypatch) -> None:
     recorded: dict[str, object] = {}
 
@@ -102,9 +108,7 @@ def test_single_act_smoke_simulates_map_shop_rest_and_boss_reward_transition_int
             _running, session, _message = route_menu_choice(_shop_leave_choice(session.room_state), session=session)
         elif session.room_state.room_type == "rest":
             _running, session, _message = route_menu_choice("3", session=session)
-            _running, session, _message = route_menu_choice("3", session=session)
-            _running, session, _message = route_menu_choice("1", session=session)
-            _running, session, _message = route_menu_choice("5", session=session)
+            session = _inspect_relics_and_return_to_parent(session)
             _running, session, _message = route_menu_choice("2", session=session)
             _running, session, _message = route_menu_choice("1", session=session)
         else:
@@ -180,9 +184,7 @@ def test_single_act_smoke_boss_room_uses_act1_bosses_and_hexaghost() -> None:
             _running, session, _message = route_menu_choice(_shop_leave_choice(session.room_state), session=session)
         elif session.room_state.room_type == "rest":
             _running, session, _message = route_menu_choice("3", session=session)
-            _running, session, _message = route_menu_choice("3", session=session)
-            _running, session, _message = route_menu_choice("1", session=session)
-            _running, session, _message = route_menu_choice("5", session=session)
+            session = _inspect_relics_and_return_to_parent(session)
             _running, session, _message = route_menu_choice("2", session=session)
             _running, session, _message = route_menu_choice("1", session=session)
         else:

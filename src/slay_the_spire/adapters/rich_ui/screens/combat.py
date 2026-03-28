@@ -305,9 +305,6 @@ def render_summary_bar(
     room_kind = room_state.payload.get("room_kind", room_state.room_type)
     character_name = registry.characters().get(run_state.character_id).name
     act_name = registry.acts().get(act_state.act_id).name
-    player_hp_line = Text.assemble(("玩家生命 ", "summary.label"), render_hp_bar(combat_state.player.hp, combat_state.player.max_hp))
-    if combat_state.player.hp != combat_state.player.max_hp:
-        player_hp_line.append(f" (玩家生命: {combat_state.player.hp}/{combat_state.player.max_hp})")
     lines = [
         Text.assemble(("种子 ", "summary.label"), str(run_state.seed), f" (种子: {run_state.seed})"),
         Text.assemble(("角色 ", "summary.label"), (character_name, "player.name")),
@@ -322,7 +319,6 @@ def render_summary_bar(
         Text.assemble(("当前能量 ", "summary.label"), str(combat_state.energy), f" (当前能量: {combat_state.energy})"),
         Text.assemble(("抽牌堆 ", "summary.label"), str(len(combat_state.draw_pile)), f" (抽牌堆: {len(combat_state.draw_pile)})"),
         Text.assemble(("弃牌堆 ", "summary.label"), str(len(combat_state.discard_pile)), f" (弃牌堆: {len(combat_state.discard_pile)})"),
-        player_hp_line,
         Text.assemble(
             ("房间已完成 ", "summary.label"),
             "是" if room_state.is_resolved else "否",

@@ -618,6 +618,36 @@ def test_hover_preview_shows_card_rarity_and_upgrade_state_for_reward_card() -> 
     assert "card.rarity.common" in _span_styles(preview)
 
 
+def test_hover_preview_shows_power_type_for_combust() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        run_state=replace(base.run_state, deck=["combust#1"]),
+        menu_state=replace(base.menu_state, mode="inspect_deck"),
+    )
+
+    preview = _hover_preview_renderable(session, "item:1")
+
+    assert preview is not None
+    assert "类型" in preview.plain
+    assert "能力" in preview.plain
+
+
+def test_hover_preview_shows_status_type_for_burn() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        run_state=replace(base.run_state, deck=["burn#1"]),
+        menu_state=replace(base.menu_state, mode="inspect_deck"),
+    )
+
+    preview = _hover_preview_renderable(session, "item:1")
+
+    assert preview is not None
+    assert "类型" in preview.plain
+    assert "状态" in preview.plain
+
+
 def test_hover_preview_keeps_rarity_color_for_upgraded_shop_card() -> None:
     base = start_session(seed=5)
     session = replace(

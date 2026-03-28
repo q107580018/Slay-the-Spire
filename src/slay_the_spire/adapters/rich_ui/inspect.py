@@ -52,12 +52,14 @@ def _card_cost_label(card_def: CardDef) -> str:
 
 
 def _card_type_label(card_def: CardDef) -> str:
-    effect_types = {str(effect.get("type")) for effect in card_def.effects}
-    if effect_types & {"damage", "damage_all_enemies_x_times", "vulnerable", "weak"}:
-        return "攻击"
-    if effect_types:
-        return "技能"
-    return "未知"
+    type_labels = {
+        "attack": "攻击",
+        "skill": "技能",
+        "power": "能力",
+        "status": "状态",
+        "curse": "诅咒",
+    }
+    return type_labels.get(card_def.card_type, "未知")
 
 
 def _zone_label(zone: object) -> str:
@@ -116,6 +118,7 @@ def format_card_detail_lines(card_instance_id: str, registry: ContentProviderPor
     lines = [
         Text.assemble(("名称 ", "summary.label"), render_card_name(card_def)),
         Text.assemble(("费用 ", "summary.label"), cost_label),
+        Text.assemble(("类型 ", "summary.label"), _card_type_label(card_def)),
         Text.assemble(("效果 ", "summary.label"), summarize_card_definition(card_def)),
         Text.assemble(("稀有度 ", "summary.label"), card_rarity_label(card_def)),
         Text.assemble(("状态 ", "summary.label"), "已升级" if is_upgraded_card(card_def) else "未升级"),
