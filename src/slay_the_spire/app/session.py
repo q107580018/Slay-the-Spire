@@ -20,6 +20,7 @@ from slay_the_spire.app.menu_definitions import (
     build_inspect_root_menu,
     build_leaf_menu,
     build_next_room_menu,
+    build_relic_detail_menu,
     build_reward_menu,
     build_rest_root_menu,
     build_rest_upgrade_menu,
@@ -875,8 +876,31 @@ def _route_inspect_deck_menu(choice: str, session: SessionState) -> tuple[bool, 
         ),
     )
     return True, next_session, _inspect_transition_message(next_session, "卡牌详情")
- 
- 
+
+
+def _route_inspect_relics_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+    relics = session.run_state.relics
+    back_choice = str(len(relics) + 1)
+    if choice == back_choice:
+        next_session = _enter_inspect_root(session, parent_mode=session.menu_state.inspect_parent_mode or "root")
+        return True, next_session, _inspect_transition_message(next_session, "资料总览")
+    try:
+        index = int(choice)
+    except ValueError:
+        return _invalid_menu_choice(session)
+    if index <= 0 or index > len(relics):
+        return _invalid_menu_choice(session)
+    next_session = replace(
+        session,
+        menu_state=MenuState(
+            mode="inspect_relic_detail",
+            inspect_parent_mode="inspect_relics",
+            inspect_item_id=relics[index - 1],
+        ),
+    )
+    return True, next_session, _inspect_transition_message(next_session, "遗物详情")
+
+
 def _inspect_root_parent_mode_for_room(session: SessionState) -> str:
     return _menu_state_for_room(session.room_state).mode or "root"
 
@@ -980,6 +1004,25 @@ def _route_combat_inspect_card_detail_menu(choice: str, session: SessionState) -
             session,
             parent_mode="root" if parent_mode != "inspect_deck" else _inspect_root_parent_mode_for_room(session),
         )
+        return True, next_session, _inspect_transition_message(next_session, "资料总览")
+    return _invalid_menu_choice(session)
+
+
+def _route_inspect_relic_detail_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+    action_id = resolve_menu_action(choice, build_relic_detail_menu())
+    parent_mode = _inspect_root_parent_mode_for_room(session)
+    if action_id == "back_to_list":
+        next_session = replace(
+            session,
+            menu_state=MenuState(
+                mode="inspect_relics",
+                inspect_parent_mode=parent_mode,
+                inspect_item_id="relics",
+            ),
+        )
+        return True, next_session, _inspect_transition_message(next_session, "遗物列表")
+    if action_id == "back_to_root":
+        next_session = _enter_inspect_root(session, parent_mode=parent_mode)
         return True, next_session, _inspect_transition_message(next_session, "资料总览")
     return _invalid_menu_choice(session)
 
@@ -1474,6 +1517,10 @@ def _route_menu_choice_legacy(choice: str, *, session: SessionState) -> tuple[bo
         return _route_inspect_root_menu(choice.strip(), next_session)
     if next_session.menu_state.mode == "inspect_deck":
         return _route_inspect_deck_menu(choice.strip(), next_session)
+    if next_session.menu_state.mode == "inspect_relics":
+        return _route_inspect_relics_menu(choice.strip(), next_session)
+    if next_session.menu_state.mode == "inspect_relic_detail":
+        return _route_inspect_relic_detail_menu(choice.strip(), next_session)
     leaf_title = inspect_leaf_title(next_session.menu_state.mode)
     if leaf_title is not None:
         return _route_inspect_leaf_menu(choice.strip(), next_session, leaf_title)

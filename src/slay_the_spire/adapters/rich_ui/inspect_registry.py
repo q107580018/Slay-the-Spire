@@ -8,7 +8,10 @@ from rich.text import Text
 
 from slay_the_spire.adapters.rich_ui.inspect import (
     format_card_detail_menu,
+    format_relic_detail_menu,
+    format_relic_list_footer,
     render_card_detail_panel,
+    render_relic_detail_panel,
     render_shared_potions_panel,
     render_shared_relics_panel,
     render_shared_stats_panel,
@@ -33,6 +36,7 @@ SHARED_INSPECT_MODES = frozenset(
         "inspect_relics",
         "inspect_potions",
         "inspect_card_detail",
+        "inspect_relic_detail",
     }
 )
 
@@ -70,10 +74,14 @@ def format_shared_inspect_menu(
         return format_menu_lines(build_inspect_root_menu(room_state=room_state))
     if mode == "inspect_deck":
         return _format_inspect_deck_footer(run_state)
+    if mode == "inspect_relics":
+        return format_relic_list_footer(back_choice=len(run_state.relics) + 1)
     if mode in _LEAF_TITLES:
         return format_menu_lines(build_leaf_menu(title=_LEAF_TITLES[mode][context]))
     if mode == "inspect_card_detail":
         return format_card_detail_menu()
+    if mode == "inspect_relic_detail":
+        return format_relic_detail_menu()
     return None
 
 
@@ -105,6 +113,8 @@ def render_shared_inspect_panel(
         return render_shared_potions_panel(title=_LEAF_TITLES[mode][context], run_state=run_state, registry=registry)
     if mode == "inspect_card_detail" and isinstance(card_instance_id, str):
         return render_card_detail_panel(card_instance_id, registry)
+    if mode == "inspect_relic_detail" and isinstance(card_instance_id, str):
+        return render_relic_detail_panel(card_instance_id, registry)
     return None
 
 

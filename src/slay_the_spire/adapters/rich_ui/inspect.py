@@ -25,6 +25,7 @@ from slay_the_spire.adapters.rich_ui.widgets import (
 from slay_the_spire.app.menu_definitions import (
     build_card_detail_menu,
     build_enemy_detail_menu,
+    build_relic_detail_menu,
     format_menu_lines,
 )
 from slay_the_spire.content.registries import CardDef, EnemyDef
@@ -340,8 +341,8 @@ def render_shared_relics_panel(*, title: str, run_state: RunState, registry: Con
     if not run_state.relics:
         lines.append("-")
     else:
-        for relic_id in run_state.relics:
-            lines.append(f"- {registry.relics().get(relic_id).name}")
+        for index, relic_id in enumerate(run_state.relics, start=1):
+            lines.append(f"{index}. {registry.relics().get(relic_id).name}")
     return Panel(Group(*[Text(line) for line in lines]), title=title, box=PANEL_BOX, expand=False)
 
 
@@ -357,6 +358,21 @@ def render_shared_potions_panel(*, title: str, run_state: RunState, registry: Co
 
 def format_card_detail_menu() -> list[str]:
     return format_menu_lines(build_card_detail_menu())
+
+
+def format_relic_list_footer(*, back_choice: int) -> list[str]:
+    return [
+        "输入上方编号查看遗物详情",
+        f"{back_choice}. 返回资料总览",
+    ]
+
+
+def format_relic_detail_menu() -> list[str]:
+    return format_menu_lines(build_relic_detail_menu())
+
+
+def render_relic_detail_panel(relic_id: str, registry: ContentProviderPort) -> Panel:
+    return Panel(Group(*format_relic_detail_lines(relic_id, registry)), title="遗物详情", box=PANEL_BOX, expand=False)
 
 
 def render_card_detail_panel(card_instance_id: str, registry: ContentProviderPort) -> Panel:

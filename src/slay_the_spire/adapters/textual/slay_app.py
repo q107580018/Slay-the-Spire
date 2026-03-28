@@ -29,6 +29,7 @@ from slay_the_spire.app.menu_definitions import (
     build_leaf_menu,
     build_menu,
     build_next_room_menu,
+    build_relic_detail_menu,
     build_rest_root_menu,
     build_rest_upgrade_menu,
     build_reward_menu,
@@ -156,7 +157,10 @@ def _boss_rewards(session: SessionState) -> dict[str, object] | None:
 
 
 def _supports_hover_preview(menu_mode: str) -> bool:
-    return menu_mode in {"select_reward", "select_boss_reward", "select_boss_relic", "shop_root"} or menu_mode in _CARD_PREVIEW_MENU_MODES
+    return (
+        menu_mode in {"select_reward", "select_boss_reward", "select_boss_relic", "shop_root", "inspect_relics"}
+        or menu_mode in _CARD_PREVIEW_MENU_MODES
+    )
 
 
 def _hover_preview_guidance(menu_mode: str) -> Text | None:
@@ -164,6 +168,8 @@ def _hover_preview_guidance(menu_mode: str) -> Text | None:
         return Text("查看说明：将鼠标悬停在卡牌上查看升级前后对比。")
     if menu_mode in _CARD_PREVIEW_MENU_MODES:
         return Text("查看说明：将鼠标悬停在卡牌上查看详情。")
+    if menu_mode == "inspect_relics":
+        return Text("查看说明：将鼠标悬停在遗物上查看详情。")
     if menu_mode in {"select_reward", "select_boss_reward", "select_boss_relic", "shop_root"}:
         return Text("查看说明：将鼠标悬停在奖励或商品上查看详情。")
     return None
@@ -213,6 +219,12 @@ def _card_preview_instance_id(session: SessionState, action_id: str) -> str | No
         }
         return _card_instance_from_indexed_action(action_id, prefix="item:", card_instance_ids=pile_map.get(menu_mode, []))
     return None
+
+
+def _relic_preview_id(session: SessionState, action_id: str) -> str | None:
+    if session.menu_state.mode != "inspect_relics":
+        return None
+    return _card_instance_from_indexed_action(action_id, prefix="item:", card_instance_ids=session.run_state.relics)
 
 
 def _reward_card_instance_id(reward_id: str) -> str | None:
@@ -284,6 +296,9 @@ def _hover_preview_renderable(session: SessionState, action_id: str) -> Text | N
         if session.menu_state.mode in {"rest_upgrade_card", "event_upgrade_card"}:
             return _text_from_lines(format_card_upgrade_preview_lines(card_instance_id, _content_provider(session)))
         return _text_from_lines(format_card_detail_lines(card_instance_id, _content_provider(session)))
+    relic_id = _relic_preview_id(session, action_id)
+    if relic_id is not None:
+        return _text_from_lines(format_relic_detail_lines(relic_id, _content_provider(session)))
     if session.menu_state.mode == "select_boss_reward":
         if action_id == "claim_boss_gold":
             return Text("控制项：领取首领金币")
@@ -445,6 +460,9 @@ def _current_action_menu(session: SessionState) -> MenuDefinition | None:
     if menu_mode == "inspect_deck":
         labels = [registry.cards().get(card_id_from_instance_id(card_instance_id)).name for card_instance_id in session.run_state.deck]
         return _inspect_list_menu("牌组列表", labels)
+    if menu_mode == "inspect_relics":
+        labels = [registry.relics().get(relic_id).name for relic_id in session.run_state.relics]
+        return _inspect_list_menu("遗物列表", labels)
     if menu_mode in COMBAT_INSPECT_CARD_LIST_MODES:
         combat_state = _combat_state_from_session(session)
         if combat_state is None:
@@ -466,6 +484,8 @@ def _current_action_menu(session: SessionState) -> MenuDefinition | None:
         return _inspect_list_menu("敌人列表", labels)
     if menu_mode == "inspect_card_detail":
         return build_card_detail_menu()
+    if menu_mode == "inspect_relic_detail":
+        return build_relic_detail_menu()
     if menu_mode == "inspect_enemy_detail":
         return build_enemy_detail_menu()
 

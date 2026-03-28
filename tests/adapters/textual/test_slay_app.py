@@ -1225,6 +1225,42 @@ def test_hover_preview_shows_shop_remove_service_hint() -> None:
     assert "火焰药水" not in preview.plain
 
 
+def test_hover_preview_shows_inspect_relic_details_for_selected_item() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        menu_state=replace(base.menu_state, mode="inspect_relics", inspect_parent_mode="root", inspect_item_id="relics"),
+    )
+
+    preview = _hover_preview_renderable(session, "item:1")
+
+    assert preview is not None
+    assert "燃烧之血" in preview.plain
+    assert "效果" in preview.plain
+
+
+def test_hover_preview_shows_inspect_relic_details_on_highlight() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        menu_state=replace(base.menu_state, mode="inspect_relics", inspect_parent_mode="root", inspect_item_id="relics"),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            action_list = app.query_one("#action-list", OptionList)
+            action_list.highlighted = 0
+            await pilot.pause()
+            preview = app.query_one("#hover-preview", Static)
+            rendered = preview.render().plain
+            assert "燃烧之血" in rendered
+            assert "效果" in rendered
+
+    asyncio.run(scenario())
+
+
 def test_hover_preview_shows_boss_reward_entry_hint() -> None:
     base = start_session(seed=5)
     session = replace(

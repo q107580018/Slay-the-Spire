@@ -429,7 +429,10 @@ def test_inspect_leaf_pages_keep_transition_messages_consistent() -> None:
     _running, stats_session, stats_message = route_menu_choice("1", session=inspect_session)
     _running, stats_back_session, stats_back_message = route_menu_choice("1", session=stats_session)
     _running, relic_session, relic_message = route_menu_choice("3", session=stats_back_session)
-    _running, relic_back_session, relic_back_message = route_menu_choice("1", session=relic_session)
+    _running, relic_back_session, relic_back_message = route_menu_choice(
+        str(len(relic_session.run_state.relics) + 1),
+        session=relic_session,
+    )
 
     assert stats_session.menu_state.mode == "inspect_stats"
     assert stats_session.menu_state.inspect_item_id == "stats"
@@ -441,6 +444,33 @@ def test_inspect_leaf_pages_keep_transition_messages_consistent() -> None:
     assert relic_message.splitlines()[0] == "遗物列表"
     assert relic_back_session.menu_state.mode == "inspect_root"
     assert relic_back_message.splitlines()[0] == "资料总览"
+
+
+def test_inspect_relic_branch_round_trip_keeps_mode_and_parent_state() -> None:
+    session = start_session(seed=5)
+
+    _running, inspect_session, _inspect_message = route_menu_choice("3", session=session)
+    _running, relic_list_session, relic_list_message = route_menu_choice("3", session=inspect_session)
+    _running, detail_session, detail_message = route_menu_choice("1", session=relic_list_session)
+    _running, back_to_list_session, back_to_list_message = route_menu_choice("1", session=detail_session)
+    _running, back_to_root_session, back_to_root_message = route_menu_choice("2", session=detail_session)
+
+    assert relic_list_session.menu_state.mode == "inspect_relics"
+    assert relic_list_session.menu_state.inspect_parent_mode == "root"
+    assert relic_list_session.menu_state.inspect_item_id == "relics"
+    assert relic_list_message.splitlines()[0] == "遗物列表"
+    assert detail_session.menu_state.mode == "inspect_relic_detail"
+    assert detail_session.menu_state.inspect_parent_mode == "inspect_relics"
+    assert detail_session.menu_state.inspect_item_id == "burning_blood"
+    assert detail_message.splitlines()[0] == "遗物详情"
+    assert back_to_list_session.menu_state.mode == "inspect_relics"
+    assert back_to_list_session.menu_state.inspect_parent_mode == "root"
+    assert back_to_list_session.menu_state.inspect_item_id == "relics"
+    assert back_to_list_message.splitlines()[0] == "遗物列表"
+    assert back_to_root_session.menu_state.mode == "inspect_root"
+    assert back_to_root_session.menu_state.inspect_parent_mode == "root"
+    assert back_to_root_session.menu_state.inspect_item_id is None
+    assert back_to_root_message.splitlines()[0] == "资料总览"
 
 
 def test_combat_inspect_root_includes_potions_hand_enemy_pages_and_back() -> None:
@@ -583,7 +613,10 @@ def test_rest_root_menu_can_enter_inspect_and_return_to_rest() -> None:
 
     _running, inspect_session, inspect_message = route_menu_choice("3", session=session)
     _running, relics_session, relics_message = route_menu_choice("3", session=inspect_session)
-    _running, inspect_back_session, inspect_back_message = route_menu_choice("1", session=relics_session)
+    _running, inspect_back_session, inspect_back_message = route_menu_choice(
+        str(len(relics_session.run_state.relics) + 1),
+        session=relics_session,
+    )
     _running, rest_session, rest_message = route_menu_choice("5", session=inspect_back_session)
 
     assert inspect_session.menu_state.mode == "inspect_root"

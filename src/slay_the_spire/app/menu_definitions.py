@@ -202,6 +202,10 @@ def build_enemy_detail_menu() -> MenuDefinition:
     return build_menu(title="敌人详情", options=[("back_to_list", "返回敌人列表"), ("back_to_root", "返回资料总览")])
 
 
+def build_relic_detail_menu() -> MenuDefinition:
+    return build_menu(title="遗物详情", options=[("back_to_list", "返回遗物列表"), ("back_to_root", "返回资料总览")])
+
+
 def _reward_label(reward_id: str, registry: ContentProviderPort) -> str:
     if reward_id.startswith("gold:"):
         return f"金币 +{reward_id.split(':', 1)[1]}"
