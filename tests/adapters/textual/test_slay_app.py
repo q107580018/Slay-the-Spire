@@ -32,6 +32,12 @@ def _span_styles(text) -> set[str]:
     return {str(span.style) for span in text.spans}
 
 
+def _node_region_text(widget: MapWidget, node_id: str) -> str:
+    x, y, width, height = widget._node_regions[node_id]
+    lines = widget._canvas_lines[y : y + height]
+    return "\n".join(line[x : x + width] for line in lines)
+
+
 def test_menu_choice_for_root_next_room_action() -> None:
     resolved_session = replace(
         start_session(seed=5),
@@ -329,8 +335,7 @@ def test_map_widget_renders_icon_with_label_for_current_floor() -> None:
     canvas = "\n".join(widget._canvas_lines)
     assert "⚔" in canvas or "💀" in canvas or "👑" in canvas
     assert "战斗" in canvas or "精英" in canvas or "商店" in canvas
-    assert "┌" not in canvas
-    assert "╔" not in canvas
+    assert any(char in canvas for char in ("│", "─", "┌", "┐", "└", "┘", "├", "┤", "┬", "┴", "┼"))
 
 
 def test_current_and_reachable_nodes_use_distinct_styles() -> None:
@@ -344,8 +349,25 @@ def test_map_widget_avoids_boxy_edge_glyphs() -> None:
     widget = MapWidget(start_session(seed=5).act_state)
 
     canvas = "\n".join(widget._canvas_lines)
-    assert "│" not in canvas
-    assert "─" not in canvas
+    assert "╔" not in canvas
+    assert "╗" not in canvas
+    assert "╠" not in canvas
+    assert "╣" not in canvas
+    assert "╩" not in canvas
+    assert "╦" not in canvas
+    assert any(char in canvas for char in ("│", "─", "┌", "┐", "└", "┘", "├", "┤", "┬", "┴", "┼"))
+
+
+def test_map_widget_keeps_node_glyphs_visible_inside_node_regions() -> None:
+    widget = MapWidget(start_session(seed=5).act_state)
+
+    current_region_text = _node_region_text(widget, widget._act_state.current_node_id)
+
+    assert "⚔" in current_region_text or "战斗" in current_region_text
+    assert "│" not in current_region_text
+    assert "─" not in current_region_text
+    assert "┌" not in current_region_text
+    assert "┐" not in current_region_text
 
 
 def test_map_initially_scrolls_toward_current_node() -> None:
