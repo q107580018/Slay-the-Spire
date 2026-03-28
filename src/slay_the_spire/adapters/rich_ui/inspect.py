@@ -12,6 +12,8 @@ from slay_the_spire.adapters.rich_ui.widgets import (
     card_label,
     format_card_cost,
     is_upgraded_card,
+    potion_target_label,
+    potion_timing_label,
     render_statuses,
     render_card_name,
     special_card_rule_text,
@@ -201,6 +203,8 @@ def format_potion_detail_lines(potion_id: str, registry: ContentProviderPort) ->
     return [
         Text.assemble(("名称 ", "summary.label"), potion_def.name),
         Text.assemble(("药水 ", "summary.label"), potion_id),
+        Text.assemble(("目标 ", "summary.label"), potion_target_label(potion_def.target)),
+        Text.assemble(("时机 ", "summary.label"), potion_timing_label(potion_def.timing)),
         Text.assemble(("效果 ", "summary.label"), summarize_effect(potion_def.effect)),
     ]
 

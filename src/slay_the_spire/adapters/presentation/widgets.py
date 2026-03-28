@@ -52,6 +52,24 @@ _POWER_LABELS: dict[str, str] = {
     "combust": "燃烧躯体",
 }
 
+_POTION_TARGET_LABELS: dict[str, str] = {
+    "self": "自己",
+    "enemy": "敌人",
+    "any": "任意目标",
+}
+
+_POTION_TARGET_SHORT_LABELS: dict[str, str] = {
+    "self": "对己",
+    "enemy": "对敌",
+    "any": "任意",
+}
+
+_POTION_TIMING_LABELS: dict[str, str] = {
+    "in_combat": "战斗中",
+    "out_of_combat": "战斗外",
+    "any": "任意时机",
+}
+
 
 def hp_style_for_ratio(ratio: float) -> str:
     if ratio <= 0.25:
@@ -131,6 +149,18 @@ def card_rarity_label(card_def: CardDef) -> str:
 
 def active_power_label(power_id: str) -> str:
     return _POWER_LABELS.get(power_id, power_id)
+
+
+def potion_target_label(target: str) -> str:
+    return _POTION_TARGET_LABELS.get(target, target)
+
+
+def potion_target_short_label(target: str) -> str:
+    return _POTION_TARGET_SHORT_LABELS.get(target, target)
+
+
+def potion_timing_label(timing: str) -> str:
+    return _POTION_TIMING_LABELS.get(timing, timing)
 
 
 def summarize_active_powers(active_powers: Sequence[Mapping[str, object]]) -> str:

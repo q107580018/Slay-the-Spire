@@ -135,6 +135,8 @@ class PotionDef:
     id: str
     name: str
     effect: JsonDict
+    timing: str = "in_combat"
+    target: str = "self"
 
 
 @dataclass(slots=True, frozen=True)
@@ -348,6 +350,9 @@ class EventRegistry(_BaseRegistry[EventDef]):
 
 
 class PotionRegistry(_BaseRegistry[PotionDef]):
+    _ALLOWED_TIMINGS = frozenset({"in_combat", "out_of_combat", "any"})
+    _ALLOWED_TARGETS = frozenset({"self", "enemy", "any"})
+
     def register(self, payload: Mapping[str, object]) -> PotionDef:
         record = self._build(payload)
         if record.id in self._items:
@@ -358,10 +363,18 @@ class PotionRegistry(_BaseRegistry[PotionDef]):
     def _build(self, payload: Mapping[str, object]) -> PotionDef:
         data = _require_mapping(payload, "payload")
         effect = _require_mapping(data.get("effect"), "effect")
+        timing = _require_optional_str(data.get("timing"), "timing") or "in_combat"
+        target = _require_optional_str(data.get("target"), "target") or "self"
+        if timing not in self._ALLOWED_TIMINGS:
+            raise ValueError("timing must be a supported potion timing")
+        if target not in self._ALLOWED_TARGETS:
+            raise ValueError("target must be a supported potion target")
         return PotionDef(
             id=_require_str(data.get("id"), "id"),
             name=_require_str(data.get("name"), "name"),
             effect=dict(effect),
+            timing=timing,
+            target=target,
         )
 
 

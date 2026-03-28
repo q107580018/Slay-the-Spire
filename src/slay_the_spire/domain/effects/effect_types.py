@@ -7,6 +7,7 @@ from slay_the_spire.shared.types import JsonDict, JsonValue
 EFFECT_DAMAGE = "damage"
 EFFECT_DAMAGE_ALL_ENEMIES_X_TIMES = "damage_all_enemies_x_times"
 EFFECT_BLOCK = "block"
+EFFECT_STRENGTH = "strength"
 EFFECT_HEAL = "heal"
 EFFECT_LOSE_HP = "lose_hp"
 EFFECT_DRAW = "draw"

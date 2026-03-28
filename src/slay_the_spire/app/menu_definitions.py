@@ -5,7 +5,15 @@ from typing import Any, Mapping
 
 from rich.text import Text
 
-from slay_the_spire.adapters.presentation.widgets import format_card_cost, render_card_name, summarize_card_definition
+from slay_the_spire.adapters.presentation.widgets import (
+    format_card_cost,
+    potion_target_label,
+    potion_target_short_label,
+    potion_timing_label,
+    render_card_name,
+    summarize_card_definition,
+    summarize_effect,
+)
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.room_state import RoomState
@@ -89,7 +97,7 @@ def _has_pending_boss_rewards(room_state: RoomState) -> bool:
     return not (boss_rewards.get("claimed_gold") is True and isinstance(claimed_relic_id, str) and bool(claimed_relic_id))
 
 
-def build_root_menu(*, room_state: RoomState) -> MenuDefinition:
+def build_root_menu(*, room_state: RoomState, run_state: RunState | None = None) -> MenuDefinition:
     if room_state.is_resolved:
         if room_state.room_type == "boss_chest":
             next_act_id = room_state.payload.get("next_act_id")
@@ -138,16 +146,21 @@ def build_root_menu(*, room_state: RoomState) -> MenuDefinition:
             ],
         )
     if room_state.room_type in {"combat", "elite", "boss"}:
-        return build_menu(
-            title="可选操作",
-            options=[
-                ("play_card", "出牌"),
+        combat_options: list[tuple[str, str | Text]] = [("play_card", "出牌")]
+        if run_state is not None and run_state.potions:
+            combat_options.append(("use_potion", "使用药水"))
+        combat_options.extend(
+            [
                 ("end_turn", "结束回合"),
                 ("inspect", "查看资料"),
                 ("save", "保存游戏"),
                 ("load", "读取存档"),
                 ("quit", "退出游戏"),
-            ],
+            ]
+        )
+        return build_menu(
+            title="可选操作",
+            options=combat_options,
         )
     if room_state.room_type == "event":
         return build_menu(
@@ -216,6 +229,25 @@ def build_inspect_root_menu(*, room_state: RoomState) -> MenuDefinition:
 
 def build_leaf_menu(*, title: str) -> MenuDefinition:
     return build_menu(title=title, options=[("back", "返回上一步")])
+
+
+def build_select_potion_menu(*, run_state: RunState, registry: ContentProviderPort) -> MenuDefinition:
+    options: list[tuple[str, str | Text]] = []
+    for index, potion_id in enumerate(run_state.potions, start=1):
+        potion_def = registry.potions().get(potion_id)
+        options.append(
+            (
+                f"use_potion:{index}",
+                Text.assemble(
+                    potion_target_short_label(potion_def.target),
+                    " ",
+                    potion_def.name,
+                    f" - {summarize_effect(potion_def.effect)}（目标：{potion_target_label(potion_def.target)} / 时机：{potion_timing_label(potion_def.timing)}）",
+                ),
+            )
+        )
+    options.append(("back", "返回上一步"))
+    return build_menu(title="药水", options=options)
 
 
 def build_card_detail_menu() -> MenuDefinition:

@@ -15,6 +15,7 @@ from slay_the_spire.adapters.rich_ui.inspect import (
     render_card_pile_panel,
     render_enemy_detail_panel,
     render_enemy_list_panel,
+    format_potion_detail_lines,
     render_shared_potions_panel,
     render_shared_relics_panel,
     render_shared_stats_panel,
@@ -41,6 +42,7 @@ from slay_the_spire.app.menu_definitions import (
     build_reward_menu,
     build_root_menu,
     build_select_card_menu,
+    build_select_potion_menu,
     build_target_menu,
     format_menu_entries,
     format_menu_lines,
@@ -76,6 +78,11 @@ def _menu_mode(menu_state: Any) -> str:
 def _selected_card_instance_id(menu_state: Any) -> str | None:
     value = getattr(menu_state, "selected_card_instance_id", None)
     return value if isinstance(value, str) else None
+
+
+def _selected_potion_index(menu_state: Any) -> int | None:
+    value = getattr(menu_state, "selected_potion_index", None)
+    return value if isinstance(value, int) and value > 0 else None
 
 
 def _format_node(node_id: object) -> str:
@@ -124,8 +131,8 @@ def _format_reward_lines(rewards: list[str], registry: ContentProviderPort) -> l
     return [f"{index}. {_format_reward_label(reward, registry)}" for index, reward in enumerate(rewards, start=1)]
 
 
-def _format_root_menu(room_state: RoomState) -> list[str]:
-    return format_menu_lines(build_root_menu(room_state=room_state))
+def _format_root_menu(room_state: RoomState, run_state: RunState) -> list[str]:
+    return format_menu_lines(build_root_menu(room_state=room_state, run_state=run_state))
 
 
 def _format_inspect_root_menu(room_state: RoomState) -> list[str]:
@@ -189,7 +196,13 @@ def _format_card_menu(combat_state: CombatState, registry: ContentProviderPort) 
     return format_menu_entries(build_select_card_menu(combat_state=combat_state, registry=registry))
 
 
-def _format_target_menu(combat_state: CombatState, registry: ContentProviderPort, selected_card: str | None) -> list[str | Text]:
+def _format_target_menu(
+    combat_state: CombatState,
+    run_state: RunState,
+    registry: ContentProviderPort,
+    selected_card: str | None = None,
+    selected_potion_index: int | None = None,
+) -> list[str | Text]:
     current_card_name: Text | None = None
     requires_enemy_target = False
     requires_hand_target = False
@@ -199,6 +212,12 @@ def _format_target_menu(combat_state: CombatState, registry: ContentProviderPort
         effect_types = {effect.get("type") for effect in card_def.effects}
         requires_enemy_target = bool(effect_types & {"damage", "vulnerable"})
         requires_hand_target = bool(effect_types & {"exhaust_target_card", "upgrade_target_card"})
+    elif selected_potion_index is not None:
+        if selected_potion_index <= 0 or selected_potion_index > len(run_state.potions):
+            return format_menu_entries(build_target_menu(target_options=[], current_card_name=None, title="选择敌人"))
+        potion_id = run_state.potions[selected_potion_index - 1]
+        potion_def = registry.potions().get(potion_id)
+        requires_enemy_target = potion_def.target == "enemy"
     enemy_target_options: list[tuple[str, Text]] = []
     if requires_enemy_target or not requires_hand_target:
         living_enemies = [enemy for enemy in combat_state.enemies if enemy.hp > 0]
@@ -283,14 +302,22 @@ def _format_menu(
     if mode == "select_card":
         return _format_card_menu(combat_state, registry)
     if mode == "select_target":
-        return _format_target_menu(combat_state, registry, _selected_card_instance_id(menu_state))
+        return _format_target_menu(
+            combat_state,
+            run_state,
+            registry,
+            _selected_card_instance_id(menu_state),
+            _selected_potion_index(menu_state),
+        )
+    if mode == "select_potion":
+        return format_menu_entries(build_select_potion_menu(run_state=run_state, registry=registry))
     if mode == "select_next_room":
         return _format_next_room_menu(room_state)
     if mode == "select_event_choice":
         return _format_event_menu(room_state, registry)
     if mode == "select_reward":
         return _format_reward_menu(room_state, registry)
-    return _format_root_menu(room_state)
+    return _format_root_menu(room_state, run_state)
 
 
 def render_summary_bar(

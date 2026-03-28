@@ -78,6 +78,18 @@ def test_current_action_menu_matches_root_menu() -> None:
     assert menu.options[0].action_id == "play_card"
 
 
+def test_current_action_menu_shows_potion_menu_when_potions_exist() -> None:
+    session = replace(
+        start_session(seed=5),
+        run_state=replace(start_session(seed=5).run_state, potions=["fire_potion"]),
+    )
+
+    menu = _current_action_menu(session)
+
+    assert menu is not None
+    assert menu.options[1].action_id == "use_potion"
+
+
 def test_current_action_menu_marks_disabled_rest_actions() -> None:
     session = replace(
         start_session(seed=5),
@@ -279,6 +291,26 @@ def test_clicking_action_list_drives_menu_choice() -> None:
             await pilot.click("#action-list", offset=(3, 1))
             await pilot.pause()
             assert app._session.command_history == ["1"]
+
+    asyncio.run(scenario())
+
+
+def test_textual_ui_can_use_fire_potion_without_crashing() -> None:
+    async def scenario() -> None:
+        session = replace(
+            start_session(seed=5),
+            run_state=replace(start_session(seed=5).run_state, potions=["fire_potion"]),
+        )
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            app._process_command("2")
+            assert app._session.menu_state.mode == "select_potion"
+            app._process_command("1")
+            assert app._session.menu_state.mode == "select_target"
+            app._process_command("1")
+            assert app._session.run_state.potions == []
+            assert app._session.menu_state.mode == "root"
+            assert app._session.room_state.room_type == "combat"
 
     asyncio.run(scenario())
 
@@ -1173,6 +1205,8 @@ def test_hover_preview_shows_shop_potion_details() -> None:
             assert "火焰药水" in preview.render().plain
             assert "药水" in preview.render().plain or "效果" in preview.render().plain
             assert "20" in preview.render().plain
+            assert "敌人" in preview.render().plain
+            assert "战斗中" in preview.render().plain
 
     asyncio.run(scenario())
 

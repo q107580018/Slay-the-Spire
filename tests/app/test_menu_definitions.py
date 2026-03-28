@@ -7,6 +7,7 @@ from rich.text import Text
 from slay_the_spire.app.menu_definitions import (
     build_boss_relic_menu,
     build_boss_reward_menu,
+    build_select_potion_menu,
     build_next_room_menu,
     build_inspect_root_menu,
     build_reward_menu,
@@ -19,7 +20,6 @@ from slay_the_spire.app.menu_definitions import (
     format_menu_lines,
     resolve_menu_action,
 )
-from slay_the_spire.adapters.presentation.widgets import render_card_name
 from slay_the_spire.app.session import start_session
 from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.domain.models.combat_state import CombatState
@@ -47,6 +47,24 @@ def test_build_root_menu_binds_resolved_combat_without_rewards_to_inspect_action
     ]
     assert resolve_menu_action("2", menu) == "inspect"
     assert resolve_menu_action("3", menu) == "save"
+
+
+def test_build_root_menu_binds_combat_use_potion_action() -> None:
+    session = start_session(seed=5)
+
+    menu = build_root_menu(room_state=session.room_state, run_state=replace(session.run_state, potions=["fire_potion"]))
+
+    assert format_menu_lines(menu) == [
+        "可选操作:",
+        "1. 出牌",
+        "2. 使用药水",
+        "3. 结束回合",
+        "4. 查看资料",
+        "5. 保存游戏",
+        "6. 读取存档",
+        "7. 退出游戏",
+    ]
+    assert resolve_menu_action("2", menu) == "use_potion"
 
 
 def test_build_root_menu_binds_pending_boss_rewards_to_reward_actions() -> None:
@@ -233,6 +251,23 @@ def test_build_inspect_root_menu_binds_non_combat_choices_to_actions() -> None:
     assert resolve_menu_action("5", menu) == "back"
 
 
+def test_build_select_potion_menu_lists_potions_with_effects_and_back() -> None:
+    session = start_session(seed=5)
+    session.run_state.potions = ["fire_potion", "strength_potion"]
+    registry = StarterContentProvider(session.content_root)
+
+    menu = build_select_potion_menu(run_state=session.run_state, registry=registry)
+
+    assert format_menu_lines(menu) == [
+        "药水:",
+        "1. 对敌 火焰药水 - 造成 20 伤害（目标：敌人 / 时机：战斗中）",
+        "2. 对己 力量药水 - 获得 2 力量（目标：自己 / 时机：战斗中）",
+        "3. 返回上一步",
+    ]
+    assert resolve_menu_action("1", menu) == "use_potion:1"
+    assert resolve_menu_action("3", menu) == "back"
+
+
 def test_build_reward_menu_binds_labels_and_claim_actions() -> None:
     session = replace(
         start_session(seed=5),
@@ -281,7 +316,8 @@ def test_build_reward_menu_lists_skip_card_rewards_when_card_offers_exist() -> N
 
 
 def test_build_root_menu_binds_combat_choices_without_view_current() -> None:
-    menu = build_root_menu(room_state=start_session(seed=5).room_state)
+    session = start_session(seed=5)
+    menu = build_root_menu(room_state=session.room_state, run_state=session.run_state)
 
     assert format_menu_lines(menu) == [
         "可选操作:",
@@ -475,6 +511,8 @@ def test_build_target_menu_supports_hand_target_headers() -> None:
 def test_build_target_menu_keeps_current_card_text_style() -> None:
     session = start_session(seed=5)
     registry = StarterContentProvider(session.content_root)
+    from slay_the_spire.adapters.presentation.widgets import render_card_name
+
     current_card_name = render_card_name(registry.cards().get("anger_plus"))
 
     menu = build_target_menu(

@@ -18,6 +18,7 @@ from slay_the_spire.domain.effects.effect_types import (
     EFFECT_NOOP,
     EFFECT_UPGRADE_ALL_HAND,
     EFFECT_UPGRADE_TARGET_CARD,
+    EFFECT_STRENGTH,
     EFFECT_VULNERABLE,
     EFFECT_WEAK,
     copy_effect,
@@ -280,6 +281,18 @@ def resolve_next_effect(
         gained_block = max(int(effect.get("amount", 0)), 0)
         target.block += gained_block
         return _with_result(effect, gained_block=gained_block)
+
+    if effect_type == EFFECT_STRENGTH:
+        target = _get_target(state, effect.get("target_instance_id"))
+        if _is_dead(target):
+            return noop_effect(reason="dead_target")
+        applied_stacks = max(int(effect.get("amount", 0)), 0)
+        _apply_status(
+            target,
+            status_id="strength",
+            stacks=applied_stacks,
+        )
+        return _with_result(effect, applied_stacks=applied_stacks)
 
     if effect_type == EFFECT_HEAL:
         target = _get_target(state, effect.get("target_instance_id"))

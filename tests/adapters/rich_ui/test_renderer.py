@@ -156,7 +156,7 @@ def test_target_menu_keeps_current_card_styles() -> None:
     combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
     combat_state.hand = ["anger_plus#1", "strike_plus#2"]
 
-    lines = _format_target_menu(combat_state, _provider(session), "anger_plus#1")
+    lines = _format_target_menu(combat_state, session.run_state, _provider(session), "anger_plus#1")
 
     assert isinstance(lines[1], Text)
     assert lines[1].plain == "当前卡牌: 愤怒+"

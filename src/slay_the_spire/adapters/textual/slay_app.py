@@ -29,6 +29,7 @@ from slay_the_spire.app.menu_definitions import (
     build_leaf_menu,
     build_menu,
     build_next_room_menu,
+    build_select_potion_menu,
     build_relic_detail_menu,
     build_rest_root_menu,
     build_rest_upgrade_menu,
@@ -159,7 +160,7 @@ def _boss_rewards(session: SessionState) -> dict[str, object] | None:
 
 def _supports_hover_preview(menu_mode: str) -> bool:
     return (
-        menu_mode in {"select_reward", "select_boss_reward", "select_boss_relic", "shop_root", "inspect_relics"}
+        menu_mode in {"select_reward", "select_boss_reward", "select_boss_relic", "shop_root", "inspect_relics", "select_potion"}
         or menu_mode in _CARD_PREVIEW_MENU_MODES
     )
 
@@ -171,7 +172,7 @@ def _hover_preview_guidance(menu_mode: str) -> Text | None:
         return Text("查看说明：将鼠标悬停在卡牌上查看详情。")
     if menu_mode == "inspect_relics":
         return Text("查看说明：将鼠标悬停在遗物上查看详情。")
-    if menu_mode in {"select_reward", "select_boss_reward", "select_boss_relic", "shop_root"}:
+    if menu_mode in {"select_reward", "select_boss_reward", "select_boss_relic", "shop_root", "select_potion"}:
         return Text("查看说明：将鼠标悬停在奖励或商品上查看详情。")
     return None
 
@@ -226,6 +227,15 @@ def _relic_preview_id(session: SessionState, action_id: str) -> str | None:
     if session.menu_state.mode != "inspect_relics":
         return None
     return _card_instance_from_indexed_action(action_id, prefix="item:", card_instance_ids=session.run_state.relics)
+
+
+def _potion_preview_id(session: SessionState, action_id: str) -> str | None:
+    if session.menu_state.mode != "select_potion" or not action_id.startswith("use_potion:"):
+        return None
+    index = _action_index(action_id, prefix="use_potion:")
+    if index is None or index >= len(session.run_state.potions):
+        return None
+    return session.run_state.potions[index]
 
 
 def _reward_card_instance_id(reward_id: str) -> str | None:
@@ -308,6 +318,9 @@ def _hover_preview_renderable(session: SessionState, action_id: str) -> Text | N
     relic_id = _relic_preview_id(session, action_id)
     if relic_id is not None:
         return _text_from_lines(format_relic_detail_lines(relic_id, _content_provider(session)))
+    potion_id = _potion_preview_id(session, action_id)
+    if potion_id is not None:
+        return _text_from_lines(format_potion_detail_lines(potion_id, _content_provider(session)))
     if session.menu_state.mode == "select_boss_reward":
         if action_id == "claim_boss_gold":
             return Text("控制项：领取首领金币")
@@ -358,15 +371,26 @@ def _inspect_list_menu(title: str, labels: list[str]) -> MenuDefinition:
 def _build_target_action_menu(session: SessionState) -> MenuDefinition | None:
     combat_state = _combat_state_from_session(session)
     selected_card = session.menu_state.selected_card_instance_id
-    if combat_state is None or not isinstance(selected_card, str):
+    selected_potion_index = session.menu_state.selected_potion_index
+    if combat_state is None or (not isinstance(selected_card, str) and not isinstance(selected_potion_index, int)):
         return None
-
     registry = _content_provider(session)
-    card_def = registry.cards().get(card_id_from_instance_id(selected_card))
-    current_card_name = render_card_name(card_def)
-    effect_types = {str(effect.get("type")) for effect in card_def.effects}
-    requires_enemy_target = bool(effect_types & {"damage", "vulnerable", "weak"})
-    requires_hand_target = bool(effect_types & {"exhaust_target_card", "upgrade_target_card"})
+    current_card_name: Text | None = None
+    requires_enemy_target = False
+    requires_hand_target = False
+    if isinstance(selected_card, str):
+        card_def = registry.cards().get(card_id_from_instance_id(selected_card))
+        current_card_name = render_card_name(card_def)
+        effect_types = {str(effect.get("type")) for effect in card_def.effects}
+        requires_enemy_target = bool(effect_types & {"damage", "vulnerable", "weak"})
+        requires_hand_target = bool(effect_types & {"exhaust_target_card", "upgrade_target_card"})
+    elif isinstance(selected_potion_index, int):
+        potion_ids = session.run_state.potions
+        if selected_potion_index <= 0 or selected_potion_index > len(potion_ids):
+            return None
+        potion_id = potion_ids[selected_potion_index - 1]
+        potion_def = registry.potions().get(potion_id)
+        requires_enemy_target = potion_def.target == "enemy"
 
     target_options: list[tuple[str, str | Text]] = []
     if requires_enemy_target or not requires_hand_target:
@@ -396,7 +420,7 @@ def _current_action_menu(session: SessionState) -> MenuDefinition | None:
     if session.run_phase != "active":
         return build_terminal_phase_menu(run_phase=session.run_phase)
     if menu_mode == "root":
-        return build_root_menu(room_state=room_state)
+        return build_root_menu(room_state=room_state, run_state=session.run_state)
     if menu_mode == "select_next_room":
         next_node_ids = room_state.payload.get("next_node_ids", [])
         if not isinstance(next_node_ids, list):
@@ -462,6 +486,8 @@ def _current_action_menu(session: SessionState) -> MenuDefinition | None:
         if combat_state is None:
             return None
         return build_select_card_menu(combat_state=combat_state, registry=registry)
+    if menu_mode == "select_potion":
+        return build_select_potion_menu(run_state=session.run_state, registry=registry)
     if menu_mode == "select_target":
         return _build_target_action_menu(session)
     if menu_mode == "inspect_root":
@@ -747,7 +773,7 @@ class SlayApp(App[None]):
         if session.menu_state.mode != "root" or not session.room_state.is_resolved:
             return
 
-        root_choice = _menu_choice_for_action(build_root_menu(room_state=session.room_state), "next_room")
+        root_choice = _menu_choice_for_action(build_root_menu(room_state=session.room_state, run_state=session.run_state), "next_room")
         if root_choice is None:
             return
         self._process_command(root_choice)
