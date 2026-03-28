@@ -128,19 +128,20 @@ def _active_enemy_move(state: CombatState, enemy_def: EnemyDef) -> Mapping[str, 
     active_moves = enemy_def.move_table[1:] if sleep_turns > 0 else enemy_def.move_table
     if not active_moves:
         return None
-    if enemy_def.intent_policy != "scripted":
+    if enemy_def.intent_policy == "weighted_random":
         return _require_mapping(active_moves[0], "move_table item")
 
     normalized_round = max(state.round_number - sleep_turns, 1)
-    first_move = _require_mapping(active_moves[0], "move_table item")
-    if _is_once_move(first_move):
-        if normalized_round == 1:
-            return first_move
-        looping_moves = active_moves[1:]
-        if not looping_moves:
-            return first_move
-        move_index = (normalized_round - 2) % len(looping_moves)
-        return _require_mapping(looping_moves[move_index], "move_table item")
+    if enemy_def.intent_policy == "scripted":
+        first_move = _require_mapping(active_moves[0], "move_table item")
+        if _is_once_move(first_move):
+            if normalized_round == 1:
+                return first_move
+            looping_moves = active_moves[1:]
+            if not looping_moves:
+                return first_move
+            move_index = (normalized_round - 2) % len(looping_moves)
+            return _require_mapping(looping_moves[move_index], "move_table item")
 
     move_index = (normalized_round - 1) % len(active_moves)
     return _require_mapping(active_moves[move_index], "move_table item")

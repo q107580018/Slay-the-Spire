@@ -36,6 +36,8 @@ def apply_reward(*, run_state: RunState, reward_id: str, registry: ContentProvid
     if reward_id.startswith("relic:"):
         relic_id = reward_id.split(":", 1)[1]
         registry.relics().get(relic_id)
+        if relic_id == "circlet":
+            return replace(run_state, relics=[*run_state.relics, relic_id])
         if relic_id in run_state.relics:
             return run_state
         return replace(run_state, relics=[*run_state.relics, relic_id])

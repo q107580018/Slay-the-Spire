@@ -22,6 +22,7 @@ class EntitySnapshot:
 class CombatEvent:
     event_type: str
     actor_name: str
+    actor_instance_id: str | None = None
     target_name: str | None = None
     card_name: str | None = None
     amount: int = 0
@@ -212,6 +213,7 @@ def build_enemy_turn_events(
                 CombatEvent(
                     event_type="sleep",
                     actor_name=snapshot.name,
+                    actor_instance_id=enemy.instance_id,
                     amount=_safe_int(preview.get("sleep_turns")),
                 )
             )
@@ -236,6 +238,7 @@ def build_enemy_turn_events(
                 CombatEvent(
                     event_type="damage",
                     actor_name=actor_name,
+                    actor_instance_id=_enemy_actor_instance_id(source_id=source_id, source_snapshot=source_snapshot),
                     target_name=target_name,
                     amount=_result_int(result, "applied_amount"),
                     blocked=_result_int(result, "blocked"),
@@ -250,6 +253,7 @@ def build_enemy_turn_events(
                 CombatEvent(
                     event_type="block_gained",
                     actor_name=source_snapshot.name,
+                    actor_instance_id=_enemy_actor_instance_id(source_id=source_id, source_snapshot=source_snapshot),
                     amount=_result_int(result, "gained_block"),
                 )
             )
@@ -264,6 +268,7 @@ def build_enemy_turn_events(
                 CombatEvent(
                     event_type="status_applied",
                     actor_name=actor_name,
+                    actor_instance_id=_enemy_actor_instance_id(source_id=source_id, source_snapshot=source_snapshot),
                     target_name=target_name,
                     status_id="vulnerable",
                     stacks=_result_int(result, "applied_stacks"),
@@ -280,6 +285,7 @@ def build_enemy_turn_events(
                 CombatEvent(
                     event_type="status_applied",
                     actor_name=actor_name,
+                    actor_instance_id=_enemy_actor_instance_id(source_id=source_id, source_snapshot=source_snapshot),
                     target_name=target_name,
                     status_id="weak",
                     stacks=_result_int(result, "applied_stacks"),
@@ -293,6 +299,7 @@ def build_enemy_turn_events(
                 CombatEvent(
                     event_type="gain_strength",
                     actor_name=actor_name,
+                    actor_instance_id=_enemy_actor_instance_id(source_id=source_id, source_snapshot=source_snapshot),
                     amount=_result_int(result, "applied_stacks"),
                 )
             )
@@ -304,6 +311,7 @@ def build_enemy_turn_events(
                 CombatEvent(
                     event_type="add_card_to_discard",
                     actor_name=source_snapshot.name,
+                    actor_instance_id=_enemy_actor_instance_id(source_id=source_id, source_snapshot=source_snapshot),
                     card_name=_card_name(effect.get("card_id"), registry),
                     count=_safe_int(effect.get("count")) or 1,
                 )
@@ -380,6 +388,18 @@ def _effect_actor_name(
         return _card_name(card_id_from_instance_id(source_id), registry)
     except (TypeError, ValueError):
         return None
+
+
+def _enemy_actor_instance_id(
+    *,
+    source_id: object,
+    source_snapshot: EntitySnapshot | None,
+) -> str | None:
+    if source_snapshot is None or source_snapshot.kind != "enemy":
+        return None
+    if not isinstance(source_id, str):
+        return None
+    return source_id
 
 
 def _card_name(card_id: object, registry: ContentProviderPort) -> str:

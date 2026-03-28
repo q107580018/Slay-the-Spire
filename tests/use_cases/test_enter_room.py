@@ -9,7 +9,7 @@ from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.domain.models.act_state import ActNodeState, ActState
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.run_state import RunState
-from slay_the_spire.use_cases.enter_room import _TREASURE_RELIC_CANDIDATE_IDS, enter_room
+from slay_the_spire.use_cases.enter_room import enter_room
 
 
 def _content_provider() -> StarterContentProvider:
@@ -301,6 +301,31 @@ def test_enter_treasure_room_skips_owned_relics_from_candidate_pool() -> None:
     assert room_state.payload["treasure_relic_id"] not in {"burning_blood", "golden_idol"}
 
 
+def test_enter_treasure_room_falls_back_to_circlet_when_no_relic_candidates_remain() -> None:
+    room_state = enter_room(
+        _run_state(
+            seed=13,
+            relics=[
+                "burning_blood",
+                "blood_vial",
+                "golden_idol",
+                "guarding_totem",
+                "circlet",
+                "black_blood",
+                "ectoplasm",
+                "coffee_dripper",
+                "fusion_hammer",
+            ],
+        ),
+        _act_state(node_id="r1c0", room_type="treasure"),
+        "r1c0",
+        _content_provider(),
+    )
+
+    assert room_state.payload["treasure_relic_id"] == "circlet"
+    assert room_state.is_resolved is False
+
+
 def test_enter_combat_room_applies_blood_vial_on_combat_start() -> None:
     room_state = enter_room(
         _run_state(seed=7, relics=["burning_blood", "blood_vial"], current_hp=70, max_hp=80),
@@ -327,11 +352,16 @@ def test_enter_combat_room_applies_guarding_totem_on_combat_start() -> None:
     assert combat_state.player.block == 10
 
 
-def test_treasure_candidate_pool_matches_content_boundary_assumptions() -> None:
+def test_treasure_candidate_pool_uses_non_shop_relics_only() -> None:
     registry = _content_provider()
+    candidate_room = enter_room(
+        _run_state(seed=13, relics=["burning_blood"]),
+        _act_state(node_id="r1c0", room_type="treasure"),
+        "r1c0",
+        registry,
+    )
 
-    assert len(_TREASURE_RELIC_CANDIDATE_IDS) == len(set(_TREASURE_RELIC_CANDIDATE_IDS))
-    for relic_id in _TREASURE_RELIC_CANDIDATE_IDS:
-        relic = registry.relics().get(relic_id)
-        assert relic.id == relic_id
-        assert relic.can_appear_in_shop is False
+    treasure_relic_id = candidate_room.payload.get("treasure_relic_id")
+    assert isinstance(treasure_relic_id, str)
+    assert treasure_relic_id != "circlet"
+    assert registry.relics().get(treasure_relic_id).can_appear_in_shop is False

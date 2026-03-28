@@ -202,6 +202,59 @@ def test_end_turn_use_case_returns_structured_result() -> None:
     assert state.log == ["Training Slime攻击你 5，实际受到 5。"]
 
 
+def test_gremlin_leader_cycles_from_weak_to_attacks() -> None:
+    registry = _Registry()
+    registry.enemies().register(
+        {
+            "id": "gremlin_leader",
+            "name": "地精首领",
+            "hp": 145,
+            "move_table": [
+                {"move": "rally", "effects": [{"type": "weak", "stacks": 1}]},
+                {"move": "slash", "effects": [{"type": "damage", "amount": 10}]},
+                {"move": "crush", "effects": [{"type": "damage", "amount": 16}]},
+            ],
+            "intent_policy": "cycle",
+        }
+    )
+    state = CombatState(
+        round_number=1,
+        energy=3,
+        hand=[],
+        draw_pile=[],
+        discard_pile=[],
+        exhaust_pile=[],
+        player=PlayerCombatState(
+            instance_id="player-1",
+            hp=80,
+            max_hp=80,
+            block=0,
+            statuses=[],
+        ),
+        enemies=[
+            EnemyState(
+                instance_id="enemy-1",
+                enemy_id="gremlin_leader",
+                hp=145,
+                max_hp=145,
+                block=0,
+                statuses=[],
+            )
+        ],
+        effect_queue=[],
+        log=[],
+    )
+
+    run_end_turn(state, registry)
+    assert state.log[-1] == "地精首领施加 1 层虚弱。"
+
+    run_end_turn(state, registry)
+    assert state.log[-1] == "地精首领攻击你 10，实际受到 10。"
+
+    run_end_turn(state, registry)
+    assert state.log[-1] == "地精首领攻击你 16，实际受到 16。"
+
+
 def test_end_turn_use_case_logs_triggered_active_powers() -> None:
     registry = _enemy_registry_without_attacks()
     state = _combat_state()

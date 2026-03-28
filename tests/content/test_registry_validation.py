@@ -236,6 +236,7 @@ def test_boss_relics_do_not_appear_in_shop_pool(content_root: Path) -> None:
     assert provider.relics().get("ectoplasm").can_appear_in_shop is False
     assert provider.relics().get("coffee_dripper").can_appear_in_shop is False
     assert provider.relics().get("fusion_hammer").can_appear_in_shop is False
+    assert provider.relics().get("circlet").can_appear_in_shop is False
 
 
 @pytest.mark.parametrize("content_root", _content_roots())
@@ -245,6 +246,7 @@ def test_starter_catalog_passes_startup_integrity(content_root: Path) -> None:
     assert catalog.cards.get("strike").name == "打击"
     assert catalog.enemies.get("jaw_worm").id == "jaw_worm"
     assert catalog.relics.get("burning_blood").name == "燃烧之血"
+    assert catalog.relics.get("circlet").name == "圆环"
     assert catalog.events.get("shining_light").id == "shining_light"
     assert catalog.events.get("the_cleric").id == "the_cleric"
     assert catalog.events.get("world_of_goop").id == "world_of_goop"

@@ -87,10 +87,12 @@ def describe_player_action(*, events: Sequence[CombatEvent]) -> list[str]:
 def describe_enemy_turn(*, events: Sequence[CombatEvent]) -> list[str]:
     grouped: OrderedDict[str, list[CombatEvent]] = OrderedDict()
     for event in events:
-        grouped.setdefault(event.actor_name, []).append(event)
+        group_key = event.actor_instance_id or event.actor_name
+        grouped.setdefault(group_key, []).append(event)
 
     entries: list[str] = []
-    for actor_name, actor_events in grouped.items():
+    for actor_events in grouped.values():
+        actor_name = actor_events[0].actor_name
         sleep_event = next((event for event in actor_events if event.event_type == "sleep"), None)
         if sleep_event is not None:
             entries.append(f"{actor_name}沉睡，暂不行动。")

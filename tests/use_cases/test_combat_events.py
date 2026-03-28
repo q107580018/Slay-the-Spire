@@ -125,7 +125,7 @@ def test_build_enemy_turn_events_adds_sleep_event_without_damage_recomputation()
     )
 
     assert events == [
-        CombatEvent(event_type="sleep", actor_name="Training Dummy", amount=2),
+        CombatEvent(event_type="sleep", actor_name="Training Dummy", actor_instance_id="enemy-1", amount=2),
     ]
 
 
@@ -203,6 +203,86 @@ def test_build_enemy_turn_events_include_strength_gain_for_enemy_sources() -> No
     )
 
     assert events == [
-        CombatEvent(event_type="gain_strength", actor_name="Training Dummy", amount=3),
+        CombatEvent(event_type="gain_strength", actor_name="Training Dummy", actor_instance_id="enemy-1", amount=3),
     ]
     assert describe_enemy_turn(events=events) == ["Training Dummy获得 3 层力量。"]
+
+
+def test_describe_enemy_turn_keeps_same_name_enemies_separate() -> None:
+    provider = _provider()
+    state = CombatState(
+        round_number=1,
+        energy=3,
+        hand=[],
+        draw_pile=[],
+        discard_pile=[],
+        exhaust_pile=[],
+        player=PlayerCombatState(
+            instance_id="player-1",
+            hp=40,
+            max_hp=40,
+            block=0,
+            statuses=[],
+        ),
+        enemies=[
+            EnemyState(
+                instance_id="enemy-1",
+                enemy_id="training_dummy",
+                hp=10,
+                max_hp=10,
+                block=0,
+                statuses=[],
+            ),
+            EnemyState(
+                instance_id="enemy-2",
+                enemy_id="training_dummy",
+                hp=10,
+                max_hp=10,
+                block=0,
+                statuses=[],
+            ),
+            EnemyState(
+                instance_id="enemy-3",
+                enemy_id="training_dummy",
+                hp=10,
+                max_hp=10,
+                block=0,
+                statuses=[],
+            ),
+        ],
+        effect_queue=[],
+        log=[],
+    )
+    snapshots = capture_entity_snapshots(state, provider)
+
+    events = build_enemy_turn_events(
+        enemy_previews=[(enemy, None) for enemy in state.enemies],
+        resolved_effects=[
+            {
+                "type": "damage",
+                "source_instance_id": "enemy-1",
+                "target_instance_id": "player-1",
+                "result": {"applied_amount": 3, "blocked": 0, "actual_damage": 3},
+            },
+            {
+                "type": "damage",
+                "source_instance_id": "enemy-2",
+                "target_instance_id": "player-1",
+                "result": {"applied_amount": 4, "blocked": 0, "actual_damage": 4},
+            },
+            {
+                "type": "damage",
+                "source_instance_id": "enemy-3",
+                "target_instance_id": "player-1",
+                "result": {"applied_amount": 5, "blocked": 0, "actual_damage": 5},
+            },
+        ],
+        entities=snapshots,
+        registry=provider,
+    )
+
+    assert describe_enemy_turn(events=events) == [
+        "Training Dummy攻击你 3，实际受到 3。",
+        "Training Dummy攻击你 4，实际受到 4。",
+        "Training Dummy攻击你 5，实际受到 5。",
+    ]

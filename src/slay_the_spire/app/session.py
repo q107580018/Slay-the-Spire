@@ -298,9 +298,20 @@ def _open_treasure(session: SessionState) -> SessionState:
             menu_state=MenuState(),
         )
     relic_id = session.room_state.payload.get("treasure_relic_id")
-    if not isinstance(relic_id, str) or not relic_id:
-        return session
     provider = _content_provider(session)
+    if not isinstance(relic_id, str) or not relic_id:
+        updated_room_state = replace(
+            session.room_state,
+            stage="completed",
+            is_resolved=True,
+            payload={**session.room_state.payload, "claimed_treasure_relic_id": None},
+        )
+        return replace(
+            session,
+            room_state=updated_room_state,
+            run_phase=_derive_run_phase(session.run_state, session.act_state, updated_room_state, registry=provider),
+            menu_state=MenuState(),
+        )
     updated_run_state = apply_reward(
         run_state=session.run_state,
         reward_id=f"relic:{relic_id}",

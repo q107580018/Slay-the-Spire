@@ -204,6 +204,34 @@ def test_open_treasure_via_menu_grants_relic_marks_room_resolved_and_is_not_reap
     assert final_session.room_state.payload["claimed_treasure_relic_id"] == "golden_idol"
 
 
+def test_open_treasure_without_relic_candidate_grants_circlet() -> None:
+    session = replace(
+        start_session(seed=41),
+        room_state=RoomState(
+            room_id="act2:treasure",
+            room_type="treasure",
+            stage="waiting_input",
+            payload={
+                "act_id": "act2",
+                "node_id": "r8c1",
+                "next_node_ids": [],
+                "treasure_relic_id": "circlet",
+            },
+            is_resolved=False,
+            rewards=[],
+        ),
+        menu_state=MenuState(),
+    )
+
+    _running, opened_session, opened_message = route_menu_choice("1", session=session)
+
+    assert opened_session.room_state.is_resolved is True
+    assert opened_session.room_state.stage == "completed"
+    assert opened_session.room_state.payload["claimed_treasure_relic_id"] == "circlet"
+    assert opened_session.run_state.relics == ["burning_blood", "circlet"]
+    assert "圆环" in opened_message
+
+
 def test_open_treasure_is_idempotent_when_room_is_already_resolved() -> None:
     session = replace(
         start_session(seed=41),

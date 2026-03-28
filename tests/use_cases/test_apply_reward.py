@@ -49,6 +49,14 @@ def test_apply_reward_adds_real_card_instance_to_run_state() -> None:
     assert updated.deck[-1] == "anger#10"
 
 
+def test_apply_reward_allows_repeated_circlet_rewards() -> None:
+    run_state = replace(_run_state(), relics=["burning_blood", "circlet"])
+
+    updated = apply_reward(run_state=run_state, reward_id="relic:circlet", registry=_content_provider())
+
+    assert updated.relics == ["burning_blood", "circlet", "circlet"]
+
+
 def test_apply_reward_preserves_card_id_with_underscores() -> None:
     updated = apply_reward(run_state=_run_state(), reward_id="card:pommel_strike", registry=_content_provider())
 

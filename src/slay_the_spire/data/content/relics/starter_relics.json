@@ -56,6 +56,15 @@
         }
       ],
       "can_appear_in_shop": false
+    },
+    {
+      "id": "circlet",
+      "name": "圆环",
+      "summary": "没有效果",
+      "description": "没有效果。",
+      "trigger_hooks": [],
+      "passive_effects": [],
+      "can_appear_in_shop": false
     }
   ]
 }

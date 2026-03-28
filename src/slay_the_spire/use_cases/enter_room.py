@@ -14,7 +14,7 @@ from slay_the_spire.ports.content_provider import ContentProviderPort
 from slay_the_spire.shared.rng import rng_for_room, weighted_choice
 
 _SUPPORTED_ROOM_TYPES = {"combat", "elite", "event", "boss", "shop", "rest", "treasure"}
-_TREASURE_RELIC_CANDIDATE_IDS = ("blood_vial", "golden_idol", "guarding_totem")
+_TREASURE_FALLBACK_RELIC_ID = "circlet"
 
 
 def _room_type_for_node(act_state: ActState, node_id: str) -> str:
@@ -197,17 +197,22 @@ def _build_event_payload(run_state: RunState, *, room_id: str, event_pool_id: st
 
 
 def _build_treasure_payload(run_state: RunState, *, room_id: str, registry: ContentProviderPort) -> dict[str, object]:
-    candidate_ids = [
-        relic_id
-        for relic_id in _TREASURE_RELIC_CANDIDATE_IDS
-        if relic_id not in run_state.relics
-    ]
+    candidate_ids = _treasure_relic_candidate_ids(run_state=run_state, registry=registry)
     if not candidate_ids:
-        raise ValueError("treasure rooms require at least one unowned relic candidate")
-    for relic_id in candidate_ids:
-        registry.relics().get(relic_id)
+        registry.relics().get(_TREASURE_FALLBACK_RELIC_ID)
+        return {"treasure_relic_id": _TREASURE_FALLBACK_RELIC_ID}
     rng = _offer_rng(run_state, room_id, "treasure_relic")
     return {"treasure_relic_id": rng.choice(sorted(candidate_ids))}
+
+
+def _treasure_relic_candidate_ids(*, run_state: RunState, registry: ContentProviderPort) -> list[str]:
+    return [
+        relic.id
+        for relic in registry.relics().all()
+        if relic.id != _TREASURE_FALLBACK_RELIC_ID
+        and not relic.can_appear_in_shop
+        and relic.id not in run_state.relics
+    ]
 
 
 def _mark_node_visited(act_state: ActState, node_id: str) -> None:
