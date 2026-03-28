@@ -9,7 +9,11 @@ import pytest
 from slay_the_spire.content.catalog import ContentCatalog
 from slay_the_spire.content.loaders import load_json_file
 from slay_the_spire.content.provider import StarterContentProvider
-from slay_the_spire.content.registries import CardRegistry, EncounterRegistry, EnemyRegistry
+from slay_the_spire.content.registries import (
+    CardRegistry,
+    EncounterRegistry,
+    EnemyRegistry,
+)
 
 
 def _content_roots() -> tuple[Path, Path]:
@@ -54,12 +58,22 @@ def test_provider_exposes_registry_accessors(content_root: Path) -> None:
     assert provider.cards().get("inflame").name == "燃烧"
     assert provider.cards().get("metallicize").name == "金属化"
     assert provider.cards().get("combust").name == "燃烧躯体"
+    assert provider.cards().get("battle_trance").name == "战斗狂热"
+    assert provider.cards().get("battle_trance_plus").name == "战斗狂热+"
+    assert provider.cards().get("offering").name == "献祭"
+    assert provider.cards().get("offering_plus").name == "献祭+"
+    assert provider.cards().get("impervious").name == "坚不可摧"
+    assert provider.cards().get("impervious_plus").name == "坚不可摧+"
     assert provider.cards().get("terror").cost == 1
     assert provider.cards().get("terror").rarity == "uncommon"
-    assert provider.cards().get("terror").effects == [{"type": "vulnerable", "stacks": 2}]
+    assert provider.cards().get("terror").effects == [
+        {"type": "vulnerable", "stacks": 2}
+    ]
     assert provider.cards().get("terror_plus").cost == 1
     assert provider.cards().get("terror_plus").rarity == "uncommon"
-    assert provider.cards().get("terror_plus").effects == [{"type": "vulnerable", "stacks": 3}]
+    assert provider.cards().get("terror_plus").effects == [
+        {"type": "vulnerable", "stacks": 3}
+    ]
     assert provider.enemies().get("slime").name == "绿史莱姆"
     assert provider.enemies().get("acid_slime").name == "酸液史莱姆"
     assert provider.enemies().get("hexaghost").name == "六火幽魂"
@@ -79,7 +93,15 @@ def test_cards_define_rarity_and_upgrades_keep_base_rarity(content_root: Path) -
     provider = StarterContentProvider(content_root)
     allowed_rarities = {"basic", "common", "uncommon", "rare", "curse", "special"}
     allowed_card_types = {"attack", "skill", "power", "status", "curse"}
-    allowed_acquisition_tags = {"starter", "combat_reward", "shop", "event", "generated", "status", "curse"}
+    allowed_acquisition_tags = {
+        "starter",
+        "combat_reward",
+        "shop",
+        "event",
+        "generated",
+        "status",
+        "curse",
+    }
 
     for card_def in provider.cards().all():
         assert card_def.rarity in allowed_rarities
@@ -105,11 +127,23 @@ def test_cards_define_rarity_and_upgrades_keep_base_rarity(content_root: Path) -
 def test_shop_eligible_cards_are_marked_with_shop_tags(content_root: Path) -> None:
     provider = StarterContentProvider(content_root)
 
-    shop_card_ids = {card.id for card in provider.cards().all() if "shop" in card.acquisition_tags}
+    shop_card_ids = {
+        card.id for card in provider.cards().all() if "shop" in card.acquisition_tags
+    }
 
-    assert {"anger", "pommel_strike", "shrug_it_off", "whirlwind", "twin_strike", "inflame", "metallicize", "combust"}.issubset(
-        shop_card_ids
-    )
+    assert {
+        "anger",
+        "pommel_strike",
+        "shrug_it_off",
+        "whirlwind",
+        "twin_strike",
+        "inflame",
+        "metallicize",
+        "combust",
+        "battle_trance",
+        "offering",
+        "impervious",
+    }.issubset(shop_card_ids)
     assert "doubt" not in shop_card_ids
     assert "injury" not in shop_card_ids
     assert "burn" not in shop_card_ids
@@ -246,17 +280,23 @@ def test_encounter_registry_rejects_empty_enemy_ids() -> None:
 
 
 @pytest.mark.parametrize("content_root", _content_roots())
-def test_catalog_rejects_missing_encounter_pool_referenced_by_act(content_root: Path, tmp_path: Path) -> None:
+def test_catalog_rejects_missing_encounter_pool_referenced_by_act(
+    content_root: Path, tmp_path: Path
+) -> None:
     copied_root = tmp_path / content_root.name
     shutil.copytree(content_root, copied_root)
     (copied_root / "encounters" / "act1_basic.json").unlink()
 
-    with pytest.raises(ValueError, match="enemy_pool_id must reference a loaded encounter pool"):
+    with pytest.raises(
+        ValueError, match="enemy_pool_id must reference a loaded encounter pool"
+    ):
         ContentCatalog.from_content_root(copied_root)
 
 
 @pytest.mark.parametrize("content_root", _content_roots())
-def test_catalog_rejects_missing_encounter_pool_referenced_by_non_starting_act(content_root: Path, tmp_path: Path) -> None:
+def test_catalog_rejects_missing_encounter_pool_referenced_by_non_starting_act(
+    content_root: Path, tmp_path: Path
+) -> None:
     copied_root = tmp_path / content_root.name
     shutil.copytree(content_root, copied_root)
     acts_path = copied_root / "acts" / "act1_map.json"
@@ -271,14 +311,20 @@ def test_catalog_rejects_missing_encounter_pool_referenced_by_non_starting_act(c
             "next_act_id": None,
         }
     )
-    acts_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    acts_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
 
-    with pytest.raises(ValueError, match="boss_pool_id must reference a loaded encounter pool"):
+    with pytest.raises(
+        ValueError, match="boss_pool_id must reference a loaded encounter pool"
+    ):
         ContentCatalog.from_content_root(copied_root)
 
 
 @pytest.mark.parametrize("content_root", _content_roots())
-def test_catalog_rejects_duplicate_fixed_floor_keys_after_normalization(content_root: Path, tmp_path: Path) -> None:
+def test_catalog_rejects_duplicate_fixed_floor_keys_after_normalization(
+    content_root: Path, tmp_path: Path
+) -> None:
     copied_root = tmp_path / content_root.name
     shutil.copytree(content_root, copied_root)
     acts_path = copied_root / "acts" / "act1_map.json"
@@ -287,20 +333,26 @@ def test_catalog_rejects_duplicate_fixed_floor_keys_after_normalization(content_
         "1": "combat",
         "01": "event",
     }
-    acts_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    acts_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
 
     with pytest.raises(ValueError, match="duplicate normalized key"):
         ContentCatalog.from_content_root(copied_root)
 
 
 @pytest.mark.parametrize("content_root", _content_roots())
-def test_catalog_rejects_fixed_floor_room_types_out_of_range(content_root: Path, tmp_path: Path) -> None:
+def test_catalog_rejects_fixed_floor_room_types_out_of_range(
+    content_root: Path, tmp_path: Path
+) -> None:
     copied_root = tmp_path / content_root.name
     shutil.copytree(content_root, copied_root)
     acts_path = copied_root / "acts" / "act1_map.json"
     payload = load_json_file(acts_path)
     payload["acts"][0]["map_config"]["fixed_floor_room_types"]["17"] = "boss"
-    acts_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    acts_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
 
     with pytest.raises(ValueError, match="must be between 1 and floor_count"):
         ContentCatalog.from_content_root(copied_root)
@@ -320,13 +372,17 @@ def test_provider_exposes_event_pool_entry_metadata(content_root: Path) -> None:
 @pytest.mark.parametrize("content_root", _content_roots())
 def test_act2_event_pool_contains_multiple_distinct_events(content_root: Path) -> None:
     provider = StarterContentProvider(content_root)
-    event_ids = {entry.member_id for entry in provider.event_pool_entries("act2_events")}
+    event_ids = {
+        entry.member_id for entry in provider.event_pool_entries("act2_events")
+    }
 
     assert {"ancient_writing", "masked_bandits", "forgotten_altar"}.issubset(event_ids)
 
 
 @pytest.mark.parametrize("content_root", _content_roots())
-def test_act_registry_accepts_map_config_instead_of_static_nodes(content_root: Path) -> None:
+def test_act_registry_accepts_map_config_instead_of_static_nodes(
+    content_root: Path,
+) -> None:
     provider = StarterContentProvider(content_root)
     act = provider.acts().get("act1")
 

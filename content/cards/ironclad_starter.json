@@ -731,6 +731,118 @@
       ],
       "card_type": "skill",
       "acquisition_tags": []
+    },
+    {
+      "id": "battle_trance",
+      "name": "战斗狂热",
+      "cost": 0,
+      "rarity": "uncommon",
+      "upgrades_to": "battle_trance_plus",
+      "effects": [
+        {
+          "type": "draw",
+          "amount": 3
+        }
+      ],
+      "card_type": "skill",
+      "acquisition_tags": [
+        "combat_reward",
+        "shop"
+      ]
+    },
+    {
+      "id": "battle_trance_plus",
+      "name": "战斗狂热+",
+      "cost": 0,
+      "rarity": "uncommon",
+      "effects": [
+        {
+          "type": "draw",
+          "amount": 4
+        }
+      ],
+      "card_type": "skill",
+      "acquisition_tags": []
+    },
+    {
+      "id": "offering",
+      "name": "献祭",
+      "cost": 0,
+      "rarity": "rare",
+      "upgrades_to": "offering_plus",
+      "effects": [
+        {
+          "type": "gain_energy",
+          "amount": 2
+        },
+        {
+          "type": "draw",
+          "amount": 3
+        },
+        {
+          "type": "lose_hp",
+          "amount": 6
+        }
+      ],
+      "card_type": "skill",
+      "acquisition_tags": [
+        "combat_reward",
+        "shop"
+      ]
+    },
+    {
+      "id": "offering_plus",
+      "name": "献祭+",
+      "cost": 0,
+      "rarity": "rare",
+      "effects": [
+        {
+          "type": "gain_energy",
+          "amount": 2
+        },
+        {
+          "type": "draw",
+          "amount": 5
+        },
+        {
+          "type": "lose_hp",
+          "amount": 6
+        }
+      ],
+      "card_type": "skill",
+      "acquisition_tags": []
+    },
+    {
+      "id": "impervious",
+      "name": "坚不可摧",
+      "cost": 2,
+      "rarity": "uncommon",
+      "upgrades_to": "impervious_plus",
+      "effects": [
+        {
+          "type": "block",
+          "amount": 30
+        }
+      ],
+      "card_type": "skill",
+      "acquisition_tags": [
+        "combat_reward",
+        "shop"
+      ]
+    },
+    {
+      "id": "impervious_plus",
+      "name": "坚不可摧+",
+      "cost": 2,
+      "rarity": "uncommon",
+      "effects": [
+        {
+          "type": "block",
+          "amount": 40
+        }
+      ],
+      "card_type": "skill",
+      "acquisition_tags": []
     }
   ]
 }
