@@ -75,7 +75,7 @@ def _pick_tradeoff_reward_kind(rng: Random) -> str:
 
 def _build_offer(offer_id: str, category: str, reward_kind: str, registry, rng: Random) -> NeowOffer:
     reward_payload = _build_reward_payload(reward_kind=reward_kind, registry=registry, rng=rng)
-    requires_target = "card" if reward_kind in {"upgrade_card", "remove_card"} else None
+    requires_target = reward_kind if reward_kind in {"upgrade_card", "remove_card"} else None
     cost_kind, cost_payload = _build_cost_payload(reward_kind=reward_kind, rng=rng)
     summary, detail_lines = _build_description(reward_kind=reward_kind, reward_payload=reward_payload, cost_kind=cost_kind, cost_payload=cost_payload)
     return NeowOffer(
