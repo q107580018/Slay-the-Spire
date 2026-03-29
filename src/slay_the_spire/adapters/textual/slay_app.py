@@ -83,7 +83,7 @@ _CARD_PREVIEW_MENU_MODES = frozenset(
 
 
 def _is_full_map_panel(renderable: object) -> bool:
-    return isinstance(renderable, Panel) and _plain_label(renderable.title) == "完整地图"
+    return isinstance(renderable, Panel) and _plain_label(renderable.title) == "当前可达地图"
 
 
 def _is_titled_panel(renderable: object, title: str) -> bool:
@@ -652,6 +652,7 @@ class SlayApp(App[None]):
     def _refresh_map(self) -> None:
         try:
             map_widget = self.query_one("#map-widget", MapWidget)
+            map_widget.set_route_preview_enabled(True)
             map_widget.update_act(self._session.act_state)
         except NoMatches:
             pass
@@ -723,9 +724,31 @@ class SlayApp(App[None]):
             preview.update(Text(""))
             preview.display = False
 
+    def _refresh_route_preview_for_action(self, action_id: str | None) -> None:
+        try:
+            map_widget = self.query_one("#map-widget", MapWidget)
+        except NoMatches:
+            return
+        if self._session.menu_state.mode != "select_next_room" or not isinstance(action_id, str):
+            map_widget.set_route_preview_root(None)
+            return
+        if not action_id.startswith("next_node:"):
+            map_widget.set_route_preview_root(None)
+            return
+        node_id = action_id.split(":", 1)[1]
+        next_node_ids = self._session.room_state.payload.get("next_node_ids", [])
+        if not isinstance(next_node_ids, list) or node_id not in next_node_ids:
+            map_widget.set_route_preview_root(None)
+            return
+        map_widget.set_route_preview_root(node_id)
+
     def _process_command(self, cmd: str) -> None:
         result = route_menu_choice(cmd, session=self._session)
         self._session = result.session
+        try:
+            self.query_one("#map-widget", MapWidget).set_route_preview_root(None)
+        except NoMatches:
+            pass
         self._refresh_log()
         self._refresh_map()
         self._refresh_combat_summary()
@@ -747,20 +770,27 @@ class SlayApp(App[None]):
     def handle_action_highlighted(self, event: OptionList.OptionHighlighted) -> None:
         if event.option_index < 0 or event.option_index >= len(self._action_ids):
             self._refresh_hover_preview()
+            self._refresh_route_preview_for_action(None)
             return
-        self._refresh_hover_preview(self._action_ids[event.option_index])
+        action_id = self._action_ids[event.option_index]
+        self._refresh_hover_preview(action_id)
+        self._refresh_route_preview_for_action(action_id)
 
     @on(events.MouseMove, "#action-list")
     def handle_action_list_mouse_move(self, event: events.MouseMove) -> None:
         option_index = event.style.meta.get("option")
         if not isinstance(option_index, int) or option_index < 0 or option_index >= len(self._action_ids):
             self._refresh_hover_preview()
+            self._refresh_route_preview_for_action(None)
             return
-        self._refresh_hover_preview(self._action_ids[option_index])
+        action_id = self._action_ids[option_index]
+        self._refresh_hover_preview(action_id)
+        self._refresh_route_preview_for_action(action_id)
 
     @on(events.Leave, "#action-list")
     def handle_action_list_leave(self, _: events.Leave) -> None:
         self._refresh_hover_preview()
+        self._refresh_route_preview_for_action(None)
 
     @on(MapWidget.NodeSelected)
     def handle_node_selected(self, event: MapWidget.NodeSelected) -> None:
@@ -788,6 +818,10 @@ class SlayApp(App[None]):
 
     @on(MapWidget.NodeHovered)
     def handle_node_hovered(self, event: MapWidget.NodeHovered) -> None:
+        try:
+            self.query_one("#map-widget", MapWidget).set_route_preview_root(None)
+        except NoMatches:
+            pass
         self._hovered_node_id = event.node_id
         self._refresh_actions()
 
@@ -815,4 +849,6 @@ class SlayApp(App[None]):
             state_label = "可达"
         else:
             state_label = "不可达"
+        if self._session.menu_state.mode == "select_next_room" and node_id in self._session.room_state.payload.get("next_node_ids", []):
+            return f"当前悬停：{room_label}（{state_label}，后续可达路线）"
         return f"当前悬停：{room_label}（{state_label}）"

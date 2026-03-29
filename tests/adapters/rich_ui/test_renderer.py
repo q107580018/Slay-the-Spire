@@ -891,7 +891,7 @@ def test_non_combat_renderer_shows_full_map_rows_and_current_position() -> None:
         run_phase="active",
     )
 
-    assert "完整地图" in output
+    assert "当前可达地图" in output
     assert "POS" in output
     assert "ROW" in output
     assert "NEXT" in output
@@ -924,7 +924,31 @@ def test_full_map_panel_lists_reachable_nodes_and_topology_hint() -> None:
 
     assert "NEXT  战斗（路线1）, 战斗（路线2）" in output
     assert "TIP | 只有 [可达] 节点可以作为下一步" in output
-    assert "线条只表示整张地图的连接关系" in output
+    assert "地图只显示当前可达分支" in output
+
+
+def test_full_map_panel_hides_unreachable_branch_rows() -> None:
+    act_state = ActState(
+        act_id="act1",
+        current_node_id="r1c0",
+        nodes=[
+            ActNodeState(node_id="start", row=0, col=0, room_type="combat", next_node_ids=["r1c0", "r1c1"]),
+            ActNodeState(node_id="r1c0", row=1, col=0, room_type="event", next_node_ids=["r2c0"]),
+            ActNodeState(node_id="r1c1", row=1, col=1, room_type="elite", next_node_ids=["r2c1"]),
+            ActNodeState(node_id="r2c0", row=2, col=0, room_type="boss", next_node_ids=[]),
+            ActNodeState(node_id="r2c1", row=2, col=1, room_type="boss", next_node_ids=[]),
+        ],
+        visited_node_ids=["start", "r1c0"],
+        enemy_pool_id="act1_basic",
+        elite_pool_id="act1_elites",
+        boss_pool_id="act1_bosses",
+        event_pool_id="act1_events",
+    )
+
+    output = _export(render_full_map_panel(act_state))
+
+    assert any("L01 |" in line for line in output.splitlines())
+    assert not any(line.startswith("L01 |") and "精英" in line for line in output.splitlines())
 
 
 def test_shop_renderer_shows_cards_relics_potions_and_remove_service() -> None:

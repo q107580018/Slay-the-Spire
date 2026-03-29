@@ -21,7 +21,7 @@ from slay_the_spire.adapters.textual.slay_app import (
     _render_to_rich,
 )
 from slay_the_spire.app.menu_definitions import build_next_room_menu, build_root_menu
-from slay_the_spire.app.session import render_session_renderable, start_session
+from slay_the_spire.app.session import MenuState, render_session_renderable, start_session
 from slay_the_spire.domain.models.act_state import ActNodeState, ActState
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
@@ -351,6 +351,173 @@ def test_display_positions_are_stable_for_same_act_state() -> None:
     right = MapWidget(act_state)
 
     assert left._node_regions == right._node_regions
+
+
+def test_map_widget_hides_unreachable_branch_nodes() -> None:
+    act_state = ActState(
+        act_id="act1",
+        current_node_id="r1c0",
+        nodes=[
+            ActNodeState(node_id="start", row=0, col=0, room_type="combat", next_node_ids=["r1c0", "r1c1"]),
+            ActNodeState(node_id="r1c0", row=1, col=0, room_type="event", next_node_ids=["r2c0"]),
+            ActNodeState(node_id="r1c1", row=1, col=1, room_type="elite", next_node_ids=["r2c1"]),
+            ActNodeState(node_id="r2c0", row=2, col=0, room_type="boss", next_node_ids=[]),
+            ActNodeState(node_id="r2c1", row=2, col=1, room_type="boss", next_node_ids=[]),
+        ],
+        visited_node_ids=["start", "r1c0"],
+        enemy_pool_id="act1_basic",
+        elite_pool_id="act1_elites",
+        boss_pool_id="act1_bosses",
+        event_pool_id="act1_events",
+    )
+
+    widget = MapWidget(act_state)
+
+    assert "r1c0" in widget._node_regions
+    assert "r2c0" in widget._node_regions
+    assert "r1c1" not in widget._node_regions
+    assert "r2c1" not in widget._node_regions
+
+
+def test_map_widget_highlights_hovered_route_descendants_when_preview_enabled() -> None:
+    act_state = ActState(
+        act_id="act1",
+        current_node_id="start",
+        nodes=[
+            ActNodeState(node_id="start", row=0, col=0, room_type="combat", next_node_ids=["r1c0", "r1c1"]),
+            ActNodeState(node_id="r1c0", row=1, col=0, room_type="event", next_node_ids=["r2c0"]),
+            ActNodeState(node_id="r1c1", row=1, col=1, room_type="elite", next_node_ids=["r2c1"]),
+            ActNodeState(node_id="r2c0", row=2, col=0, room_type="shop", next_node_ids=[]),
+            ActNodeState(node_id="r2c1", row=2, col=1, room_type="boss", next_node_ids=[]),
+        ],
+        visited_node_ids=["start"],
+        enemy_pool_id="act1_basic",
+        elite_pool_id="act1_elites",
+        boss_pool_id="act1_bosses",
+        event_pool_id="act1_events",
+    )
+
+    widget = MapWidget(act_state)
+    widget.set_route_preview_enabled(True)
+    widget._hovered = "r1c0"
+    widget._rebuild()
+
+    assert widget._route_preview_root == "r1c0"
+    assert widget._route_preview_node_ids == {"r1c0", "r2c0"}
+
+
+def test_map_widget_route_preview_handles_real_branching_layout() -> None:
+    session = start_session(seed=5)
+    widget = MapWidget(session.act_state)
+    widget.set_route_preview_enabled(True)
+    widget._hovered = session.room_state.payload["next_node_ids"][0]
+
+    widget._rebuild()
+
+    assert widget._route_preview_root == "r1c0"
+    assert widget._route_preview_node_ids
+
+
+def test_map_widget_highlights_current_node_when_hovered() -> None:
+    session = start_session(seed=5)
+    widget = MapWidget(session.act_state)
+    widget.set_route_preview_enabled(True)
+    widget._hovered = session.act_state.current_node_id
+    widget._rebuild()
+
+    region_x, region_y, _, _ = widget._node_regions[session.act_state.current_node_id]
+    assert widget._route_preview_root == session.act_state.current_node_id
+    assert widget._route_preview_node_ids
+    assert "gold3" in str(widget._style_rows[region_y][region_x])
+
+
+def test_map_route_preview_is_enabled_outside_select_next_room_mode() -> None:
+    async def scenario() -> None:
+        session = start_session(seed=5)
+        app = SlayApp(session)
+
+        async with app.run_test(size=(80, 24)) as pilot:
+            await pilot.pause()
+            app._refresh_map()
+            map_widget = app.query_one("#map-widget", MapWidget)
+            assert map_widget._route_preview_enabled is True
+
+            app._session = replace(session, menu_state=MenuState(mode="select_next_room"))
+            app._refresh_map()
+            map_widget = app.query_one("#map-widget", MapWidget)
+            assert map_widget._route_preview_enabled is True
+
+    asyncio.run(scenario())
+
+
+def test_select_next_room_action_hover_highlights_matching_route_on_map() -> None:
+    session = replace(start_session(seed=5), menu_state=MenuState(mode="select_next_room"))
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test(size=(80, 24)) as pilot:
+            await pilot.pause()
+            app._refresh_map()
+            await pilot.hover("#action-list", offset=(3, 1))
+            await pilot.pause()
+
+            map_widget = app.query_one("#map-widget", MapWidget)
+            hovered_action_id = app._action_ids[0]
+            assert hovered_action_id.startswith("next_node:")
+            assert map_widget._route_preview_root == hovered_action_id.split(":", 1)[1]
+            assert map_widget._route_preview_node_ids
+
+    asyncio.run(scenario())
+
+
+def test_map_hover_clears_action_list_route_preview_override() -> None:
+    session = replace(start_session(seed=5), menu_state=MenuState(mode="select_next_room"))
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test(size=(80, 24)) as pilot:
+            await pilot.pause()
+            app._refresh_map()
+            app._refresh_route_preview_for_action(f"next_node:{session.room_state.payload['next_node_ids'][0]}")
+
+            map_widget = app.query_one("#map-widget", MapWidget)
+            map_widget._hovered = session.act_state.current_node_id
+            map_widget._rebuild()
+            app.handle_node_hovered(MapWidget.NodeHovered(session.act_state.current_node_id))
+
+            assert map_widget._route_preview_root == session.act_state.current_node_id
+
+    asyncio.run(scenario())
+
+
+def test_select_next_room_click_clears_route_preview_override() -> None:
+    session = replace(start_session(seed=5), menu_state=MenuState(mode="select_next_room"))
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test(size=(80, 24)) as pilot:
+            await pilot.pause()
+            app._refresh_map()
+            next_node_id = session.room_state.payload["next_node_ids"][0]
+            app._refresh_route_preview_for_action(f"next_node:{next_node_id}")
+
+            app._process_command(f"next_node:{next_node_id}")
+
+            map_widget = app.query_one("#map-widget", MapWidget)
+            assert map_widget._route_preview_root is None
+
+    asyncio.run(scenario())
+
+
+def test_hover_summary_shows_route_copy_in_next_room_mode() -> None:
+    session = replace(start_session(seed=5), menu_state=MenuState(mode="select_next_room"))
+    app = SlayApp(session)
+    app._hovered_node_id = session.room_state.payload["next_node_ids"][0]
+
+    summary = app._hover_summary()
+
+    assert summary is not None
+    assert "后续可达路线" in summary
 
 
 def test_current_node_region_is_not_centered_exactly() -> None:

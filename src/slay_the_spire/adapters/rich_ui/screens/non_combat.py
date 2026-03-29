@@ -98,6 +98,25 @@ def _node_lookup(act_state: ActState, node_id: object) -> ActNodeState | None:
         return None
 
 
+def _reachable_node_ids(act_state: ActState) -> set[str]:
+    lookup = {node.node_id: node for node in act_state.nodes}
+    if act_state.current_node_id not in lookup:
+        return set()
+
+    reachable: set[str] = set()
+    stack = [act_state.current_node_id]
+    while stack:
+        node_id = stack.pop()
+        if node_id in reachable:
+            continue
+        node = lookup.get(node_id)
+        if node is None:
+            continue
+        reachable.add(node_id)
+        stack.extend(node.next_node_ids)
+    return reachable
+
+
 def _format_node_choice(act_state: ActState, node_id: object) -> str:
     return format_next_room_labels(act_state, [node_id])[0]
 
@@ -282,11 +301,11 @@ def _node_label_cell_range(act_state: ActState, node: ActNodeState) -> tuple[int
     return start, end
 
 
-def _map_positions(act_state: ActState, *, col_spacing: int, row_spacing: int, margin_x: int) -> dict[str, tuple[int, int]]:
-    last_row = max(node.row for node in act_state.nodes)
+def _map_positions(nodes: list[ActNodeState], *, col_spacing: int, row_spacing: int, margin_x: int) -> dict[str, tuple[int, int]]:
+    last_row = max(node.row for node in nodes)
     return {
         node.node_id: (margin_x + (node.col * col_spacing), (last_row - node.row) * row_spacing)
-        for node in act_state.nodes
+        for node in nodes
     }
 
 
@@ -405,24 +424,29 @@ def _status_legend_line() -> Text:
 
 def _full_map_lines(act_state: ActState) -> list[Text]:
     current_row, current_col = act_state.current_coord()
-    row_numbers = sorted({node.row for node in act_state.nodes})
+    visible_node_ids = _reachable_node_ids(act_state)
+    visible_nodes = [node for node in act_state.nodes if node.node_id in visible_node_ids]
+    if not visible_nodes:
+        return [Text("地图不可用")]
+
+    row_numbers = sorted({node.row for node in visible_nodes})
     next_nodes = ", ".join(format_next_room_labels(act_state, act_state.reachable_node_ids)) or "-"
-    total_cols = max(node.col for node in act_state.nodes) + 1
+    total_cols = max(node.col for node in visible_nodes) + 1
     col_spacing = 14
     row_spacing = 4
     margin_x = 6
-    positions = _map_positions(act_state, col_spacing=col_spacing, row_spacing=row_spacing, margin_x=margin_x)
+    positions = _map_positions(visible_nodes, col_spacing=col_spacing, row_spacing=row_spacing, margin_x=margin_x)
     grid_width = margin_x * 2 + max(1, total_cols - 1) * col_spacing + _MAP_NODE_CELL_WIDTH
     grid_height = max(row_numbers) * row_spacing + 1
     direction_canvas = _blank_direction_canvas(grid_width, grid_height)
 
-    for node in act_state.nodes:
+    for node in visible_nodes:
         from_pos = positions[node.node_id]
         for next_node_id in node.next_node_ids:
             _draw_edge(direction_canvas, from_pos=from_pos, to_pos=positions[next_node_id])
 
     rendered_canvas = [list(row) for row in _render_direction_canvas(direction_canvas)]
-    for node in act_state.nodes:
+    for node in visible_nodes:
         x, y = positions[node.node_id]
         token_cells = _text_to_cells(_node_token(act_state, node))
         start_x = x - (_MAP_NODE_CELL_WIDTH // 2)
@@ -447,29 +471,29 @@ def _full_map_lines(act_state: ActState) -> list[Text]:
         line.append(prefix, style="map.ruler")
         if body:
             line.append(body, style="map.connector")
-        for node in act_state.nodes:
-            node_x, node_y = positions[node.node_id]
-            if node_y != display_y:
-                continue
-            token_start_cell = node_x - (_MAP_NODE_CELL_WIDTH // 2)
-            token_end_cell = token_start_cell + _MAP_NODE_CELL_WIDTH
-            start = len(prefix) + _cell_to_text_index(row_cells, token_start_cell)
-            end = len(prefix) + _cell_to_text_index(row_cells, token_end_cell)
-            base_style, room_style = _node_token_styles(act_state, node)
-            if start < end:
-                line.stylize(base_style, start, end)
+            for node in visible_nodes:
+                node_x, node_y = positions[node.node_id]
+                if node_y != display_y:
+                    continue
+                token_start_cell = node_x - (_MAP_NODE_CELL_WIDTH // 2)
+                token_end_cell = token_start_cell + _MAP_NODE_CELL_WIDTH
+                start = len(prefix) + _cell_to_text_index(row_cells, token_start_cell)
+                end = len(prefix) + _cell_to_text_index(row_cells, token_end_cell)
+                base_style, room_style = _node_token_styles(act_state, node)
+                if start < end:
+                    line.stylize(base_style, start, end)
 
-            label_start_cell, label_end_cell = _node_label_cell_range(act_state, node)
-            label_start = len(prefix) + _cell_to_text_index(row_cells, token_start_cell + label_start_cell)
-            label_end = len(prefix) + _cell_to_text_index(row_cells, token_start_cell + label_end_cell)
-            if label_start < label_end:
-                line.stylize(room_style, label_start, label_end)
+                label_start_cell, label_end_cell = _node_label_cell_range(act_state, node)
+                label_start = len(prefix) + _cell_to_text_index(row_cells, token_start_cell + label_start_cell)
+                label_end = len(prefix) + _cell_to_text_index(row_cells, token_start_cell + label_end_cell)
+                if label_start < label_end:
+                    line.stylize(room_style, label_start, label_end)
         lines.append(line)
 
     lines.extend(
         [
             Text(""),
-            _tip_line("只有 [可达] 节点可以作为下一步；线条只表示整张地图的连接关系。"),
+            _tip_line("只有 [可达] 节点可以作为下一步；地图只显示当前可达分支。"),
             _type_legend_line(),
             _status_legend_line(),
         ]
@@ -663,7 +687,7 @@ def render_summary_panel(
 
 
 def render_full_map_panel(act_state: ActState) -> Panel:
-    return Panel(Group(*_full_map_lines(act_state)), title="完整地图", box=PANEL_BOX, expand=False)
+    return Panel(Group(*_full_map_lines(act_state)), title="当前可达地图", box=PANEL_BOX, expand=False)
 
 
 def render_event_body(room_state: RoomState, registry: ContentProviderPort) -> Panel:

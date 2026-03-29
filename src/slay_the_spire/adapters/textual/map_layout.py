@@ -95,18 +95,37 @@ def _node_lookup(act_state: "ActState") -> dict[str, "ActNodeState"]:
     return {node.node_id: node for node in act_state.nodes}
 
 
-def _rows_by_layer(act_state: "ActState") -> dict[int, list["ActNodeState"]]:
+def _reachable_node_ids(act_state: "ActState") -> set[str]:
+    lookup = _node_lookup(act_state)
+    if act_state.current_node_id not in lookup:
+        return set()
+
+    reachable: set[str] = set()
+    stack = [act_state.current_node_id]
+    while stack:
+        node_id = stack.pop()
+        if node_id in reachable:
+            continue
+        node = lookup.get(node_id)
+        if node is None:
+            continue
+        reachable.add(node_id)
+        stack.extend(node.next_node_ids)
+    return reachable
+
+
+def _rows_by_layer(nodes: list["ActNodeState"]) -> dict[int, list["ActNodeState"]]:
     rows: dict[int, list["ActNodeState"]] = {}
-    for node in act_state.nodes:
+    for node in nodes:
         rows.setdefault(node.row, []).append(node)
     for row_nodes in rows.values():
         row_nodes.sort(key=lambda node: (node.col, node.node_id))
     return rows
 
 
-def _parents_by_node(act_state: "ActState") -> dict[str, list[str]]:
+def _parents_by_node(nodes: list["ActNodeState"]) -> dict[str, list[str]]:
     parents: dict[str, list[str]] = {}
-    for node in act_state.nodes:
+    for node in nodes:
         for next_node_id in node.next_node_ids:
             parents.setdefault(next_node_id, []).append(node.node_id)
     return parents
@@ -117,13 +136,13 @@ def _child_slot_offset(slot_index: int, slot_count: int) -> int:
     return round(centered * _CHILD_SPREAD)
 
 
-def _build_positions(act_state: "ActState") -> dict[str, tuple[int, int]]:
-    rows = _rows_by_layer(act_state)
+def _build_positions(act_state: "ActState", nodes: list["ActNodeState"]) -> dict[str, tuple[int, int]]:
+    rows = _rows_by_layer(nodes)
     if not rows:
         return {}
 
     last_row = max(rows)
-    parents = _parents_by_node(act_state)
+    parents = _parents_by_node(nodes)
     positions: dict[str, tuple[int, int]] = {}
     max_row_width = max(len(row_nodes) for row_nodes in rows.values())
     root_x = _MARGIN_X + (_NODE_W // 2) + ((_LANE_SPACING * max(0, max_row_width - 1)) // 2)
@@ -270,11 +289,13 @@ def _render_paths(act_state: "ActState") -> list[tuple[str, ...]]:
 
 
 def build_vertical_map_layout(act_state: "ActState") -> VerticalMapLayout:
-    positions = _build_positions(act_state)
+    visible_node_ids = _reachable_node_ids(act_state)
+    visible_nodes = [node for node in act_state.nodes if node.node_id in visible_node_ids]
+    positions = _build_positions(act_state, visible_nodes)
     canvas_width, canvas_height = _canvas_dimensions(positions, act_state)
     direction_canvas = _blank_direction_canvas(canvas_width, canvas_height)
 
-    for node in act_state.nodes:
+    for node in visible_nodes:
         parent_pos = positions[node.node_id]
         for slot_index, next_node_id in enumerate(node.next_node_ids):
             if next_node_id not in positions:
@@ -289,7 +310,7 @@ def build_vertical_map_layout(act_state: "ActState") -> VerticalMapLayout:
 
     rendered_canvas = _render_direction_canvas(direction_canvas)
     node_regions: dict[str, tuple[int, int, int, int]] = {}
-    for node in act_state.nodes:
+    for node in visible_nodes:
         cx, cy = positions[node.node_id]
         x0 = max(0, cx - (_NODE_W // 2))
         y0 = max(0, cy - (_NODE_H // 2))

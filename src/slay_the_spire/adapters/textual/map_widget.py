@@ -20,18 +20,104 @@ _CURRENT_BG = "bright_cyan"
 _CURRENT_FG = "black"
 _REACHABLE_BG = "steel_blue"
 _REACHABLE_FG = "bright_white"
+_REACHABLE_DIM_BG = "grey23"
+_REACHABLE_DIM_FG = "grey85"
+_ROUTE_ROOT_BG = "gold3"
+_ROUTE_ROOT_FG = "black"
+_ROUTE_CHAIN_BG = "dark_green"
+_ROUTE_CHAIN_FG = "white"
 _HOVER_BG = "grey50"
 _HOVER_FG = "bright_white"
+_NODE_H = 3
 _CONNECTION_CHARS = set("│─├┤┬┴┼")
 
 
-def _build_style_rows(act_state: "ActState", layout: VerticalMapLayout, hovered: str | None) -> list[list[Style]]:
+def _route_connection_cells(
+    act_state: "ActState",
+    layout: VerticalMapLayout,
+    route_preview_node_ids: set[str],
+) -> set[tuple[int, int]]:
+    cells: set[tuple[int, int]] = set()
+    if not route_preview_node_ids:
+        return cells
+
+    def add_step(x: int, y: int) -> None:
+        if 0 <= y < len(layout.canvas_lines) and 0 <= x < len(layout.canvas_lines[y]):
+            cells.add((x, y))
+
+    def add_segment(start: tuple[int, int], end: tuple[int, int]) -> None:
+        x1, y1 = start
+        x2, y2 = end
+        if x1 != x2 and y1 != y2:
+            raise ValueError("segments must be orthogonal")
+        if x1 == x2 and y1 == y2:
+            return
+        if x1 == x2:
+            step = 1 if y2 > y1 else -1
+            y = y1
+            while y != y2:
+                next_y = y + step
+                add_step(x1, y)
+                add_step(x1, next_y)
+                y = next_y
+            return
+
+        step = 1 if x2 > x1 else -1
+        x = x1
+        while x != x2:
+            next_x = x + step
+            add_step(x, y1)
+            add_step(next_x, y1)
+            x = next_x
+
+    for node in act_state.nodes:
+        if node.node_id not in route_preview_node_ids:
+            continue
+        parent_pos = layout.node_positions.get(node.node_id)
+        if parent_pos is None:
+            continue
+        for next_node_id in node.next_node_ids:
+            if next_node_id not in route_preview_node_ids:
+                continue
+            child_pos = layout.node_positions.get(next_node_id)
+            if child_pos is None:
+                continue
+            parent_x, parent_y = parent_pos
+            child_x, child_y = child_pos
+            start_y = parent_y - (_NODE_H // 2)
+            end_y = child_y + (_NODE_H // 2)
+            slot_count = len(node.next_node_ids)
+            slot_index = node.next_node_ids.index(next_node_id)
+            if parent_x == child_x:
+                add_segment((parent_x, start_y), (child_x, end_y))
+                continue
+
+            bend_y = start_y - 1 - min(slot_index, max(0, slot_count - 1))
+            if bend_y <= end_y:
+                bend_y = (start_y + end_y) // 2
+            bend_y = max(0, min(len(layout.canvas_lines) - 1, bend_y))
+            add_segment((parent_x, start_y), (parent_x, bend_y))
+            add_segment((parent_x, bend_y), (child_x, bend_y))
+            add_segment((child_x, bend_y), (child_x, end_y))
+    return cells
+
+
+def _build_style_rows(
+    act_state: "ActState",
+    layout: VerticalMapLayout,
+    hovered: str | None,
+    route_preview_root: str | None,
+    route_preview_node_ids: set[str],
+    route_connection_cells: set[tuple[int, int]],
+) -> list[list[Style]]:
     style_rows: list[list[Style]] = []
     for y, line in enumerate(layout.canvas_lines):
         row: list[Style] = [Style()] * len(line)
         for x, ch in enumerate(line):
             if ch in _CONNECTION_CHARS:
                 row[x] = Style(color="grey42")
+                if (x, y) in route_connection_cells:
+                    row[x] = Style(color="gold1", bold=True)
         for node in act_state.nodes:
             region = layout.node_regions.get(node.node_id)
             if region is None:
@@ -39,8 +125,14 @@ def _build_style_rows(act_state: "ActState", layout: VerticalMapLayout, hovered:
             rx, ry, rw, rh = region
             if not (ry <= y < ry + rh):
                 continue
-            if node.node_id == act_state.current_node_id:
+            if route_preview_root is not None and node.node_id == route_preview_root:
+                bg, fg = _ROUTE_ROOT_BG, _ROUTE_ROOT_FG
+            elif node.node_id in route_preview_node_ids:
+                bg, fg = _ROUTE_CHAIN_BG, _ROUTE_CHAIN_FG
+            elif node.node_id == act_state.current_node_id:
                 bg, fg = _CURRENT_BG, _CURRENT_FG
+            elif route_preview_root is not None and node.node_id in act_state.reachable_node_ids:
+                bg, fg = _REACHABLE_DIM_BG, _REACHABLE_DIM_FG
             elif hovered == node.node_id and node.node_id in act_state.reachable_node_ids:
                 bg, fg = _HOVER_BG, _HOVER_FG
             elif node.node_id in act_state.reachable_node_ids:
@@ -54,6 +146,25 @@ def _build_style_rows(act_state: "ActState", layout: VerticalMapLayout, hovered:
                 row[x] = ns
         style_rows.append(row)
     return style_rows
+
+
+def _reachable_descendants(act_state: "ActState", node_id: str) -> set[str]:
+    lookup = {node.node_id: node for node in act_state.nodes}
+    if node_id not in lookup:
+        return set()
+
+    reachable: set[str] = set()
+    stack = [node_id]
+    while stack:
+        current = stack.pop()
+        if current in reachable:
+            continue
+        node = lookup.get(current)
+        if node is None:
+            continue
+        reachable.add(current)
+        stack.extend(node.next_node_ids)
+    return reachable
 
 
 class MapWidget(ScrollView):
@@ -88,9 +199,49 @@ class MapWidget(ScrollView):
         self._style_rows: list[list[Style]] = []
         self._node_regions: dict[str, tuple[int, int, int, int]] = {}
         self._canvas_size: Size = Size(0, 0)
+        self._route_preview_enabled = True
+        self._route_preview_override_root: str | None = None
+        self._route_preview_root: str | None = None
+        self._route_preview_node_ids: set[str] = set()
         self.show_horizontal_scrollbar = True
         self.show_vertical_scrollbar = True
         self._rebuild()
+
+    def set_route_preview_enabled(self, enabled: bool) -> None:
+        if self._route_preview_enabled == enabled:
+            return
+        self._route_preview_enabled = enabled
+        if not enabled:
+            self._route_preview_override_root = None
+        self._rebuild()
+        self.refresh()
+
+    def set_route_preview_root(self, node_id: str | None) -> None:
+        if not self._route_preview_enabled:
+            self._route_preview_override_root = None
+            return
+        if self._route_preview_override_root == node_id:
+            return
+        self._route_preview_override_root = node_id
+        self._rebuild()
+        self.refresh()
+
+    def _refresh_route_preview(self) -> None:
+        if not self._route_preview_enabled:
+            self._route_preview_root = None
+            self._route_preview_node_ids = set()
+            return
+        preview_root = self._route_preview_override_root if self._route_preview_override_root is not None else self._hovered
+        if preview_root is None:
+            self._route_preview_root = None
+            self._route_preview_node_ids = set()
+            return
+        if preview_root not in self._act_state.reachable_node_ids and preview_root != self._act_state.current_node_id:
+            self._route_preview_root = None
+            self._route_preview_node_ids = set()
+            return
+        self._route_preview_root = preview_root
+        self._route_preview_node_ids = _reachable_descendants(self._act_state, preview_root)
 
     def update_act(self, act_state: "ActState") -> None:
         self._act_state = act_state
@@ -102,9 +253,18 @@ class MapWidget(ScrollView):
         layout = build_vertical_map_layout(self._act_state)
         self._layout = layout
         self._canvas_lines = list(layout.canvas_lines)
-        self._style_rows = _build_style_rows(self._act_state, layout, self._hovered)
         self._node_regions = dict(layout.node_regions)
         self._canvas_size = Size(layout.canvas_width, layout.canvas_height)
+        self._refresh_route_preview()
+        route_connection_cells = _route_connection_cells(self._act_state, layout, self._route_preview_node_ids)
+        self._style_rows = _build_style_rows(
+            self._act_state,
+            layout,
+            self._hovered,
+            self._route_preview_root,
+            self._route_preview_node_ids,
+            route_connection_cells,
+        )
         self.virtual_size = self._canvas_size
 
     def get_content_width(self, container: Size, viewport: Size) -> int:
