@@ -379,6 +379,26 @@ def test_strength_effect_allows_negative_stacks_on_player() -> None:
     assert state.player.statuses == [StatusState(status_id="strength", stacks=-2)]
 
 
+def test_strength_effect_removes_status_when_negative_stacks_cancel_to_zero() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 10)],
+        effect_queue=[
+            {
+                "type": "strength",
+                "source_instance_id": "enemy-1",
+                "target_instance_id": "player-1",
+                "amount": -2,
+            }
+        ],
+    )
+    state.player.statuses.append(StatusState(status_id="strength", stacks=2))
+
+    resolved = resolve_effect_queue(state)
+
+    assert resolved[0]["result"] == {"applied_stacks": -2}
+    assert state.player.statuses == []
+
+
 def test_dexterity_effect_applies_negative_stacks_on_player() -> None:
     state = make_combat_state(
         enemies=[make_enemy("enemy-1", 10)],
@@ -404,6 +424,26 @@ def test_dexterity_effect_applies_negative_stacks_on_player() -> None:
         }
     ]
     assert state.player.statuses == [StatusState(status_id="dexterity", stacks=-2)]
+
+
+def test_dexterity_effect_removes_status_when_negative_stacks_cancel_to_zero() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 10)],
+        effect_queue=[
+            {
+                "type": "dexterity",
+                "source_instance_id": "enemy-1",
+                "target_instance_id": "player-1",
+                "amount": -2,
+            }
+        ],
+    )
+    state.player.statuses.append(StatusState(status_id="dexterity", stacks=2))
+
+    resolved = resolve_effect_queue(state)
+
+    assert resolved[0]["result"] == {"applied_stacks": -2}
+    assert state.player.statuses == []
 
 
 def test_block_effect_applies_player_dexterity_and_floors_at_zero() -> None:
