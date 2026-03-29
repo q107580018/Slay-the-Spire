@@ -5,11 +5,13 @@ from pathlib import Path
 from typing import Callable
 
 from rich.console import RenderableType
+from rich.text import Text
 
 from slay_the_spire.adapters.presentation.renderer import render_room, render_room_renderable
 from slay_the_spire.adapters.persistence.save_files import JsonFileSaveRepository
 from slay_the_spire.app.map_labels import format_next_room_labels
 from slay_the_spire.app.menu_definitions import (
+    build_menu,
     build_boss_relic_menu,
     build_boss_reward_menu,
     build_card_detail_menu,
@@ -34,6 +36,7 @@ from slay_the_spire.app.menu_definitions import (
     build_terminal_phase_menu,
     resolve_menu_action,
 )
+from slay_the_spire.app.opening_state import OpeningState
 from slay_the_spire.app.inspect_registry import (
     COMBAT_INSPECT_CARD_LIST_MODES,
     COMBAT_INSPECT_ROOT_ACTIONS,
@@ -62,6 +65,7 @@ from slay_the_spire.use_cases.save_game import save_game
 from slay_the_spire.use_cases.shop_action import shop_action
 from slay_the_spire.use_cases.use_potion import use_potion
 from slay_the_spire.use_cases.start_run import start_new_run
+from slay_the_spire.use_cases.opening_flow import apply_neow_offer, build_opening_state
 
 
 def default_content_root() -> Path:
@@ -96,13 +100,14 @@ class MenuState:
 
 @dataclass(slots=True)
 class SessionState:
-    run_state: RunState
-    act_state: ActState
-    room_state: RoomState
+    run_state: RunState | None
+    act_state: ActState | None
+    room_state: RoomState | None
     content_root: Path
     save_path: Path
-    run_phase: str = "active"
+    run_phase: str = "opening"
     menu_state: MenuState = field(default_factory=MenuState)
+    opening_state: OpeningState | None = None
     command_history: list[str] | None = None
 
 
@@ -156,6 +161,24 @@ def _content_provider(session: SessionState) -> StarterContentProvider:
     return StarterContentProvider(session.content_root)
 
 
+def _require_active_run_state(session: SessionState) -> RunState:
+    if session.run_state is None:
+        raise ValueError("run_state is unavailable outside active session")
+    return session.run_state
+
+
+def _require_active_act_state(session: SessionState) -> ActState:
+    if session.act_state is None:
+        raise ValueError("act_state is unavailable outside active session")
+    return session.act_state
+
+
+def _require_active_room_state(session: SessionState) -> RoomState:
+    if session.room_state is None:
+        raise ValueError("room_state is unavailable outside active session")
+    return session.room_state
+
+
 def default_save_path() -> Path:
     return Path.cwd() / "saves" / "latest.json"
 
@@ -184,6 +207,70 @@ def _derive_run_phase(
     return "active"
 
 
+def _build_opening_character_menu(session: SessionState):
+    opening_state = session.opening_state
+    if opening_state is None:
+        return build_menu(title="开场", options=[("quit", "退出游戏")])
+    provider = _content_provider(session)
+    options: list[tuple[str, str]] = []
+    for character_id in opening_state.available_character_ids:
+        try:
+            character_name = provider.characters().get(character_id).name
+        except KeyError:
+            character_name = character_id
+        options.append((f"select_character:{character_id}", f"选择角色：{character_name}"))
+    options.extend(
+        [
+            ("save", "保存游戏"),
+            ("load", "读取存档"),
+            ("quit", "退出游戏"),
+        ]
+    )
+    return build_menu(title="选择角色", options=options)
+
+
+def _build_opening_neow_menu(session: SessionState):
+    opening_state = session.opening_state
+    if opening_state is None:
+        return build_menu(title="Neow 赐福", options=[("quit", "退出游戏")])
+    options = [(f"choose_neow_offer:{offer.offer_id}", offer.summary) for offer in opening_state.neow_offers]
+    options.extend(
+        [
+            ("save", "保存游戏"),
+            ("load", "读取存档"),
+            ("quit", "退出游戏"),
+        ]
+    )
+    return build_menu(title="Neow 赐福", options=options)
+
+
+def _build_opening_state_with_fallback(
+    *,
+    seed: int,
+    preferred_character_id: str | None,
+    registry: StarterContentProvider,
+) -> OpeningState:
+    last_error: Exception | None = None
+    for offset in range(32):
+        candidate_seed = seed + offset
+        try:
+            opening_state = build_opening_state(
+                seed=candidate_seed,
+                preferred_character_id=preferred_character_id,
+                registry=registry,
+            )
+        except IndexError as exc:
+            last_error = exc
+            continue
+        if candidate_seed == seed:
+            return opening_state
+        run_blueprint = opening_state.run_blueprint
+        if run_blueprint is not None:
+            run_blueprint = replace(run_blueprint, seed=seed)
+        return replace(opening_state, seed=seed, run_blueprint=run_blueprint)
+    raise RuntimeError("failed to build opening state from available Neow offers") from last_error
+
+
 def _menu_state_for_room(room_state: RoomState) -> MenuState:
     if room_state.room_type == "shop" and not room_state.is_resolved:
         if room_state.stage == "select_remove_card":
@@ -199,6 +286,27 @@ def _menu_state_for_room(room_state: RoomState) -> MenuState:
         if room_state.stage == "select_event_remove_card":
             return MenuState(mode="event_remove_card")
     return MenuState()
+
+
+def _start_active_session_from_blueprint(session: SessionState) -> SessionState:
+    opening_state = session.opening_state
+    if opening_state is None or opening_state.run_blueprint is None:
+        raise ValueError("opening run blueprint is unavailable")
+    provider = _content_provider(session)
+    run_state = opening_state.run_blueprint
+    act_state = generate_act_state(run_state.current_act_id or "act1", seed=run_state.seed, registry=provider)
+    room_state = enter_room(run_state, act_state, node_id=act_state.current_node_id, registry=provider)
+    return SessionState(
+        run_state=run_state,
+        act_state=act_state,
+        room_state=room_state,
+        content_root=session.content_root,
+        save_path=session.save_path,
+        run_phase="active",
+        menu_state=_menu_state_for_room(room_state),
+        opening_state=opening_state,
+        command_history=list(session.command_history or []),
+    )
 
 
 def _room_with_rewards_claimed(room_state: RoomState, reward_id: str) -> RoomState:
@@ -666,6 +774,34 @@ def start_session(
     )
 
 
+def start_new_game_session(
+    *,
+    seed: int,
+    preferred_character_id: str | None = None,
+    content_root: str | Path | None = None,
+    save_path: str | Path | None = None,
+) -> SessionState:
+    resolved_content_root = default_content_root() if content_root is None else Path(content_root)
+    resolved_save_path = default_save_path() if save_path is None else Path(save_path)
+    provider = StarterContentProvider(resolved_content_root)
+    opening_state = _build_opening_state_with_fallback(
+        seed=seed,
+        preferred_character_id=preferred_character_id,
+        registry=provider,
+    )
+    menu_mode = "opening_neow_offer" if opening_state.selected_character_id else "opening_character_select"
+    return SessionState(
+        run_state=None,
+        act_state=None,
+        room_state=None,
+        content_root=resolved_content_root,
+        save_path=resolved_save_path,
+        run_phase="opening",
+        menu_state=MenuState(mode=menu_mode),
+        opening_state=opening_state,
+    )
+
+
 def load_session(
     *,
     save_path: str | Path | None = None,
@@ -695,10 +831,30 @@ def load_session(
 
 
 def render_session(session: SessionState) -> str:
+    if session.run_phase == "opening":
+        opening_state = session.opening_state
+        if opening_state is None:
+            return "开场状态不可用。"
+
+        def _menu_lines(menu) -> list[str]:
+            lines = [f"{menu.title}:"]
+            lines.extend(str(line) if not isinstance(line, Text) else line.plain for line in menu.header_lines)
+            lines.extend(
+                f"{index}. {option.label.plain if isinstance(option.label, Text) else option.label}"
+                for index, option in enumerate(menu.options, start=1)
+            )
+            return lines
+
+        if session.menu_state.mode == "opening_character_select":
+            menu = _build_opening_character_menu(session)
+            return "\n".join(["欢迎来到尖塔。", *_menu_lines(menu)])
+        menu = _build_opening_neow_menu(session)
+        selected_character_id = opening_state.selected_character_id or "未选择角色"
+        return "\n".join([f"已选择角色：{selected_character_id}", *_menu_lines(menu)])
     return render_room(
-        run_state=session.run_state,
-        act_state=session.act_state,
-        room_state=session.room_state,
+        run_state=_require_active_run_state(session),
+        act_state=_require_active_act_state(session),
+        room_state=_require_active_room_state(session),
         registry=_content_provider(session),
         menu_state=session.menu_state,
         run_phase=session.run_phase,
@@ -706,10 +862,12 @@ def render_session(session: SessionState) -> str:
 
 
 def render_session_renderable(session: SessionState) -> RenderableType:
+    if session.run_phase == "opening":
+        return render_session(session)
     return render_room_renderable(
-        run_state=session.run_state,
-        act_state=session.act_state,
-        room_state=session.room_state,
+        run_state=_require_active_run_state(session),
+        act_state=_require_active_act_state(session),
+        room_state=_require_active_room_state(session),
         registry=_content_provider(session),
         menu_state=session.menu_state,
         run_phase=session.run_phase,
@@ -862,6 +1020,59 @@ def _load_current_session(session: SessionState) -> tuple[bool, SessionState, st
     restored = load_session(save_path=session.save_path, content_root=session.content_root)
     restored = replace(restored, command_history=list(session.command_history or []))
     return True, restored, f"已从存档恢复。当前存档: {session.save_path}"
+
+
+def _opening_unsupported_action_message(action: str) -> str:
+    if action == "save":
+        return "opening 阶段暂不支持保存。"
+    if action == "load":
+        return "opening 阶段暂不支持读档。"
+    return "当前 opening 操作不可用。"
+
+
+def _route_opening_character_select_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+    opening_state = session.opening_state
+    if opening_state is None:
+        return True, session, "opening 状态不可用。"
+    action_id = resolve_menu_action(choice, _build_opening_character_menu(session))
+    if action_id == "quit":
+        return False, replace(session, menu_state=MenuState()), "已退出游戏。"
+    if action_id in {"save", "load"}:
+        return True, session, _message_with_render(session, _opening_unsupported_action_message(action_id))
+    if action_id is None or not action_id.startswith("select_character:"):
+        return _invalid_menu_choice(session)
+    character_id = action_id.split(":", 1)[1]
+    next_opening = _build_opening_state_with_fallback(
+        seed=opening_state.seed,
+        preferred_character_id=character_id,
+        registry=_content_provider(session),
+    )
+    next_session = replace(session, opening_state=next_opening, menu_state=MenuState(mode="opening_neow_offer"))
+    return True, next_session, render_session(next_session)
+
+
+def _route_opening_neow_offer_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+    opening_state = session.opening_state
+    if opening_state is None:
+        return True, session, "opening 状态不可用。"
+    action_id = resolve_menu_action(choice, _build_opening_neow_menu(session))
+    if action_id == "quit":
+        return False, replace(session, menu_state=MenuState()), "已退出游戏。"
+    if action_id in {"save", "load"}:
+        return True, session, _message_with_render(session, _opening_unsupported_action_message(action_id))
+    if action_id is None or not action_id.startswith("choose_neow_offer:"):
+        return _invalid_menu_choice(session)
+    offer_id = action_id.split(":", 1)[1]
+    try:
+        next_opening = apply_neow_offer(opening_state, offer_id, registry=_content_provider(session))
+    except (KeyError, StopIteration, ValueError) as exc:
+        return True, session, str(exc)
+    if next_opening.pending_neow_offer_id is not None:
+        next_session = replace(session, opening_state=next_opening)
+        return True, next_session, _message_with_render(next_session, "该 Neow 选项需要先选择目标卡牌。")
+    next_session = replace(session, opening_state=next_opening)
+    active_session = _start_active_session_from_blueprint(next_session)
+    return True, active_session, render_session(active_session)
 
 
 def _route_terminal_phase_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
@@ -1702,6 +1913,10 @@ def _route_rest_upgrade_card_menu(choice: str, session: SessionState) -> tuple[b
 
 def _route_menu_choice_legacy(choice: str, *, session: SessionState) -> tuple[bool, SessionState, str]:
     next_session = _normalize_legacy_reward_inspect_mode(_with_menu_choice_history(session, choice.strip()))
+    if next_session.menu_state.mode == "opening_character_select":
+        return _route_opening_character_select_menu(choice.strip(), next_session)
+    if next_session.menu_state.mode == "opening_neow_offer":
+        return _route_opening_neow_offer_menu(choice.strip(), next_session)
     if next_session.menu_state.mode == "root":
         return _route_root_menu(choice.strip(), next_session)
     if next_session.menu_state.mode == "select_card":
