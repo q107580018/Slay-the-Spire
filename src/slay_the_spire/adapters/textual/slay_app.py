@@ -1,4 +1,5 @@
 """SlayApp - 主 Textual 应用，整合地图、日志和输入。"""
+
 from __future__ import annotations
 
 from typing import Any
@@ -13,9 +14,15 @@ from textual.css.query import NoMatches
 from textual.widgets import Footer, Header, OptionList, RichLog, Static
 
 from slay_the_spire.adapters.presentation.theme import TERMINAL_THEME
-from slay_the_spire.adapters.presentation.opening_renderer import format_neow_offer_detail_lines, render_opening_summary_panel
+from slay_the_spire.adapters.presentation.opening_renderer import (
+    format_neow_offer_detail_lines,
+    render_opening_summary_panel,
+)
 from slay_the_spire.adapters.textual.map_widget import MapWidget
-from slay_the_spire.app.inspect_registry import COMBAT_INSPECT_CARD_LIST_MODES, inspect_leaf_title
+from slay_the_spire.app.inspect_registry import (
+    COMBAT_INSPECT_CARD_LIST_MODES,
+    inspect_leaf_title,
+)
 from slay_the_spire.app.map_labels import format_next_room_labels
 from slay_the_spire.app.menu_definitions import (
     MenuDefinition,
@@ -88,7 +95,10 @@ _CARD_PREVIEW_MENU_MODES = frozenset(
 
 
 def _is_full_map_panel(renderable: object) -> bool:
-    return isinstance(renderable, Panel) and _plain_label(renderable.title) == "当前可达地图"
+    return (
+        isinstance(renderable, Panel)
+        and _plain_label(renderable.title) == "当前可达地图"
+    )
 
 
 def _is_titled_panel(renderable: object, title: str) -> bool:
@@ -194,7 +204,12 @@ def _hover_preview_guidance(menu_mode: str) -> Text | None:
         return Text("查看说明：将鼠标悬停在卡牌上查看详情。")
     if menu_mode == "inspect_relics":
         return Text("查看说明：将鼠标悬停在遗物上查看详情。")
-    if menu_mode in {"select_reward", "select_boss_reward", "select_boss_relic", "shop_root"}:
+    if menu_mode in {
+        "select_reward",
+        "select_boss_reward",
+        "select_boss_relic",
+        "shop_root",
+    }:
         return Text("查看说明：将鼠标悬停在奖励或商品上查看详情。")
     if menu_mode == "select_potion":
         return Text("查看说明：将鼠标悬停在药水上查看详情。")
@@ -213,7 +228,9 @@ def _action_index(action_id: str, *, prefix: str) -> int | None:
     return index
 
 
-def _card_instance_from_indexed_action(action_id: str, *, prefix: str, card_instance_ids: list[str]) -> str | None:
+def _card_instance_from_indexed_action(
+    action_id: str, *, prefix: str, card_instance_ids: list[str]
+) -> str | None:
     index = _action_index(action_id, prefix=prefix)
     if index is None or index >= len(card_instance_ids):
         return None
@@ -226,17 +243,28 @@ def _card_preview_instance_id(session: SessionState, action_id: str) -> str | No
         combat_state = _combat_state_from_session(session)
         if combat_state is None:
             return None
-        return _card_instance_from_indexed_action(action_id, prefix="play_card:", card_instance_ids=combat_state.hand)
-    if menu_mode in {"shop_remove_card", "event_remove_card"} and action_id.startswith("remove_card:"):
+        return _card_instance_from_indexed_action(
+            action_id, prefix="play_card:", card_instance_ids=combat_state.hand
+        )
+    if menu_mode in {"shop_remove_card", "event_remove_card"} and action_id.startswith(
+        "remove_card:"
+    ):
         return action_id.split(":", 1)[1]
     if menu_mode == "opening_neow_remove_card" and action_id.startswith("remove_card:"):
         return action_id.split(":", 1)[1]
-    if menu_mode in {"rest_upgrade_card", "event_upgrade_card"} and action_id.startswith("upgrade_card:"):
+    if menu_mode in {
+        "rest_upgrade_card",
+        "event_upgrade_card",
+    } and action_id.startswith("upgrade_card:"):
         return action_id.split(":", 1)[1]
-    if menu_mode == "opening_neow_upgrade_card" and action_id.startswith("upgrade_card:"):
+    if menu_mode == "opening_neow_upgrade_card" and action_id.startswith(
+        "upgrade_card:"
+    ):
         return action_id.split(":", 1)[1]
     if menu_mode == "inspect_deck":
-        return _card_instance_from_indexed_action(action_id, prefix="item:", card_instance_ids=session.run_state.deck)
+        return _card_instance_from_indexed_action(
+            action_id, prefix="item:", card_instance_ids=session.run_state.deck
+        )
     if menu_mode in COMBAT_INSPECT_CARD_LIST_MODES:
         combat_state = _combat_state_from_session(session)
         if combat_state is None:
@@ -247,18 +275,24 @@ def _card_preview_instance_id(session: SessionState, action_id: str) -> str | No
             "inspect_discard_pile": combat_state.discard_pile,
             "inspect_exhaust_pile": combat_state.exhaust_pile,
         }
-        return _card_instance_from_indexed_action(action_id, prefix="item:", card_instance_ids=pile_map.get(menu_mode, []))
+        return _card_instance_from_indexed_action(
+            action_id, prefix="item:", card_instance_ids=pile_map.get(menu_mode, [])
+        )
     return None
 
 
 def _relic_preview_id(session: SessionState, action_id: str) -> str | None:
     if session.menu_state.mode != "inspect_relics":
         return None
-    return _card_instance_from_indexed_action(action_id, prefix="item:", card_instance_ids=session.run_state.relics)
+    return _card_instance_from_indexed_action(
+        action_id, prefix="item:", card_instance_ids=session.run_state.relics
+    )
 
 
 def _potion_preview_id(session: SessionState, action_id: str) -> str | None:
-    if session.menu_state.mode != "select_potion" or not action_id.startswith("use_potion:"):
+    if session.menu_state.mode != "select_potion" or not action_id.startswith(
+        "use_potion:"
+    ):
         return None
     index = _action_index(action_id, prefix="use_potion:")
     if index is None or index >= len(session.run_state.potions):
@@ -300,8 +334,12 @@ def _reward_preview_renderable(session: SessionState, action_id: str) -> Text | 
             return None
         card_instance_id = _reward_card_instance_id(reward_id)
         if card_instance_id is not None:
-            return _text_from_lines(format_card_detail_lines(card_instance_id, _content_provider(session)))
-        return _text_from_lines(format_reward_detail_lines(reward_id, _content_provider(session)))
+            return _text_from_lines(
+                format_card_detail_lines(card_instance_id, _content_provider(session))
+            )
+        return _text_from_lines(
+            format_reward_detail_lines(reward_id, _content_provider(session))
+        )
     if action_id == "claim_all":
         return Text("控制项：全部领取")
     if action_id == "back":
@@ -311,7 +349,9 @@ def _reward_preview_renderable(session: SessionState, action_id: str) -> Text | 
     return None
 
 
-def _shop_offer_by_action_id(session: SessionState, action_id: str, *, offer_type: str, item_key: str) -> str | None:
+def _shop_offer_by_action_id(
+    session: SessionState, action_id: str, *, offer_type: str, item_key: str
+) -> str | None:
     if not action_id.startswith(f"{offer_type}:"):
         return None
     offer_id = action_id.split(":", 1)[1]
@@ -327,17 +367,53 @@ def _shop_offer_by_action_id(session: SessionState, action_id: str, *, offer_typ
     return None
 
 
-def _opening_hover_preview_renderable(session: SessionState, action_id: str) -> Text | None:
+def _format_neow_offer_hover_lines(offer, *, registry) -> list[Text | str]:
+    detail_lines = format_neow_offer_detail_lines(offer, registry=registry)
+    reward_payload = offer.reward_payload
+    if offer.reward_kind == "relic":
+        relic_id = str(reward_payload["relic_id"])
+        return format_relic_detail_lines(relic_id, registry)
+    if offer.reward_kind == "potion":
+        potion_id = str(reward_payload["potion_id"])
+        return format_potion_detail_lines(potion_id, registry)
+    if offer.reward_kind in {"rare_card", "curse_card"}:
+        card_id = str(reward_payload["card_id"])
+        lines = [
+            line
+            for line in format_card_detail_lines(f"{card_id}#neow", registry)
+            if _plain_label(line) != f"实例 {card_id}#neow"
+        ]
+        if offer.cost_kind == "curse":
+            return [*lines, f"代价：{detail_lines[-1]}"]
+        return lines
+    if offer.reward_kind == "gold":
+        return [
+            detail_lines[1],
+        ]
+    if offer.reward_kind == "upgrade_card":
+        return ["升级牌组中任意一张可升级的牌", f"代价：{detail_lines[-1]}"]
+    if offer.reward_kind == "remove_card":
+        return ["移除牌组中任意一张牌", f"代价：{detail_lines[-1]}"]
+    return detail_lines
+
+
+def _opening_hover_preview_renderable(
+    session: SessionState, action_id: str
+) -> Text | None:
     opening_state = session.opening_state
     if opening_state is None:
         return None
     registry = _content_provider(session)
-    if session.menu_state.mode == "opening_character_select" and action_id.startswith("select_character:"):
+    if session.menu_state.mode == "opening_character_select" and action_id.startswith(
+        "select_character:"
+    ):
         character_id = action_id.split(":", 1)[1]
         character = registry.characters().get(character_id)
         preview_run = opening_state.run_blueprint
         if preview_run is None or preview_run.character_id != character_id:
-            preview_run = start_new_run(character_id, seed=opening_state.seed, registry=registry)
+            preview_run = start_new_run(
+                character_id, seed=opening_state.seed, registry=registry
+            )
         lines = [
             f"角色：{character.name}",
             f"起始生命：{preview_run.current_hp}/{preview_run.max_hp}",
@@ -346,12 +422,19 @@ def _opening_hover_preview_renderable(session: SessionState, action_id: str) -> 
             f"当前幕：{preview_run.current_act_id or 'act1'}",
         ]
         return _text_from_lines(lines)
-    if session.menu_state.mode == "opening_neow_offer" and action_id.startswith("choose_neow_offer:"):
+    if session.menu_state.mode == "opening_neow_offer" and action_id.startswith(
+        "choose_neow_offer:"
+    ):
         offer_id = action_id.split(":", 1)[1]
-        offer = next((item for item in opening_state.neow_offers if item.offer_id == offer_id), None)
+        offer = next(
+            (item for item in opening_state.neow_offers if item.offer_id == offer_id),
+            None,
+        )
         if offer is None:
             return None
-        return _text_from_lines(format_neow_offer_detail_lines(offer, registry=registry))
+        return _text_from_lines(
+            _format_neow_offer_hover_lines(offer, registry=registry)
+        )
     if action_id == "back":
         return Text("控制项：返回上一步")
     if action_id == "quit":
@@ -371,7 +454,10 @@ def _hover_preview_renderable(session: SessionState, action_id: str) -> Text | N
     if session.menu_state.mode == "root":
         if session.room_state.room_type == "treasure" and action_id == "open_treasure":
             return Text("控制项：打开宝箱并领取遗物")
-        if session.room_state.room_type == "boss_chest" and action_id == "advance_boss_chest":
+        if (
+            session.room_state.room_type == "boss_chest"
+            and action_id == "advance_boss_chest"
+        ):
             next_act_id = session.room_state.payload.get("next_act_id")
             if isinstance(next_act_id, str) and next_act_id:
                 return Text("控制项：前往下一幕")
@@ -381,14 +467,24 @@ def _hover_preview_renderable(session: SessionState, action_id: str) -> Text | N
     card_instance_id = _card_preview_instance_id(session, action_id)
     if card_instance_id is not None:
         if session.menu_state.mode in {"rest_upgrade_card", "event_upgrade_card"}:
-            return _text_from_lines(format_card_upgrade_preview_lines(card_instance_id, _content_provider(session)))
-        return _text_from_lines(format_card_detail_lines(card_instance_id, _content_provider(session)))
+            return _text_from_lines(
+                format_card_upgrade_preview_lines(
+                    card_instance_id, _content_provider(session)
+                )
+            )
+        return _text_from_lines(
+            format_card_detail_lines(card_instance_id, _content_provider(session))
+        )
     relic_id = _relic_preview_id(session, action_id)
     if relic_id is not None:
-        return _text_from_lines(format_relic_detail_lines(relic_id, _content_provider(session)))
+        return _text_from_lines(
+            format_relic_detail_lines(relic_id, _content_provider(session))
+        )
     potion_id = _potion_preview_id(session, action_id)
     if potion_id is not None:
-        return _text_from_lines(format_potion_detail_lines(potion_id, _content_provider(session)))
+        return _text_from_lines(
+            format_potion_detail_lines(potion_id, _content_provider(session))
+        )
     if session.menu_state.mode == "select_boss_reward":
         if action_id == "claim_boss_gold":
             return Text("控制项：领取首领金币")
@@ -401,9 +497,13 @@ def _hover_preview_renderable(session: SessionState, action_id: str) -> Text | N
         if action_id == "back":
             return Text("控制项：返回上一步")
         return None
-    if session.menu_state.mode == "select_boss_relic" and action_id.startswith("claim_boss_relic:"):
+    if session.menu_state.mode == "select_boss_relic" and action_id.startswith(
+        "claim_boss_relic:"
+    ):
         relic_id = action_id.split(":", 1)[1]
-        return _text_from_lines(format_relic_detail_lines(relic_id, _content_provider(session)))
+        return _text_from_lines(
+            format_relic_detail_lines(relic_id, _content_provider(session))
+        )
     if session.menu_state.mode == "shop_root":
         if action_id == "remove":
             remove_price = session.room_state.payload.get("remove_price", 75)
@@ -418,15 +518,27 @@ def _hover_preview_renderable(session: SessionState, action_id: str) -> Text | N
             return Text("控制项：读取存档")
         if action_id == "quit":
             return Text("控制项：退出游戏")
-        card_id = _shop_offer_by_action_id(session, action_id, offer_type="buy_card", item_key="card")
+        card_id = _shop_offer_by_action_id(
+            session, action_id, offer_type="buy_card", item_key="card"
+        )
         if card_id is not None:
-            return _text_from_lines(format_card_detail_lines(f"{card_id}#shop", _content_provider(session)))
-        relic_id = _shop_offer_by_action_id(session, action_id, offer_type="buy_relic", item_key="relic")
+            return _text_from_lines(
+                format_card_detail_lines(f"{card_id}#shop", _content_provider(session))
+            )
+        relic_id = _shop_offer_by_action_id(
+            session, action_id, offer_type="buy_relic", item_key="relic"
+        )
         if relic_id is not None:
-            return _text_from_lines(format_relic_detail_lines(relic_id, _content_provider(session)))
-        potion_id = _shop_offer_by_action_id(session, action_id, offer_type="buy_potion", item_key="potion")
+            return _text_from_lines(
+                format_relic_detail_lines(relic_id, _content_provider(session))
+            )
+        potion_id = _shop_offer_by_action_id(
+            session, action_id, offer_type="buy_potion", item_key="potion"
+        )
         if potion_id is not None:
-            return _text_from_lines(format_potion_detail_lines(potion_id, _content_provider(session)))
+            return _text_from_lines(
+                format_potion_detail_lines(potion_id, _content_provider(session))
+            )
     return None
 
 
@@ -440,7 +552,10 @@ def _build_target_action_menu(session: SessionState) -> MenuDefinition | None:
     combat_state = _combat_state_from_session(session)
     selected_card = session.menu_state.selected_card_instance_id
     selected_potion_index = session.menu_state.selected_potion_index
-    if combat_state is None or (not isinstance(selected_card, str) and not isinstance(selected_potion_index, int)):
+    if combat_state is None or (
+        not isinstance(selected_card, str)
+        and not isinstance(selected_potion_index, int)
+    ):
         return None
     registry = _content_provider(session)
     if isinstance(selected_potion_index, int):
@@ -448,7 +563,9 @@ def _build_target_action_menu(session: SessionState) -> MenuDefinition | None:
         if selected_potion_index <= 0 or selected_potion_index > len(potion_ids):
             return None
         potion_id = potion_ids[selected_potion_index - 1]
-        return build_potion_target_menu(combat_state=combat_state, potion_id=potion_id, registry=registry)
+        return build_potion_target_menu(
+            combat_state=combat_state, potion_id=potion_id, registry=registry
+        )
 
     current_card_name: Text | None = None
     requires_enemy_target = False
@@ -457,7 +574,9 @@ def _build_target_action_menu(session: SessionState) -> MenuDefinition | None:
     current_card_name = render_card_name(card_def)
     effect_types = {str(effect.get("type")) for effect in card_def.effects}
     requires_enemy_target = bool(effect_types & {"damage", "vulnerable", "weak"})
-    requires_hand_target = bool(effect_types & {"exhaust_target_card", "upgrade_target_card"})
+    requires_hand_target = bool(
+        effect_types & {"exhaust_target_card", "upgrade_target_card"}
+    )
 
     target_options: list[tuple[str, str | Text]] = []
     if requires_enemy_target or not requires_hand_target:
@@ -466,17 +585,25 @@ def _build_target_action_menu(session: SessionState) -> MenuDefinition | None:
             enemy_name = registry.enemies().get(enemy.enemy_id).name
             target_options.append((f"target_enemy:{index}", f"敌人 {enemy_name}"))
     if requires_hand_target:
-        selectable_cards = [card_instance_id for card_instance_id in combat_state.hand if card_instance_id != selected_card]
+        selectable_cards = [
+            card_instance_id
+            for card_instance_id in combat_state.hand
+            if card_instance_id != selected_card
+        ]
         for index, card_instance_id in enumerate(selectable_cards, start=1):
             card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
             target_options.append(
                 (
                     f"target_hand:{index}",
-                    Text.assemble("手牌 ", render_card_name(card_def), f" ({card_instance_id})"),
+                    Text.assemble(
+                        "手牌 ", render_card_name(card_def), f" ({card_instance_id})"
+                    ),
                 )
             )
 
-    return build_target_menu(target_options=target_options, current_card_name=current_card_name)
+    return build_target_menu(
+        target_options=target_options, current_card_name=current_card_name
+    )
 
 
 def _current_action_menu(session: SessionState) -> MenuDefinition | None:
@@ -490,14 +617,19 @@ def _current_action_menu(session: SessionState) -> MenuDefinition | None:
     if session.run_phase != "active":
         return build_terminal_phase_menu(run_phase=session.run_phase)
     if menu_mode == "root":
-        return build_root_menu(room_state=room_state, run_state=session.run_state, registry=registry)
+        return build_root_menu(
+            room_state=room_state, run_state=session.run_state, registry=registry
+        )
     if menu_mode == "select_next_room":
         next_node_ids = room_state.payload.get("next_node_ids", [])
         if not isinstance(next_node_ids, list):
             next_node_ids = []
         labels = format_next_room_labels(session.act_state, next_node_ids)
         return build_next_room_menu(
-            options=[(f"next_node:{node_id}", label) for node_id, label in zip(next_node_ids, labels, strict=False)]
+            options=[
+                (f"next_node:{node_id}", label)
+                for node_id, label in zip(next_node_ids, labels, strict=False)
+            ]
         )
     if menu_mode == "select_event_choice":
         event_id = room_state.payload.get("event_id")
@@ -505,7 +637,10 @@ def _current_action_menu(session: SessionState) -> MenuDefinition | None:
             return build_event_choice_menu(options=[])
         event_def = registry.events().get(event_id)
         return build_event_choice_menu(
-            options=[(f"choice:{choice.get('id')}", str(choice.get("label"))) for choice in event_def.choices]
+            options=[
+                (f"choice:{choice.get('id')}", str(choice.get("label")))
+                for choice in event_def.choices
+            ]
         )
     if menu_mode == "event_upgrade_card":
         options = room_state.payload.get("upgrade_options", [])
@@ -515,7 +650,9 @@ def _current_action_menu(session: SessionState) -> MenuDefinition | None:
             options=[
                 (
                     f"upgrade_card:{card_instance_id}",
-                    render_card_name(registry.cards().get(card_id_from_instance_id(card_instance_id))),
+                    render_card_name(
+                        registry.cards().get(card_id_from_instance_id(card_instance_id))
+                    ),
                 )
                 for card_instance_id in options
             ]
@@ -528,7 +665,9 @@ def _current_action_menu(session: SessionState) -> MenuDefinition | None:
             options=[
                 (
                     f"remove_card:{card_instance_id}",
-                    render_card_name(registry.cards().get(card_id_from_instance_id(card_instance_id))),
+                    render_card_name(
+                        registry.cards().get(card_id_from_instance_id(card_instance_id))
+                    ),
                 )
                 for card_instance_id in candidates
             ]
@@ -544,7 +683,9 @@ def _current_action_menu(session: SessionState) -> MenuDefinition | None:
             offers = []
         return build_boss_relic_menu(offers, registry=registry)
     if menu_mode == "shop_root":
-        return build_shop_root_menu(run_state=session.run_state, room_state=room_state, registry=registry)
+        return build_shop_root_menu(
+            run_state=session.run_state, room_state=room_state, registry=registry
+        )
     if menu_mode == "shop_remove_card":
         return build_shop_remove_menu(room_state=room_state, registry=registry)
     if menu_mode == "rest_root":
@@ -563,10 +704,16 @@ def _current_action_menu(session: SessionState) -> MenuDefinition | None:
     if menu_mode == "inspect_root":
         return build_inspect_root_menu(room_state=room_state)
     if menu_mode == "inspect_deck":
-        labels = [registry.cards().get(card_id_from_instance_id(card_instance_id)).name for card_instance_id in session.run_state.deck]
+        labels = [
+            registry.cards().get(card_id_from_instance_id(card_instance_id)).name
+            for card_instance_id in session.run_state.deck
+        ]
         return _inspect_list_menu("牌组列表", labels)
     if menu_mode == "inspect_relics":
-        labels = [registry.relics().get(relic_id).name for relic_id in session.run_state.relics]
+        labels = [
+            registry.relics().get(relic_id).name
+            for relic_id in session.run_state.relics
+        ]
         return _inspect_list_menu("遗物列表", labels)
     if menu_mode in COMBAT_INSPECT_CARD_LIST_MODES:
         combat_state = _combat_state_from_session(session)
@@ -579,13 +726,19 @@ def _current_action_menu(session: SessionState) -> MenuDefinition | None:
             "inspect_exhaust_pile": ("消耗堆列表", combat_state.exhaust_pile),
         }
         title, pile = pile_map[menu_mode]
-        labels = [registry.cards().get(card_id_from_instance_id(card_instance_id)).name for card_instance_id in pile]
+        labels = [
+            registry.cards().get(card_id_from_instance_id(card_instance_id)).name
+            for card_instance_id in pile
+        ]
         return _inspect_list_menu(title, labels)
     if menu_mode == "inspect_enemy_list":
         combat_state = _combat_state_from_session(session)
         if combat_state is None:
             return None
-        labels = [registry.enemies().get(enemy.enemy_id).name for enemy in combat_state.enemies]
+        labels = [
+            registry.enemies().get(enemy.enemy_id).name
+            for enemy in combat_state.enemies
+        ]
         return _inspect_list_menu("敌人列表", labels)
     if menu_mode == "inspect_card_detail":
         return build_card_detail_menu()
@@ -730,7 +883,12 @@ class SlayApp(App[None]):
             opening_panel = None
         if self._session.run_phase == "opening":
             if opening_panel is not None:
-                opening_panel.update(render_opening_summary_panel(self._session.opening_state, registry=_content_provider(self._session)))
+                opening_panel.update(
+                    render_opening_summary_panel(
+                        self._session.opening_state,
+                        registry=_content_provider(self._session),
+                    )
+                )
                 opening_panel.display = True
             if map_widget is not None:
                 map_widget.update_act(None)
@@ -815,7 +973,9 @@ class SlayApp(App[None]):
             map_widget = self.query_one("#map-widget", MapWidget)
         except NoMatches:
             return
-        if self._session.menu_state.mode != "select_next_room" or not isinstance(action_id, str):
+        if self._session.menu_state.mode != "select_next_room" or not isinstance(
+            action_id, str
+        ):
             map_widget.set_route_preview_root(None)
             return
         if not action_id.startswith("next_node:"):
@@ -865,7 +1025,11 @@ class SlayApp(App[None]):
     @on(events.MouseMove, "#action-list")
     def handle_action_list_mouse_move(self, event: events.MouseMove) -> None:
         option_index = event.style.meta.get("option")
-        if not isinstance(option_index, int) or option_index < 0 or option_index >= len(self._action_ids):
+        if (
+            not isinstance(option_index, int)
+            or option_index < 0
+            or option_index >= len(self._action_ids)
+        ):
             self._refresh_hover_preview()
             self._refresh_route_preview_for_action(None)
             return
@@ -892,7 +1056,11 @@ class SlayApp(App[None]):
             return
 
         root_choice = _menu_choice_for_action(
-            build_root_menu(room_state=session.room_state, run_state=session.run_state, registry=_content_provider(session)),
+            build_root_menu(
+                room_state=session.room_state,
+                run_state=session.run_state,
+                registry=_content_provider(session),
+            ),
             "next_room",
         )
         if root_choice is None:
@@ -917,7 +1085,10 @@ class SlayApp(App[None]):
             return None
         labels = format_next_room_labels(self._session.act_state, next_node_ids)
         menu = build_next_room_menu(
-            options=[(f"next_node:{next_id}", label) for next_id, label in zip(next_node_ids, labels, strict=False)]
+            options=[
+                (f"next_node:{next_id}", label)
+                for next_id, label in zip(next_node_ids, labels, strict=False)
+            ]
         )
         return _menu_choice_for_action(menu, f"next_node:{node_id}")
 
@@ -925,7 +1096,10 @@ class SlayApp(App[None]):
         node_id = self._hovered_node_id
         if node_id is None:
             return None
-        node = next((item for item in self._session.act_state.nodes if item.node_id == node_id), None)
+        node = next(
+            (item for item in self._session.act_state.nodes if item.node_id == node_id),
+            None,
+        )
         if node is None:
             return None
         room_label = _ROOM_LABELS.get(node.room_type, node.room_type)
@@ -935,6 +1109,9 @@ class SlayApp(App[None]):
             state_label = "可达"
         else:
             state_label = "不可达"
-        if self._session.menu_state.mode == "select_next_room" and node_id in self._session.room_state.payload.get("next_node_ids", []):
+        if (
+            self._session.menu_state.mode == "select_next_room"
+            and node_id in self._session.room_state.payload.get("next_node_ids", [])
+        ):
             return f"当前悬停：{room_label}（{state_label}，后续可达路线）"
         return f"当前悬停：{room_label}（{state_label}）"

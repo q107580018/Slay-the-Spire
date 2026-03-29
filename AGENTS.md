@@ -70,6 +70,7 @@
 - opening 阶段不是地图房间：此时 `act_state` / `room_state` 为空，左侧不显示真实地图，进入 active run 后才恢复地图组件。
 - opening 当前包含 `opening_character_select`、`opening_neow_offer`、`opening_neow_upgrade_card`、`opening_neow_remove_card` 四种菜单模式。
 - `Neow` 中需要目标卡的选项会先进入子菜单；确认目标卡后才真正结算并进入 Act1，`back` 会返回 `Neow` 主菜单。
+- opening 的 `Neow` 选项悬浮预览会显示更完整的奖励说明；卡牌、遗物、药水复用与其他查看页一致的详细 hover preview 文案。
 - opening 阶段默认禁止真正 `save/load`。
 - 查看页已覆盖角色状态、牌组、遗物、药水、敌人详情、卡牌详情等 inspect 菜单。
 - CLI 支持：

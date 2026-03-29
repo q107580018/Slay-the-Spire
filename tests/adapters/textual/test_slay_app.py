@@ -49,7 +49,12 @@ def _node_region_text(widget: MapWidget, node_id: str) -> str:
 def test_menu_choice_for_root_next_room_action() -> None:
     resolved_session = replace(
         start_session(seed=5),
-        room_state=replace(start_session(seed=5).room_state, stage="completed", is_resolved=True, rewards=[]),
+        room_state=replace(
+            start_session(seed=5).room_state,
+            stage="completed",
+            is_resolved=True,
+            rewards=[],
+        ),
     )
 
     menu = build_root_menu(room_state=resolved_session.room_state)
@@ -60,7 +65,9 @@ def test_menu_choice_for_root_next_room_action() -> None:
 def test_menu_choice_for_next_node_action() -> None:
     session = start_session(seed=5)
     next_node_ids = session.room_state.payload["next_node_ids"]
-    menu = build_next_room_menu(options=[(f"next_node:{node_id}", node_id) for node_id in next_node_ids])
+    menu = build_next_room_menu(
+        options=[(f"next_node:{node_id}", node_id) for node_id in next_node_ids]
+    )
 
     assert _menu_choice_for_action(menu, f"next_node:{next_node_ids[0]}") == "1"
 
@@ -99,10 +106,16 @@ def test_current_action_menu_supports_opening_character_select() -> None:
 def test_current_action_menu_supports_opening_upgrade_target_menu() -> None:
     session = start_new_game_session(seed=5, preferred_character_id="ironclad")
     provider = StarterContentProvider(session.content_root)
-    offer = opening_flow._build_offer("upgrade_card", "tradeoff", "upgrade_card", provider, Random(0))
+    offer = opening_flow._build_offer(
+        "upgrade_card", "tradeoff", "upgrade_card", provider, Random(0)
+    )
     session = replace(
         session,
-        opening_state=replace(session.opening_state, neow_offers=[offer], pending_neow_offer_id=offer.offer_id),
+        opening_state=replace(
+            session.opening_state,
+            neow_offers=[offer],
+            pending_neow_offer_id=offer.offer_id,
+        ),
         menu_state=MenuState(mode="opening_neow_upgrade_card"),
     )
 
@@ -140,24 +153,146 @@ def test_slay_app_can_mount_opening_session() -> None:
 def test_hover_preview_shows_localized_neow_offer_details() -> None:
     session = start_new_game_session(seed=5, preferred_character_id="ironclad")
     provider = StarterContentProvider(session.content_root)
-    offer = opening_flow._build_offer("rare-card", "free", "rare_card", provider, Random(0))
+    offer = opening_flow._build_offer(
+        "rare-card", "free", "rare_card", provider, Random(0)
+    )
     localized_name = provider.cards().get(str(offer.reward_payload["card_id"])).name
-    session = replace(session, opening_state=replace(session.opening_state, neow_offers=[offer]))
+    session = replace(
+        session, opening_state=replace(session.opening_state, neow_offers=[offer])
+    )
 
     preview = _hover_preview_renderable(session, f"choose_neow_offer:{offer.offer_id}")
 
     assert preview is not None
     assert localized_name in preview.plain
+    assert "效果" in preview.plain
     assert str(offer.reward_payload["card_id"]) not in preview.plain
+
+
+def test_hover_preview_shows_neow_relic_offer_detail() -> None:
+    session = start_new_game_session(seed=5, preferred_character_id="ironclad")
+    provider = StarterContentProvider(session.content_root)
+    offer = opening_flow._build_offer(
+        "relic-offer", "free", "relic", provider, Random(0)
+    )
+    relic_name = provider.relics().get(str(offer.reward_payload["relic_id"])).name
+    session = replace(
+        session, opening_state=replace(session.opening_state, neow_offers=[offer])
+    )
+
+    preview = _hover_preview_renderable(session, f"choose_neow_offer:{offer.offer_id}")
+
+    assert preview is not None
+    assert relic_name in preview.plain
+    assert "效果" in preview.plain
+
+
+def test_hover_preview_shows_neow_potion_offer_detail() -> None:
+    session = start_new_game_session(seed=5, preferred_character_id="ironclad")
+    provider = StarterContentProvider(session.content_root)
+    offer = opening_flow._build_offer(
+        "potion-offer", "free", "potion", provider, Random(0)
+    )
+    potion_name = provider.potions().get(str(offer.reward_payload["potion_id"])).name
+    session = replace(
+        session, opening_state=replace(session.opening_state, neow_offers=[offer])
+    )
+
+    preview = _hover_preview_renderable(session, f"choose_neow_offer:{offer.offer_id}")
+
+    assert preview is not None
+    assert potion_name in preview.plain
+    assert "效果" in preview.plain
+
+
+def test_hover_preview_shows_neow_gold_offer_amount_without_cost() -> None:
+    session = start_new_game_session(seed=5, preferred_character_id="ironclad")
+    provider = StarterContentProvider(session.content_root)
+    offer = opening_flow._build_offer("gold-offer", "free", "gold", provider, Random(0))
+    session = replace(
+        session, opening_state=replace(session.opening_state, neow_offers=[offer])
+    )
+
+    preview = _hover_preview_renderable(session, f"choose_neow_offer:{offer.offer_id}")
+
+    assert preview is not None
+    assert str(offer.reward_payload["amount"]) in preview.plain
+    assert "金币" in preview.plain
+    assert "代价" not in preview.plain
+
+
+def test_hover_preview_shows_neow_upgrade_offer_cost() -> None:
+    session = start_new_game_session(seed=5, preferred_character_id="ironclad")
+    provider = StarterContentProvider(session.content_root)
+    offer = opening_flow._build_offer(
+        "upgrade-offer", "tradeoff", "upgrade_card", provider, Random(0)
+    )
+    session = replace(
+        session, opening_state=replace(session.opening_state, neow_offers=[offer])
+    )
+
+    preview = _hover_preview_renderable(session, f"choose_neow_offer:{offer.offer_id}")
+
+    assert preview is not None
+    assert "升级" in preview.plain
+    assert "代价" in preview.plain
+    assert str(offer.cost_payload["amount"]) in preview.plain
+    assert "生命" in preview.plain
+
+
+def test_hover_preview_shows_neow_remove_offer_cost() -> None:
+    session = start_new_game_session(seed=5, preferred_character_id="ironclad")
+    provider = StarterContentProvider(session.content_root)
+    offer = opening_flow._build_offer(
+        "remove-offer", "tradeoff", "remove_card", provider, Random(0)
+    )
+    session = replace(
+        session, opening_state=replace(session.opening_state, neow_offers=[offer])
+    )
+
+    preview = _hover_preview_renderable(session, f"choose_neow_offer:{offer.offer_id}")
+
+    assert preview is not None
+    assert "移除" in preview.plain
+    assert "代价" in preview.plain
+    assert str(offer.cost_payload["amount"]) in preview.plain
+    assert "金币" in preview.plain
+
+
+def test_hover_preview_shows_neow_curse_card_offer_details() -> None:
+    session = start_new_game_session(seed=5, preferred_character_id="ironclad")
+    provider = StarterContentProvider(session.content_root)
+    offer = opening_flow._build_offer(
+        "curse-offer", "tradeoff", "curse_card", provider, Random(0)
+    )
+    localized_name = provider.cards().get(str(offer.reward_payload["card_id"])).name
+    cost_name = provider.cards().get(str(offer.cost_payload["card_id"])).name
+    session = replace(
+        session, opening_state=replace(session.opening_state, neow_offers=[offer])
+    )
+
+    preview = _hover_preview_renderable(session, f"choose_neow_offer:{offer.offer_id}")
+
+    assert preview is not None
+    assert localized_name in preview.plain
+    assert "效果" in preview.plain
+    assert "代价" in preview.plain
+    assert cost_name in preview.plain
 
 
 def test_hover_preview_shows_opening_target_card_details() -> None:
     session = start_new_game_session(seed=5, preferred_character_id="ironclad")
     provider = StarterContentProvider(session.content_root)
-    offer = opening_flow._build_offer("upgrade-card", "tradeoff", "upgrade_card", provider, Random(0))
+    offer = opening_flow._build_offer(
+        "upgrade-card", "tradeoff", "upgrade_card", provider, Random(0)
+    )
     session = replace(
         session,
-        opening_state=replace(session.opening_state, neow_offers=[offer], pending_neow_offer_id=offer.offer_id),
+        opening_state=replace(
+            session.opening_state,
+            neow_offers=[offer],
+            pending_neow_offer_id=offer.offer_id,
+        ),
         menu_state=MenuState(mode="opening_neow_upgrade_card"),
     )
     target_action = build_opening_action_menu(session).options[0].action_id
@@ -194,8 +329,12 @@ def test_textual_opening_targeted_neow_flow_enters_active_run() -> None:
     async def scenario() -> None:
         session = start_new_game_session(seed=5, preferred_character_id="ironclad")
         provider = StarterContentProvider(session.content_root)
-        offer = opening_flow._build_offer("upgrade_card", "tradeoff", "upgrade_card", provider, Random(0))
-        session = replace(session, opening_state=replace(session.opening_state, neow_offers=[offer]))
+        offer = opening_flow._build_offer(
+            "upgrade_card", "tradeoff", "upgrade_card", provider, Random(0)
+        )
+        session = replace(
+            session, opening_state=replace(session.opening_state, neow_offers=[offer])
+        )
         app = SlayApp(session)
 
         async with app.run_test() as pilot:
@@ -225,8 +364,16 @@ def test_textual_opening_targeted_neow_flow_enters_active_run() -> None:
 def test_current_action_menu_marks_disabled_rest_actions() -> None:
     session = replace(
         start_session(seed=5),
-        run_state=replace(start_session(seed=5).run_state, relics=["burning_blood", "coffee_dripper", "fusion_hammer"]),
-        room_state=replace(start_session(seed=5).room_state, room_type="rest", stage="waiting_input", payload={"actions": ["rest", "smith"]}),
+        run_state=replace(
+            start_session(seed=5).run_state,
+            relics=["burning_blood", "coffee_dripper", "fusion_hammer"],
+        ),
+        room_state=replace(
+            start_session(seed=5).room_state,
+            room_type="rest",
+            stage="waiting_input",
+            payload={"actions": ["rest", "smith"]},
+        ),
         menu_state=replace(start_session(seed=5).menu_state, mode="rest_root"),
     )
 
@@ -243,8 +390,18 @@ def test_current_action_menu_preserves_card_style_for_hand_targets() -> None:
     combat_state.hand = ["true_grit_plus#1", "strike_plus#2"]
     session = replace(
         session,
-        room_state=replace(session.room_state, payload={**session.room_state.payload, "combat_state": combat_state.to_dict()}),
-        menu_state=replace(session.menu_state, mode="select_target", selected_card_instance_id="true_grit_plus#1"),
+        room_state=replace(
+            session.room_state,
+            payload={
+                **session.room_state.payload,
+                "combat_state": combat_state.to_dict(),
+            },
+        ),
+        menu_state=replace(
+            session.menu_state,
+            mode="select_target",
+            selected_card_instance_id="true_grit_plus#1",
+        ),
     )
 
     menu = _current_action_menu(session)
@@ -262,8 +419,18 @@ def test_current_action_menu_preserves_current_card_style_in_target_menu() -> No
     combat_state.hand = ["anger_plus#1", "strike_plus#2"]
     session = replace(
         session,
-        room_state=replace(session.room_state, payload={**session.room_state.payload, "combat_state": combat_state.to_dict()}),
-        menu_state=replace(session.menu_state, mode="select_target", selected_card_instance_id="anger_plus#1"),
+        room_state=replace(
+            session.room_state,
+            payload={
+                **session.room_state.payload,
+                "combat_state": combat_state.to_dict(),
+            },
+        ),
+        menu_state=replace(
+            session.menu_state,
+            mode="select_target",
+            selected_card_instance_id="anger_plus#1",
+        ),
     )
 
     menu = _current_action_menu(session)
@@ -281,8 +448,18 @@ def test_action_summary_refresh_keeps_current_card_styles_in_target_menu() -> No
     combat_state.hand = ["anger_plus#1", "strike_plus#2"]
     session = replace(
         session,
-        room_state=replace(session.room_state, payload={**session.room_state.payload, "combat_state": combat_state.to_dict()}),
-        menu_state=replace(session.menu_state, mode="select_target", selected_card_instance_id="anger_plus#1"),
+        room_state=replace(
+            session.room_state,
+            payload={
+                **session.room_state.payload,
+                "combat_state": combat_state.to_dict(),
+            },
+        ),
+        menu_state=replace(
+            session.menu_state,
+            mode="select_target",
+            selected_card_instance_id="anger_plus#1",
+        ),
     )
 
     async def scenario() -> None:
@@ -295,7 +472,9 @@ def test_action_summary_refresh_keeps_current_card_styles_in_target_menu() -> No
             assert "当前卡牌: 愤怒+" in rendered.plain
             assert rendered.spans
             card_name_start = rendered.plain.index("愤怒+")
-            assert any(span.start <= card_name_start < span.end for span in rendered.spans)
+            assert any(
+                span.start <= card_name_start < span.end for span in rendered.spans
+            )
 
     asyncio.run(scenario())
 
@@ -366,9 +545,19 @@ def test_current_action_menu_shows_readable_next_room_labels() -> None:
         act_id="act1",
         current_node_id="start",
         nodes=[
-            ActNodeState(node_id="start", row=0, col=0, room_type="combat", next_node_ids=["r1c0", "r1c1"]),
-            ActNodeState(node_id="r1c0", row=1, col=0, room_type="event", next_node_ids=[]),
-            ActNodeState(node_id="r1c1", row=1, col=1, room_type="shop", next_node_ids=[]),
+            ActNodeState(
+                node_id="start",
+                row=0,
+                col=0,
+                room_type="combat",
+                next_node_ids=["r1c0", "r1c1"],
+            ),
+            ActNodeState(
+                node_id="r1c0", row=1, col=0, room_type="event", next_node_ids=[]
+            ),
+            ActNodeState(
+                node_id="r1c1", row=1, col=1, room_type="shop", next_node_ids=[]
+            ),
         ],
         visited_node_ids=["start"],
     )
@@ -379,7 +568,11 @@ def test_current_action_menu_shows_readable_next_room_labels() -> None:
             room_id="act1:start",
             room_type="combat",
             stage="completed",
-            payload={"node_id": "start", "room_kind": "combat", "next_node_ids": ["r1c0", "r1c1"]},
+            payload={
+                "node_id": "start",
+                "room_kind": "combat",
+                "next_node_ids": ["r1c0", "r1c1"],
+            },
             is_resolved=True,
             rewards=[],
         ),
@@ -398,8 +591,18 @@ def test_action_list_refresh_keeps_text_styles_for_hand_targets() -> None:
     combat_state.hand = ["true_grit_plus#1", "strike_plus#2"]
     session = replace(
         session,
-        room_state=replace(session.room_state, payload={**session.room_state.payload, "combat_state": combat_state.to_dict()}),
-        menu_state=replace(session.menu_state, mode="select_target", selected_card_instance_id="true_grit_plus#1"),
+        room_state=replace(
+            session.room_state,
+            payload={
+                **session.room_state.payload,
+                "combat_state": combat_state.to_dict(),
+            },
+        ),
+        menu_state=replace(
+            session.menu_state,
+            mode="select_target",
+            selected_card_instance_id="true_grit_plus#1",
+        ),
     )
 
     async def scenario() -> None:
@@ -490,11 +693,25 @@ def test_map_widget_hides_unreachable_branch_nodes() -> None:
         act_id="act1",
         current_node_id="r1c0",
         nodes=[
-            ActNodeState(node_id="start", row=0, col=0, room_type="combat", next_node_ids=["r1c0", "r1c1"]),
-            ActNodeState(node_id="r1c0", row=1, col=0, room_type="event", next_node_ids=["r2c0"]),
-            ActNodeState(node_id="r1c1", row=1, col=1, room_type="elite", next_node_ids=["r2c1"]),
-            ActNodeState(node_id="r2c0", row=2, col=0, room_type="boss", next_node_ids=[]),
-            ActNodeState(node_id="r2c1", row=2, col=1, room_type="boss", next_node_ids=[]),
+            ActNodeState(
+                node_id="start",
+                row=0,
+                col=0,
+                room_type="combat",
+                next_node_ids=["r1c0", "r1c1"],
+            ),
+            ActNodeState(
+                node_id="r1c0", row=1, col=0, room_type="event", next_node_ids=["r2c0"]
+            ),
+            ActNodeState(
+                node_id="r1c1", row=1, col=1, room_type="elite", next_node_ids=["r2c1"]
+            ),
+            ActNodeState(
+                node_id="r2c0", row=2, col=0, room_type="boss", next_node_ids=[]
+            ),
+            ActNodeState(
+                node_id="r2c1", row=2, col=1, room_type="boss", next_node_ids=[]
+            ),
         ],
         visited_node_ids=["start", "r1c0"],
         enemy_pool_id="act1_basic",
@@ -516,11 +733,25 @@ def test_map_widget_highlights_hovered_route_descendants_when_preview_enabled() 
         act_id="act1",
         current_node_id="start",
         nodes=[
-            ActNodeState(node_id="start", row=0, col=0, room_type="combat", next_node_ids=["r1c0", "r1c1"]),
-            ActNodeState(node_id="r1c0", row=1, col=0, room_type="event", next_node_ids=["r2c0"]),
-            ActNodeState(node_id="r1c1", row=1, col=1, room_type="elite", next_node_ids=["r2c1"]),
-            ActNodeState(node_id="r2c0", row=2, col=0, room_type="shop", next_node_ids=[]),
-            ActNodeState(node_id="r2c1", row=2, col=1, room_type="boss", next_node_ids=[]),
+            ActNodeState(
+                node_id="start",
+                row=0,
+                col=0,
+                room_type="combat",
+                next_node_ids=["r1c0", "r1c1"],
+            ),
+            ActNodeState(
+                node_id="r1c0", row=1, col=0, room_type="event", next_node_ids=["r2c0"]
+            ),
+            ActNodeState(
+                node_id="r1c1", row=1, col=1, room_type="elite", next_node_ids=["r2c1"]
+            ),
+            ActNodeState(
+                node_id="r2c0", row=2, col=0, room_type="shop", next_node_ids=[]
+            ),
+            ActNodeState(
+                node_id="r2c1", row=2, col=1, room_type="boss", next_node_ids=[]
+            ),
         ],
         visited_node_ids=["start"],
         enemy_pool_id="act1_basic",
@@ -574,7 +805,9 @@ def test_map_route_preview_is_enabled_outside_select_next_room_mode() -> None:
             map_widget = app.query_one("#map-widget", MapWidget)
             assert map_widget._route_preview_enabled is True
 
-            app._session = replace(session, menu_state=MenuState(mode="select_next_room"))
+            app._session = replace(
+                session, menu_state=MenuState(mode="select_next_room")
+            )
             app._refresh_map()
             map_widget = app.query_one("#map-widget", MapWidget)
             assert map_widget._route_preview_enabled is True
@@ -583,7 +816,9 @@ def test_map_route_preview_is_enabled_outside_select_next_room_mode() -> None:
 
 
 def test_select_next_room_action_hover_highlights_matching_route_on_map() -> None:
-    session = replace(start_session(seed=5), menu_state=MenuState(mode="select_next_room"))
+    session = replace(
+        start_session(seed=5), menu_state=MenuState(mode="select_next_room")
+    )
 
     async def scenario() -> None:
         app = SlayApp(session)
@@ -603,19 +838,25 @@ def test_select_next_room_action_hover_highlights_matching_route_on_map() -> Non
 
 
 def test_map_hover_clears_action_list_route_preview_override() -> None:
-    session = replace(start_session(seed=5), menu_state=MenuState(mode="select_next_room"))
+    session = replace(
+        start_session(seed=5), menu_state=MenuState(mode="select_next_room")
+    )
 
     async def scenario() -> None:
         app = SlayApp(session)
         async with app.run_test(size=(80, 24)) as pilot:
             await pilot.pause()
             app._refresh_map()
-            app._refresh_route_preview_for_action(f"next_node:{session.room_state.payload['next_node_ids'][0]}")
+            app._refresh_route_preview_for_action(
+                f"next_node:{session.room_state.payload['next_node_ids'][0]}"
+            )
 
             map_widget = app.query_one("#map-widget", MapWidget)
             map_widget._hovered = session.act_state.current_node_id
             map_widget._rebuild()
-            app.handle_node_hovered(MapWidget.NodeHovered(session.act_state.current_node_id))
+            app.handle_node_hovered(
+                MapWidget.NodeHovered(session.act_state.current_node_id)
+            )
 
             assert map_widget._route_preview_root == session.act_state.current_node_id
 
@@ -623,7 +864,9 @@ def test_map_hover_clears_action_list_route_preview_override() -> None:
 
 
 def test_select_next_room_click_clears_route_preview_override() -> None:
-    session = replace(start_session(seed=5), menu_state=MenuState(mode="select_next_room"))
+    session = replace(
+        start_session(seed=5), menu_state=MenuState(mode="select_next_room")
+    )
 
     async def scenario() -> None:
         app = SlayApp(session)
@@ -642,7 +885,9 @@ def test_select_next_room_click_clears_route_preview_override() -> None:
 
 
 def test_hover_summary_shows_route_copy_in_next_room_mode() -> None:
-    session = replace(start_session(seed=5), menu_state=MenuState(mode="select_next_room"))
+    session = replace(
+        start_session(seed=5), menu_state=MenuState(mode="select_next_room")
+    )
     app = SlayApp(session)
     app._hovered_node_id = session.room_state.payload["next_node_ids"][0]
 
@@ -666,7 +911,10 @@ def test_map_widget_renders_icon_with_label_for_current_floor() -> None:
     canvas = "\n".join(widget._canvas_lines)
     assert "⚔" in canvas or "💀" in canvas or "👑" in canvas
     assert "战斗" in canvas or "精英" in canvas or "商店" in canvas
-    assert any(char in canvas for char in ("│", "─", "┌", "┐", "└", "┘", "├", "┤", "┬", "┴", "┼"))
+    assert any(
+        char in canvas
+        for char in ("│", "─", "┌", "┐", "└", "┘", "├", "┤", "┬", "┴", "┼")
+    )
 
 
 def test_current_and_reachable_nodes_use_distinct_styles() -> None:
@@ -686,7 +934,10 @@ def test_map_widget_avoids_boxy_edge_glyphs() -> None:
     assert "╣" not in canvas
     assert "╩" not in canvas
     assert "╦" not in canvas
-    assert any(char in canvas for char in ("│", "─", "┌", "┐", "└", "┘", "├", "┤", "┬", "┴", "┼"))
+    assert any(
+        char in canvas
+        for char in ("│", "─", "┌", "┐", "└", "┘", "├", "┤", "┬", "┴", "┼")
+    )
 
 
 def test_map_widget_keeps_node_glyphs_visible_inside_node_regions() -> None:
@@ -725,7 +976,9 @@ def test_textual_ui_omits_input_and_legend_regions() -> None:
 
 def test_textual_map_panel_css_uses_light_background() -> None:
     assert "#map-panel" in SlayApp.CSS
-    map_panel_css = SlayApp.CSS.split("#map-panel", maxsplit=1)[1].split("}", maxsplit=1)[0]
+    map_panel_css = SlayApp.CSS.split("#map-panel", maxsplit=1)[1].split(
+        "}", maxsplit=1
+    )[0]
     assert "background:" in map_panel_css
 
 
@@ -737,7 +990,9 @@ def test_textual_map_panel_declares_light_background_css() -> None:
 def test_textual_log_renderable_omits_footer_menu() -> None:
     session = start_session(seed=5)
     buffer = StringIO()
-    console = Console(file=buffer, force_terminal=False, color_system=None, theme=TERMINAL_THEME)
+    console = Console(
+        file=buffer, force_terminal=False, color_system=None, theme=TERMINAL_THEME
+    )
 
     console.print(_render_to_rich(session))
 
@@ -748,7 +1003,9 @@ def test_textual_log_renderable_omits_footer_menu() -> None:
 def test_textual_log_renderable_still_omits_footer_menu_after_map_polish() -> None:
     session = start_session(seed=5)
     buffer = StringIO()
-    console = Console(file=buffer, force_terminal=False, color_system=None, theme=TERMINAL_THEME)
+    console = Console(
+        file=buffer, force_terminal=False, color_system=None, theme=TERMINAL_THEME
+    )
 
     console.print(_render_to_rich(session))
 
@@ -758,7 +1015,9 @@ def test_textual_log_renderable_still_omits_footer_menu_after_map_polish() -> No
 def test_textual_log_renderable_omits_combat_summary_panel() -> None:
     session = start_session(seed=5)
     buffer = StringIO()
-    console = Console(file=buffer, force_terminal=False, color_system=None, theme=TERMINAL_THEME)
+    console = Console(
+        file=buffer, force_terminal=False, color_system=None, theme=TERMINAL_THEME
+    )
 
     console.print(_render_to_rich(session))
 
@@ -774,10 +1033,18 @@ def test_textual_log_renderable_keeps_player_hp_in_player_panel() -> None:
     combat_state.player.max_hp = 80
     session = replace(
         session,
-        room_state=replace(session.room_state, payload={**session.room_state.payload, "combat_state": combat_state.to_dict()}),
+        room_state=replace(
+            session.room_state,
+            payload={
+                **session.room_state.payload,
+                "combat_state": combat_state.to_dict(),
+            },
+        ),
     )
     buffer = StringIO()
-    console = Console(file=buffer, force_terminal=False, color_system=None, theme=TERMINAL_THEME)
+    console = Console(
+        file=buffer, force_terminal=False, color_system=None, theme=TERMINAL_THEME
+    )
 
     console.print(_render_to_rich(session))
 
@@ -828,7 +1095,9 @@ def test_textual_log_renderable_omits_duplicate_map_panel() -> None:
         ),
     )
     buffer = StringIO()
-    console = Console(file=buffer, force_terminal=False, color_system=None, theme=TERMINAL_THEME)
+    console = Console(
+        file=buffer, force_terminal=False, color_system=None, theme=TERMINAL_THEME
+    )
 
     console.print(_render_to_rich(session))
 
@@ -1010,7 +1279,14 @@ def test_hover_preview_keeps_rarity_color_for_upgraded_shop_card() -> None:
             room_type="shop",
             stage="waiting_input",
             payload={
-                "cards": [{"offer_id": "offer-1", "card_id": "anger_plus", "price": 99, "sold": False}],
+                "cards": [
+                    {
+                        "offer_id": "offer-1",
+                        "card_id": "anger_plus",
+                        "price": 99,
+                        "sold": False,
+                    }
+                ],
                 "relics": [],
                 "potions": [],
                 "remove_price": 75,
@@ -1061,7 +1337,9 @@ def test_hover_preview_shows_event_upgrade_before_and_after_effects() -> None:
     assert "施加 3 易伤" in preview.plain
 
 
-def test_hover_preview_shows_event_upgrade_before_and_after_effects_on_highlight() -> None:
+def test_hover_preview_shows_event_upgrade_before_and_after_effects_on_highlight() -> (
+    None
+):
     base = start_session(seed=5)
     session = replace(
         base,
@@ -1099,7 +1377,9 @@ def test_hover_preview_shows_event_upgrade_before_and_after_effects_on_highlight
     asyncio.run(scenario())
 
 
-def test_hover_preview_shows_event_upgrade_before_and_after_effects_on_mouse_hover() -> None:
+def test_hover_preview_shows_event_upgrade_before_and_after_effects_on_mouse_hover() -> (
+    None
+):
     base = start_session(seed=5)
     session = replace(
         base,
@@ -1136,7 +1416,9 @@ def test_hover_preview_shows_event_upgrade_before_and_after_effects_on_mouse_hov
     asyncio.run(scenario())
 
 
-def test_hover_preview_keeps_event_upgrade_after_section_visible_at_default_size() -> None:
+def test_hover_preview_keeps_event_upgrade_after_section_visible_at_default_size() -> (
+    None
+):
     base = start_session(seed=5)
     session = replace(
         base,
@@ -1469,7 +1751,10 @@ def test_hover_preview_shows_boss_relic_details() -> None:
             await pilot.pause()
             preview = app.query_one("#hover-preview", Static)
             assert "黑色之血" in preview.render().plain
-            assert "禁用操作" in preview.render().plain or "替换原遗物" in preview.render().plain
+            assert (
+                "禁用操作" in preview.render().plain
+                or "替换原遗物" in preview.render().plain
+            )
 
     asyncio.run(scenario())
 
@@ -1486,7 +1771,9 @@ def test_hover_preview_shows_shop_potion_details() -> None:
             payload={
                 "cards": [],
                 "relics": [],
-                "potions": [{"offer_id": "potion-1", "potion_id": "fire_potion", "price": 20}],
+                "potions": [
+                    {"offer_id": "potion-1", "potion_id": "fire_potion", "price": 20}
+                ],
                 "remove_price": 75,
             },
         ),
@@ -1521,7 +1808,9 @@ def test_hover_preview_shows_shop_relic_details() -> None:
             is_resolved=False,
             payload={
                 "cards": [],
-                "relics": [{"offer_id": "relic-1", "relic_id": "black_blood", "price": 150}],
+                "relics": [
+                    {"offer_id": "relic-1", "relic_id": "black_blood", "price": 150}
+                ],
                 "potions": [],
                 "remove_price": 75,
             },
@@ -1595,8 +1884,12 @@ def test_hover_preview_shows_shop_remove_service_hint() -> None:
             is_resolved=False,
             payload={
                 "cards": [],
-                "relics": [{"offer_id": "relic-1", "relic_id": "black_blood", "price": 150}],
-                "potions": [{"offer_id": "potion-1", "potion_id": "fire_potion", "price": 20}],
+                "relics": [
+                    {"offer_id": "relic-1", "relic_id": "black_blood", "price": 150}
+                ],
+                "potions": [
+                    {"offer_id": "potion-1", "potion_id": "fire_potion", "price": 20}
+                ],
                 "remove_price": 75,
             },
         ),
@@ -1614,7 +1907,12 @@ def test_hover_preview_shows_inspect_relic_details_for_selected_item() -> None:
     base = start_session(seed=5)
     session = replace(
         base,
-        menu_state=replace(base.menu_state, mode="inspect_relics", inspect_parent_mode="root", inspect_item_id="relics"),
+        menu_state=replace(
+            base.menu_state,
+            mode="inspect_relics",
+            inspect_parent_mode="root",
+            inspect_item_id="relics",
+        ),
     )
 
     preview = _hover_preview_renderable(session, "item:1")
@@ -1628,7 +1926,12 @@ def test_hover_preview_shows_inspect_relic_details_on_highlight() -> None:
     base = start_session(seed=5)
     session = replace(
         base,
-        menu_state=replace(base.menu_state, mode="inspect_relics", inspect_parent_mode="root", inspect_item_id="relics"),
+        menu_state=replace(
+            base.menu_state,
+            mode="inspect_relics",
+            inspect_parent_mode="root",
+            inspect_item_id="relics",
+        ),
     )
 
     async def scenario() -> None:
@@ -1833,7 +2136,9 @@ def test_hover_preview_ignores_unsupported_claim_reward_prefix() -> None:
     assert _hover_preview_renderable(session, "claim_reward:potion:fire_potion") is None
 
 
-def test_hover_preview_has_usable_height_for_boss_relic_details_at_default_size() -> None:
+def test_hover_preview_has_usable_height_for_boss_relic_details_at_default_size() -> (
+    None
+):
     base = start_session(seed=5)
     session = replace(
         base,
