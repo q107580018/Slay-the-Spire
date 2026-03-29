@@ -352,6 +352,136 @@ def test_damage_effect_keeps_strength_weak_and_vulnerable_order_semantics() -> N
     assert state.enemies[0].hp == 14
 
 
+def test_strength_effect_allows_negative_stacks_on_player() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 10)],
+        effect_queue=[
+            {
+                "type": "strength",
+                "source_instance_id": "enemy-1",
+                "target_instance_id": "player-1",
+                "amount": -2,
+            }
+        ],
+    )
+
+    resolved = resolve_effect_queue(state)
+
+    assert resolved == [
+        {
+            "type": "strength",
+            "source_instance_id": "enemy-1",
+            "target_instance_id": "player-1",
+            "amount": -2,
+            "result": {"applied_stacks": -2},
+        }
+    ]
+    assert state.player.statuses == [StatusState(status_id="strength", stacks=-2)]
+
+
+def test_strength_effect_removes_status_when_negative_stacks_cancel_to_zero() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 10)],
+        effect_queue=[
+            {
+                "type": "strength",
+                "source_instance_id": "enemy-1",
+                "target_instance_id": "player-1",
+                "amount": -2,
+            }
+        ],
+    )
+    state.player.statuses.append(StatusState(status_id="strength", stacks=2))
+
+    resolved = resolve_effect_queue(state)
+
+    assert resolved[0]["result"] == {"applied_stacks": -2}
+    assert state.player.statuses == []
+
+
+def test_dexterity_effect_applies_negative_stacks_on_player() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 10)],
+        effect_queue=[
+            {
+                "type": "dexterity",
+                "source_instance_id": "enemy-1",
+                "target_instance_id": "player-1",
+                "amount": -2,
+            }
+        ],
+    )
+
+    resolved = resolve_effect_queue(state)
+
+    assert resolved == [
+        {
+            "type": "dexterity",
+            "source_instance_id": "enemy-1",
+            "target_instance_id": "player-1",
+            "amount": -2,
+            "result": {"applied_stacks": -2},
+        }
+    ]
+    assert state.player.statuses == [StatusState(status_id="dexterity", stacks=-2)]
+
+
+def test_dexterity_effect_removes_status_when_negative_stacks_cancel_to_zero() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 10)],
+        effect_queue=[
+            {
+                "type": "dexterity",
+                "source_instance_id": "enemy-1",
+                "target_instance_id": "player-1",
+                "amount": -2,
+            }
+        ],
+    )
+    state.player.statuses.append(StatusState(status_id="dexterity", stacks=2))
+
+    resolved = resolve_effect_queue(state)
+
+    assert resolved[0]["result"] == {"applied_stacks": -2}
+    assert state.player.statuses == []
+
+
+def test_block_effect_applies_player_dexterity_and_floors_at_zero() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 10)],
+        effect_queue=[
+            {
+                "type": "block",
+                "source_instance_id": "player-1",
+                "target_instance_id": "player-1",
+                "amount": 5,
+            }
+        ],
+    )
+    state.player.statuses.append(StatusState(status_id="dexterity", stacks=-7))
+
+    resolved = resolve_effect_queue(state)
+
+    assert resolved[0]["result"] == {"gained_block": 0}
+    assert state.player.block == 0
+
+
+def test_damage_effect_applies_negative_strength_and_floors_at_zero() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 10)],
+        effect_queue=[
+            damage_effect(source_instance_id="player-1", target_instance_id="enemy-1", amount=6),
+        ],
+    )
+    state.player.statuses.append(StatusState(status_id="strength", stacks=-8))
+
+    resolved = resolve_effect_queue(state)
+
+    assert resolved[0]["result"]["applied_amount"] == 0
+    assert resolved[0]["result"]["actual_damage"] == 0
+    assert state.enemies[0].hp == 10
+
+
 def test_draw_effect_refills_from_discard_pile_when_draw_pile_runs_out():
     state = make_combat_state(
         enemies=[make_enemy("enemy-1", 10)],

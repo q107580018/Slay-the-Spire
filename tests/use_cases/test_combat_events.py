@@ -208,6 +208,62 @@ def test_build_enemy_turn_events_include_strength_gain_for_enemy_sources() -> No
     assert describe_enemy_turn(events=events) == ["Training Dummy获得 3 层力量。"]
 
 
+def test_build_enemy_turn_events_describe_strength_and_dexterity_loss_to_player() -> None:
+    state = _combat_state()
+    provider = _provider()
+    provider.enemies().register(
+        {
+            "id": "lagavulin",
+            "name": "沉睡巨像",
+            "hp": 109,
+            "move_table": [],
+            "intent_policy": "scripted",
+        }
+    )
+    state.enemies[0].enemy_id = "lagavulin"
+    snapshots = capture_entity_snapshots(state, provider)
+
+    events = build_enemy_turn_events(
+        enemy_previews=[],
+        resolved_effects=[
+            {
+                "type": "strength",
+                "source_instance_id": "enemy-1",
+                "target_instance_id": "player-1",
+                "result": {"applied_stacks": -2},
+            },
+            {
+                "type": "dexterity",
+                "source_instance_id": "enemy-1",
+                "target_instance_id": "player-1",
+                "result": {"applied_stacks": -2},
+            },
+        ],
+        entities=snapshots,
+        registry=provider,
+    )
+
+    assert events == [
+        CombatEvent(
+            event_type="status_applied",
+            actor_name="沉睡巨像",
+            actor_instance_id="enemy-1",
+            target_name="你",
+            status_id="strength",
+            stacks=-2,
+        ),
+        CombatEvent(
+            event_type="status_applied",
+            actor_name="沉睡巨像",
+            actor_instance_id="enemy-1",
+            target_name="你",
+            status_id="dexterity",
+            stacks=-2,
+        ),
+    ]
+    assert describe_enemy_turn(events=events) == ["沉睡巨像，并使你失去 2 力量，并使你失去 2 敏捷。"]
+
+
 def test_describe_enemy_turn_keeps_same_name_enemies_separate() -> None:
     provider = _provider()
     state = CombatState(

@@ -45,7 +45,8 @@
   - `act1_bosses`：`hexaghost`
   - `act2_bosses`：`champ`、`bronze_automaton`、`the_collector`
 - `bronze_automaton` 与 `the_collector` 的敌人文件里还包含其衍生单位 `bronze_orb`、`torch_head`。
-- 当前 `lagavulin` 会先睡眠 3 次敌方行动，再进入固定攻击循环；没有复刻原版减力/减敏 debuff。
+- 当前 `lagavulin` 会先睡眠 3 次敌方行动，苏醒后在重击与 `Siphon Soul` 之间循环；`Siphon Soul` 会使玩家失去力量与敏捷。
+- 当前战斗状态已支持正负 `strength` 与 `dexterity`；负力量会降低伤害，负敏捷会降低获得的格挡，结算结果最低降到 `0`。
 - 当前事件池不止 1 个事件：
   - `act1_events` 已包含 `shining_light`、`the_cleric`、`world_of_goop`、`living_wall`、`big_fish`、`golden_shrine` 等
   - `act2_events` 已包含 `ancient_writing`、`masked_bandits`、`forgotten_altar`

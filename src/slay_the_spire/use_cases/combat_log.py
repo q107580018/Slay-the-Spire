@@ -131,10 +131,20 @@ def describe_enemy_turn(*, events: Sequence[CombatEvent]) -> list[str]:
             if event.event_type == "status_applied" and event.status_id == "weak" and event.stacks > 0:
                 parts.append(f"施加 {event.stacks} 层虚弱")
                 continue
+            if event.event_type == "status_applied" and event.status_id in {"strength", "dexterity"} and event.target_name is not None and event.stacks != 0:
+                status_label = "力量" if event.status_id == "strength" else "敏捷"
+                if event.stacks > 0:
+                    parts.append(f"使{event.target_name}获得 {event.stacks} {status_label}")
+                else:
+                    parts.append(f"使{event.target_name}失去 {abs(event.stacks)} {status_label}")
+                continue
             if event.event_type == "block_gained" and event.amount > 0:
                 parts.append(f"获得 {event.amount} 格挡")
         if parts:
-            entries.append(f"{actor_name}{'，并'.join(parts)}。")
+            if parts[0].startswith("使"):
+                entries.append(f"{actor_name}，并{'，并'.join(parts)}。")
+            else:
+                entries.append(f"{actor_name}{'，并'.join(parts)}。")
     return entries
 
 

@@ -157,14 +157,14 @@ def preview_enemy_move(state: CombatState, enemy: EnemyState, enemy_def: EnemyDe
 
 
 def _strength_bonus(entity: PlayerCombatState | EnemyState) -> int:
-    return sum(status.stacks for status in entity.statuses if status.status_id == "strength" and status.stacks > 0)
+    return sum(status.stacks for status in entity.statuses if status.status_id == "strength")
 
 
 def _adjust_damage_for_strength(effect: Mapping[str, object], strength_bonus: int) -> JsonDict:
     adjusted = copy_effect(effect)
     if adjusted.get("type") != "damage":
         return adjusted
-    adjusted["amount"] = max(int(adjusted.get("amount", 0)), 0) + strength_bonus
+    adjusted["amount"] = max(max(int(adjusted.get("amount", 0)), 0) + strength_bonus, 0)
     return adjusted
 
 
@@ -178,7 +178,7 @@ def preview_enemy_move_for_display(
         return None
 
     strength_bonus = _strength_bonus(enemy)
-    if strength_bonus <= 0:
+    if strength_bonus == 0:
         return copy_effect(preview)
 
     adjusted_preview = copy_effect(preview)
@@ -226,13 +226,24 @@ def _effects_from_payload(
         effect_type = effect.get("type")
         if not isinstance(effect_type, str):
             raise TypeError("effect type must be a string")
+        target = effect.get("target")
+        if target is not None:
+            if not isinstance(target, str) or target not in {"player", "opponent", "self"}:
+                raise ValueError("effect target must be one of: player, opponent, self")
+            if "target_instance_id" not in effect:
+                if target == "self":
+                    effect["target_instance_id"] = source_instance_id
+                else:
+                    if default_target_id is None:
+                        raise ValueError(f"{target} target requires a default target")
+                    effect["target_instance_id"] = default_target_id
         if "source_instance_id" not in effect:
             effect["source_instance_id"] = source_instance_id
         if effect_type in {"damage", "block", "draw", "vulnerable", "weak"} and "target_instance_id" not in effect:
             if default_target_id is None:
                 raise ValueError(f"{effect_type} effect requires a target")
             effect["target_instance_id"] = default_target_id
-        if effect_type == "strength" and "target_instance_id" not in effect:
+        if effect_type in {"strength", "dexterity"} and "target_instance_id" not in effect:
             effect["target_instance_id"] = source_instance_id
         materialized.append(effect)
     return materialized

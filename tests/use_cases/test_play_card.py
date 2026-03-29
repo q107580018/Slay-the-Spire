@@ -167,6 +167,26 @@ def test_play_card_rejects_invalid_card_instance_id_format() -> None:
     assert state.to_dict() == before
 
 
+def test_play_card_applies_negative_player_strength_to_damage_effects() -> None:
+    state = _combat_state(hand=["custom_strike#1"])
+    state.player.statuses.append(StatusState(status_id="strength", stacks=-2))
+    provider = _provider_with_card()
+
+    result = play_card(state, "custom_strike#1", "enemy-1", provider)
+
+    assert result.resolved_effects[0]["result"]["applied_amount"] == 2
+
+
+def test_play_card_applies_negative_player_dexterity_to_block_effects() -> None:
+    state = _combat_state(hand=["skill_guard#1"])
+    state.player.statuses.append(StatusState(status_id="dexterity", stacks=-2))
+    provider = _provider_with_card(card_id="skill_guard", cost=1, effects=[{"type": "block", "amount": 5}])
+
+    result = play_card(state, "skill_guard#1", None, provider)
+
+    assert result.resolved_effects[0]["result"]["gained_block"] == 3
+
+
 def test_play_card_defaults_draw_target_to_player() -> None:
     state = _combat_state(hand=["draw_card#1"])
     state.draw_pile = ["bonus_card#1"]

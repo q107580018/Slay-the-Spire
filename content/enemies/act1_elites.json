@@ -20,6 +20,21 @@
           ]
         },
         {
+          "move": "siphon_soul",
+          "effects": [
+            {
+              "type": "strength",
+              "amount": -2,
+              "target": "player"
+            },
+            {
+              "type": "dexterity",
+              "amount": -2,
+              "target": "player"
+            }
+          ]
+        },
+        {
           "move": "heavy_slam",
           "effects": [
             {

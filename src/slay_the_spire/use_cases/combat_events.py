@@ -295,12 +295,54 @@ def build_enemy_turn_events(
         if effect_type == "strength":
             if actor_name is None:
                 continue
+            applied_stacks = _result_int(result, "applied_stacks")
+            target_instance_id = effect.get("target_instance_id")
+            if (
+                isinstance(source_id, str)
+                and applied_stacks > 0
+                and (
+                    target_instance_id is None
+                    or (isinstance(target_instance_id, str) and target_instance_id == source_id)
+                )
+            ):
+                events.append(
+                    CombatEvent(
+                        event_type="gain_strength",
+                        actor_name=actor_name,
+                        actor_instance_id=_enemy_actor_instance_id(source_id=source_id, source_snapshot=source_snapshot),
+                        amount=applied_stacks,
+                    )
+                )
+                continue
+            target_name = _target_name(entities, effect)
+            if target_name is None or applied_stacks == 0:
+                continue
             events.append(
                 CombatEvent(
-                    event_type="gain_strength",
+                    event_type="status_applied",
                     actor_name=actor_name,
                     actor_instance_id=_enemy_actor_instance_id(source_id=source_id, source_snapshot=source_snapshot),
-                    amount=_result_int(result, "applied_stacks"),
+                    target_name=target_name,
+                    status_id="strength",
+                    stacks=applied_stacks,
+                )
+            )
+            continue
+        if effect_type == "dexterity":
+            if actor_name is None:
+                continue
+            target_name = _target_name(entities, effect)
+            applied_stacks = _result_int(result, "applied_stacks")
+            if target_name is None or applied_stacks == 0:
+                continue
+            events.append(
+                CombatEvent(
+                    event_type="status_applied",
+                    actor_name=actor_name,
+                    actor_instance_id=_enemy_actor_instance_id(source_id=source_id, source_snapshot=source_snapshot),
+                    target_name=target_name,
+                    status_id="dexterity",
+                    stacks=applied_stacks,
                 )
             )
             continue

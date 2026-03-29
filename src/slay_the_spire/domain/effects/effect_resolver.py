@@ -8,6 +8,7 @@ from slay_the_spire.domain.effects.effect_types import (
     EFFECT_BLOCK,
     EFFECT_CREATE_CARD_COPY,
     EFFECT_DAMAGE,
+    EFFECT_DEXTERITY,
     EFFECT_DRAW,
     EFFECT_EMIT_HOOK,
     EFFECT_EXHAUST_RANDOM_HAND,
@@ -16,9 +17,9 @@ from slay_the_spire.domain.effects.effect_types import (
     EFFECT_HEAL,
     EFFECT_LOSE_HP,
     EFFECT_NOOP,
+    EFFECT_STRENGTH,
     EFFECT_UPGRADE_ALL_HAND,
     EFFECT_UPGRADE_TARGET_CARD,
-    EFFECT_STRENGTH,
     EFFECT_VULNERABLE,
     EFFECT_WEAK,
     copy_effect,
@@ -71,10 +72,18 @@ def _is_weak(source: PlayerCombatState | EnemyState | None) -> bool:
     return any(status.status_id == "weak" and status.stacks > 0 for status in source.statuses)
 
 
-def _strength_bonus(source: PlayerCombatState | EnemyState | None) -> int:
-    if source is None:
+def _status_total(entity: PlayerCombatState | EnemyState | None, status_id: str) -> int:
+    if entity is None:
         return 0
-    return sum(status.stacks for status in source.statuses if status.status_id == "strength" and status.stacks > 0)
+    return sum(status.stacks for status in entity.statuses if status.status_id == status_id)
+
+
+def _strength_bonus(source: PlayerCombatState | EnemyState | None) -> int:
+    return _status_total(source, "strength")
+
+
+def _dexterity_bonus(source: PlayerCombatState | EnemyState | None) -> int:
+    return _status_total(source, "dexterity")
 
 
 def _damage_amount(
@@ -84,11 +93,12 @@ def _damage_amount(
 ) -> int:
     amount = max(base_amount, 0)
     amount += _strength_bonus(source)
+    amount = max(amount, 0)
     if _is_weak(source):
         amount = (amount * 3) // 4
     if _vulnerable_bonus(target):
         amount += amount // 2
-    return amount
+    return max(amount, 0)
 
 
 def _heal_target(target: PlayerCombatState | EnemyState, amount: int) -> int:
@@ -191,14 +201,18 @@ def _apply_status(
     status_id: str,
     stacks: int,
 ) -> None:
-    normalized_stacks = max(stacks, 0)
-    if normalized_stacks == 0:
+    if stacks == 0:
         return
-    for status in target.statuses:
-        if status.status_id == status_id:
-            status.stacks += normalized_stacks
-            return
-    target.statuses.append(StatusState(status_id=status_id, stacks=normalized_stacks))
+    for index, status in enumerate(target.statuses):
+        if status.status_id != status_id:
+            continue
+        next_stacks = status.stacks + stacks
+        if next_stacks == 0:
+            target.statuses.pop(index)
+        else:
+            target.statuses[index] = StatusState(status_id=status_id, stacks=next_stacks)
+        return
+    target.statuses.append(StatusState(status_id=status_id, stacks=stacks))
 
 
 def _append_or_increase_power(
@@ -283,7 +297,8 @@ def resolve_next_effect(
         target = _get_target(state, effect.get("target_instance_id"))
         if _is_dead(target):
             return noop_effect(reason="dead_target")
-        gained_block = max(int(effect.get("amount", 0)), 0)
+        source = _get_target(state, effect.get("source_instance_id"))
+        gained_block = max(int(effect.get("amount", 0)) + _dexterity_bonus(source), 0)
         target.block += gained_block
         return _with_result(effect, gained_block=gained_block)
 
@@ -294,10 +309,25 @@ def resolve_next_effect(
         target = _get_target(state, target_instance_id)
         if _is_dead(target):
             return noop_effect(reason="dead_target")
-        applied_stacks = max(int(effect.get("amount", 0)), 0)
+        applied_stacks = int(effect.get("amount", 0))
         _apply_status(
             target,
             status_id="strength",
+            stacks=applied_stacks,
+        )
+        return _with_result(effect, applied_stacks=applied_stacks)
+
+    if effect_type == EFFECT_DEXTERITY:
+        target_instance_id = effect.get("target_instance_id")
+        if target_instance_id is None:
+            target_instance_id = effect.get("source_instance_id")
+        target = _get_target(state, target_instance_id)
+        if _is_dead(target):
+            return noop_effect(reason="dead_target")
+        applied_stacks = int(effect.get("amount", 0))
+        _apply_status(
+            target,
+            status_id="dexterity",
             stacks=applied_stacks,
         )
         return _with_result(effect, applied_stacks=applied_stacks)
