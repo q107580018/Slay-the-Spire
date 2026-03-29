@@ -34,6 +34,8 @@ def apply_neow_offer(
     registry,
     target_card_instance_id: str | None = None,
 ) -> OpeningState:
+    if opening_state.resolved_neow_offer_ids:
+        raise ValueError("opening neow offer has already been resolved")
     offer = next(item for item in opening_state.neow_offers if item.offer_id == offer_id)
     if offer.offer_id in opening_state.resolved_neow_offer_ids:
         raise ValueError("neow offer has already been resolved")

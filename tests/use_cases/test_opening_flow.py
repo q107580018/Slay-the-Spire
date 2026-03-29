@@ -65,6 +65,18 @@ def test_apply_neow_offer_rejects_duplicate_resolution() -> None:
         apply_neow_offer(updated, offer.offer_id, registry=provider)
 
 
+def test_apply_neow_offer_blocks_any_other_offer_after_first_resolution() -> None:
+    provider = _provider()
+    opening = build_opening_state(seed=11, preferred_character_id="ironclad", registry=provider)
+    first_offer = opening.neow_offers[0]
+    other_offer = next(item for item in opening.neow_offers if item.offer_id != first_offer.offer_id)
+
+    updated = apply_neow_offer(opening, first_offer.offer_id, registry=provider)
+
+    with pytest.raises(ValueError, match="opening neow offer has already been resolved"):
+        apply_neow_offer(updated, other_offer.offer_id, registry=provider)
+
+
 def test_apply_neow_offer_rejects_invalid_target_before_changing_run_state() -> None:
     provider = _provider()
     opening = build_opening_state(seed=11, preferred_character_id="ironclad", registry=provider)
