@@ -6,7 +6,12 @@ import pytest
 
 from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.content.registries import CardRegistry, EnemyRegistry
-from slay_the_spire.domain.combat.turn_flow import end_turn, preview_enemy_move, resolve_player_actions
+from slay_the_spire.domain.combat.turn_flow import (
+    end_turn,
+    preview_enemy_move,
+    preview_enemy_move_for_display,
+    resolve_player_actions,
+)
 from slay_the_spire.domain.effects.effect_types import damage_effect
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
@@ -897,6 +902,28 @@ def test_hexaghost_divider_only_occurs_on_opening_turn_then_loops_without_it() -
     assert [effect["type"] for effect in resolved] == ["damage"]
     assert int(resolved[0]["amount"]) == 6
     assert state.player.hp == 74
+
+
+def test_preview_enemy_move_for_display_applies_negative_strength_to_damage() -> None:
+    registry = _enemy_registry()
+    state = _combat_state()
+    state.enemies[0].statuses.append(StatusState(status_id="strength", stacks=-2))
+
+    preview = preview_enemy_move_for_display(state, state.enemies[0], registry.enemies().get("training_slime"))
+
+    assert preview is not None
+    assert preview.get("effects") == [{"type": "damage", "amount": 3}]
+
+
+def test_preview_enemy_move_for_display_floors_negative_strength_damage_at_zero() -> None:
+    registry = _enemy_registry()
+    state = _combat_state()
+    state.enemies[0].statuses.append(StatusState(status_id="strength", stacks=-9))
+
+    preview = preview_enemy_move_for_display(state, state.enemies[0], registry.enemies().get("training_slime"))
+
+    assert preview is not None
+    assert preview.get("effects") == [{"type": "damage", "amount": 0}]
 
 
 def test_end_turn_resolves_burn_before_enemy_attack_and_discards_it() -> None:

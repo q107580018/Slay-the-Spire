@@ -157,14 +157,14 @@ def preview_enemy_move(state: CombatState, enemy: EnemyState, enemy_def: EnemyDe
 
 
 def _strength_bonus(entity: PlayerCombatState | EnemyState) -> int:
-    return sum(status.stacks for status in entity.statuses if status.status_id == "strength" and status.stacks > 0)
+    return sum(status.stacks for status in entity.statuses if status.status_id == "strength")
 
 
 def _adjust_damage_for_strength(effect: Mapping[str, object], strength_bonus: int) -> JsonDict:
     adjusted = copy_effect(effect)
     if adjusted.get("type") != "damage":
         return adjusted
-    adjusted["amount"] = max(int(adjusted.get("amount", 0)), 0) + strength_bonus
+    adjusted["amount"] = max(max(int(adjusted.get("amount", 0)), 0) + strength_bonus, 0)
     return adjusted
 
 
@@ -178,7 +178,7 @@ def preview_enemy_move_for_display(
         return None
 
     strength_bonus = _strength_bonus(enemy)
-    if strength_bonus <= 0:
+    if strength_bonus == 0:
         return copy_effect(preview)
 
     adjusted_preview = copy_effect(preview)
