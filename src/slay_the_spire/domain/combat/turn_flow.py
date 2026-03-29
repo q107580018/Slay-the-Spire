@@ -232,8 +232,12 @@ def _effects_from_payload(
             if default_target_id is None:
                 raise ValueError(f"{effect_type} effect requires a target")
             effect["target_instance_id"] = default_target_id
-        if effect_type == "strength" and "target_instance_id" not in effect:
-            effect["target_instance_id"] = source_instance_id
+        if effect_type in {"strength", "dexterity"} and "target_instance_id" not in effect:
+            if default_target_id is None:
+                effect["target_instance_id"] = source_instance_id
+            else:
+                amount = int(effect.get("amount", 0))
+                effect["target_instance_id"] = default_target_id if amount < 0 else source_instance_id
         materialized.append(effect)
     return materialized
 
