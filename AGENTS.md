@@ -30,15 +30,16 @@
 
 - 当前只有 1 个角色：`ironclad`。
 - 当前已有 2 幕：`act1`、`act2`。
-- `act1` 结束后会进入 `act2`；`act2` Boss 奖励领取完成后会进入最终 `victory`。
+- `act1` Boss 奖励领取并离开 Boss 宝箱后会进入 `act2`；`act2` Boss 奖励领取并离开 Boss 宝箱后会进入最终 `victory`。
 - 当前地图按 `content/acts/*.json` 的 `map_config` 生成分支路径，不是固定单线。
-- 当前地图规则会实际生成并走到 `combat`、`event`、`elite`、`shop`、`rest`、`boss`。
+- 当前地图固定楼层至少包含：`1` 层 `combat`、`9` 层 `treasure`、`15` 层 `rest`、`16` 层 `boss`，Boss 后置房间为 `boss_chest`。
+- 当前地图规则会实际生成并走到 `combat`、`event`、`elite`、`shop`、`rest`、`treasure`、`boss`、`boss_chest`。
 - `act1` 至少保证 1 个商店、1 个休息点、1 个精英；`act2` 至少保证 1 个事件、1 个商店、1 个休息点、2 个精英。
 - 当前普通敌人池至少包含：
-  - `act1_basic`：`slime`、`jaw_worm`
+  - `act1_basic`：`slime`、`jaw_worm`、`cultist`、`red_louse`、`green_louse`、`looter`、`fungi_beast`、`gremlin_wizard`
   - `act2_basic`：`chosen`、`byrd`、`spheric_guardian`、`slaver_red`
 - 当前精英池至少包含：
-  - `act1_elites`：`lagavulin`
+  - `act1_elites`：`lagavulin`、`sentry`
   - `act2_elites`：`book_of_stabbing`、`gremlin_leader`、`slaver_blue`、`taskmaster`
 - 当前 Boss 池至少包含：
   - `act1_bosses`：`hexaghost`
@@ -50,17 +51,19 @@
   - `act2_events` 已包含 `ancient_writing`、`masked_bandits`、`forgotten_altar`
 - 当前事件效果已覆盖升级牌、删牌、回血、加金币、扣金币、加最大生命、获得遗物、失去生命等分支。
 - 当前铁甲战士起始套牌仍是 `5 strike + 4 defend + 1 bash`。
-- 当前铁甲战士卡池不止起始 3 张，`content/cards/ironclad_starter.json` 还包含升级牌和额外可奖励牌，如 `anger`、`pommel_strike`、`shrug_it_off`、`bloodletting`、`true_grit` 等。
+- 当前铁甲战士卡池不止起始 3 张，`content/cards/ironclad_starter.json` 还包含升级牌和额外可奖励牌，如 `anger`、`pommel_strike`、`shrug_it_off`、`bloodletting`、`true_grit`、`whirlwind`、`twin_strike`、`armaments`、`terror`、`offering`、`impervious` 等。
 - 当前有诅咒牌内容：`content/cards/curses.json`。
 - 当前起始遗物池至少包含 `burning_blood` 和 `golden_idol`。
-- 当前 Boss 遗物池包含 `black_blood`、`anchor`、`lantern`。
+- 当前 Boss 遗物池至少包含 `black_blood`、`ectoplasm`、`coffee_dripper`、`fusion_hammer`。
+- 当前普通遗物池还包含 `anchor`、`lantern`、`circlet` 等；宝箱会从非商店遗物里发放遗物，发不出时回退为 `circlet`。
 - 当前药水池已存在 `fire_potion`、`block_potion`、`strength_potion`。
-- `burning_blood`、`black_blood`、`anchor`、`lantern` 等遗物效果已接入运行时 Hook。
+- `burning_blood`、`black_blood`、`anchor`、`lantern`、`ectoplasm`、`coffee_dripper`、`fusion_hammer` 等遗物效果已接入运行时 Hook 或对应流程限制。
 - 当前战斗奖励会真实写回 `run_state`：金币会增加，卡牌奖励会把对应实例加入牌组，Boss 奖励会发高额金币和三选一遗物。
 - 当前战斗奖励中的 `reward_strike` / `reward_defend` 会分别落成 `strike_plus` / `defend_plus`。
 - 当前普通奖励不再提供单独的“奖励主页 / 奖励详情列表 / 奖励详情”三级菜单；已解析奖励时直接进入领取流 `select_reward`。
 - 当前商店可出售卡牌、遗物、药水，并支持付费移除 1 张牌。
 - 当前休息点支持至少“恢复生命”和“升级 1 张牌”。
+- 当前 `coffee_dripper` 会禁用休息回血，`fusion_hammer` 会禁用休息点锻造，`ectoplasm` 会阻止获得金币。
 - 终端交互主路径走 `route_menu_choice()` 的编号菜单，不是自由文本命令模式。
 - 查看页已覆盖角色状态、牌组、遗物、药水、敌人详情、卡牌详情等 inspect 菜单。
 - CLI 支持：
@@ -69,11 +72,14 @@
   - `uv run python -m slay_the_spire.app.cli load --save-path saves/latest.json`
   - `uv run slay-the-spire new`
   - `uv run slay-the-spire new --seed 5`
+  - `uv run slay-the-spire load --save-path saves/latest.json`
 - `new` 可选 `--seed`、`--character`、`--content-root`、`--save-path`；不传 `--seed` 时会自动生成随机 seed。
-- `load` 可选 `--content-root`、`--save-path`。
+- `load` 可选 `--content-root`、`--save-path`；不传 `--save-path` 时默认读取 `./saves/latest.json`。
+- 旧的 `--ui` 参数已删除；默认且唯一界面就是 Textual。
 - 默认存档路径是 `./saves/latest.json`。
 - 默认内容路径优先取 `src/slay_the_spire/data/content/`；只有找不到时才会回退到仓库根目录 `content/`。
 - `content/` 与 `src/slay_the_spire/data/content/` 是两套实际文件；修改内容时必须同步维护。
+- 当前存档 `schema_version` 是 `2`。
 - 当前处于开发阶段时，默认**不需要兼容旧存档或旧菜单状态**；若在重构或清理旧流程时需要删除历史分支，可直接删除，不必为了历史 `menu_state` / 存档路径保留兼容逻辑，除非需求明确要求兼容。
 
 ## 开发和发布规则
@@ -96,6 +102,7 @@
 
 - 仓库当前没有 `.env` / `.env.example`，也没有外部服务凭据依赖。
 - 存档文件是普通 JSON，默认写入 `saves/latest.json`。
+- 存档 schema 当前固定为 `2`；如果改动存档结构，要同步处理 `save_game.py` / `load_game.py` 和测试。
 - 用户已明确说明：存档不需要提交。
 - 内容加载依赖目录结构存在 `characters/ironclad.json`；改目录结构时要同步更新 `default_content_root()` 判定逻辑。
 - `saves/` 当前未被忽略；如需提交样例存档，先确认不包含本地路径或临时调试状态。
@@ -103,9 +110,11 @@
 ## 维护建议
 
 - 优先相信 `src/slay_the_spire/app/session.py`、`tests/`、`content/` 和 `src/slay_the_spire/data/content/`，不要优先相信旧文档。
+- 每次改动代码、内容、命令入口、流程、测试基线或发布方式后，都要同步更新 `AGENTS.md` 和 `README.md`，避免文档落后当前版本。
 - 做设计取舍时，若 1 代与 2 代资料或旧设计文档冲突，默认以“当前代码中的 1 代内容基线 + 已落地行为”优先；只有在需求明确指定、且文档中清楚标注“这是 2 代导向改动”时，才主动向 2 代靠拢。
 - 需要参考原版《Slay the Spire》资料时，优先查询官方社区 Wiki：[Slay the Spire Wiki](https://slay-the-spire.fandom.com/wiki/)。
 - 新增房间类型前，先确认三层都补齐：地图内容、use case / session 路由、共享 Rich 渲染 / Textual 展示。
+- 调整 Boss 奖励或跨幕流程时，同时检查 `boss` -> `boss_chest` -> 下一幕 / `victory` 这条完整链路，不要只改其中一个房间状态。
 - 新增角色、卡牌、敌人、事件、遗物或药水时，先改根目录 `content/`，再同步到 `src/slay_the_spire/data/content/`。
 - 新增战斗后奖励或 Boss 奖励时，同时检查 `src/slay_the_spire/domain/rewards/reward_generator.py`、`src/slay_the_spire/use_cases/apply_reward.py` 和对应测试。
 - 新增菜单、事件、奖励、效果说明等面向玩家的 UI 文案时，默认统一写成中文；除代码标识、命令、路径和必要专有名词外，不要向玩家暴露英文效果文本。
