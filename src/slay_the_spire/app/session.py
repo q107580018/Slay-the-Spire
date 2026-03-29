@@ -244,33 +244,6 @@ def _build_opening_neow_menu(session: SessionState):
     return build_menu(title="Neow 赐福", options=options)
 
 
-def _build_opening_state_with_fallback(
-    *,
-    seed: int,
-    preferred_character_id: str | None,
-    registry: StarterContentProvider,
-) -> OpeningState:
-    last_error: Exception | None = None
-    for offset in range(32):
-        candidate_seed = seed + offset
-        try:
-            opening_state = build_opening_state(
-                seed=candidate_seed,
-                preferred_character_id=preferred_character_id,
-                registry=registry,
-            )
-        except IndexError as exc:
-            last_error = exc
-            continue
-        if candidate_seed == seed:
-            return opening_state
-        run_blueprint = opening_state.run_blueprint
-        if run_blueprint is not None:
-            run_blueprint = replace(run_blueprint, seed=seed)
-        return replace(opening_state, seed=seed, run_blueprint=run_blueprint)
-    raise RuntimeError("failed to build opening state from available Neow offers") from last_error
-
-
 def _menu_state_for_room(room_state: RoomState) -> MenuState:
     if room_state.room_type == "shop" and not room_state.is_resolved:
         if room_state.stage == "select_remove_card":
@@ -304,7 +277,7 @@ def _start_active_session_from_blueprint(session: SessionState) -> SessionState:
         save_path=session.save_path,
         run_phase="active",
         menu_state=_menu_state_for_room(room_state),
-        opening_state=opening_state,
+        opening_state=None,
         command_history=list(session.command_history or []),
     )
 
@@ -784,11 +757,7 @@ def start_new_game_session(
     resolved_content_root = default_content_root() if content_root is None else Path(content_root)
     resolved_save_path = default_save_path() if save_path is None else Path(save_path)
     provider = StarterContentProvider(resolved_content_root)
-    opening_state = _build_opening_state_with_fallback(
-        seed=seed,
-        preferred_character_id=preferred_character_id,
-        registry=provider,
-    )
+    opening_state = build_opening_state(seed=seed, preferred_character_id=preferred_character_id, registry=provider)
     menu_mode = "opening_neow_offer" if opening_state.selected_character_id else "opening_character_select"
     return SessionState(
         run_state=None,
@@ -1042,11 +1011,7 @@ def _route_opening_character_select_menu(choice: str, session: SessionState) -> 
     if action_id is None or not action_id.startswith("select_character:"):
         return _invalid_menu_choice(session)
     character_id = action_id.split(":", 1)[1]
-    next_opening = _build_opening_state_with_fallback(
-        seed=opening_state.seed,
-        preferred_character_id=character_id,
-        registry=_content_provider(session),
-    )
+    next_opening = build_opening_state(seed=opening_state.seed, preferred_character_id=character_id, registry=_content_provider(session))
     next_session = replace(session, opening_state=next_opening, menu_state=MenuState(mode="opening_neow_offer"))
     return True, next_session, render_session(next_session)
 

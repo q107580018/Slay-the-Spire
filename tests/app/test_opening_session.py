@@ -25,4 +25,5 @@ def test_opening_neow_selection_starts_first_room_after_targetless_offer() -> No
 
     assert running is True
     assert next_session.run_phase == "active"
+    assert next_session.opening_state is None
     assert next_session.room_state.room_type == "combat"

@@ -29,6 +29,20 @@ def test_build_opening_state_generates_repeatable_neow_offers_for_same_seed() ->
     assert first.neow_offers == second.neow_offers
 
 
+def test_build_opening_state_seed_five_generates_stable_valid_neow_offers() -> None:
+    provider = _provider()
+
+    first = build_opening_state(seed=5, preferred_character_id="ironclad", registry=provider)
+    second = build_opening_state(seed=5, preferred_character_id="ironclad", registry=provider)
+
+    assert [offer.offer_id for offer in first.neow_offers] == ["free-1", "free-2", "tradeoff-1", "tradeoff-2"]
+    assert first.neow_offers == second.neow_offers
+    assert all(
+        offer.reward_kind != "relic" or isinstance(offer.reward_payload.get("relic_id"), str)
+        for offer in first.neow_offers
+    )
+
+
 def test_apply_neow_offer_adds_gold_and_keeps_run_replayable() -> None:
     provider = _provider()
     opening = build_opening_state(seed=11, preferred_character_id="ironclad", registry=provider)

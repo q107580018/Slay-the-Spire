@@ -84,7 +84,11 @@ def _pick_tradeoff_reward_kind(rng: Random) -> str:
 
 
 def _build_offer(offer_id: str, category: str, reward_kind: str, registry, rng: Random) -> NeowOffer:
-    reward_payload = _build_reward_payload(reward_kind=reward_kind, registry=registry, rng=rng)
+    reward_payload = _build_reward_payload(
+        reward_kind=reward_kind,
+        registry=registry,
+        rng=rng,
+    )
     requires_target = reward_kind if reward_kind in {"upgrade_card", "remove_card"} else None
     cost_kind, cost_payload = _build_cost_payload(reward_kind=reward_kind, rng=rng)
     summary, detail_lines = _build_description(reward_kind=reward_kind, reward_payload=reward_payload, cost_kind=cost_kind, cost_payload=cost_payload)
@@ -180,8 +184,17 @@ def _choose_relic_id(*, registry, rng: Random) -> str:
     relic_ids = [
         relic.id
         for relic in registry.relics().all()
-        if relic.can_appear_in_shop and relic.id not in {"burning_blood"}
+        if relic.id not in {"burning_blood", "circlet"}
+        and relic.replaces_relic_id is None
+        and not relic.blocks_gold_gain
+        and not relic.disabled_actions
     ]
+    if not relic_ids:
+        relic_ids = [
+            relic.id
+            for relic in registry.relics().all()
+            if relic.id not in {"burning_blood"} and relic.replaces_relic_id is None
+        ]
     return rng.choice(relic_ids)
 
 
