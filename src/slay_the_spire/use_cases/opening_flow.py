@@ -35,10 +35,13 @@ def apply_neow_offer(
     target_card_instance_id: str | None = None,
 ) -> OpeningState:
     offer = next(item for item in opening_state.neow_offers if item.offer_id == offer_id)
+    if offer.offer_id in opening_state.resolved_neow_offer_ids:
+        raise ValueError("neow offer has already been resolved")
     if offer.requires_target is not None and target_card_instance_id is None:
         return replace(opening_state, pending_neow_offer_id=offer.offer_id)
     if opening_state.run_blueprint is None:
         return replace(opening_state, pending_neow_offer_id=offer.offer_id)
+    _validate_target_for_offer(opening_state.run_blueprint, offer=offer, target_card_instance_id=target_card_instance_id, registry=registry)
     run_blueprint = _apply_cost(opening_state.run_blueprint, offer=offer)
     run_blueprint = _apply_reward(
         run_blueprint,
@@ -46,7 +49,12 @@ def apply_neow_offer(
         registry=registry,
         target_card_instance_id=target_card_instance_id,
     )
-    return replace(opening_state, run_blueprint=run_blueprint, pending_neow_offer_id=None)
+    return replace(
+        opening_state,
+        run_blueprint=run_blueprint,
+        pending_neow_offer_id=None,
+        resolved_neow_offer_ids=[*opening_state.resolved_neow_offer_ids, offer.offer_id],
+    )
 
 
 def _generate_neow_offers(*, seed: int, run_blueprint: RunState, registry) -> list[NeowOffer]:
@@ -240,7 +248,8 @@ def _apply_upgrade_card(run_blueprint: RunState, *, registry, target_card_instan
         return run_blueprint
     card_id = target_card_instance_id.split("#", 1)[0]
     upgraded_card_id = registry.cards().get(card_id).upgrades_to or card_id
-    upgraded_instance_id = _next_instance_id(run_blueprint.deck, upgraded_card_id)
+    _old_card_id, suffix = target_card_instance_id.split("#", 1)
+    upgraded_instance_id = f"{upgraded_card_id}#{suffix}"
     deck = [
         upgraded_instance_id if card_instance_id == target_card_instance_id else card_instance_id
         for card_instance_id in run_blueprint.deck
@@ -253,6 +262,28 @@ def _apply_remove_card(run_blueprint: RunState, *, target_card_instance_id: str 
         return run_blueprint
     deck = [card_instance_id for card_instance_id in run_blueprint.deck if card_instance_id != target_card_instance_id]
     return replace(run_blueprint, deck=deck, card_removal_count=run_blueprint.card_removal_count + 1)
+
+
+def _validate_target_for_offer(
+    run_blueprint: RunState,
+    *,
+    offer: NeowOffer,
+    target_card_instance_id: str | None,
+    registry,
+) -> None:
+    if offer.requires_target is None:
+        return
+    if target_card_instance_id is None:
+        return
+    if target_card_instance_id not in run_blueprint.deck:
+        raise ValueError("target card is not in deck")
+    card_id = target_card_instance_id.split("#", 1)[0]
+    card_def = registry.cards().get(card_id)
+    if offer.requires_target == "upgrade_card" and card_def.upgrades_to is None:
+        raise ValueError("target card cannot be upgraded")
+    if offer.requires_target == "remove_card":
+        return
+    raise ValueError("unsupported target requirement")
 
 
 def _next_instance_id(deck: list[str], card_id: str) -> str:

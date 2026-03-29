@@ -1,4 +1,8 @@
+from dataclasses import replace
+from copy import deepcopy
 from random import Random
+
+import pytest
 
 from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.use_cases import opening_flow
@@ -22,7 +26,7 @@ def test_build_opening_state_generates_repeatable_neow_offers_for_same_seed() ->
 
     assert first.selected_character_id == "ironclad"
     assert first.run_blueprint is not None
-    assert [offer.offer_id for offer in first.neow_offers] == [offer.offer_id for offer in second.neow_offers]
+    assert first.neow_offers == second.neow_offers
 
 
 def test_apply_neow_offer_adds_gold_and_keeps_run_replayable() -> None:
@@ -33,7 +37,7 @@ def test_apply_neow_offer_adds_gold_and_keeps_run_replayable() -> None:
     updated = apply_neow_offer(opening, offer.offer_id, registry=provider)
 
     assert updated.run_blueprint is not None
-    assert updated.run_blueprint.gold >= 199
+    assert updated.run_blueprint.gold == 199
     assert updated.pending_neow_offer_id is None
 
 
@@ -48,3 +52,29 @@ def test_build_offer_marks_targeted_rewards_with_specific_requires_target_semant
     assert upgrade_offer.requires_target == "upgrade_card"
     assert remove_offer.requires_target == "remove_card"
     assert gold_offer.requires_target is None
+
+
+def test_apply_neow_offer_rejects_duplicate_resolution() -> None:
+    provider = _provider()
+    opening = build_opening_state(seed=11, preferred_character_id="ironclad", registry=provider)
+    offer = next(item for item in opening.neow_offers if item.reward_kind == "gold")
+
+    updated = apply_neow_offer(opening, offer.offer_id, registry=provider)
+
+    with pytest.raises(ValueError, match="already been resolved"):
+        apply_neow_offer(updated, offer.offer_id, registry=provider)
+
+
+def test_apply_neow_offer_rejects_invalid_target_before_changing_run_state() -> None:
+    provider = _provider()
+    opening = build_opening_state(seed=11, preferred_character_id="ironclad", registry=provider)
+    offer = opening_flow._build_offer("upgrade", "tradeoff", "upgrade_card", provider, Random(0))
+    opening = replace(opening, neow_offers=[offer])
+    before_run_state = deepcopy(opening.run_blueprint.to_dict()) if opening.run_blueprint is not None else None
+
+    with pytest.raises(ValueError, match="target card is not in deck"):
+        apply_neow_offer(opening, offer.offer_id, registry=provider, target_card_instance_id="missing#1")
+
+    assert opening.run_blueprint is not None
+    assert opening.run_blueprint.to_dict() == before_run_state
+    assert opening.pending_neow_offer_id is None

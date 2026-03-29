@@ -26,3 +26,4 @@ class OpeningState:
     run_blueprint: RunState | None
     neow_offers: list[NeowOffer] = field(default_factory=list)
     pending_neow_offer_id: str | None = None
+    resolved_neow_offer_ids: list[str] = field(default_factory=list)
