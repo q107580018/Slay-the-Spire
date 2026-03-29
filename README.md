@@ -8,11 +8,13 @@
 
 - 当前角色：`ironclad`
 - 当前章节：`act1`、`act2`
+- 当前开局流程：`new` 先进入 opening；不传 `--character` 时先选角色，传 `--character` 时直接进入 `Neow`
 - 当前主路径：`act1` Boss 宝箱后进入 `act2`，`act2` Boss 宝箱后进入最终 `victory`
 - 当前房间类型：普通战斗、事件、精英、商店、休息点、宝箱、Boss、Boss 宝箱
 - 当前支持：分支地图、战斗奖励、Boss 奖励、遗物/药水/商店、休息点升级、JSON 存读档
 - 当前部分敌人已具备原版核心 debuff 行为，例如 `lagavulin` 的 `Siphon Soul` 会使玩家失去力量与敏捷
 - 当前战斗结算已支持正负力量与敏捷修正；负力量会降低伤害，负敏捷会降低获得的格挡，最低按 `0` 结算
+- 当前支持：opening 角色选择、`Neow` 奖励与目标卡子菜单、分支地图、战斗奖励、Boss 奖励、遗物/药水/商店、休息点升级、JSON 存读档
 - 当前默认交互：Textual TUI，底层复用共享的 `rich` 渲染和 inspect 组件
 
 项目仍处于开发阶段，玩法覆盖率和交互细节都会继续调整；以代码和测试为准，不以旧文档为准。
@@ -46,13 +48,15 @@ uv run python -m slay_the_spire.app.cli new --seed 5
 `new` 当前支持的参数：
 
 - `--seed`
-- `--character`，默认 `ironclad`
+- `--character`
 - `--content-root`
 - `--save-path`
 
 说明：
 
 - 不传 `--seed` 时会自动生成随机 seed。
+- 不传 `--character` 时会进入 opening 角色选择；传 `--character ironclad` 时会跳过角色页直接进入 `Neow`。
+- opening 阶段仍使用右侧编号菜单，但不会显示真实地图，也不支持 `save/load`。
 - 旧的 `--ui` 参数已经移除；默认且唯一界面就是 Textual。
 
 ### 3. 读取存档

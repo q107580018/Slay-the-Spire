@@ -1,11 +1,13 @@
 from dataclasses import replace
+from random import Random
 
 from rich.console import Console
 
 from slay_the_spire.adapters.presentation.renderer import render_room
 from slay_the_spire.adapters.presentation.theme import TERMINAL_THEME
-from slay_the_spire.app.session import MenuState, start_session
+from slay_the_spire.app.session import MenuState, render_session_renderable, start_new_game_session, start_session
 from slay_the_spire.content.provider import StarterContentProvider
+from slay_the_spire.use_cases import opening_flow
 
 
 def _provider(session):
@@ -35,3 +37,52 @@ def test_render_room_from_presentation_package() -> None:
 
     rendered = console.export_text(clear=False)
     assert "卡牌 愤怒" in rendered
+
+
+def test_render_session_renderable_supports_opening_target_menu() -> None:
+    session = start_new_game_session(seed=5, preferred_character_id="ironclad")
+    provider = StarterContentProvider(session.content_root)
+    offer = opening_flow._build_offer("remove_card", "tradeoff", "remove_card", provider, Random(0))
+    session = replace(
+        session,
+        opening_state=replace(session.opening_state, neow_offers=[offer], pending_neow_offer_id=offer.offer_id),
+        menu_state=MenuState(mode="opening_neow_remove_card"),
+    )
+
+    console = Console(
+        width=100,
+        record=True,
+        force_terminal=False,
+        color_system=None,
+        theme=TERMINAL_THEME,
+    )
+    console.print(render_session_renderable(session))
+
+    rendered = console.export_text(clear=False)
+    assert "选择要移除的卡牌" in rendered
+    assert "Neow 赐福:" not in rendered
+
+
+def test_render_session_renderable_localizes_neow_reward_names() -> None:
+    session = start_new_game_session(seed=5, preferred_character_id="ironclad")
+    provider = StarterContentProvider(session.content_root)
+    offer = opening_flow._build_offer("rare-card", "free", "rare_card", provider, Random(0))
+    localized_name = provider.cards().get(str(offer.reward_payload["card_id"])).name
+    session = replace(
+        session,
+        opening_state=replace(session.opening_state, neow_offers=[offer]),
+        menu_state=MenuState(mode="opening_neow_offer"),
+    )
+
+    console = Console(
+        width=100,
+        record=True,
+        force_terminal=False,
+        color_system=None,
+        theme=TERMINAL_THEME,
+    )
+    console.print(render_session_renderable(session))
+
+    rendered = console.export_text(clear=False)
+    assert localized_name in rendered
+    assert str(offer.reward_payload["card_id"]) not in rendered

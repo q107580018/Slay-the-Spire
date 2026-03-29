@@ -4,7 +4,7 @@ import argparse
 import secrets
 
 from slay_the_spire.adapters.textual.textual_runner import run_textual_session
-from slay_the_spire.app.session import load_session, start_session
+from slay_the_spire.app.session import load_session, start_new_game_session
 
 
 def _generate_seed() -> int:
@@ -17,7 +17,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     new_parser = subparsers.add_parser("new")
     new_parser.add_argument("--seed", type=int)
-    new_parser.add_argument("--character", default="ironclad")
+    new_parser.add_argument("--character")
     new_parser.add_argument("--content-root")
     new_parser.add_argument("--save-path")
 
@@ -36,9 +36,9 @@ def main(argv: list[str] | None = None) -> int:
         return int(exc.code)
 
     if args.command == "new":
-        session = start_session(
+        session = start_new_game_session(
             seed=args.seed if args.seed is not None else _generate_seed(),
-            character_id=args.character,
+            preferred_character_id=args.character,
             content_root=args.content_root,
             save_path=args.save_path,
         )

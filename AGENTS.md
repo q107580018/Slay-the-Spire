@@ -29,6 +29,7 @@
 ## 当前功能事实（以代码为准）
 
 - 当前只有 1 个角色：`ironclad`。
+- 当前 `new` 流程会先进入独立 `opening` 阶段；不传 `--character` 时先显示角色选择，传角色时直接进入 `Neow`。
 - 当前已有 2 幕：`act1`、`act2`。
 - `act1` Boss 奖励领取并离开 Boss 宝箱后会进入 `act2`；`act2` Boss 奖励领取并离开 Boss 宝箱后会进入最终 `victory`。
 - 当前地图按 `content/acts/*.json` 的 `map_config` 生成分支路径，不是固定单线。
@@ -66,6 +67,10 @@
 - 当前休息点支持至少“恢复生命”和“升级 1 张牌”。
 - 当前 `coffee_dripper` 会禁用休息回血，`fusion_hammer` 会禁用休息点锻造，`ectoplasm` 会阻止获得金币。
 - 终端交互主路径走 `route_menu_choice()` 的编号菜单，不是自由文本命令模式。
+- opening 阶段不是地图房间：此时 `act_state` / `room_state` 为空，左侧不显示真实地图，进入 active run 后才恢复地图组件。
+- opening 当前包含 `opening_character_select`、`opening_neow_offer`、`opening_neow_upgrade_card`、`opening_neow_remove_card` 四种菜单模式。
+- `Neow` 中需要目标卡的选项会先进入子菜单；确认目标卡后才真正结算并进入 Act1，`back` 会返回 `Neow` 主菜单。
+- opening 阶段默认禁止真正 `save/load`。
 - 查看页已覆盖角色状态、牌组、遗物、药水、敌人详情、卡牌详情等 inspect 菜单。
 - CLI 支持：
   - `uv run python -m slay_the_spire.app.cli new`
@@ -75,6 +80,7 @@
   - `uv run slay-the-spire new --seed 5`
   - `uv run slay-the-spire load --save-path saves/latest.json`
 - `new` 可选 `--seed`、`--character`、`--content-root`、`--save-path`；不传 `--seed` 时会自动生成随机 seed。
+- `--character` 不再有默认角色；不传时进入角色选择，显式传入时跳过角色页直达 `Neow`。
 - `load` 可选 `--content-root`、`--save-path`；不传 `--save-path` 时默认读取 `./saves/latest.json`。
 - 旧的 `--ui` 参数已删除；默认且唯一界面就是 Textual。
 - 默认存档路径是 `./saves/latest.json`。

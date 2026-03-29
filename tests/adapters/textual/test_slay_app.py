@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import replace
-
 from io import StringIO
+from random import Random
 
 import pytest
 from rich.console import Console
@@ -21,11 +21,19 @@ from slay_the_spire.adapters.textual.slay_app import (
     _render_to_rich,
 )
 from slay_the_spire.app.menu_definitions import build_next_room_menu, build_root_menu
-from slay_the_spire.app.session import MenuState, render_session_renderable, start_session
+from slay_the_spire.app.session import (
+    MenuState,
+    build_opening_action_menu,
+    render_session_renderable,
+    start_new_game_session,
+    start_session,
+)
+from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.domain.models.act_state import ActNodeState, ActState
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
 from slay_the_spire.domain.models.room_state import RoomState
+from slay_the_spire.use_cases import opening_flow
 
 
 def _span_styles(text) -> set[str]:
@@ -78,6 +86,34 @@ def test_current_action_menu_matches_root_menu() -> None:
     assert menu.options[0].action_id == "play_card"
 
 
+def test_current_action_menu_supports_opening_character_select() -> None:
+    session = start_new_game_session(seed=5)
+
+    menu = _current_action_menu(session)
+
+    assert menu is not None
+    assert menu.title == "选择角色"
+    assert menu.options[0].action_id == "select_character:ironclad"
+
+
+def test_current_action_menu_supports_opening_upgrade_target_menu() -> None:
+    session = start_new_game_session(seed=5, preferred_character_id="ironclad")
+    provider = StarterContentProvider(session.content_root)
+    offer = opening_flow._build_offer("upgrade_card", "tradeoff", "upgrade_card", provider, Random(0))
+    session = replace(
+        session,
+        opening_state=replace(session.opening_state, neow_offers=[offer], pending_neow_offer_id=offer.offer_id),
+        menu_state=MenuState(mode="opening_neow_upgrade_card"),
+    )
+
+    menu = _current_action_menu(session)
+
+    assert menu is not None
+    assert menu.title == "选择要升级的卡牌"
+    assert menu.options[0].action_id.startswith("upgrade_card:")
+    assert menu.options[-1].action_id == "back"
+
+
 def test_current_action_menu_shows_potion_menu_when_potions_exist() -> None:
     session = replace(
         start_session(seed=5),
@@ -88,6 +124,102 @@ def test_current_action_menu_shows_potion_menu_when_potions_exist() -> None:
 
     assert menu is not None
     assert menu.options[1].action_id == "use_potion"
+
+
+def test_slay_app_can_mount_opening_session() -> None:
+    async def scenario() -> None:
+        app = SlayApp(start_new_game_session(seed=5))
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            summary = app.query_one("#action-summary", Static)
+            assert "选择角色" in summary.render().plain
+
+    asyncio.run(scenario())
+
+
+def test_hover_preview_shows_localized_neow_offer_details() -> None:
+    session = start_new_game_session(seed=5, preferred_character_id="ironclad")
+    provider = StarterContentProvider(session.content_root)
+    offer = opening_flow._build_offer("rare-card", "free", "rare_card", provider, Random(0))
+    localized_name = provider.cards().get(str(offer.reward_payload["card_id"])).name
+    session = replace(session, opening_state=replace(session.opening_state, neow_offers=[offer]))
+
+    preview = _hover_preview_renderable(session, f"choose_neow_offer:{offer.offer_id}")
+
+    assert preview is not None
+    assert localized_name in preview.plain
+    assert str(offer.reward_payload["card_id"]) not in preview.plain
+
+
+def test_hover_preview_shows_opening_target_card_details() -> None:
+    session = start_new_game_session(seed=5, preferred_character_id="ironclad")
+    provider = StarterContentProvider(session.content_root)
+    offer = opening_flow._build_offer("upgrade-card", "tradeoff", "upgrade_card", provider, Random(0))
+    session = replace(
+        session,
+        opening_state=replace(session.opening_state, neow_offers=[offer], pending_neow_offer_id=offer.offer_id),
+        menu_state=MenuState(mode="opening_neow_upgrade_card"),
+    )
+    target_action = build_opening_action_menu(session).options[0].action_id
+
+    preview = _hover_preview_renderable(session, target_action)
+
+    assert preview is not None
+    assert "费用" in preview.plain
+    assert "效果" in preview.plain
+
+
+def test_opening_hover_preview_panel_shows_guidance_for_neow_menu() -> None:
+    async def scenario() -> None:
+        app = SlayApp(start_new_game_session(seed=5, preferred_character_id="ironclad"))
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            preview = app.query_one("#hover-preview", Static)
+            assert "查看说明" in preview.render().plain
+
+    asyncio.run(scenario())
+
+
+def test_hover_preview_shows_character_summary_in_opening_character_select() -> None:
+    session = start_new_game_session(seed=5)
+
+    preview = _hover_preview_renderable(session, "select_character:ironclad")
+
+    assert preview is not None
+    assert "角色：铁甲战士" in preview.plain
+    assert "起始生命：80" in preview.plain
+
+
+def test_textual_opening_targeted_neow_flow_enters_active_run() -> None:
+    async def scenario() -> None:
+        session = start_new_game_session(seed=5, preferred_character_id="ironclad")
+        provider = StarterContentProvider(session.content_root)
+        offer = opening_flow._build_offer("upgrade_card", "tradeoff", "upgrade_card", provider, Random(0))
+        session = replace(session, opening_state=replace(session.opening_state, neow_offers=[offer]))
+        app = SlayApp(session)
+
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            app._process_command("1")
+            await pilot.pause()
+            assert app._session.run_phase == "opening"
+            assert app._session.menu_state.mode == "opening_neow_upgrade_card"
+
+            app._process_command("1")
+            await pilot.pause()
+
+            opening_panel = app.query_one("#opening-panel", Static)
+            map_widget = app.query_one("#map-widget", MapWidget)
+            summary = app.query_one("#action-summary", Static)
+
+            assert app._session.run_phase == "active"
+            assert app._session.opening_state is None
+            assert app._session.room_state.room_type == "combat"
+            assert opening_panel.display is False
+            assert map_widget.display is True
+            assert "可选操作" in summary.render().plain
+
+    asyncio.run(scenario())
 
 
 def test_current_action_menu_marks_disabled_rest_actions() -> None:
