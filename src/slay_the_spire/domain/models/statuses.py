@@ -38,8 +38,8 @@ class StatusState:
             self.duration = _require_int(self.duration, "duration")
         if not self.status_id:
             raise ValueError("status_id must not be empty")
-        if self.stacks <= 0:
-            raise ValueError("stacks must be positive")
+        if self.stacks == 0:
+            raise ValueError("stacks must not be zero")
         if self.duration is not None and self.duration <= 0:
             raise ValueError("duration must be positive when provided")
 
