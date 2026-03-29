@@ -72,16 +72,22 @@ def test_main_new_run_dispatches_first_room_to_textual(monkeypatch) -> None:
     recorded: dict[str, object] = {}
 
     def fake_run_textual_session(*, session: SessionState) -> None:
-        recorded["seed"] = session.run_state.seed
-        recorded["room_type"] = session.room_state.room_type
         recorded["run_phase"] = session.run_phase
+        recorded["menu_mode"] = session.menu_state.mode
+        recorded["seed"] = session.opening_state.seed
+        recorded["selected_character_id"] = session.opening_state.selected_character_id
 
     monkeypatch.setattr("slay_the_spire.app.cli.run_textual_session", fake_run_textual_session)
 
     exit_code = main(["new", "--seed", "1"])
 
     assert exit_code == 0
-    assert recorded == {"seed": 1, "room_type": "combat", "run_phase": "active"}
+    assert recorded == {
+        "run_phase": "opening",
+        "menu_mode": "opening_character_select",
+        "seed": 1,
+        "selected_character_id": None,
+    }
 
 
 def test_single_act_smoke_simulates_map_shop_rest_and_boss_reward_transition_into_act2() -> None:

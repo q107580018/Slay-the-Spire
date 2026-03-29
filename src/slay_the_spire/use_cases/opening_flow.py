@@ -296,6 +296,8 @@ def _validate_target_for_offer(
     card_def = registry.cards().get(card_id)
     if offer.requires_target == "upgrade_card" and card_def.upgrades_to is None:
         raise ValueError("target card cannot be upgraded")
+    if offer.requires_target == "upgrade_card":
+        return
     if offer.requires_target == "remove_card":
         return
     raise ValueError("unsupported target requirement")

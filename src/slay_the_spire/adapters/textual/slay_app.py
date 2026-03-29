@@ -13,6 +13,7 @@ from textual.css.query import NoMatches
 from textual.widgets import Footer, Header, OptionList, RichLog, Static
 
 from slay_the_spire.adapters.presentation.theme import TERMINAL_THEME
+from slay_the_spire.adapters.presentation.opening_renderer import render_opening_summary_panel
 from slay_the_spire.adapters.textual.map_widget import MapWidget
 from slay_the_spire.app.inspect_registry import COMBAT_INSPECT_CARD_LIST_MODES, inspect_leaf_title
 from slay_the_spire.app.map_labels import format_next_room_labels
@@ -45,6 +46,7 @@ from slay_the_spire.app.menu_definitions import (
 from slay_the_spire.app.session import (
     SessionState,
     _content_provider,
+    build_opening_action_menu,
     render_session_renderable,
     route_menu_choice,
 )
@@ -415,6 +417,9 @@ def _build_target_action_menu(session: SessionState) -> MenuDefinition | None:
 
 
 def _current_action_menu(session: SessionState) -> MenuDefinition | None:
+    if session.run_phase == "opening":
+        return build_opening_action_menu(session)
+
     registry = _content_provider(session)
     room_state = session.room_state
     menu_mode = session.menu_state.mode
@@ -625,6 +630,7 @@ class SlayApp(App[None]):
             # 左侧：地图 + 战斗摘要
             with Vertical(id="left-panel"):
                 with Vertical(id="map-panel"):
+                    yield Static("", id="opening-panel")
                     yield MapWidget(self._session.act_state, id="map-widget")
                 yield Static("", id="combat-summary")
             # 右侧：日志 + 输入
@@ -637,6 +643,7 @@ class SlayApp(App[None]):
         yield Footer()
 
     def on_mount(self) -> None:
+        self._refresh_map()
         self._refresh_log()
         self._refresh_combat_summary()
         self._refresh_actions()
@@ -652,10 +659,26 @@ class SlayApp(App[None]):
     def _refresh_map(self) -> None:
         try:
             map_widget = self.query_one("#map-widget", MapWidget)
+        except NoMatches:
+            map_widget = None
+        try:
+            opening_panel = self.query_one("#opening-panel", Static)
+        except NoMatches:
+            opening_panel = None
+        if self._session.run_phase == "opening":
+            if opening_panel is not None:
+                opening_panel.update(render_opening_summary_panel(self._session.opening_state, registry=_content_provider(self._session)))
+                opening_panel.display = True
+            if map_widget is not None:
+                map_widget.update_act(None)
+                map_widget.display = False
+            return
+        if opening_panel is not None:
+            opening_panel.display = False
+        if map_widget is not None:
             map_widget.set_route_preview_enabled(True)
             map_widget.update_act(self._session.act_state)
-        except NoMatches:
-            pass
+            map_widget.display = True
 
     def _refresh_combat_summary(self) -> None:
         summary = self.query_one("#combat-summary", Static)

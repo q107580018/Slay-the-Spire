@@ -7,7 +7,9 @@ from typing import Callable
 from rich.console import RenderableType
 from rich.text import Text
 
+from slay_the_spire.adapters.presentation.opening_renderer import render_opening_screen, render_opening_text
 from slay_the_spire.adapters.presentation.renderer import render_room, render_room_renderable
+from slay_the_spire.adapters.presentation.widgets import render_card_name
 from slay_the_spire.adapters.persistence.save_files import JsonFileSaveRepository
 from slay_the_spire.app.map_labels import format_next_room_labels
 from slay_the_spire.app.menu_definitions import (
@@ -242,6 +244,54 @@ def _build_opening_neow_menu(session: SessionState):
         ]
     )
     return build_menu(title="Neow 赐福", options=options)
+
+
+def _build_opening_target_card_menu(
+    session: SessionState,
+    *,
+    title: str,
+    action_prefix: str,
+    upgrade_only: bool,
+):
+    opening_state = session.opening_state
+    if opening_state is None or opening_state.run_blueprint is None:
+        return build_menu(title=title, options=[("back", "返回上一步")], header_lines=["当前没有可选卡牌。"])
+    provider = _content_provider(session)
+    options: list[tuple[str, str | Text]] = []
+    for card_instance_id in opening_state.run_blueprint.deck:
+        card_def = provider.cards().get(card_id_from_instance_id(card_instance_id))
+        if upgrade_only and card_def.upgrades_to is None:
+            continue
+        options.append(
+            (
+                f"{action_prefix}:{card_instance_id}",
+                Text.assemble(render_card_name(card_def), f" ({card_instance_id})"),
+            )
+        )
+    options.append(("back", "返回上一步"))
+    return build_menu(title=title, options=options)
+
+
+def build_opening_action_menu(session: SessionState):
+    if session.menu_state.mode == "opening_character_select":
+        return _build_opening_character_menu(session)
+    if session.menu_state.mode == "opening_neow_offer":
+        return _build_opening_neow_menu(session)
+    if session.menu_state.mode == "opening_neow_upgrade_card":
+        return _build_opening_target_card_menu(
+            session,
+            title="选择要升级的卡牌",
+            action_prefix="upgrade_card",
+            upgrade_only=True,
+        )
+    if session.menu_state.mode == "opening_neow_remove_card":
+        return _build_opening_target_card_menu(
+            session,
+            title="选择要移除的卡牌",
+            action_prefix="remove_card",
+            upgrade_only=False,
+        )
+    return None
 
 
 def _menu_state_for_room(room_state: RoomState) -> MenuState:
@@ -804,22 +854,15 @@ def render_session(session: SessionState) -> str:
         opening_state = session.opening_state
         if opening_state is None:
             return "开场状态不可用。"
-
-        def _menu_lines(menu) -> list[str]:
-            lines = [f"{menu.title}:"]
-            lines.extend(str(line) if not isinstance(line, Text) else line.plain for line in menu.header_lines)
-            lines.extend(
-                f"{index}. {option.label.plain if isinstance(option.label, Text) else option.label}"
-                for index, option in enumerate(menu.options, start=1)
-            )
-            return lines
-
-        if session.menu_state.mode == "opening_character_select":
-            menu = _build_opening_character_menu(session)
-            return "\n".join(["欢迎来到尖塔。", *_menu_lines(menu)])
-        menu = _build_opening_neow_menu(session)
-        selected_character_id = opening_state.selected_character_id or "未选择角色"
-        return "\n".join([f"已选择角色：{selected_character_id}", *_menu_lines(menu)])
+        menu = build_opening_action_menu(session)
+        if menu is None:
+            return "开场菜单不可用。"
+        return render_opening_text(
+            opening_state=opening_state,
+            menu=menu,
+            menu_mode=session.menu_state.mode,
+            registry=_content_provider(session),
+        )
     return render_room(
         run_state=_require_active_run_state(session),
         act_state=_require_active_act_state(session),
@@ -832,7 +875,18 @@ def render_session(session: SessionState) -> str:
 
 def render_session_renderable(session: SessionState) -> RenderableType:
     if session.run_phase == "opening":
-        return render_session(session)
+        opening_state = session.opening_state
+        if opening_state is None:
+            return "开场状态不可用。"
+        menu = build_opening_action_menu(session)
+        if menu is None:
+            return "开场菜单不可用。"
+        return render_opening_screen(
+            opening_state=opening_state,
+            menu=menu,
+            menu_mode=session.menu_state.mode,
+            registry=_content_provider(session),
+        )
     return render_room_renderable(
         run_state=_require_active_run_state(session),
         act_state=_require_active_act_state(session),
@@ -1033,8 +1087,66 @@ def _route_opening_neow_offer_menu(choice: str, session: SessionState) -> tuple[
     except (KeyError, StopIteration, ValueError) as exc:
         return True, session, str(exc)
     if next_opening.pending_neow_offer_id is not None:
-        next_session = replace(session, opening_state=next_opening)
+        offer = next((item for item in next_opening.neow_offers if item.offer_id == next_opening.pending_neow_offer_id), None)
+        next_mode = "opening_neow_offer"
+        if offer is not None and offer.requires_target == "upgrade_card":
+            next_mode = "opening_neow_upgrade_card"
+        elif offer is not None and offer.requires_target == "remove_card":
+            next_mode = "opening_neow_remove_card"
+        next_session = replace(session, opening_state=next_opening, menu_state=MenuState(mode=next_mode))
         return True, next_session, _message_with_render(next_session, "该 Neow 选项需要先选择目标卡牌。")
+    next_session = replace(session, opening_state=next_opening)
+    active_session = _start_active_session_from_blueprint(next_session)
+    return True, active_session, render_session(active_session)
+
+
+def _opening_neow_offer_session(session: SessionState, opening_state: OpeningState) -> SessionState:
+    return replace(
+        session,
+        opening_state=replace(opening_state, pending_neow_offer_id=None),
+        menu_state=MenuState(mode="opening_neow_offer"),
+    )
+
+
+def _route_opening_neow_target_menu(
+    choice: str,
+    session: SessionState,
+    *,
+    expected_target: str,
+    action_prefix: str,
+) -> tuple[bool, SessionState, str]:
+    opening_state = session.opening_state
+    if opening_state is None:
+        return True, session, "opening 状态不可用。"
+    pending_offer_id = opening_state.pending_neow_offer_id
+    if not isinstance(pending_offer_id, str) or not pending_offer_id:
+        fallback_session = _opening_neow_offer_session(session, opening_state)
+        return True, fallback_session, _message_with_render(fallback_session, "Neow 选项已失效，已返回主菜单。")
+    offer = next((item for item in opening_state.neow_offers if item.offer_id == pending_offer_id), None)
+    if offer is None or offer.requires_target != expected_target:
+        fallback_session = _opening_neow_offer_session(session, opening_state)
+        return True, fallback_session, _message_with_render(fallback_session, "Neow 选项已失效，已返回主菜单。")
+    menu = build_opening_action_menu(session)
+    if menu is None:
+        fallback_session = _opening_neow_offer_session(session, opening_state)
+        return True, fallback_session, _message_with_render(fallback_session, "Neow 选项已失效，已返回主菜单。")
+    action_id = resolve_menu_action(choice, menu)
+    if action_id == "back":
+        fallback_session = _opening_neow_offer_session(session, opening_state)
+        return True, fallback_session, render_session(fallback_session)
+    if action_id is None or not action_id.startswith(f"{action_prefix}:"):
+        return _invalid_menu_choice(session)
+    target_card_instance_id = action_id.split(":", 1)[1]
+    try:
+        next_opening = apply_neow_offer(
+            opening_state,
+            pending_offer_id,
+            registry=_content_provider(session),
+            target_card_instance_id=target_card_instance_id,
+        )
+    except (KeyError, StopIteration, ValueError):
+        fallback_session = _opening_neow_offer_session(session, opening_state)
+        return True, fallback_session, _message_with_render(fallback_session, "目标卡牌无效，已返回 Neow 主菜单。")
     next_session = replace(session, opening_state=next_opening)
     active_session = _start_active_session_from_blueprint(next_session)
     return True, active_session, render_session(active_session)
@@ -1882,6 +1994,20 @@ def _route_menu_choice_legacy(choice: str, *, session: SessionState) -> tuple[bo
         return _route_opening_character_select_menu(choice.strip(), next_session)
     if next_session.menu_state.mode == "opening_neow_offer":
         return _route_opening_neow_offer_menu(choice.strip(), next_session)
+    if next_session.menu_state.mode == "opening_neow_upgrade_card":
+        return _route_opening_neow_target_menu(
+            choice.strip(),
+            next_session,
+            expected_target="upgrade_card",
+            action_prefix="upgrade_card",
+        )
+    if next_session.menu_state.mode == "opening_neow_remove_card":
+        return _route_opening_neow_target_menu(
+            choice.strip(),
+            next_session,
+            expected_target="remove_card",
+            action_prefix="remove_card",
+        )
     if next_session.menu_state.mode == "root":
         return _route_root_menu(choice.strip(), next_session)
     if next_session.menu_state.mode == "select_card":

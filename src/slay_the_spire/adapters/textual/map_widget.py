@@ -191,10 +191,14 @@ class MapWidget(ScrollView):
 
     _hovered: reactive[str | None] = reactive(None, repaint=False)
 
-    def __init__(self, act_state: "ActState", **kwargs: object) -> None:
+    def __init__(self, act_state: "ActState | None", **kwargs: object) -> None:
         super().__init__(**kwargs)
         self._act_state = act_state
-        self._layout = build_vertical_map_layout(act_state)
+        self._layout = (
+            build_vertical_map_layout(act_state)
+            if act_state is not None
+            else VerticalMapLayout({}, {}, [], 0, 0, [])
+        )
         self._canvas_lines: list[str] = []
         self._style_rows: list[list[Style]] = []
         self._node_regions: dict[str, tuple[int, int, int, int]] = {}
@@ -227,6 +231,10 @@ class MapWidget(ScrollView):
         self.refresh()
 
     def _refresh_route_preview(self) -> None:
+        if self._act_state is None:
+            self._route_preview_root = None
+            self._route_preview_node_ids = set()
+            return
         if not self._route_preview_enabled:
             self._route_preview_root = None
             self._route_preview_node_ids = set()
@@ -243,13 +251,22 @@ class MapWidget(ScrollView):
         self._route_preview_root = preview_root
         self._route_preview_node_ids = _reachable_descendants(self._act_state, preview_root)
 
-    def update_act(self, act_state: "ActState") -> None:
+    def update_act(self, act_state: "ActState | None") -> None:
         self._act_state = act_state
         self._rebuild()
         self.refresh()
         self.call_after_refresh(self.center_on_current_node)
 
     def _rebuild(self) -> None:
+        if self._act_state is None:
+            self._canvas_lines = []
+            self._node_regions = {}
+            self._canvas_size = Size(0, 0)
+            self._route_preview_root = None
+            self._route_preview_node_ids = set()
+            self._style_rows = []
+            self.virtual_size = self._canvas_size
+            return
         layout = build_vertical_map_layout(self._act_state)
         self._layout = layout
         self._canvas_lines = list(layout.canvas_lines)
@@ -314,6 +331,8 @@ class MapWidget(ScrollView):
         return None
 
     def _current_node_region(self) -> Region | None:
+        if self._act_state is None:
+            return None
         current_node_id = self._act_state.current_node_id
         region_data = self._node_regions.get(current_node_id)
         if region_data is None:
@@ -364,6 +383,8 @@ class MapWidget(ScrollView):
         from textual.events import Click
 
         if not isinstance(event, Click):
+            return
+        if self._act_state is None:
             return
         cx = event.x + int(self.scroll_x)
         cy = event.y + int(self.scroll_y)
