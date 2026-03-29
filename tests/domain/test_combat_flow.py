@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from slay_the_spire.adapters.presentation.widgets import summarize_enemy_move_preview
 from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.content.registries import CardRegistry, EnemyRegistry
 from slay_the_spire.domain.combat.turn_flow import (
@@ -273,8 +274,8 @@ def test_lagavulin_cycles_attack_siphon_soul_then_attack_after_sleep() -> None:
                 {
                     "move": "siphon_soul",
                     "effects": [
-                        {"type": "strength", "amount": -2},
-                        {"type": "dexterity", "amount": -2},
+                        {"type": "strength", "amount": -2, "target": "player"},
+                        {"type": "dexterity", "amount": -2, "target": "player"},
                     ],
                 },
                 {"move": "heavy_slam", "effects": [{"type": "damage", "amount": 18}]},
@@ -304,6 +305,7 @@ def test_lagavulin_cycles_attack_siphon_soul_then_attack_after_sleep() -> None:
 
     assert [effect["type"] for effect in attack] == ["damage"]
     assert [effect["type"] for effect in siphon] == ["strength", "dexterity"]
+    assert [effect["target_instance_id"] for effect in siphon] == ["player-1", "player-1"]
     assert state.player.statuses == [
         StatusState(status_id="strength", stacks=-2),
         StatusState(status_id="dexterity", stacks=-2),
@@ -324,8 +326,8 @@ def test_preview_enemy_move_reports_lagavulin_siphon_soul_after_opening_attack()
                 {
                     "move": "siphon_soul",
                     "effects": [
-                        {"type": "strength", "amount": -2},
-                        {"type": "dexterity", "amount": -2},
+                        {"type": "strength", "amount": -2, "target": "player"},
+                        {"type": "dexterity", "amount": -2, "target": "player"},
                     ],
                 },
                 {"move": "heavy_slam", "effects": [{"type": "damage", "amount": 18}]},
@@ -342,6 +344,99 @@ def test_preview_enemy_move_reports_lagavulin_siphon_soul_after_opening_attack()
 
     assert preview is not None
     assert preview["move"] == "siphon_soul"
+
+
+def test_lagavulin_siphon_soul_logs_strength_and_dexterity_loss() -> None:
+    registry = _Registry()
+    registry.enemies().register(
+        {
+            "id": "lagavulin",
+            "name": "Lagavulin",
+            "hp": 109,
+            "move_table": [
+                {"move": "sleep", "sleep_turns": 3},
+                {"move": "heavy_slam", "effects": [{"type": "damage", "amount": 18}]},
+                {
+                    "move": "siphon_soul",
+                    "effects": [
+                        {"type": "strength", "amount": -2, "target": "player"},
+                        {"type": "dexterity", "amount": -2, "target": "player"},
+                    ],
+                },
+                {"move": "heavy_slam", "effects": [{"type": "damage", "amount": 18}]},
+            ],
+            "intent_policy": "scripted",
+        }
+    )
+    state = _combat_state()
+    state.round_number = 5
+    state.enemies[0].enemy_id = "lagavulin"
+    state.enemies[0].statuses = []
+
+    run_end_turn(state, registry)
+
+    assert state.log == ["Lagavulin，并使你失去 2 力量，并使你失去 2 敏捷。"]
+
+
+def test_preview_enemy_move_for_display_summarizes_lagavulin_siphon_soul_as_loss() -> None:
+    registry = _Registry()
+    registry.enemies().register(
+        {
+            "id": "lagavulin",
+            "name": "Lagavulin",
+            "hp": 109,
+            "move_table": [
+                {"move": "sleep", "sleep_turns": 3},
+                {"move": "heavy_slam", "effects": [{"type": "damage", "amount": 18}]},
+                {
+                    "move": "siphon_soul",
+                    "effects": [
+                        {"type": "strength", "amount": -2, "target": "player"},
+                        {"type": "dexterity", "amount": -2, "target": "player"},
+                    ],
+                },
+                {"move": "heavy_slam", "effects": [{"type": "damage", "amount": 18}]},
+            ],
+            "intent_policy": "scripted",
+        }
+    )
+    state = _combat_state()
+    state.round_number = 5
+    state.enemies[0].enemy_id = "lagavulin"
+    state.enemies[0].statuses = []
+
+    preview = preview_enemy_move_for_display(state, state.enemies[0], registry.enemies().get("lagavulin"))
+
+    assert preview is not None
+    assert preview["move"] == "siphon_soul"
+    assert summarize_enemy_move_preview(preview) == "失去 2 力量 / 失去 2 敏捷"
+
+
+def test_enemy_strength_effect_target_player_overrides_default_self_targeting() -> None:
+    registry = _Registry()
+    registry.enemies().register(
+        {
+            "id": "target_tester",
+            "name": "Target Tester",
+            "hp": 30,
+            "move_table": [
+                {
+                    "move": "mark",
+                    "effects": [{"type": "strength", "amount": 2, "target": "player"}],
+                }
+            ],
+            "intent_policy": "scripted",
+        }
+    )
+    state = _combat_state()
+    state.enemies[0].enemy_id = "target_tester"
+
+    resolved = end_turn(state, registry)
+
+    assert [effect["type"] for effect in resolved] == ["strength"]
+    assert resolved[0]["target_instance_id"] == "player-1"
+    assert state.player.statuses == [StatusState(status_id="strength", stacks=2)]
+    assert state.enemies[0].statuses == []
 
 
 def test_end_turn_use_case_logs_triggered_active_powers() -> None:

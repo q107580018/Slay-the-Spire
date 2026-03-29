@@ -226,6 +226,17 @@ def _effects_from_payload(
         effect_type = effect.get("type")
         if not isinstance(effect_type, str):
             raise TypeError("effect type must be a string")
+        target = effect.get("target")
+        if target is not None:
+            if not isinstance(target, str) or target not in {"player", "opponent", "self"}:
+                raise ValueError("effect target must be one of: player, opponent, self")
+            if "target_instance_id" not in effect:
+                if target == "self":
+                    effect["target_instance_id"] = source_instance_id
+                else:
+                    if default_target_id is None:
+                        raise ValueError(f"{target} target requires a default target")
+                    effect["target_instance_id"] = default_target_id
         if "source_instance_id" not in effect:
             effect["source_instance_id"] = source_instance_id
         if effect_type in {"damage", "block", "draw", "vulnerable", "weak"} and "target_instance_id" not in effect:
@@ -233,11 +244,7 @@ def _effects_from_payload(
                 raise ValueError(f"{effect_type} effect requires a target")
             effect["target_instance_id"] = default_target_id
         if effect_type in {"strength", "dexterity"} and "target_instance_id" not in effect:
-            if default_target_id is None:
-                effect["target_instance_id"] = source_instance_id
-            else:
-                amount = int(effect.get("amount", 0))
-                effect["target_instance_id"] = default_target_id if amount < 0 else source_instance_id
+            effect["target_instance_id"] = source_instance_id
         materialized.append(effect)
     return materialized
 

@@ -97,6 +97,18 @@ def test_summarize_effect_localizes_strength_effect() -> None:
     assert output == "获得 2 力量"
 
 
+def test_summarize_effect_localizes_strength_loss_effect() -> None:
+    output = summarize_effect({"type": "strength", "amount": -2})
+
+    assert output == "失去 2 力量"
+
+
+def test_summarize_effect_localizes_dexterity_loss_effect() -> None:
+    output = summarize_effect({"type": "dexterity", "amount": -2})
+
+    assert output == "失去 2 敏捷"
+
+
 def test_preview_enemy_intent_uses_move_table_without_state() -> None:
     enemy_def = EnemyDef(
         id="slime",

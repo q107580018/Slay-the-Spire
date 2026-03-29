@@ -186,6 +186,12 @@ def render_card_name(card_def: CardDef) -> Text:
     return rendered
 
 
+def _signed_status_change(amount: int, label: str) -> str:
+    if amount < 0:
+        return f"失去 {abs(amount)} {label}"
+    return f"获得 {amount} {label}"
+
+
 def summarize_effect(effect: Mapping[str, object], *, detailed_status_cards: bool = False) -> str:
     effect_type = effect.get("type")
     if effect.get("move") == "divider":
@@ -216,7 +222,9 @@ def summarize_effect(effect: Mapping[str, object], *, detailed_status_cards: boo
             return f"回合结束时对所有敌人造成 {amount} 伤害，自己失去 {self_damage} 点生命"
         return f"获得持续效果 {power_id} {amount}"
     if effect_type == "strength":
-        return f"获得 {int(effect.get('amount', 0))} 力量"
+        return _signed_status_change(int(effect.get("amount", 0)), "力量")
+    if effect_type == "dexterity":
+        return _signed_status_change(int(effect.get("amount", 0)), "敏捷")
     if effect_type == "vulnerable":
         return f"施加 {int(effect.get('stacks', 0))} 易伤"
     if effect_type == "weak":

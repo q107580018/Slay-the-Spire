@@ -24,11 +24,13 @@
           "effects": [
             {
               "type": "strength",
-              "amount": -2
+              "amount": -2,
+              "target": "player"
             },
             {
               "type": "dexterity",
-              "amount": -2
+              "amount": -2,
+              "target": "player"
             }
           ]
         },
