@@ -21,7 +21,13 @@ from slay_the_spire.adapters.textual.slay_app import (
     _render_to_rich,
 )
 from slay_the_spire.app.menu_definitions import build_next_room_menu, build_root_menu
-from slay_the_spire.app.session import MenuState, render_session_renderable, start_new_game_session, start_session
+from slay_the_spire.app.session import (
+    MenuState,
+    build_opening_action_menu,
+    render_session_renderable,
+    start_new_game_session,
+    start_session,
+)
 from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.domain.models.act_state import ActNodeState, ActState
 from slay_the_spire.domain.models.combat_state import CombatState
@@ -129,6 +135,59 @@ def test_slay_app_can_mount_opening_session() -> None:
             assert "选择角色" in summary.render().plain
 
     asyncio.run(scenario())
+
+
+def test_hover_preview_shows_localized_neow_offer_details() -> None:
+    session = start_new_game_session(seed=5, preferred_character_id="ironclad")
+    provider = StarterContentProvider(session.content_root)
+    offer = opening_flow._build_offer("rare-card", "free", "rare_card", provider, Random(0))
+    localized_name = provider.cards().get(str(offer.reward_payload["card_id"])).name
+    session = replace(session, opening_state=replace(session.opening_state, neow_offers=[offer]))
+
+    preview = _hover_preview_renderable(session, f"choose_neow_offer:{offer.offer_id}")
+
+    assert preview is not None
+    assert localized_name in preview.plain
+    assert str(offer.reward_payload["card_id"]) not in preview.plain
+
+
+def test_hover_preview_shows_opening_target_card_details() -> None:
+    session = start_new_game_session(seed=5, preferred_character_id="ironclad")
+    provider = StarterContentProvider(session.content_root)
+    offer = opening_flow._build_offer("upgrade-card", "tradeoff", "upgrade_card", provider, Random(0))
+    session = replace(
+        session,
+        opening_state=replace(session.opening_state, neow_offers=[offer], pending_neow_offer_id=offer.offer_id),
+        menu_state=MenuState(mode="opening_neow_upgrade_card"),
+    )
+    target_action = build_opening_action_menu(session).options[0].action_id
+
+    preview = _hover_preview_renderable(session, target_action)
+
+    assert preview is not None
+    assert "费用" in preview.plain
+    assert "效果" in preview.plain
+
+
+def test_opening_hover_preview_panel_shows_guidance_for_neow_menu() -> None:
+    async def scenario() -> None:
+        app = SlayApp(start_new_game_session(seed=5, preferred_character_id="ironclad"))
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            preview = app.query_one("#hover-preview", Static)
+            assert "查看说明" in preview.render().plain
+
+    asyncio.run(scenario())
+
+
+def test_hover_preview_shows_character_summary_in_opening_character_select() -> None:
+    session = start_new_game_session(seed=5)
+
+    preview = _hover_preview_renderable(session, "select_character:ironclad")
+
+    assert preview is not None
+    assert "角色：铁甲战士" in preview.plain
+    assert "起始生命：80" in preview.plain
 
 
 def test_textual_opening_targeted_neow_flow_enters_active_run() -> None:

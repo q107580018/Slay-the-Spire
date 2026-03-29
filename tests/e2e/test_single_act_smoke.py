@@ -145,6 +145,9 @@ def test_single_act_smoke_simulates_map_shop_rest_and_boss_reward_transition_int
             },
         ),
     )
+    expected_boss_gold = 99 + (99 // 4 if "golden_idol" in session.run_state.relics else 0)
+    gold_before_boss_reward = session.run_state.gold
+
     _running, session, _message = route_menu_choice("1", session=session)
     _running, session, _message = route_menu_choice("1", session=session)
     assert session.run_phase == "active"
@@ -167,7 +170,7 @@ def test_single_act_smoke_simulates_map_shop_rest_and_boss_reward_transition_int
     assert session.room_state.payload["next_act_id"] == "act2"
     assert "Boss宝箱" in boss_chest_message
     assert "前往下一幕" in boss_chest_message
-    assert session.run_state.gold == 198
+    assert session.run_state.gold == gold_before_boss_reward + expected_boss_gold
     assert "black_blood" in session.run_state.relics
     assert "bash_plus#10" in session.run_state.deck
 
@@ -178,7 +181,7 @@ def test_single_act_smoke_simulates_map_shop_rest_and_boss_reward_transition_int
     assert session.act_state.act_id == "act2"
     assert session.room_state.payload["act_id"] == "act2"
     assert session.room_state.room_type == "combat"
-    assert session.run_state.gold == 198
+    assert session.run_state.gold == gold_before_boss_reward + expected_boss_gold
     assert "black_blood" in session.run_state.relics
     assert "bash_plus#10" in session.run_state.deck
 

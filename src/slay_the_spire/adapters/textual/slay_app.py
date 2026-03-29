@@ -13,7 +13,7 @@ from textual.css.query import NoMatches
 from textual.widgets import Footer, Header, OptionList, RichLog, Static
 
 from slay_the_spire.adapters.presentation.theme import TERMINAL_THEME
-from slay_the_spire.adapters.presentation.opening_renderer import render_opening_summary_panel
+from slay_the_spire.adapters.presentation.opening_renderer import format_neow_offer_detail_lines, render_opening_summary_panel
 from slay_the_spire.adapters.textual.map_widget import MapWidget
 from slay_the_spire.app.inspect_registry import COMBAT_INSPECT_CARD_LIST_MODES, inspect_leaf_title
 from slay_the_spire.app.map_labels import format_next_room_labels
@@ -60,6 +60,7 @@ from slay_the_spire.adapters.presentation.inspect import (
     format_reward_detail_lines,
 )
 from slay_the_spire.adapters.presentation.widgets import render_card_name
+from slay_the_spire.use_cases.start_run import start_new_run
 
 _ROOM_LABELS: dict[str, str] = {
     "combat": "战斗房",
@@ -78,6 +79,8 @@ _CARD_PREVIEW_MENU_MODES = frozenset(
         "rest_upgrade_card",
         "event_upgrade_card",
         "event_remove_card",
+        "opening_neow_upgrade_card",
+        "opening_neow_remove_card",
         "inspect_deck",
         *COMBAT_INSPECT_CARD_LIST_MODES,
     }
@@ -163,12 +166,28 @@ def _boss_rewards(session: SessionState) -> dict[str, object] | None:
 
 def _supports_hover_preview(menu_mode: str) -> bool:
     return (
-        menu_mode in {"select_reward", "select_boss_reward", "select_boss_relic", "shop_root", "inspect_relics", "select_potion"}
+        menu_mode
+        in {
+            "opening_character_select",
+            "opening_neow_offer",
+            "select_reward",
+            "select_boss_reward",
+            "select_boss_relic",
+            "shop_root",
+            "inspect_relics",
+            "select_potion",
+        }
         or menu_mode in _CARD_PREVIEW_MENU_MODES
     )
 
 
 def _hover_preview_guidance(menu_mode: str) -> Text | None:
+    if menu_mode == "opening_character_select":
+        return Text("查看说明：将鼠标悬停在角色上查看开局摘要。")
+    if menu_mode == "opening_neow_offer":
+        return Text("查看说明：将鼠标悬停在 Neow 选项上查看完整奖励与代价。")
+    if menu_mode in {"opening_neow_upgrade_card", "opening_neow_remove_card"}:
+        return Text("查看说明：将鼠标悬停在卡牌上查看详情。")
     if menu_mode in {"rest_upgrade_card", "event_upgrade_card"}:
         return Text("查看说明：将鼠标悬停在卡牌上查看升级前后对比。")
     if menu_mode in _CARD_PREVIEW_MENU_MODES:
@@ -210,7 +229,11 @@ def _card_preview_instance_id(session: SessionState, action_id: str) -> str | No
         return _card_instance_from_indexed_action(action_id, prefix="play_card:", card_instance_ids=combat_state.hand)
     if menu_mode in {"shop_remove_card", "event_remove_card"} and action_id.startswith("remove_card:"):
         return action_id.split(":", 1)[1]
+    if menu_mode == "opening_neow_remove_card" and action_id.startswith("remove_card:"):
+        return action_id.split(":", 1)[1]
     if menu_mode in {"rest_upgrade_card", "event_upgrade_card"} and action_id.startswith("upgrade_card:"):
+        return action_id.split(":", 1)[1]
+    if menu_mode == "opening_neow_upgrade_card" and action_id.startswith("upgrade_card:"):
         return action_id.split(":", 1)[1]
     if menu_mode == "inspect_deck":
         return _card_instance_from_indexed_action(action_id, prefix="item:", card_instance_ids=session.run_state.deck)
@@ -304,7 +327,47 @@ def _shop_offer_by_action_id(session: SessionState, action_id: str, *, offer_typ
     return None
 
 
+def _opening_hover_preview_renderable(session: SessionState, action_id: str) -> Text | None:
+    opening_state = session.opening_state
+    if opening_state is None:
+        return None
+    registry = _content_provider(session)
+    if session.menu_state.mode == "opening_character_select" and action_id.startswith("select_character:"):
+        character_id = action_id.split(":", 1)[1]
+        character = registry.characters().get(character_id)
+        preview_run = opening_state.run_blueprint
+        if preview_run is None or preview_run.character_id != character_id:
+            preview_run = start_new_run(character_id, seed=opening_state.seed, registry=registry)
+        lines = [
+            f"角色：{character.name}",
+            f"起始生命：{preview_run.current_hp}/{preview_run.max_hp}",
+            f"起始遗物：{registry.relics().get(character.starter_relic_ids[0]).name if character.starter_relic_ids else '无'}",
+            f"起始套牌：{len(character.starter_deck)} 张",
+            f"当前幕：{preview_run.current_act_id or 'act1'}",
+        ]
+        return _text_from_lines(lines)
+    if session.menu_state.mode == "opening_neow_offer" and action_id.startswith("choose_neow_offer:"):
+        offer_id = action_id.split(":", 1)[1]
+        offer = next((item for item in opening_state.neow_offers if item.offer_id == offer_id), None)
+        if offer is None:
+            return None
+        return _text_from_lines(format_neow_offer_detail_lines(offer, registry=registry))
+    if action_id == "back":
+        return Text("控制项：返回上一步")
+    if action_id == "quit":
+        return Text("控制项：退出游戏")
+    if action_id == "save":
+        return Text("控制项：开局阶段暂不支持保存")
+    if action_id == "load":
+        return Text("控制项：开局阶段暂不支持读档")
+    return None
+
+
 def _hover_preview_renderable(session: SessionState, action_id: str) -> Text | None:
+    if session.run_phase == "opening":
+        opening_preview = _opening_hover_preview_renderable(session, action_id)
+        if opening_preview is not None:
+            return opening_preview
     if session.menu_state.mode == "root":
         if session.room_state.room_type == "treasure" and action_id == "open_treasure":
             return Text("控制项：打开宝箱并领取遗物")

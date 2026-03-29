@@ -36,6 +36,35 @@ def _selected_character_name(opening_state: OpeningState, registry: ContentProvi
     return registry.characters().get(character_id).name
 
 
+def _localized_card_name(card_id: str, registry: ContentProviderPort) -> str:
+    resolved_card_id = card_id_from_instance_id(card_id) if "#" in card_id else card_id
+    return render_card_name(registry.cards().get(resolved_card_id)).plain
+
+
+def format_neow_offer_detail_lines(offer, *, registry: ContentProviderPort) -> list[str]:
+    details = [offer.summary]
+    reward_payload = offer.reward_payload
+    if offer.reward_kind == "gold":
+        details.append(f"获得 {reward_payload['amount']} 金币")
+    elif offer.reward_kind == "relic":
+        relic_id = str(reward_payload["relic_id"])
+        details.append(f"获得遗物：{registry.relics().get(relic_id).name}")
+    elif offer.reward_kind == "potion":
+        potion_id = str(reward_payload["potion_id"])
+        details.append(f"获得药水：{registry.potions().get(potion_id).name}")
+    elif offer.reward_kind == "rare_card":
+        details.append(f"获得稀有牌：{_localized_card_name(str(reward_payload['card_id']), registry)}")
+    elif offer.reward_kind == "curse_card":
+        details.append(f"获得诅咒牌：{_localized_card_name(str(reward_payload['card_id']), registry)}")
+    if offer.cost_kind == "hp_loss":
+        details.append(f"失去 {offer.cost_payload['amount']} 点生命")
+    elif offer.cost_kind == "gold_loss":
+        details.append(f"失去 {offer.cost_payload['amount']} 金币")
+    elif offer.cost_kind == "curse":
+        details.append(f"牌组中加入诅咒牌：{_localized_card_name(str(offer.cost_payload['card_id']), registry)}")
+    return details
+
+
 def _opening_summary_lines(opening_state: OpeningState, registry: ContentProviderPort) -> list[Text]:
     lines: list[Text] = [Text.assemble("角色：", _selected_character_name(opening_state, registry))]
     if opening_state.run_blueprint is None:
@@ -94,7 +123,7 @@ def _neow_offer_panel(opening_state: OpeningState, registry: ContentProviderPort
     ]
     for index, offer in enumerate(opening_state.neow_offers, start=1):
         body.append(Text(f"{index}. {offer.summary}"))
-        for line in offer.detail_lines:
+        for line in format_neow_offer_detail_lines(offer, registry=registry):
             body.append(Text(f"   - {line}"))
     return Panel(Group(*body), title="Neow 赐福", box=PANEL_BOX, expand=False)
 
