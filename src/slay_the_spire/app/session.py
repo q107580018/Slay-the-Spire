@@ -1047,10 +1047,10 @@ def _load_current_session(session: SessionState) -> tuple[bool, SessionState, st
 
 def _opening_unsupported_action_message(action: str) -> str:
     if action == "save":
-        return "opening 阶段暂不支持保存。"
+        return "开局阶段暂不支持保存。"
     if action == "load":
-        return "opening 阶段暂不支持读档。"
-    return "当前 opening 操作不可用。"
+        return "开局阶段暂不支持读档。"
+    return "当前开局操作不可用。"
 
 
 def _route_opening_character_select_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:

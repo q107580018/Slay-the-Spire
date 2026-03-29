@@ -131,6 +131,38 @@ def test_slay_app_can_mount_opening_session() -> None:
     asyncio.run(scenario())
 
 
+def test_textual_opening_targeted_neow_flow_enters_active_run() -> None:
+    async def scenario() -> None:
+        session = start_new_game_session(seed=5, preferred_character_id="ironclad")
+        provider = StarterContentProvider(session.content_root)
+        offer = opening_flow._build_offer("upgrade_card", "tradeoff", "upgrade_card", provider, Random(0))
+        session = replace(session, opening_state=replace(session.opening_state, neow_offers=[offer]))
+        app = SlayApp(session)
+
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            app._process_command("1")
+            await pilot.pause()
+            assert app._session.run_phase == "opening"
+            assert app._session.menu_state.mode == "opening_neow_upgrade_card"
+
+            app._process_command("1")
+            await pilot.pause()
+
+            opening_panel = app.query_one("#opening-panel", Static)
+            map_widget = app.query_one("#map-widget", MapWidget)
+            summary = app.query_one("#action-summary", Static)
+
+            assert app._session.run_phase == "active"
+            assert app._session.opening_state is None
+            assert app._session.room_state.room_type == "combat"
+            assert opening_panel.display is False
+            assert map_widget.display is True
+            assert "可选操作" in summary.render().plain
+
+    asyncio.run(scenario())
+
+
 def test_current_action_menu_marks_disabled_rest_actions() -> None:
     session = replace(
         start_session(seed=5),
