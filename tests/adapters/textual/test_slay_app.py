@@ -2251,7 +2251,7 @@ def test_hover_preview_shows_treasure_room_open_action_hint() -> None:
     preview = _hover_preview_renderable(session, "open_treasure")
     assert preview is not None
     assert "打开宝箱" in preview.plain
-    assert "遗物" in preview.plain
+    assert "查看遗物" in preview.plain
 
 
 def test_hover_preview_shows_boss_chest_transition_hint() -> None:

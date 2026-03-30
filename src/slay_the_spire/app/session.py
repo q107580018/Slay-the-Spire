@@ -415,6 +415,37 @@ def _skip_card_offer_rewards(session: SessionState) -> SessionState:
 def _open_treasure(session: SessionState) -> SessionState:
     if session.room_state.is_resolved:
         return session
+    if session.room_state.payload.get("treasure_opened") is True:
+        return session
+    claimed_relic_id = session.room_state.payload.get("claimed_treasure_relic_id")
+    if isinstance(claimed_relic_id, str) and claimed_relic_id:
+        updated_room_state = replace(
+            session.room_state,
+            stage="completed",
+            is_resolved=True,
+        )
+        return replace(
+            session,
+            room_state=updated_room_state,
+            run_phase=_derive_run_phase(session.run_state, session.act_state, updated_room_state, registry=_content_provider(session)),
+            menu_state=MenuState(),
+        )
+    updated_room_state = replace(
+        session.room_state,
+        stage="opened",
+        payload={**session.room_state.payload, "treasure_opened": True},
+    )
+    return replace(
+        session,
+        room_state=updated_room_state,
+        run_phase=_derive_run_phase(session.run_state, session.act_state, updated_room_state, registry=_content_provider(session)),
+        menu_state=MenuState(),
+    )
+
+
+def _claim_treasure(session: SessionState) -> SessionState:
+    if session.room_state.is_resolved:
+        return session
     claimed_relic_id = session.room_state.payload.get("claimed_treasure_relic_id")
     if isinstance(claimed_relic_id, str) and claimed_relic_id:
         updated_room_state = replace(
@@ -452,13 +483,36 @@ def _open_treasure(session: SessionState) -> SessionState:
         session.room_state,
         stage="completed",
         is_resolved=True,
-        payload={**session.room_state.payload, "claimed_treasure_relic_id": relic_id},
+        payload={**session.room_state.payload, "treasure_opened": True, "claimed_treasure_relic_id": relic_id},
     )
     return replace(
         session,
         run_state=updated_run_state,
         room_state=updated_room_state,
         run_phase=_derive_run_phase(updated_run_state, session.act_state, updated_room_state, registry=provider),
+        menu_state=MenuState(),
+    )
+
+
+def _skip_treasure(session: SessionState) -> SessionState:
+    if session.room_state.is_resolved:
+        return session
+    provider = _content_provider(session)
+    updated_room_state = replace(
+        session.room_state,
+        stage="completed",
+        is_resolved=True,
+        payload={
+            **session.room_state.payload,
+            "treasure_opened": True,
+            "claimed_treasure_relic_id": None,
+            "skipped_treasure_relic": True,
+        },
+    )
+    return replace(
+        session,
+        room_state=updated_room_state,
+        run_phase=_derive_run_phase(session.run_state, session.act_state, updated_room_state, registry=provider),
         menu_state=MenuState(),
     )
 
@@ -1501,6 +1555,12 @@ def _route_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionS
         return True, next_session, render_session(next_session)
     if action_id == "open_treasure":
         next_session = _open_treasure(session)
+        return True, next_session, render_session(next_session)
+    if action_id == "claim_treasure":
+        next_session = _claim_treasure(session)
+        return True, next_session, render_session(next_session)
+    if action_id == "skip_treasure":
+        next_session = _skip_treasure(session)
         return True, next_session, render_session(next_session)
     return _invalid_menu_choice(session)
 

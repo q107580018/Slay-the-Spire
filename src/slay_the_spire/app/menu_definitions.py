@@ -97,6 +97,10 @@ def _has_pending_boss_rewards(room_state: RoomState) -> bool:
     return not (boss_rewards.get("claimed_gold") is True and isinstance(claimed_relic_id, str) and bool(claimed_relic_id))
 
 
+def _is_treasure_opened(room_state: RoomState) -> bool:
+    return room_state.room_type == "treasure" and room_state.payload.get("treasure_opened") is True
+
+
 def _usable_combat_potion_ids(run_state: RunState, registry: ContentProviderPort | None) -> list[str]:
     usable_timing_ids = {"in_combat", "any"}
     usable_potions: list[str] = []
@@ -195,6 +199,18 @@ def build_root_menu(
             ],
         )
     if room_state.room_type == "treasure":
+        if _is_treasure_opened(room_state):
+            return build_menu(
+                title="可选操作",
+                options=[
+                    ("claim_treasure", "拿取遗物"),
+                    ("skip_treasure", "离开宝箱"),
+                    ("inspect", "查看资料"),
+                    ("save", "保存游戏"),
+                    ("load", "读取存档"),
+                    ("quit", "退出游戏"),
+                ],
+            )
         return build_menu(
             title="可选操作",
             options=[

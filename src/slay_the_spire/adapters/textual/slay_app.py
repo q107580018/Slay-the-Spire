@@ -498,7 +498,16 @@ def _hover_preview_renderable(session: SessionState, action_id: str) -> Text | N
             return opening_preview
     if session.menu_state.mode == "root":
         if session.room_state.room_type == "treasure" and action_id == "open_treasure":
-            return Text("控制项：打开宝箱并领取遗物")
+            return Text("控制项：打开宝箱并查看遗物")
+        if session.room_state.room_type == "treasure" and action_id == "claim_treasure":
+            relic_id = session.room_state.payload.get("treasure_relic_id")
+            if isinstance(relic_id, str) and relic_id:
+                return _text_from_lines(
+                    format_relic_detail_lines(relic_id, _content_provider(session))
+                )
+            return Text("控制项：拿取当前遗物")
+        if session.room_state.room_type == "treasure" and action_id == "skip_treasure":
+            return Text("控制项：放弃当前遗物并离开宝箱")
         if (
             session.room_state.room_type == "boss_chest"
             and action_id == "advance_boss_chest"

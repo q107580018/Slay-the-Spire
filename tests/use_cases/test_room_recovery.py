@@ -173,23 +173,33 @@ def test_open_treasure_via_menu_grants_relic_marks_room_resolved_and_is_not_reap
 
     assert "宝箱" in unopened_render
     assert "未打开" in unopened_render
-    assert "金神像" in unopened_render
+    assert "金神像" not in unopened_render
 
     _running, opened_session, opened_message = route_menu_choice("1", session=session)
 
-    assert opened_session.run_state.relics == ["burning_blood", "golden_idol"]
-    assert opened_session.room_state.is_resolved is True
-    assert opened_session.room_state.stage == "completed"
-    assert opened_session.room_state.payload["claimed_treasure_relic_id"] == "golden_idol"
-    assert "已获得" in opened_message
+    assert opened_session.run_state.relics == ["burning_blood"]
+    assert opened_session.room_state.is_resolved is False
+    assert opened_session.room_state.stage == "opened"
+    assert opened_session.room_state.payload["treasure_opened"] is True
+    assert opened_session.room_state.payload.get("claimed_treasure_relic_id") is None
     assert "金神像" in opened_message
+    assert "拿取遗物" in opened_message
+
+    _running, claimed_session, claimed_message = route_menu_choice("1", session=opened_session)
+
+    assert claimed_session.run_state.relics == ["burning_blood", "golden_idol"]
+    assert claimed_session.room_state.is_resolved is True
+    assert claimed_session.room_state.stage == "completed"
+    assert claimed_session.room_state.payload["claimed_treasure_relic_id"] == "golden_idol"
+    assert "已获得" in claimed_message
+    assert "金神像" in claimed_message
 
     repository = JsonFileSaveRepository(tmp_path / "treasure.json")
     save_game(
         repository=repository,
-        run_state=opened_session.run_state,
-        act_state=opened_session.act_state,
-        room_state=opened_session.room_state,
+        run_state=claimed_session.run_state,
+        act_state=claimed_session.act_state,
+        room_state=claimed_session.room_state,
     )
 
     restored_session = load_session(save_path=tmp_path / "treasure.json", content_root=Path(__file__).resolve().parents[2] / "content")
@@ -224,12 +234,52 @@ def test_open_treasure_without_relic_candidate_grants_circlet() -> None:
     )
 
     _running, opened_session, opened_message = route_menu_choice("1", session=session)
+    assert opened_session.room_state.is_resolved is False
+    assert opened_session.room_state.payload["treasure_opened"] is True
 
-    assert opened_session.room_state.is_resolved is True
-    assert opened_session.room_state.stage == "completed"
-    assert opened_session.room_state.payload["claimed_treasure_relic_id"] == "circlet"
-    assert opened_session.run_state.relics == ["burning_blood", "circlet"]
-    assert "圆环" in opened_message
+    _running, claimed_session, claimed_message = route_menu_choice("1", session=opened_session)
+
+    assert claimed_session.room_state.is_resolved is True
+    assert claimed_session.room_state.stage == "completed"
+    assert claimed_session.room_state.payload["claimed_treasure_relic_id"] == "circlet"
+    assert claimed_session.run_state.relics == ["burning_blood", "circlet"]
+    assert "圆环" in claimed_message
+
+
+def test_skip_treasure_via_menu_marks_room_resolved_without_granting_relic() -> None:
+    session = replace(
+        start_session(seed=41),
+        room_state=RoomState(
+            room_id="act1:treasure",
+            room_type="treasure",
+            stage="waiting_input",
+            payload={
+                "act_id": "act1",
+                "node_id": "r9c0",
+                "next_node_ids": ["r10c0"],
+                "treasure_relic_id": "golden_idol",
+            },
+            is_resolved=False,
+            rewards=[],
+        ),
+        menu_state=MenuState(),
+    )
+
+    _running, opened_session, opened_message = route_menu_choice("1", session=session)
+
+    assert opened_session.room_state.is_resolved is False
+    assert opened_session.room_state.payload["treasure_opened"] is True
+    assert "离开宝箱" in opened_message
+
+    _running, skipped_session, skipped_message = route_menu_choice("2", session=opened_session)
+
+    assert skipped_session.run_state.relics == ["burning_blood"]
+    assert skipped_session.room_state.is_resolved is True
+    assert skipped_session.room_state.stage == "completed"
+    assert skipped_session.room_state.payload["skipped_treasure_relic"] is True
+    assert skipped_session.room_state.payload.get("claimed_treasure_relic_id") is None
+    assert "前往下一个房间" in skipped_message
+    assert "已放弃遗物" in skipped_message
 
 
 def test_open_treasure_is_idempotent_when_room_is_already_resolved() -> None:
@@ -286,6 +336,35 @@ def test_open_treasure_with_existing_claim_marker_converges_room_via_menu_choice
     assert reopened_session.room_state.stage == "completed"
     assert reopened_session.room_state.is_resolved is True
     assert reopened_session.room_state.payload["claimed_treasure_relic_id"] == "golden_idol"
+
+
+def test_open_treasure_reveals_relic_without_resolving_room() -> None:
+    session = replace(
+        start_session(seed=41),
+        room_state=RoomState(
+            room_id="act1:treasure",
+            room_type="treasure",
+            stage="waiting_input",
+            payload={
+                "act_id": "act1",
+                "node_id": "r9c0",
+                "next_node_ids": ["r10c0"],
+                "treasure_relic_id": "golden_idol",
+            },
+            is_resolved=False,
+            rewards=[],
+        ),
+        menu_state=MenuState(),
+    )
+
+    _running, opened_session, opened_message = route_menu_choice("1", session=session)
+
+    assert opened_session.room_state.stage == "opened"
+    assert opened_session.room_state.is_resolved is False
+    assert opened_session.run_state.relics == ["burning_blood"]
+    assert opened_session.room_state.payload["treasure_opened"] is True
+    assert "金神像" in opened_message
+    assert "将获得遗物" not in opened_message
 
 
 def test_reward_claim_is_not_reapplied_after_load(tmp_path: Path) -> None:

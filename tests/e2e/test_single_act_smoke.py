@@ -119,6 +119,7 @@ def test_single_act_smoke_simulates_map_shop_rest_and_boss_reward_transition_int
             _running, session, _message = route_menu_choice("1", session=session)
         elif session.room_state.room_type == "treasure":
             _running, session, _message = route_menu_choice("1", session=session)
+            _running, session, _message = route_menu_choice("1", session=session)
         else:
             session = _complete_current_room(session)
         session = _advance_to(session, next_node_id)
@@ -213,6 +214,7 @@ def test_single_act_smoke_boss_room_uses_act1_bosses_and_hexaghost() -> None:
             _running, session, _message = route_menu_choice("2", session=session)
             _running, session, _message = route_menu_choice("1", session=session)
         elif session.room_state.room_type == "treasure":
+            _running, session, _message = route_menu_choice("1", session=session)
             _running, session, _message = route_menu_choice("1", session=session)
         else:
             session = _complete_current_room(session)
