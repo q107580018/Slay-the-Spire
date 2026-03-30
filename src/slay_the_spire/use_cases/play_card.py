@@ -5,6 +5,7 @@ from collections.abc import Sequence
 from slay_the_spire.domain.combat.turn_flow import resolve_player_actions
 from slay_the_spire.domain.effects.effect_types import (
     EFFECT_DAMAGE,
+    EFFECT_DAMAGE_ALL_ENEMIES,
     EFFECT_DAMAGE_ALL_ENEMIES_X_TIMES,
     EFFECT_EXHAUST_TARGET_CARD,
     EFFECT_UPGRADE_TARGET_CARD,
@@ -42,6 +43,18 @@ def _materialize_card_effects(
         effect_type = effect.get("type")
         if not isinstance(effect_type, str):
             raise TypeError("card effect type must be a string")
+        if effect_type == EFFECT_DAMAGE_ALL_ENEMIES:
+            damage_amount = int(effect.get("amount", 0))
+            for enemy in combat_state.enemies:
+                effects.append(
+                    {
+                        "type": EFFECT_DAMAGE,
+                        "amount": damage_amount,
+                        "source_instance_id": source_instance_id,
+                        "target_instance_id": enemy.instance_id,
+                    }
+                )
+            continue
         if effect_type == EFFECT_DAMAGE_ALL_ENEMIES_X_TIMES:
             repeat_count = max(energy_spent, 0)
             damage_amount = int(effect.get("amount", 0))

@@ -5,6 +5,7 @@ from typing import Mapping
 from slay_the_spire.shared.types import JsonDict, JsonValue
 
 EFFECT_DAMAGE = "damage"
+EFFECT_DAMAGE_ALL_ENEMIES = "damage_all_enemies"
 EFFECT_DAMAGE_ALL_ENEMIES_X_TIMES = "damage_all_enemies_x_times"
 EFFECT_BLOCK = "block"
 EFFECT_STRENGTH = "strength"

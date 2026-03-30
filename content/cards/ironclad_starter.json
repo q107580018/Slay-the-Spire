@@ -229,7 +229,7 @@
       "upgrades_to": "cleave_plus",
       "effects": [
         {
-          "type": "damage",
+          "type": "damage_all_enemies",
           "amount": 8
         }
       ],
@@ -246,7 +246,7 @@
       "rarity": "common",
       "effects": [
         {
-          "type": "damage",
+          "type": "damage_all_enemies",
           "amount": 11
         }
       ],

@@ -224,7 +224,7 @@ class CardRegistry(_BaseRegistry[CardDef]):
         effect_types = {str(effect.get("type")) for effect in effects}
         if "add_power" in effect_types:
             return "power"
-        if effect_types & {"damage", "damage_all_enemies_x_times", "vulnerable", "weak"}:
+        if effect_types & {"damage", "damage_all_enemies", "damage_all_enemies_x_times", "vulnerable", "weak"}:
             return "attack"
         return "skill"
 

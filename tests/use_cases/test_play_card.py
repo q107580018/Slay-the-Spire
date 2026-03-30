@@ -339,6 +339,21 @@ def test_play_card_appends_block_log_entry() -> None:
     assert state.log == ["你打出 Custom Strike，获得 5 格挡。"]
 
 
+def test_play_card_all_enemy_attack_hits_all_enemies_without_target() -> None:
+    state = _combat_state(hand=["cleave#1"], enemy_hps=[20, 20])
+    provider = _provider_with_card(
+        card_id="cleave",
+        effects=[{"type": "damage_all_enemies", "amount": 8}],
+    )
+
+    result = play_card(state, "cleave#1", None, provider)
+
+    assert result.combat_state is state
+    assert [effect["type"] for effect in result.resolved_effects] == ["damage", "damage"]
+    assert [enemy.hp for enemy in state.enemies] == [12, 12]
+    assert state.log == ["你打出 Custom Strike，对 Training Dummy 造成 16 伤害。"]
+
+
 
 def test_play_card_x_cost_whirlwind_spends_all_energy_and_hits_all_enemies() -> None:
     state = _combat_state(hand=["whirlwind#1"], energy=3, enemy_hps=[20, 20])

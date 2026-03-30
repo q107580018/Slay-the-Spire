@@ -196,6 +196,8 @@ def summarize_effect(effect: Mapping[str, object], *, detailed_status_cards: boo
     effect_type = effect.get("type")
     if effect.get("move") == "divider":
         return "6 段攻击（每段伤害随生命变化）"
+    if effect_type == "damage_all_enemies":
+        return f"对所有敌人造成 {int(effect.get('amount', 0))} 伤害"
     if effect_type == "damage_all_enemies_x_times":
         return f"X 次对所有敌人各造成 {int(effect.get('amount', 0))} 伤害"
     if effect_type == "damage":
