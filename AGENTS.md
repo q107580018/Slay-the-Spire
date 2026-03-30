@@ -71,6 +71,7 @@
 - opening 当前包含 `opening_character_select`、`opening_neow_offer`、`opening_neow_upgrade_card`、`opening_neow_remove_card` 四种菜单模式。
 - `Neow` 中需要目标卡的选项会先进入子菜单；确认目标卡后才真正结算并进入 Act1，`back` 会返回 `Neow` 主菜单。
 - opening 的 `Neow` 选项悬浮预览会显示更完整的奖励说明；卡牌、遗物、药水复用与其他查看页一致的详细 hover preview 文案。
+- 当前 opening 的 `Neow` tradeoff 中，诅咒只作为代价出现；若选项要求加入诅咒牌，会同时提供配套高价值奖励，不会把诅咒牌当成奖励本体。
 - opening 阶段默认禁止真正 `save/load`。
 - 查看页已覆盖角色状态、牌组、遗物、药水、敌人详情、卡牌详情等 inspect 菜单。
 - CLI 支持：

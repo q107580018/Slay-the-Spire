@@ -86,3 +86,27 @@ def test_render_session_renderable_localizes_neow_reward_names() -> None:
     rendered = console.export_text(clear=False)
     assert localized_name in rendered
     assert str(offer.reward_payload["card_id"]) not in rendered
+
+
+def test_render_session_renderable_shows_curse_bonus_reward_and_cost_separately() -> None:
+    session = start_new_game_session(seed=5, preferred_character_id="ironclad")
+    provider = StarterContentProvider(session.content_root)
+    offer = opening_flow._build_offer("curse", "tradeoff", "curse_bonus", provider, Random(0))
+    session = replace(
+        session,
+        opening_state=replace(session.opening_state, neow_offers=[offer]),
+        menu_state=MenuState(mode="opening_neow_offer"),
+    )
+
+    console = Console(
+        width=100,
+        record=True,
+        force_terminal=False,
+        color_system=None,
+        theme=TERMINAL_THEME,
+    )
+    console.print(render_session_renderable(session))
+
+    rendered = console.export_text(clear=False)
+    assert "牌组中加入诅咒牌" in rendered
+    assert "获得诅咒牌" not in rendered
