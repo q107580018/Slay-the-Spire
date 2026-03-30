@@ -1197,13 +1197,39 @@ class SlayApp(App[None]):
     def handle_combat_summary_draw_click(self, _: events.Click) -> None:
         self._open_combat_preview("draw")
 
+    @on(events.Enter, "#combat-summary-action-draw")
+    @on(events.MouseMove, "#combat-summary-action-draw")
+    def handle_combat_summary_draw_hover(
+        self, _: events.Enter | events.MouseMove
+    ) -> None:
+        self._open_combat_preview("draw")
+
     @on(events.Click, "#combat-summary-action-discard")
     def handle_combat_summary_discard_click(self, _: events.Click) -> None:
+        self._open_combat_preview("discard")
+
+    @on(events.Enter, "#combat-summary-action-discard")
+    @on(events.MouseMove, "#combat-summary-action-discard")
+    def handle_combat_summary_discard_hover(
+        self, _: events.Enter | events.MouseMove
+    ) -> None:
         self._open_combat_preview("discard")
 
     @on(events.Click, "#combat-summary-action-exhaust")
     def handle_combat_summary_exhaust_click(self, _: events.Click) -> None:
         self._open_combat_preview("exhaust")
+
+    @on(events.Enter, "#combat-summary-action-exhaust")
+    @on(events.MouseMove, "#combat-summary-action-exhaust")
+    def handle_combat_summary_exhaust_hover(
+        self, _: events.Enter | events.MouseMove
+    ) -> None:
+        self._open_combat_preview("exhaust")
+
+    @on(events.Leave, ".combat-summary-action")
+    def handle_combat_summary_action_leave(self, _: events.Leave) -> None:
+        self._close_combat_preview()
+        self._refresh_hover_preview()
 
     @on(MapWidget.NodeSelected)
     def handle_node_selected(self, event: MapWidget.NodeSelected) -> None:

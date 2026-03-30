@@ -1214,6 +1214,36 @@ def test_clicking_combat_summary_action_opens_card_pile_preview() -> None:
     asyncio.run(scenario())
 
 
+def test_hovering_combat_summary_action_opens_card_pile_preview() -> None:
+    base = start_session(seed=5)
+    combat_state = CombatState.from_dict(base.room_state.payload["combat_state"])
+    combat_state.draw_pile = ["bash#9", "strike#8"]
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            payload={
+                **base.room_state.payload,
+                "combat_state": combat_state.to_dict(),
+            },
+        ),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            await pilot.hover("#combat-summary-action-draw")
+            await pilot.pause()
+            preview = app.query_one("#hover-preview", Static)
+            preview_plain = _widget_render_plain(preview)
+            assert "抽牌堆预览" in preview_plain
+            assert "1. 重击" in preview_plain
+            assert "2. 打击" in preview_plain
+
+    asyncio.run(scenario())
+
+
 def test_clicking_combat_summary_action_replaces_preview_without_changing_menu() -> None:
     base = start_session(seed=5)
     combat_state = CombatState.from_dict(base.room_state.payload["combat_state"])
