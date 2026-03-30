@@ -11,3 +11,4 @@ __pycache__/
 build/
 dist/
 saves/
+src/slay_the_spire/data/content/

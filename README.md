@@ -107,15 +107,15 @@ uv build
 - `src/slay_the_spire/content/`：内容加载、注册表、目录装配
 - `src/slay_the_spire/domain/`：战斗、地图、奖励、Hook、状态模型等领域逻辑
 - `src/slay_the_spire/use_cases/`：开始游戏、出牌、进房间、事件、商店、休息、奖励、存读档
-- `content/`：开发时优先维护的内容 JSON
-- `src/slay_the_spire/data/content/`：随 wheel 打包的内容 JSON
+- `content/`：唯一内容真源，开发时维护的内容 JSON
+- `src/slay_the_spire/data/content/`：构建 wheel 时临时生成的包内内容 JSON
 - `tests/`：CLI、Textual、Rich UI、内容校验、领域逻辑、E2E 冒烟测试
 
 ## 开发说明
 
 - 本项目默认使用 `uv` 管理环境、依赖和命令执行。
-- 默认内容目录优先读取 `src/slay_the_spire/data/content/`；找不到时才回退到仓库根目录 `content/`。
-- 如果修改内容 JSON，必须同步更新 `content/` 和 `src/slay_the_spire/data/content/`，否则本地开发、默认运行和打包结果会不一致。
+- 默认内容目录优先读取仓库根目录 `content/`；只有安装包环境或显式传 `--content-root` 时才读取其他目录。
+- 修改内容 JSON 时只维护 `content/`；`src/slay_the_spire/data/content/` 会在构建 wheel 时临时生成并随构建产物打包，不应手工编辑或提交。
 - 每次改动代码、内容、命令入口、流程、测试基线或发布方式后，都应同步更新 `README.md`；只有协作约束或仓库工作规则变化时才需要更新 `AGENTS.md`。
 - 默认存档路径是 `saves/latest.json`，当前存档 schema 版本是 `2`。
 - 当前开发阶段默认不为旧存档或旧菜单状态保兼容，除非需求明确要求。

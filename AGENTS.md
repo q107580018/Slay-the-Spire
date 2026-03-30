@@ -26,21 +26,21 @@
 - `src/slay_the_spire/content/`：内容加载与注册表。
 - `src/slay_the_spire/domain/`：战斗、状态模型、Hook、地图生成、奖励生成等领域逻辑。
 - `src/slay_the_spire/use_cases/`：开始游戏、出牌、结束回合、进房间、事件、商店、休息、奖励、存读档等用例。
-- `content/`：开发时优先编辑的内容 JSON。
-- `src/slay_the_spire/data/content/`：随 wheel 打包的内容 JSON。
+- `content/`：唯一内容真源，开发时编辑的内容 JSON。
+- `src/slay_the_spire/data/content/`：构建 wheel 时临时生成的包内内容 JSON。
 - `tests/`：UI、内容校验、领域逻辑、存档和 E2E 测试。
 
 ## 协作规则
 
-- 默认优先相信 `src/slay_the_spire/app/session.py`、`tests/`、`content/` 和 `src/slay_the_spire/data/content/`，不要优先相信旧设计文档。
+- 默认优先相信 `src/slay_the_spire/app/session.py`、`tests/` 和 `content/`，不要优先相信旧设计文档。
 - 面向玩家的菜单、事件、奖励、效果说明等 UI 文案默认统一写中文；代码标识、命令、路径和必要专有名词可保留原文。
 - 做设计取舍时，如果 1 代、2 代资料或旧设计文档冲突，默认以“当前代码中的 1 代内容基线 + 已落地行为”优先；只有需求明确指定时才转向 2 代。
 - 若需要参考原版资料，优先查询官方社区 Wiki：[Slay the Spire Wiki](https://slay-the-spire.fandom.com/wiki/)。
 
 ## 修改约束
 
-- 修改内容 JSON 时，先改根目录 `content/`，再同步到 `src/slay_the_spire/data/content/`。
-- 默认运行优先读取 `src/slay_the_spire/data/content/`；如果只改了根目录 `content/`，本地默认运行和打包结果都会读到旧内容。
+- 修改内容 JSON 时，只改根目录 `content/`。
+- 默认运行优先读取根目录 `content/`；`src/slay_the_spire/data/content/` 仅在构建 wheel 时临时生成，不应手工维护。
 - 当前存档 `schema_version` 是 `2`；如果改动存档结构，要同步处理 `save_game.py`、`load_game.py` 和相关测试。
 - 当前开发阶段默认不需要兼容旧存档或旧菜单状态；若重构需要删除旧分支，可直接清理，除非需求明确要求兼容。
 - 仓库当前没有 `.env` / `.env.example`，也没有外部服务凭据依赖。

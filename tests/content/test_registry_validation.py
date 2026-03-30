@@ -16,9 +16,9 @@ from slay_the_spire.content.registries import (
 )
 
 
-def _content_roots() -> tuple[Path, Path]:
+def _content_roots() -> tuple[Path, ...]:
     root = Path(__file__).resolve().parents[2]
-    return (root / "content", root / "src" / "slay_the_spire" / "data" / "content")
+    return (root / "content",)
 
 
 def test_registry_rejects_duplicate_ids() -> None:
@@ -62,14 +62,6 @@ def test_card_registry_defaults_ethereal_to_false() -> None:
     )
 
     assert card.ethereal is False
-
-
-def test_ironclad_card_file_stays_in_sync_between_content_roots() -> None:
-    root, packaged = _content_roots()
-    assert (root / "cards" / "ironclad_starter.json").read_text(encoding="utf-8") == (
-        packaged / "cards" / "ironclad_starter.json"
-    ).read_text(encoding="utf-8")
-
 
 def test_json_loader_reads_raw_json(tmp_path: Path) -> None:
     path = tmp_path / "payload.json"

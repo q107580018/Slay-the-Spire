@@ -1,5 +1,6 @@
 from dataclasses import replace
 from copy import deepcopy
+from pathlib import Path
 from random import Random
 
 import pytest
@@ -16,6 +17,14 @@ def _provider():
     from slay_the_spire.app.session import default_content_root
 
     return StarterContentProvider(default_content_root())
+
+
+def test_default_content_root_prefers_repo_content_directory() -> None:
+    from slay_the_spire.app.session import default_content_root
+
+    expected_root = Path(__file__).resolve().parents[2] / "content"
+
+    assert default_content_root() == expected_root
 
 
 def test_build_opening_state_generates_repeatable_neow_offers_for_same_seed() -> None:

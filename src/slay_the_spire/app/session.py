@@ -12,6 +12,7 @@ from slay_the_spire.adapters.presentation.renderer import render_room, render_ro
 from slay_the_spire.adapters.presentation.widgets import render_card_name
 from slay_the_spire.adapters.persistence.save_files import JsonFileSaveRepository
 from slay_the_spire.app.map_labels import format_next_room_labels
+from slay_the_spire.build_content import packaged_content_root
 from slay_the_spire.app.menu_definitions import (
     build_menu,
     build_boss_relic_menu,
@@ -71,12 +72,12 @@ from slay_the_spire.use_cases.opening_flow import apply_neow_offer, build_openin
 
 
 def default_content_root() -> Path:
-    packaged_content_root = Path(__file__).resolve().parents[1] / "data" / "content"
-    if _is_content_root(packaged_content_root):
-        return packaged_content_root
     for candidate in _candidate_content_roots():
         if _is_content_root(candidate):
             return candidate
+    packaged_root = packaged_content_root()
+    if _is_content_root(packaged_root):
+        return packaged_root
     raise FileNotFoundError("could not locate content root; pass --content-root explicitly")
 
 
