@@ -103,14 +103,14 @@ uv build
 
 - `src/slay_the_spire/app/`：CLI 入口、会话状态、菜单路由、默认路径解析
 - `src/slay_the_spire/adapters/textual/`：Textual 界面与地图/日志组件
-- `src/slay_the_spire/adapters/rich_ui/`：共享 Rich 渲染、非战斗界面、inspect 面板
+- `src/slay_the_spire/adapters/presentation/`：共享终端展示/渲染、非战斗界面、inspect 面板
 - `src/slay_the_spire/adapters/persistence/`：JSON 存档读写
 - `src/slay_the_spire/content/`：内容加载、注册表、目录装配
 - `src/slay_the_spire/domain/`：战斗、地图、奖励、Hook、状态模型等领域逻辑
 - `src/slay_the_spire/use_cases/`：开始游戏、出牌、进房间、事件、商店、休息、奖励、存读档
 - `content/`：唯一内容真源，开发时维护的内容 JSON
 - `src/slay_the_spire/data/content/`：构建 wheel 时临时生成的包内内容 JSON
-- `tests/`：CLI、Textual、Rich UI、内容校验、领域逻辑、E2E 冒烟测试
+- `tests/`：CLI、Textual、共享展示层、内容校验、领域逻辑、E2E 冒烟测试
 
 ## 开发说明
 
@@ -123,7 +123,7 @@ uv build
 
 ## 测试建议
 
-- 修改菜单、渲染或会话路由时，优先检查 `tests/adapters/rich_ui/`、`tests/e2e/`。
+- 修改菜单、渲染或会话路由时，优先检查 `tests/adapters/presentation/`、`tests/e2e/`。
 - 修改 Textual UI 时，优先检查 `tests/adapters/textual/test_slay_app.py`。
 - 修改内容注册表或 JSON 结构时，优先检查 `tests/content/test_registry_validation.py`。
 - 修改存档结构时，优先检查 `tests/use_cases/test_save_load.py`，并同步关注 `schema_version`。

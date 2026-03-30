@@ -1,25 +1,12 @@
 from __future__ import annotations
 
-from inspect import isfunction as _isfunction
-
-from slay_the_spire.adapters.rich_ui.screens import layout as _impl
-
-
-def _export_function(name: str):
-    fn = getattr(_impl, name)
-
-    def wrapper(*args, **kwargs):
-        return fn(*args, **kwargs)
-
-    wrapper.__name__ = name
-    wrapper.__qualname__ = name
-    wrapper.__module__ = __name__
-    wrapper.__doc__ = getattr(fn, "__doc__", None)
-    return wrapper
+from rich.console import Group
+from rich.columns import Columns
 
 
-for _name, _value in vars(_impl).items():
-    if _isfunction(_value):
-        globals()[_name] = _export_function(_name)
+def build_standard_screen(*, summary, body, footer) -> Group:
+    return Group(summary, body, footer)
 
-__all__ = [name for name, value in globals().items() if _isfunction(value) and not name.startswith("_")]
+
+def build_two_column_body(*, left, right) -> Columns:
+    return Columns([left, right], equal=True, expand=True)

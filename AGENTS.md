@@ -20,7 +20,7 @@
 - `src/slay_the_spire/app/cli.py`：CLI 入口。
 - `src/slay_the_spire/app/session.py`：会话状态、菜单路由、默认路径、跨幕推进。
 - `src/slay_the_spire/app/menu_definitions.py`：编号菜单定义。
-- `src/slay_the_spire/adapters/rich_ui/`：共享 Rich 渲染、inspect、combat/non-combat 屏幕。
+- `src/slay_the_spire/adapters/presentation/`：共享终端展示/渲染、inspect、combat/non-combat 屏幕。
 - `src/slay_the_spire/adapters/textual/`：Textual 入口、地图组件、日志和交互面板。
 - `src/slay_the_spire/adapters/persistence/save_files.py`：JSON 存档读写。
 - `src/slay_the_spire/content/`：内容加载与注册表。
@@ -48,11 +48,11 @@
 
 ## 变更联动检查
 
-- 新增房间类型前，先确认地图内容、use case / session 路由、共享 Rich 渲染 / Textual 展示三层都补齐。
+- 新增房间类型前，先确认地图内容、use case / session 路由、共享展示层 / Textual 展示三层都补齐。
 - 调整 Boss 奖励或跨幕流程时，同时检查 `boss -> boss_chest -> 下一幕 / victory` 这条完整链路。
 - 新增角色、卡牌、敌人、事件、遗物或药水时，同时检查内容注册表、掉落入口和对应测试。
 - 新增战斗后奖励或 Boss 奖励时，同时检查 `src/slay_the_spire/domain/rewards/reward_generator.py`、`src/slay_the_spire/use_cases/apply_reward.py` 和对应测试。
-- 修改菜单、渲染或会话路由时，优先检查 `tests/adapters/rich_ui/` 和 `tests/e2e/`。
+- 修改菜单、渲染或会话路由时，优先检查 `tests/adapters/presentation/` 和 `tests/e2e/`。
 - 修改 Textual UI 时，优先检查 `tests/adapters/textual/test_slay_app.py`。
 - 修改内容注册表或 JSON 结构时，优先检查 `tests/content/test_registry_validation.py`。
 - 修改存档结构时，优先检查 `tests/use_cases/test_save_load.py`。
