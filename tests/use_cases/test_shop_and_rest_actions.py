@@ -216,6 +216,14 @@ def test_rest_is_blocked_by_fusion_hammer() -> None:
     assert result.message == "该动作被遗物效果禁用。"
 
 
+def test_rest_leave_marks_room_completed() -> None:
+    result = rest_action(run_state=_run_state(), room_state=_rest_room(), action_id="leave", registry=_content_provider())
+
+    assert result.room_state.stage == "completed"
+    assert result.room_state.is_resolved is True
+    assert result.message is None
+
+
 def test_rest_menu_route_surfaces_disabled_action_message() -> None:
     session = replace(
         start_session(seed=5),
@@ -228,6 +236,25 @@ def test_rest_menu_route_surfaces_disabled_action_message() -> None:
 
     assert message.startswith("该动作被遗物效果禁用。")
     assert next_session.room_state.stage == "waiting_input"
+
+
+def test_rest_menu_route_can_leave_when_both_actions_disabled() -> None:
+    session = replace(
+        start_session(seed=5),
+        run_state=replace(start_session(seed=5).run_state, relics=["burning_blood", "coffee_dripper", "fusion_hammer"]),
+        room_state=replace(
+            _rest_room(),
+            room_id="act1:rest",
+            payload={"actions": ["rest", "smith"], "node_id": "r15c0", "next_node_ids": ["boss"]},
+        ),
+        menu_state=MenuState(mode="rest_root"),
+    )
+
+    _running, next_session, message = route_menu_choice("3", session=session)
+
+    assert next_session.room_state.is_resolved is True
+    assert next_session.menu_state.mode == "root"
+    assert "前往下一个房间" in message
 
 
 def test_rest_select_upgrade_card_rewrites_card_instance_to_upgraded_card() -> None:

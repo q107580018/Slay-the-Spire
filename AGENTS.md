@@ -64,7 +64,7 @@
 - 当前战斗奖励中的 `reward_strike` / `reward_defend` 会分别落成 `strike_plus` / `defend_plus`。
 - 当前普通奖励不再提供单独的“奖励主页 / 奖励详情列表 / 奖励详情”三级菜单；已解析奖励时直接进入领取流 `select_reward`。
 - 当前商店可出售卡牌、遗物、药水，并支持付费移除 1 张牌。
-- 当前休息点支持至少“恢复生命”和“升级 1 张牌”。
+- 当前休息点支持至少“恢复生命”“升级 1 张牌”“离开休息点”。
 - 当前 `coffee_dripper` 会禁用休息回血，`fusion_hammer` 会禁用休息点锻造，`ectoplasm` 会阻止获得金币。
 - 终端交互主路径走 `route_menu_choice()` 的编号菜单，不是自由文本命令模式。
 - opening 阶段不是地图房间：此时 `act_state` / `room_state` 为空，左侧不显示真实地图，进入 active run 后才恢复地图组件。

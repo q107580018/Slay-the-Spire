@@ -113,7 +113,7 @@ def test_single_act_smoke_simulates_map_shop_rest_and_boss_reward_transition_int
             _running, session, _message = route_menu_choice("5", session=session)
             _running, session, _message = route_menu_choice(_shop_leave_choice(session.room_state), session=session)
         elif session.room_state.room_type == "rest":
-            _running, session, _message = route_menu_choice("3", session=session)
+            _running, session, _message = route_menu_choice("4", session=session)
             session = _inspect_relics_and_return_to_parent(session)
             _running, session, _message = route_menu_choice("2", session=session)
             _running, session, _message = route_menu_choice("1", session=session)
@@ -208,7 +208,7 @@ def test_single_act_smoke_boss_room_uses_act1_bosses_and_hexaghost() -> None:
             _running, session, _message = route_menu_choice("5", session=session)
             _running, session, _message = route_menu_choice(_shop_leave_choice(session.room_state), session=session)
         elif session.room_state.room_type == "rest":
-            _running, session, _message = route_menu_choice("3", session=session)
+            _running, session, _message = route_menu_choice("4", session=session)
             session = _inspect_relics_and_return_to_parent(session)
             _running, session, _message = route_menu_choice("2", session=session)
             _running, session, _message = route_menu_choice("1", session=session)

@@ -652,7 +652,7 @@ def test_shop_root_menu_can_enter_inspect_and_return_to_shop() -> None:
 def test_rest_root_menu_can_enter_inspect_and_return_to_rest() -> None:
     session = replace(start_session(seed=5), room_state=_rest_room(), menu_state=MenuState(mode="rest_root"))
 
-    _running, inspect_session, inspect_message = route_menu_choice("3", session=session)
+    _running, inspect_session, inspect_message = route_menu_choice("4", session=session)
     _running, relics_session, relics_message = route_menu_choice("3", session=inspect_session)
     _running, inspect_back_session, inspect_back_message = route_menu_choice(
         str(len(relics_session.run_state.relics) + 1),

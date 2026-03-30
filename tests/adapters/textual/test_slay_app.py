@@ -382,6 +382,7 @@ def test_current_action_menu_marks_disabled_rest_actions() -> None:
     assert menu is not None
     assert menu.options[0].label == "休息 [已禁用]"
     assert menu.options[1].label == "锻造 [已禁用]"
+    assert menu.options[2].label == "离开休息点"
 
 
 def test_current_action_menu_preserves_card_style_for_hand_targets() -> None:

@@ -99,6 +99,19 @@ def rest_action(
                 rewards=list(room_state.rewards),
             ),
         )
+    if action_id == "leave":
+        return _result(
+            run_state,
+            RoomState(
+                schema_version=room_state.schema_version,
+                room_id=room_state.room_id,
+                room_type=room_state.room_type,
+                stage="completed",
+                payload=payload,
+                is_resolved=True,
+                rewards=list(room_state.rewards),
+            ),
+        )
     if action_id == "smith":
         if "fusion_hammer" in run_state.relics:
             return _result(run_state, room_state, "该动作被遗物效果禁用。")

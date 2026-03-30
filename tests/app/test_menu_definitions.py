@@ -12,6 +12,7 @@ from slay_the_spire.app.menu_definitions import (
     build_next_room_menu,
     build_inspect_root_menu,
     build_reward_menu,
+    build_rest_root_menu,
     build_rest_upgrade_menu,
     build_root_menu,
     build_select_card_menu,
@@ -26,6 +27,8 @@ from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.content.registries import EnemyDef, PotionDef
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
+from slay_the_spire.domain.models.room_state import RoomState
+from slay_the_spire.domain.models.run_state import RunState
 
 
 def _span_styles(text: Text) -> set[str]:
@@ -554,6 +557,43 @@ def test_build_root_menu_returns_resolved_treasure_to_next_room_flow() -> None:
         "5. 退出游戏",
     ]
     assert resolve_menu_action("1", menu) == "next_room"
+
+
+def test_build_rest_root_menu_includes_leave_option() -> None:
+    room_state = RoomState(
+        room_id="act1:rest",
+        room_type="rest",
+        stage="waiting_input",
+        payload={"actions": ["rest", "smith"]},
+        is_resolved=False,
+        rewards=[],
+    )
+    run_state = RunState(
+        seed=7,
+        character_id="ironclad",
+        current_act_id="act1",
+        current_hp=50,
+        max_hp=80,
+        gold=99,
+        deck=["strike#1", "defend#2", "bash#3"],
+        relics=["burning_blood", "coffee_dripper", "fusion_hammer"],
+        potions=[],
+        card_removal_count=0,
+    )
+
+    menu = build_rest_root_menu(room_state=room_state, run_state=run_state)
+
+    assert format_menu_lines(menu) == [
+        "休息点操作:",
+        "1. 休息 [已禁用]",
+        "2. 锻造 [已禁用]",
+        "3. 离开休息点",
+        "4. 查看资料",
+        "5. 保存游戏",
+        "6. 读取存档",
+        "7. 退出游戏",
+    ]
+    assert resolve_menu_action("3", menu) == "leave"
 
 
 def test_build_boss_reward_menu_binds_gold_relic_and_back_actions() -> None:

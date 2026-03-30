@@ -1164,7 +1164,7 @@ def test_rest_renderer_shows_root_and_upgrade_selection_states() -> None:
     assert "休息点" in root_output
     assert "休息 [已禁用]" in root_output
     assert "锻造 [已禁用]" in root_output
-    assert "3. 查看资料" in root_output
+    assert "3. 离开休息点" in root_output
     assert "Rest" not in root_output
     assert "Smith" not in root_output
     assert "可升级卡牌" in upgrade_output

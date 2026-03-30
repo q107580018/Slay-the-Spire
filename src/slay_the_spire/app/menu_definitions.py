@@ -486,7 +486,15 @@ def build_rest_root_menu(*, room_state: RoomState, run_state: RunState | None = 
             if action == "smith" and "fusion_hammer" in run_state.relics:
                 label = f"{label} [已禁用]"
         options.append((action, label))
-    options.extend([("inspect", "查看资料"), ("save", "保存游戏"), ("load", "读取存档"), ("quit", "退出游戏")])
+    options.extend(
+        [
+            ("leave", "离开休息点"),
+            ("inspect", "查看资料"),
+            ("save", "保存游戏"),
+            ("load", "读取存档"),
+            ("quit", "退出游戏"),
+        ]
+    )
     return build_menu(title="休息点操作", options=options)
 
 
