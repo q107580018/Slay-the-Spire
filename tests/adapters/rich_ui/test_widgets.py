@@ -3,6 +3,7 @@ from rich.console import Console
 from slay_the_spire.adapters.presentation.theme import TERMINAL_THEME
 from slay_the_spire.adapters.presentation.renderer import render_room
 from slay_the_spire.adapters.presentation.widgets import (
+    active_power_label,
     render_block,
     render_hp_bar,
     render_menu,
@@ -107,6 +108,16 @@ def test_summarize_effect_localizes_dexterity_loss_effect() -> None:
     output = summarize_effect({"type": "dexterity", "amount": -2})
 
     assert output == "失去 2 敏捷"
+
+
+def test_active_power_label_localizes_battle_trance() -> None:
+    assert active_power_label("battle_trance") == "战斗狂热"
+
+
+def test_summarize_effect_localizes_battle_trance_power_effect() -> None:
+    output = summarize_effect({"type": "add_power", "power_id": "battle_trance", "amount": 1})
+
+    assert output == "本回合内不能再抽牌"
 
 
 def test_preview_enemy_intent_uses_move_table_without_state() -> None:

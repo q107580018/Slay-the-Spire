@@ -135,6 +135,7 @@ def test_provider_exposes_registry_accessors(content_root: Path) -> None:
     assert provider.potions().get("block_potion").target == "self"
     assert provider.potions().get("strength_potion").target == "self"
     assert provider.relics().get("burning_blood").id == "burning_blood"
+    assert provider.relics().get("frozen_eye").name == "冰冻之眼"
     assert provider.events().get("shining_light").text.startswith("一道圣洁的光")
     assert provider.acts().get("act1").boss_pool_id == "act1_bosses"
 

@@ -1346,6 +1346,100 @@ def test_combat_pile_preview_supports_draw_pile() -> None:
     assert preview.renderables[0].plain == "抽牌堆预览"
 
 
+def test_combat_pile_preview_hides_draw_order_without_frozen_eye() -> None:
+    base = start_session(seed=5)
+    combat_state = CombatState.from_dict(base.room_state.payload["combat_state"])
+    combat_state.draw_pile = ["bash#2", "anger#1"]
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            payload={
+                **base.room_state.payload,
+                "combat_state": combat_state.to_dict(),
+            },
+        ),
+    )
+
+    preview = _combat_pile_preview_text(session, "draw")
+
+    assert isinstance(preview, Group)
+    columns = preview.renderables[1]
+    assert isinstance(columns, Columns)
+    assert [entry.plain for entry in columns.renderables] == ["1. 愤怒", "2. 重击"]
+
+
+def test_combat_pile_preview_uses_real_draw_order_with_frozen_eye() -> None:
+    base = start_session(seed=5)
+    combat_state = CombatState.from_dict(base.room_state.payload["combat_state"])
+    combat_state.draw_pile = ["bash#2", "anger#1"]
+    session = replace(
+        base,
+        run_state=replace(base.run_state, relics=[*base.run_state.relics, "frozen_eye"]),
+        room_state=replace(
+            base.room_state,
+            payload={
+                **base.room_state.payload,
+                "combat_state": combat_state.to_dict(),
+            },
+        ),
+    )
+
+    preview = _combat_pile_preview_text(session, "draw")
+
+    assert isinstance(preview, Group)
+    columns = preview.renderables[1]
+    assert isinstance(columns, Columns)
+    assert [entry.plain for entry in columns.renderables] == ["1. 重击", "2. 愤怒"]
+
+
+def test_current_action_menu_hides_draw_order_without_frozen_eye() -> None:
+    base = start_session(seed=5)
+    combat_state = CombatState.from_dict(base.room_state.payload["combat_state"])
+    combat_state.draw_pile = ["bash#2", "anger#1"]
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            payload={
+                **base.room_state.payload,
+                "combat_state": combat_state.to_dict(),
+            },
+        ),
+        menu_state=MenuState(mode="inspect_draw_pile"),
+    )
+
+    menu = _current_action_menu(session)
+
+    assert menu is not None
+    assert menu.options[0].label == "愤怒"
+    assert menu.options[1].label == "重击"
+
+
+def test_current_action_menu_uses_real_draw_order_with_frozen_eye() -> None:
+    base = start_session(seed=5)
+    combat_state = CombatState.from_dict(base.room_state.payload["combat_state"])
+    combat_state.draw_pile = ["bash#2", "anger#1"]
+    session = replace(
+        base,
+        run_state=replace(base.run_state, relics=[*base.run_state.relics, "frozen_eye"]),
+        room_state=replace(
+            base.room_state,
+            payload={
+                **base.room_state.payload,
+                "combat_state": combat_state.to_dict(),
+            },
+        ),
+        menu_state=MenuState(mode="inspect_draw_pile"),
+    )
+
+    menu = _current_action_menu(session)
+
+    assert menu is not None
+    assert menu.options[0].label == "重击"
+    assert menu.options[1].label == "愤怒"
+
+
 def test_combat_summary_panel_is_hidden_outside_combat() -> None:
     base_session = start_session(seed=5)
     session = replace(

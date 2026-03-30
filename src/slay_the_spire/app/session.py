@@ -46,6 +46,7 @@ from slay_the_spire.app.inspect_registry import (
     SHARED_INSPECT_ROOT_ACTIONS,
     inspect_leaf_title,
 )
+from slay_the_spire.app.combat_pile_visibility import visible_combat_pile_cards
 from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.domain.map.map_generator import generate_act_state
 from slay_the_spire.domain.hooks.runtime import build_runtime_hook_registrations
@@ -1368,7 +1369,11 @@ def _inspect_card_items(session: SessionState, mode: str) -> list[str]:
     if mode == "inspect_hand":
         return combat_state.hand
     if mode == "inspect_draw_pile":
-        return combat_state.draw_pile
+        return visible_combat_pile_cards(
+            run_state=session.run_state,
+            combat_state=combat_state,
+            pile_key="draw_pile",
+        )
     if mode == "inspect_discard_pile":
         return combat_state.discard_pile
     if mode == "inspect_exhaust_pile":

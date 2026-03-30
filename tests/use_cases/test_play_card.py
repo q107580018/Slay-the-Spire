@@ -478,7 +478,7 @@ def test_play_card_draw_log_uses_refilled_discard_cards() -> None:
 
     play_card(state, "pommel_strike_plus#1", "enemy-1", provider)
 
-    assert state.hand == ["bonus_a#1", "bonus_b#1"]
+    assert state.hand == ["bonus_a#1", "pommel_strike_plus#1"]
     assert state.log == [
         "你打出 Custom Strike，对 Training Dummy 造成 10 伤害，并抽 2 张牌。"
     ]

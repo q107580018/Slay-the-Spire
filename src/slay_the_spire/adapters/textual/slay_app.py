@@ -24,6 +24,7 @@ from slay_the_spire.app.inspect_registry import (
     COMBAT_INSPECT_CARD_LIST_MODES,
     inspect_leaf_title,
 )
+from slay_the_spire.app.combat_pile_visibility import visible_combat_pile_cards
 from slay_the_spire.app.map_labels import format_next_room_labels
 from slay_the_spire.app.menu_definitions import (
     MenuDefinition,
@@ -342,7 +343,11 @@ def _combat_pile_preview_text(session: SessionState, pile: str) -> Group | Text 
     if combat_state is None or pile not in _COMBAT_PREVIEW_PILES:
         return None
     pile_label, pile_key = _COMBAT_PREVIEW_PILES[pile]
-    pile_cards = list(getattr(combat_state, pile_key))
+    pile_cards = visible_combat_pile_cards(
+        run_state=session.run_state,
+        combat_state=combat_state,
+        pile_key=pile_key,
+    )
     title = Text(f"{pile_label}预览")
     if not pile_cards:
         return _text_from_lines([title, "当前为空。"])
@@ -775,7 +780,14 @@ def _current_action_menu(session: SessionState) -> MenuDefinition | None:
             return None
         pile_map = {
             "inspect_hand": ("手牌列表", combat_state.hand),
-            "inspect_draw_pile": ("抽牌堆列表", combat_state.draw_pile),
+            "inspect_draw_pile": (
+                "抽牌堆列表",
+                visible_combat_pile_cards(
+                    run_state=session.run_state,
+                    combat_state=combat_state,
+                    pile_key="draw_pile",
+                ),
+            ),
             "inspect_discard_pile": ("弃牌堆列表", combat_state.discard_pile),
             "inspect_exhaust_pile": ("消耗堆列表", combat_state.exhaust_pile),
         }

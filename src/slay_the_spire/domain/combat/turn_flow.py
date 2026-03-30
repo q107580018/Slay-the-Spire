@@ -3,7 +3,10 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 
 from slay_the_spire.content.registries import EnemyDef
-from slay_the_spire.domain.effects.effect_resolver import resolve_effect_queue
+from slay_the_spire.domain.effects.effect_resolver import (
+    refill_draw_pile_from_discard,
+    resolve_effect_queue,
+)
 from slay_the_spire.domain.effects.effect_types import (
     block_effect,
     copy_effect,
@@ -36,10 +39,8 @@ def _draw_cards(state: CombatState, *, amount: int) -> None:
                 return
     for _ in range(max(amount, 0)):
         if not state.draw_pile:
-            if not state.discard_pile:
+            if not refill_draw_pile_from_discard(state):
                 break
-            state.draw_pile.extend(state.discard_pile)
-            state.discard_pile.clear()
         state.hand.append(state.draw_pile.pop(0))
 
 

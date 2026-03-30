@@ -51,6 +51,7 @@ _POWER_LABELS: dict[str, str] = {
     "metallicize": "金属化",
     "combust": "燃烧躯体",
     "flame_barrier": "火焰屏障",
+    "battle_trance": "战斗狂热",
     "demon_form": "恶魔形态",
 }
 
@@ -242,6 +243,8 @@ def summarize_effect(
             )
         if power_id == "flame_barrier":
             return f"本回合内每次被敌人攻击时反弹 {amount} 伤害"
+        if power_id == "battle_trance":
+            return "本回合内不能再抽牌"
         if power_id == "demon_form":
             return f"每回合开始时获得 {amount} 层力量"
         return f"获得持续效果 {power_id} {amount}"

@@ -1,0 +1,12 @@
+{
+  "relics": [
+    {
+      "id": "frozen_eye",
+      "name": "冰冻之眼",
+      "summary": "查看抽牌堆时，按真实抽牌顺序显示",
+      "description": "你可以查看抽牌堆中的卡牌，并按实际抽牌顺序显示。",
+      "trigger_hooks": [],
+      "passive_effects": []
+    }
+  ]
+}

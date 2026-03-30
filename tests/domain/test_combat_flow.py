@@ -195,8 +195,8 @@ def test_end_turn_runs_enemy_intents_and_draws_new_hand() -> None:
     assert state.player.hp == 25
     assert state.round_number == 2
     assert state.energy == 3
-    assert state.hand == ["strike#2", "defend#2", "strike#3", "defend#3", "strike#4"]
-    assert state.draw_pile == ["strike#1", "defend#1"]
+    assert state.hand == ["strike#2", "defend#2", "strike#3", "defend#1", "strike#4"]
+    assert state.draw_pile == ["strike#1", "defend#3"]
     assert state.discard_pile == []
     assert [effect["type"] for effect in resolved] == ["damage"]
 

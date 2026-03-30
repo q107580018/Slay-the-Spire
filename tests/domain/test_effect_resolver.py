@@ -564,6 +564,29 @@ def test_draw_effect_refills_from_discard_pile_when_draw_pile_runs_out():
     assert state.discard_pile == []
 
 
+def test_draw_effect_shuffles_discard_pile_when_refilling_draw_pile() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 10)],
+        effect_queue=[draw_effect(target_instance_id="player-1", amount=2)],
+    )
+    state.hand = []
+    state.draw_pile = ["pommel_a#1"]
+    state.discard_pile = [
+        "pommel_b#1",
+        "pommel_c#1",
+        "pommel_d#1",
+        "pommel_e#1",
+    ]
+
+    resolved = resolve_next_effect(state)
+
+    assert resolved["type"] == "draw"
+    assert resolved["result"] == {"drawn_count": 2}
+    assert state.hand == ["pommel_a#1", "pommel_d#1"]
+    assert state.draw_pile == ["pommel_c#1", "pommel_e#1", "pommel_b#1"]
+    assert state.discard_pile == []
+
+
 def test_lose_hp_effect_reduces_player_hp_without_touching_block() -> None:
     state = make_combat_state(
         enemies=[make_enemy("enemy-1", 10)],

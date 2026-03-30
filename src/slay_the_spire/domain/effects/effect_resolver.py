@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 from collections.abc import Sequence
 
 from slay_the_spire.domain.effects.effect_types import (
@@ -207,6 +208,21 @@ def _pseudo_random_hand_selection(
     return rotated[: min(count, len(rotated))]
 
 
+def refill_draw_pile_from_discard(state: CombatState) -> bool:
+    if not state.discard_pile:
+        return False
+    seed_basis = sum(
+        ord(char)
+        for item in [*state.hand, *state.draw_pile, *state.discard_pile, *state.exhaust_pile]
+        for char in item
+    )
+    reshuffled = list(state.discard_pile)
+    random.Random(seed_basis).shuffle(reshuffled)
+    state.draw_pile.extend(reshuffled)
+    state.discard_pile.clear()
+    return True
+
+
 def _draw_cards(state: CombatState, *, amount: int) -> int:
     for power in state.active_powers:
         if power.get("power_id") == "battle_trance":
@@ -216,10 +232,8 @@ def _draw_cards(state: CombatState, *, amount: int) -> int:
     drawn_count = 0
     for _ in range(max(amount, 0)):
         if not state.draw_pile:
-            if not state.discard_pile:
+            if not refill_draw_pile_from_discard(state):
                 break
-            state.draw_pile.extend(state.discard_pile)
-            state.discard_pile.clear()
         state.hand.append(state.draw_pile.pop(0))
         drawn_count += 1
     return drawn_count
