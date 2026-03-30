@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from rich.columns import Columns
 from rich.console import Group
 from rich.panel import Panel
 from rich.text import Text
@@ -94,6 +95,13 @@ _CARD_PREVIEW_MENU_MODES = frozenset(
 )
 
 
+_COMBAT_PREVIEW_PILES: dict[str, tuple[str, str]] = {
+    "draw": ("抽牌堆", "draw_pile"),
+    "discard": ("弃牌堆", "discard_pile"),
+    "exhaust": ("消耗堆", "exhaust_pile"),
+}
+
+
 def _is_full_map_panel(renderable: object) -> bool:
     return (
         isinstance(renderable, Panel)
@@ -161,6 +169,8 @@ def _plain_label(label: object) -> str:
 
 
 def _combat_state_from_session(session: SessionState) -> CombatState | None:
+    if session.room_state is None:
+        return None
     combat_state = session.room_state.payload.get("combat_state")
     if not isinstance(combat_state, dict):
         return None
@@ -325,6 +335,26 @@ def _text_from_lines(lines: list[str | Text]) -> Text:
         else:
             rendered.append(line)
     return rendered
+
+
+def _combat_pile_preview_text(session: SessionState, pile: str) -> Group | Text | None:
+    combat_state = _combat_state_from_session(session)
+    if combat_state is None or pile not in _COMBAT_PREVIEW_PILES:
+        return None
+    pile_label, pile_key = _COMBAT_PREVIEW_PILES[pile]
+    pile_cards = list(getattr(combat_state, pile_key))
+    title = Text(f"{pile_label}预览")
+    if not pile_cards:
+        return _text_from_lines([title, "当前为空。"])
+    registry = _content_provider(session)
+    entries: list[Text] = []
+    for index, card_instance_id in enumerate(pile_cards, start=1):
+        card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
+        entries.append(Text.assemble(f"{index}. ", render_card_name(card_def)))
+    return Group(
+        title,
+        Columns(entries, expand=True, equal=True, padding=(0, 2)),
+    )
 
 
 def _reward_preview_renderable(session: SessionState, action_id: str) -> Text | None:
@@ -793,9 +823,52 @@ class SlayApp(App[None]):
 
     #combat-summary {
         height: auto;
-        max-height: 11;
+        max-height: 8;
         border: solid grey;
         overflow: auto;
+    }
+
+    #combat-summary-actions {
+        height: 2;
+        background: $surface;
+        padding: 0;
+    }
+
+    .combat-summary-action-row {
+        height: 1;
+    }
+
+    .combat-summary-action {
+        width: 1fr;
+        height: 1;
+        min-width: 0;
+        content-align: center middle;
+        background: rgb(18, 32, 42);
+        color: rgb(235, 247, 255);
+        text-style: bold;
+        padding: 0 1;
+    }
+
+    .combat-summary-action:hover {
+        background: rgb(30, 54, 70);
+        color: rgb(255, 255, 255);
+    }
+
+    .combat-summary-action.-active {
+        background: rgb(40, 74, 94);
+        color: rgb(255, 255, 255);
+    }
+
+    .combat-summary-action:focus {
+        background: rgb(36, 66, 84);
+        color: rgb(255, 255, 255);
+        text-style: bold underline;
+    }
+
+    #combat-summary-action-empty {
+        width: 1fr;
+        height: 1;
+        background: transparent;
     }
 
     #right-panel {
@@ -853,6 +926,7 @@ class SlayApp(App[None]):
         self._action_choices: list[str] = []
         self._action_ids: list[str] = []
         self._hovered_node_id: str | None = None
+        self._combat_preview_pile: str | None = None
         self.console.push_theme(TERMINAL_THEME)
 
     def compose(self) -> ComposeResult:
@@ -864,6 +938,25 @@ class SlayApp(App[None]):
                     yield Static("", id="opening-panel")
                     yield MapWidget(self._session.act_state, id="map-widget")
                 yield Static("", id="combat-summary")
+                with Vertical(id="combat-summary-actions"):
+                    with Horizontal(classes="combat-summary-action-row"):
+                        yield Static(
+                            "",
+                            id="combat-summary-action-draw",
+                            classes="combat-summary-action",
+                        )
+                        yield Static(
+                            "",
+                            id="combat-summary-action-discard",
+                            classes="combat-summary-action",
+                        )
+                    with Horizontal(classes="combat-summary-action-row"):
+                        yield Static(
+                            "",
+                            id="combat-summary-action-exhaust",
+                            classes="combat-summary-action",
+                        )
+                        yield Static("", id="combat-summary-action-empty")
             # 右侧：日志 + 输入
             with Vertical(id="right-panel"):
                 yield RichLog(id="game-log", highlight=True, markup=True, wrap=True)
@@ -877,6 +970,7 @@ class SlayApp(App[None]):
         self._refresh_map()
         self._refresh_log()
         self._refresh_combat_summary()
+        self._refresh_combat_summary_actions()
         self._refresh_actions()
         self.query_one("#action-list", OptionList).focus()
 
@@ -926,6 +1020,23 @@ class SlayApp(App[None]):
         summary.update(panel)
         summary.display = True
 
+    def _refresh_combat_summary_actions(self) -> None:
+        actions = self.query_one("#combat-summary-actions", Vertical)
+        combat_state = _combat_state_from_session(self._session)
+        if combat_state is None:
+            actions.display = False
+            return
+        self.query_one("#combat-summary-action-draw", Static).update(
+            f"抽牌堆：{len(combat_state.draw_pile)} 张"
+        )
+        self.query_one("#combat-summary-action-discard", Static).update(
+            f"弃牌堆：{len(combat_state.discard_pile)} 张"
+        )
+        self.query_one("#combat-summary-action-exhaust", Static).update(
+            f"消耗堆：{len(combat_state.exhaust_pile)} 张"
+        )
+        actions.display = True
+
     def _set_flash(self, msg: str) -> None:
         try:
             self.query_one("#flash-msg", Static).update(msg)
@@ -933,12 +1044,13 @@ class SlayApp(App[None]):
             pass
 
     def _refresh_actions(self) -> None:
-        menu = _current_action_menu(self._session)
         action_summary = self.query_one("#action-summary", Static)
         action_list = self.query_one("#action-list", OptionList)
         action_list.clear_options()
         self._action_choices = []
         self._action_ids = []
+
+        menu = _current_action_menu(self._session)
 
         if menu is None:
             action_summary.update("当前没有可点击操作。")
@@ -966,8 +1078,21 @@ class SlayApp(App[None]):
         action_list.add_options(prompts)
         self._refresh_hover_preview()
 
+    def _open_combat_preview(self, pile: str) -> None:
+        self._combat_preview_pile = pile
+        self._refresh_hover_preview()
+
+    def _close_combat_preview(self) -> None:
+        self._combat_preview_pile = None
+
     def _refresh_hover_preview(self, action_id: str | None = None) -> None:
         preview = self.query_one("#hover-preview", Static)
+        if self._combat_preview_pile is not None:
+            rendered = _combat_pile_preview_text(self._session, self._combat_preview_pile)
+            if rendered is not None:
+                preview.update(rendered)
+                preview.display = True
+                return
         menu_mode = self._session.menu_state.mode
         if action_id is not None:
             rendered = _hover_preview_renderable(self._session, action_id)
@@ -1010,9 +1135,11 @@ class SlayApp(App[None]):
             self.query_one("#map-widget", MapWidget).set_route_preview_root(None)
         except NoMatches:
             pass
+        self._close_combat_preview()
         self._refresh_log()
         self._refresh_map()
         self._refresh_combat_summary()
+        self._refresh_combat_summary_actions()
         self._refresh_actions()
         self._set_flash(result.status_message or "")
         if not result.running:
@@ -1056,6 +1183,18 @@ class SlayApp(App[None]):
     def handle_action_list_leave(self, _: events.Leave) -> None:
         self._refresh_hover_preview()
         self._refresh_route_preview_for_action(None)
+
+    @on(events.Click, "#combat-summary-action-draw")
+    def handle_combat_summary_draw_click(self, _: events.Click) -> None:
+        self._open_combat_preview("draw")
+
+    @on(events.Click, "#combat-summary-action-discard")
+    def handle_combat_summary_discard_click(self, _: events.Click) -> None:
+        self._open_combat_preview("discard")
+
+    @on(events.Click, "#combat-summary-action-exhaust")
+    def handle_combat_summary_exhaust_click(self, _: events.Click) -> None:
+        self._open_combat_preview("exhaust")
 
     @on(MapWidget.NodeSelected)
     def handle_node_selected(self, event: MapWidget.NodeSelected) -> None:

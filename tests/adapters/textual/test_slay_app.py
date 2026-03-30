@@ -7,6 +7,8 @@ from random import Random
 
 import pytest
 from rich.console import Console
+from rich.columns import Columns
+from rich.console import Group
 from rich.panel import Panel
 from rich.text import Text
 from textual.widgets import OptionList, Static
@@ -15,6 +17,7 @@ from slay_the_spire.adapters.textual.map_widget import MapWidget
 from slay_the_spire.adapters.presentation.theme import TERMINAL_THEME
 from slay_the_spire.adapters.textual.slay_app import (
     SlayApp,
+    _combat_pile_preview_text,
     _current_action_menu,
     _hover_preview_renderable,
     _menu_choice_for_action,
@@ -44,6 +47,17 @@ def _node_region_text(widget: MapWidget, node_id: str) -> str:
     x, y, width, height = widget._node_regions[node_id]
     lines = widget._canvas_lines[y : y + height]
     return "\n".join(line[x : x + width] for line in lines)
+
+
+def _widget_render_plain(widget: Static) -> str:
+    rendered = widget.render()
+    renderable = getattr(rendered, "_renderable", rendered)
+    buffer = StringIO()
+    console = Console(
+        file=buffer, force_terminal=False, color_system=None, theme=TERMINAL_THEME
+    )
+    console.print(renderable)
+    return buffer.getvalue()
 
 
 def test_menu_choice_for_root_next_room_action() -> None:
@@ -1128,6 +1142,178 @@ def test_combat_summary_panel_is_rendered_below_map_when_in_combat() -> None:
             assert rendered._renderable.title == "战斗摘要"
 
     asyncio.run(scenario())
+
+
+def test_combat_summary_actions_show_discard_and_exhaust_counts() -> None:
+    base = start_session(seed=5)
+    combat_state = CombatState.from_dict(base.room_state.payload["combat_state"])
+    combat_state.draw_pile = ["anger#6", "strike#9", "defend#8"]
+    combat_state.discard_pile = ["strike#9", "defend#8"]
+    combat_state.exhaust_pile = ["burn#7"]
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            payload={
+                **base.room_state.payload,
+                "combat_state": combat_state.to_dict(),
+            },
+        ),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            actions = app.query_one("#combat-summary-actions")
+            assert actions.display is True
+            assert app.query_one("#combat-summary-action-draw", Static).render().plain == "抽牌堆：3 张"
+            assert app.query_one("#combat-summary-action-discard", Static).render().plain == "弃牌堆：2 张"
+            assert app.query_one("#combat-summary-action-exhaust", Static).render().plain == "消耗堆：1 张"
+
+    asyncio.run(scenario())
+
+
+def test_clicking_combat_summary_action_opens_card_pile_preview() -> None:
+    base = start_session(seed=5)
+    combat_state = CombatState.from_dict(base.room_state.payload["combat_state"])
+    combat_state.draw_pile = ["bash#9", "strike#8"]
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            payload={
+                **base.room_state.payload,
+                "combat_state": combat_state.to_dict(),
+            },
+        ),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            initial_summary = app.query_one("#action-summary", Static).render().plain
+            initial_first_prompt = (
+                app.query_one("#action-list", OptionList)
+                .get_option_at_index(0)
+                .prompt.plain
+            )
+            await pilot.click("#combat-summary-action-draw")
+            await pilot.pause()
+            preview = app.query_one("#hover-preview", Static)
+            summary = app.query_one("#action-summary", Static)
+            action_list = app.query_one("#action-list", OptionList)
+            preview_plain = _widget_render_plain(preview)
+            assert "抽牌堆预览" in preview_plain
+            assert "1. 重击" in preview_plain
+            assert "2. 打击" in preview_plain
+            assert summary.render().plain == initial_summary
+            assert action_list.get_option_at_index(0).prompt.plain == initial_first_prompt
+
+    asyncio.run(scenario())
+
+
+def test_clicking_combat_summary_action_replaces_preview_without_changing_menu() -> None:
+    base = start_session(seed=5)
+    combat_state = CombatState.from_dict(base.room_state.payload["combat_state"])
+    combat_state.draw_pile = ["anger#5"]
+    combat_state.discard_pile = ["bash#9"]
+    combat_state.exhaust_pile = ["burn#7"]
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            payload={
+                **base.room_state.payload,
+                "combat_state": combat_state.to_dict(),
+            },
+        ),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            initial_summary = app.query_one("#action-summary", Static).render().plain
+            await pilot.click("#combat-summary-action-draw")
+            await pilot.pause()
+            preview = app.query_one("#hover-preview", Static)
+            preview_plain = _widget_render_plain(preview)
+            assert "抽牌堆预览" in preview_plain
+            assert "1. 愤怒" in preview_plain
+
+            await pilot.click("#combat-summary-action-discard")
+            await pilot.pause()
+            preview = app.query_one("#hover-preview", Static)
+            summary = app.query_one("#action-summary", Static)
+            preview_plain = _widget_render_plain(preview)
+            assert "弃牌堆预览" in preview_plain
+            assert "1. 重击" in preview_plain
+            assert summary.render().plain == initial_summary
+
+            await pilot.click("#combat-summary-action-exhaust")
+            await pilot.pause()
+            preview = app.query_one("#hover-preview", Static)
+            summary = app.query_one("#action-summary", Static)
+            preview_plain = _widget_render_plain(preview)
+            assert "消耗堆预览" in preview_plain
+            assert "1. 灼伤" in preview_plain
+            assert summary.render().plain == initial_summary
+
+    asyncio.run(scenario())
+
+
+def test_combat_pile_preview_uses_columns_for_long_card_lists() -> None:
+    base = start_session(seed=5)
+    combat_state = CombatState.from_dict(base.room_state.payload["combat_state"])
+    combat_state.discard_pile = [
+        "strike#1",
+        "defend#2",
+        "bash#3",
+        "anger#4",
+        "shrug_it_off#5",
+        "pommel_strike#6",
+        "whirlwind#7",
+        "true_grit#8",
+    ]
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            payload={
+                **base.room_state.payload,
+                "combat_state": combat_state.to_dict(),
+            },
+        ),
+    )
+
+    preview = _combat_pile_preview_text(session, "discard")
+
+    assert isinstance(preview, Group)
+    assert preview.renderables[0].plain == "弃牌堆预览"
+    assert isinstance(preview.renderables[1], Columns)
+
+
+def test_combat_pile_preview_supports_draw_pile() -> None:
+    base = start_session(seed=5)
+    combat_state = CombatState.from_dict(base.room_state.payload["combat_state"])
+    combat_state.draw_pile = ["anger#1", "bash#2"]
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            payload={
+                **base.room_state.payload,
+                "combat_state": combat_state.to_dict(),
+            },
+        ),
+    )
+
+    preview = _combat_pile_preview_text(session, "draw")
+
+    assert isinstance(preview, Group)
+    assert preview.renderables[0].plain == "抽牌堆预览"
 
 
 def test_combat_summary_panel_is_hidden_outside_combat() -> None:
