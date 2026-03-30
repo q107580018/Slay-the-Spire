@@ -1,130 +1,63 @@
 # AGENTS
 
-## 项目定位
+## 文档职责
+
+- `AGENTS.md` 只用于给代理/协作者说明本仓库的协作约束、代码事实入口和修改注意事项。
+- 项目介绍、当前功能说明、快速开始、运行命令等面向人类读者的内容放在 `README.md`，不要在这里重复维护。
+- 若 `AGENTS.md` 与其他文档冲突，优先以代码和测试为准。
+
+## 项目边界
 
 - 这是一个 Python 3.12 的 `textual` TUI 版《Slay the Spire》原型项目。
-- 当前项目的**玩法内容与系统基线默认以原版《Slay the Spire》1 代为主**；若借鉴《Slay the Spire 2》或 `sts2-cli`，默认只作为局部交互、信息架构或流程设计参考，不能覆盖现有 1 代内容基线，除非需求或文档明确改方向。
-- 默认且唯一的运行界面是基于 `textual` 的 TUI；底层仍复用共享的 `rich` 展示组件。
+- 当前玩法内容与系统基线默认以原版《Slay the Spire》1 代为主。
+- 默认且唯一运行界面是基于 `textual` 的 TUI；底层复用共享的 `rich` 展示组件。
 - 目标是本地单机、可回放的菜单驱动流程，不是图形界面项目，也不是服务端项目。
-- 开发环境、依赖管理、命令执行默认都用 `uv`。
-- 当前已配置 `[project.scripts]`，可用 `uv run slay-the-spire ...` 或 `uv run python -m slay_the_spire.app.cli ...` 启动。
+- Python 相关环境、依赖管理和命令执行默认都使用 `uv`。
 
-## 关键结构
+## 代码事实入口
 
-- `pyproject.toml`：包配置、依赖、pytest 配置、打包内容声明、脚本入口。
-- `src/slay_the_spire/app/cli.py`：CLI 入口，支持 `new` / `load`，统一启动 Textual。
-- `src/slay_the_spire/app/session.py`：会话状态、菜单路由、默认内容路径、默认存档路径、跨幕推进、胜利/失败判定。
-- `src/slay_the_spire/app/menu_definitions.py`：终端编号菜单定义，包含战斗、事件、商店、休息、Boss 奖励、查看页菜单。
-- `src/slay_the_spire/adapters/rich_ui/`：共享的 Rich 主题、渲染、inspect、combat/non-combat 屏幕和组件，供 Textual 和会话渲染复用。
+- `pyproject.toml`：包配置、依赖、pytest 配置、脚本入口、打包声明。
+- `src/slay_the_spire/app/cli.py`：CLI 入口。
+- `src/slay_the_spire/app/session.py`：会话状态、菜单路由、默认路径、跨幕推进。
+- `src/slay_the_spire/app/menu_definitions.py`：编号菜单定义。
+- `src/slay_the_spire/adapters/rich_ui/`：共享 Rich 渲染、inspect、combat/non-combat 屏幕。
 - `src/slay_the_spire/adapters/textual/`：Textual 入口、地图组件、日志和交互面板。
 - `src/slay_the_spire/adapters/persistence/save_files.py`：JSON 存档读写。
 - `src/slay_the_spire/content/`：内容加载与注册表。
-- `src/slay_the_spire/domain/`：战斗流程、状态模型、Hook、地图生成、奖励生成等领域逻辑。
+- `src/slay_the_spire/domain/`：战斗、状态模型、Hook、地图生成、奖励生成等领域逻辑。
 - `src/slay_the_spire/use_cases/`：开始游戏、出牌、结束回合、进房间、事件、商店、休息、奖励、存读档等用例。
-- `content/`：仓库根目录内容 JSON，开发时应优先编辑这里。
-- `src/slay_the_spire/data/content/`：随 wheel 打包的内容 JSON；默认运行优先读取这里。
-- `tests/`：共享 Rich UI、Textual UI、内容校验、领域逻辑、存档和 E2E 冒烟测试。
-- `docs/superpowers/`：设计和计划文档，可参考，但不要把它当成当前行为真相。
+- `content/`：开发时优先编辑的内容 JSON。
+- `src/slay_the_spire/data/content/`：随 wheel 打包的内容 JSON。
+- `tests/`：UI、内容校验、领域逻辑、存档和 E2E 测试。
 
-## 当前功能事实（以代码为准）
+## 协作规则
 
-- 当前只有 1 个角色：`ironclad`。
-- 当前 `new` 流程会先进入独立 `opening` 阶段；不传 `--character` 时先显示角色选择，传角色时直接进入 `Neow`。
-- 当前已有 2 幕：`act1`、`act2`。
-- `act1` Boss 奖励领取并离开 Boss 宝箱后会进入 `act2`；`act2` Boss 奖励领取并离开 Boss 宝箱后会进入最终 `victory`。
-- 当前地图按 `content/acts/*.json` 的 `map_config` 生成分支路径，不是固定单线。
-- 当前地图固定楼层至少包含：`1` 层 `combat`、`9` 层 `treasure`、`15` 层 `rest`、`16` 层 `boss`，Boss 后置房间为 `boss_chest`。
-- 当前地图规则会实际生成并走到 `combat`、`event`、`elite`、`shop`、`rest`、`treasure`、`boss`、`boss_chest`。
-- `act1` 至少保证 1 个商店、1 个休息点、1 个精英；`act2` 至少保证 1 个事件、1 个商店、1 个休息点、2 个精英。
-- 当前普通敌人池至少包含：
-  - `act1_basic`：`slime`、`jaw_worm`、`cultist`、`red_louse`、`green_louse`、`looter`、`fungi_beast`、`gremlin_wizard`
-  - `act2_basic`：`chosen`、`byrd`、`spheric_guardian`、`slaver_red`
-- 当前精英池至少包含：
-  - `act1_elites`：`lagavulin`、`sentry`
-  - `act2_elites`：`book_of_stabbing`、`gremlin_leader`、`slaver_blue`、`taskmaster`
-- 当前 Boss 池至少包含：
-  - `act1_bosses`：`hexaghost`
-  - `act2_bosses`：`champ`、`bronze_automaton`、`the_collector`
-- `bronze_automaton` 与 `the_collector` 的敌人文件里还包含其衍生单位 `bronze_orb`、`torch_head`。
-- 当前 `lagavulin` 会先睡眠 3 次敌方行动，苏醒后在重击与 `Siphon Soul` 之间循环；`Siphon Soul` 会使玩家失去力量与敏捷。
-- 当前战斗状态已支持正负 `strength` 与 `dexterity`；负力量会降低伤害，负敏捷会降低获得的格挡，结算结果最低降到 `0`。
-- 当前事件池不止 1 个事件：
-  - `act1_events` 已包含 `shining_light`、`the_cleric`、`world_of_goop`、`living_wall`、`big_fish`、`golden_shrine` 等
-  - `act2_events` 已包含 `ancient_writing`、`masked_bandits`、`forgotten_altar`
-- 当前事件效果已覆盖升级牌、删牌、回血、加金币、扣金币、加最大生命、获得遗物、失去生命等分支。
-- 当前铁甲战士起始套牌仍是 `5 strike + 4 defend + 1 bash`。
-- 当前铁甲战士卡池不止起始 3 张，`content/cards/ironclad_starter.json` 还包含升级牌和额外可奖励牌，如 `anger`、`pommel_strike`、`shrug_it_off`、`bloodletting`、`true_grit`、`whirlwind`、`twin_strike`、`armaments`、`terror`、`offering`、`impervious` 等。
-- 当前有诅咒牌内容：`content/cards/curses.json`。
-- 当前起始遗物池至少包含 `burning_blood` 和 `golden_idol`。
-- 当前 Boss 遗物池至少包含 `black_blood`、`ectoplasm`、`coffee_dripper`、`fusion_hammer`。
-- 当前普通遗物池还包含 `anchor`、`lantern`、`circlet` 等；宝箱会从非商店遗物里发放遗物，发不出时回退为 `circlet`。
-- 当前药水池已存在 `fire_potion`、`block_potion`、`strength_potion`。
-- `burning_blood`、`black_blood`、`anchor`、`lantern`、`ectoplasm`、`coffee_dripper`、`fusion_hammer` 等遗物效果已接入运行时 Hook 或对应流程限制。
-- 当前战斗奖励会真实写回 `run_state`：金币会增加，卡牌奖励会把对应实例加入牌组，Boss 奖励会发高额金币和三选一遗物。
-- 当前战斗奖励中的 `reward_strike` / `reward_defend` 会分别落成 `strike_plus` / `defend_plus`。
-- 当前普通奖励不再提供单独的“奖励主页 / 奖励详情列表 / 奖励详情”三级菜单；已解析奖励时直接进入领取流 `select_reward`。
-- 当前商店可出售卡牌、遗物、药水，并支持付费移除 1 张牌。
-- 当前休息点支持至少“恢复生命”“升级 1 张牌”“离开休息点”。
-- 当前 `coffee_dripper` 会禁用休息回血，`fusion_hammer` 会禁用休息点锻造，`ectoplasm` 会阻止获得金币。
-- 终端交互主路径走 `route_menu_choice()` 的编号菜单，不是自由文本命令模式。
-- opening 阶段不是地图房间：此时 `act_state` / `room_state` 为空，左侧不显示真实地图，进入 active run 后才恢复地图组件。
-- opening 当前包含 `opening_character_select`、`opening_neow_offer`、`opening_neow_upgrade_card`、`opening_neow_remove_card` 四种菜单模式。
-- `Neow` 中需要目标卡的选项会先进入子菜单；确认目标卡后才真正结算并进入 Act1，`back` 会返回 `Neow` 主菜单。
-- opening 的 `Neow` 选项悬浮预览会显示更完整的奖励说明；卡牌、遗物、药水复用与其他查看页一致的详细 hover preview 文案。
-- 当前 opening 的 `Neow` tradeoff 中，诅咒只作为代价出现；若选项要求加入诅咒牌，会同时提供配套高价值奖励，不会把诅咒牌当成奖励本体。
-- opening 阶段默认禁止真正 `save/load`。
-- 查看页已覆盖角色状态、牌组、遗物、药水、敌人详情、卡牌详情等 inspect 菜单。
-- CLI 支持：
-  - `uv run python -m slay_the_spire.app.cli new`
-  - `uv run python -m slay_the_spire.app.cli new --seed 5`
-  - `uv run python -m slay_the_spire.app.cli load --save-path saves/latest.json`
-  - `uv run slay-the-spire new`
-  - `uv run slay-the-spire new --seed 5`
-  - `uv run slay-the-spire load --save-path saves/latest.json`
-- `new` 可选 `--seed`、`--character`、`--content-root`、`--save-path`；不传 `--seed` 时会自动生成随机 seed。
-- `--character` 不再有默认角色；不传时进入角色选择，显式传入时跳过角色页直达 `Neow`。
-- `load` 可选 `--content-root`、`--save-path`；不传 `--save-path` 时默认读取 `./saves/latest.json`。
-- 旧的 `--ui` 参数已删除；默认且唯一界面就是 Textual。
-- 默认存档路径是 `./saves/latest.json`。
-- 默认内容路径优先取 `src/slay_the_spire/data/content/`；只有找不到时才会回退到仓库根目录 `content/`。
-- `content/` 与 `src/slay_the_spire/data/content/` 是两套实际文件；修改内容时必须同步维护。
-- 当前存档 `schema_version` 是 `2`。
-- 当前处于开发阶段时，默认**不需要兼容旧存档或旧菜单状态**；若在重构或清理旧流程时需要删除历史分支，可直接删除，不必为了历史 `menu_state` / 存档路径保留兼容逻辑，除非需求明确要求兼容。
+- 默认优先相信 `src/slay_the_spire/app/session.py`、`tests/`、`content/` 和 `src/slay_the_spire/data/content/`，不要优先相信旧设计文档。
+- 面向玩家的菜单、事件、奖励、效果说明等 UI 文案默认统一写中文；代码标识、命令、路径和必要专有名词可保留原文。
+- 做设计取舍时，如果 1 代、2 代资料或旧设计文档冲突，默认以“当前代码中的 1 代内容基线 + 已落地行为”优先；只有需求明确指定时才转向 2 代。
+- 若需要参考原版资料，优先查询官方社区 Wiki：[Slay the Spire Wiki](https://slay-the-spire.fandom.com/wiki/)。
 
-## 开发和发布规则
+## 修改约束
 
-- 初始化环境：`uv sync --dev`
-- 跑测试：`uv run pytest`
-- 本地启动新游戏：`uv run python -m slay_the_spire.app.cli new`
-- 启动游戏：`uv run slay-the-spire new`
-- 从存档恢复：`uv run python -m slay_the_spire.app.cli load --save-path saves/latest.json`
-- 打包：`uv build`
-- 打包后检查 `dist/` 中的 wheel / sdist 是否更新。
-- 发版前确认包内资源路径仍可用；wheel 实际携带的是 `src/slay_the_spire/data/content/`，不是根目录 `content/`。
-- 如果修改内容 JSON，发布前至少同步更新 `src/slay_the_spire/data/content/`，否则默认运行和打包结果会读到旧内容。
-- 如果修改菜单、渲染或会话路由，优先补 `tests/adapters/rich_ui/test_renderer.py`、`tests/adapters/rich_ui/test_inspect.py`、`tests/e2e/test_single_act_smoke.py`、`tests/e2e/test_two_act_smoke.py`。
-- 如果修改 Textual UI，优先检查 `tests/adapters/textual/test_slay_app.py`。
-- 如果修改内容注册表或 JSON 结构，优先检查 `tests/content/test_registry_validation.py`。
-- 如果修改存档结构，检查 `src/slay_the_spire/use_cases/save_game.py`、`src/slay_the_spire/use_cases/load_game.py` 和 `tests/use_cases/test_save_load.py`，避免破坏已有 JSON 兼容性。
-
-## 配置与安全
-
+- 修改内容 JSON 时，先改根目录 `content/`，再同步到 `src/slay_the_spire/data/content/`。
+- 默认运行优先读取 `src/slay_the_spire/data/content/`；如果只改了根目录 `content/`，本地默认运行和打包结果都会读到旧内容。
+- 当前存档 `schema_version` 是 `2`；如果改动存档结构，要同步处理 `save_game.py`、`load_game.py` 和相关测试。
+- 当前开发阶段默认不需要兼容旧存档或旧菜单状态；若重构需要删除旧分支，可直接清理，除非需求明确要求兼容。
 - 仓库当前没有 `.env` / `.env.example`，也没有外部服务凭据依赖。
-- 存档文件是普通 JSON，默认写入 `saves/latest.json`。
-- 存档 schema 当前固定为 `2`；如果改动存档结构，要同步处理 `save_game.py` / `load_game.py` 和测试。
-- 用户已明确说明：存档不需要提交。
-- 内容加载依赖目录结构存在 `characters/ironclad.json`；改目录结构时要同步更新 `default_content_root()` 判定逻辑。
-- `saves/` 当前未被忽略；如需提交样例存档，先确认不包含本地路径或临时调试状态。
+- 存档文件默认写入 `saves/latest.json`；用户已明确说明：存档不需要提交。
 
-## 维护建议
+## 变更联动检查
 
-- 优先相信 `src/slay_the_spire/app/session.py`、`tests/`、`content/` 和 `src/slay_the_spire/data/content/`，不要优先相信旧文档。
-- 每次改动代码、内容、命令入口、流程、测试基线或发布方式后，都要同步更新 `AGENTS.md` 和 `README.md`，避免文档落后当前版本。
-- 做设计取舍时，若 1 代与 2 代资料或旧设计文档冲突，默认以“当前代码中的 1 代内容基线 + 已落地行为”优先；只有在需求明确指定、且文档中清楚标注“这是 2 代导向改动”时，才主动向 2 代靠拢。
-- 需要参考原版《Slay the Spire》资料时，优先查询官方社区 Wiki：[Slay the Spire Wiki](https://slay-the-spire.fandom.com/wiki/)。
-- 新增房间类型前，先确认三层都补齐：地图内容、use case / session 路由、共享 Rich 渲染 / Textual 展示。
-- 调整 Boss 奖励或跨幕流程时，同时检查 `boss` -> `boss_chest` -> 下一幕 / `victory` 这条完整链路，不要只改其中一个房间状态。
-- 新增角色、卡牌、敌人、事件、遗物或药水时，先改根目录 `content/`，再同步到 `src/slay_the_spire/data/content/`。
+- 新增房间类型前，先确认地图内容、use case / session 路由、共享 Rich 渲染 / Textual 展示三层都补齐。
+- 调整 Boss 奖励或跨幕流程时，同时检查 `boss -> boss_chest -> 下一幕 / victory` 这条完整链路。
+- 新增角色、卡牌、敌人、事件、遗物或药水时，同时检查内容注册表、掉落入口和对应测试。
 - 新增战斗后奖励或 Boss 奖励时，同时检查 `src/slay_the_spire/domain/rewards/reward_generator.py`、`src/slay_the_spire/use_cases/apply_reward.py` 和对应测试。
-- 新增菜单、事件、奖励、效果说明等面向玩家的 UI 文案时，默认统一写成中文；除代码标识、命令、路径和必要专有名词外，不要向玩家暴露英文效果文本。
-- 如果修改启动方式或脚本入口，记得同步更新这里和 `pyproject.toml`。
+- 修改菜单、渲染或会话路由时，优先检查 `tests/adapters/rich_ui/` 和 `tests/e2e/`。
+- 修改 Textual UI 时，优先检查 `tests/adapters/textual/test_slay_app.py`。
+- 修改内容注册表或 JSON 结构时，优先检查 `tests/content/test_registry_validation.py`。
+- 修改存档结构时，优先检查 `tests/use_cases/test_save_load.py`。
+
+## 文档维护
+
+- 改动代码、内容、命令入口、流程、测试基线或发布方式后，同步更新 `README.md`。
+- 只有当协作约束、仓库事实入口或修改约束发生变化时，才更新 `AGENTS.md`。
