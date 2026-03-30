@@ -36,6 +36,41 @@ def test_enemy_registry_rejects_missing_move_table() -> None:
         registry.register({"id": "jaw_worm", "name": "Jaw Worm", "hp": 16})
 
 
+def test_card_registry_parses_ethereal_flag() -> None:
+    registry = CardRegistry()
+
+    card = registry.register(
+        {
+            "id": "ghostly_armor",
+            "name": "幽魂护甲",
+            "cost": 1,
+            "rarity": "uncommon",
+            "card_type": "skill",
+            "ethereal": True,
+            "effects": [{"type": "block", "amount": 10}],
+        }
+    )
+
+    assert card.ethereal is True
+
+
+def test_card_registry_defaults_ethereal_to_false() -> None:
+    registry = CardRegistry()
+
+    card = registry.register(
+        {"id": "strike", "name": "Strike", "cost": 1, "effects": []}
+    )
+
+    assert card.ethereal is False
+
+
+def test_ironclad_card_file_stays_in_sync_between_content_roots() -> None:
+    root, packaged = _content_roots()
+    assert (root / "cards" / "ironclad_starter.json").read_text(encoding="utf-8") == (
+        packaged / "cards" / "ironclad_starter.json"
+    ).read_text(encoding="utf-8")
+
+
 def test_json_loader_reads_raw_json(tmp_path: Path) -> None:
     path = tmp_path / "payload.json"
     payload = {"cards": [{"id": "strike", "cost": 1, "effects": []}]}
@@ -64,6 +99,15 @@ def test_provider_exposes_registry_accessors(content_root: Path) -> None:
     assert provider.cards().get("offering_plus").name == "献祭+"
     assert provider.cards().get("impervious").name == "坚不可摧"
     assert provider.cards().get("impervious_plus").name == "坚不可摧+"
+    assert provider.cards().get("clothesline").name == "晾衣绳"
+    assert provider.cards().get("thunderclap").name == "震地"
+    assert provider.cards().get("uppercut").name == "升龙拳"
+    assert provider.cards().get("flame_barrier").name == "火焰屏障"
+    assert provider.cards().get("ghostly_armor").name == "幽魂护甲"
+    assert provider.cards().get("ghostly_armor").ethereal is True
+    assert provider.cards().get("disarm").name == "缴械"
+    assert provider.cards().get("entrench").name == "壁垒"
+    assert provider.cards().get("demon_form").name == "恶魔形态"
     assert provider.cards().get("offering").exhausts is True
     assert provider.cards().get("offering_plus").exhausts is True
     assert provider.cards().get("impervious").rarity == "rare"
@@ -290,10 +334,16 @@ def test_content_provider_loads_encounter_pool_entries(content_root: Path) -> No
     assert any(entry.member_id == "single_red_louse" for entry in entries)
     assert any(entry.member_id == "gremlin_gang_no_wizard" for entry in entries)
     assert provider.encounters().get("double_slime").enemy_ids == ["slime", "slime"]
-    assert provider.encounters().get("three_sentries").enemy_ids == ["sentry", "sentry", "sentry"]
+    assert provider.encounters().get("three_sentries").enemy_ids == [
+        "sentry",
+        "sentry",
+        "sentry",
+    ]
     cultist_entry = next(entry for entry in entries if entry.member_id == "cultist")
     assert cultist_entry.max_combat_count == 2
-    late_slime_entry = next(entry for entry in entries if entry.member_id == "single_slime")
+    late_slime_entry = next(
+        entry for entry in entries if entry.member_id == "single_slime"
+    )
     assert late_slime_entry.min_combat_count == 3
 
 

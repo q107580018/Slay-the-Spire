@@ -12,6 +12,7 @@ from slay_the_spire.domain.combat.turn_flow import (
     preview_enemy_move,
     preview_enemy_move_for_display,
     resolve_player_actions,
+    start_turn,
 )
 from slay_the_spire.domain.effects.effect_types import damage_effect
 from slay_the_spire.domain.models.combat_state import CombatState
@@ -24,6 +25,44 @@ class _Registry:
     def __init__(self) -> None:
         self._cards = CardRegistry()
         self._enemies = EnemyRegistry()
+        self._cards.register(
+            {
+                "id": "strike",
+                "name": "打击",
+                "cost": 1,
+                "card_type": "attack",
+                "effects": [{"type": "damage", "amount": 6}],
+            }
+        )
+        self._cards.register(
+            {
+                "id": "defend",
+                "name": "防御",
+                "cost": 1,
+                "card_type": "skill",
+                "effects": [{"type": "block", "amount": 5}],
+            }
+        )
+        self._cards.register(
+            {
+                "id": "burn",
+                "name": "灼伤",
+                "cost": -1,
+                "card_type": "status",
+                "playable": False,
+                "effects": [],
+            }
+        )
+        self._cards.register(
+            {
+                "id": "doubt",
+                "name": "疑虑",
+                "cost": -1,
+                "card_type": "curse",
+                "playable": False,
+                "effects": [],
+            }
+        )
 
     def characters(self):
         raise NotImplementedError
@@ -196,6 +235,88 @@ def test_end_turn_applies_combust_to_all_enemies_and_self() -> None:
     assert state.player.hp == 29
 
 
+def test_end_turn_exhausts_ethereal_cards_left_in_hand() -> None:
+    registry = _enemy_registry()
+    registry.cards().register(
+        {
+            "id": "ghostly_armor",
+            "name": "幽魂护甲",
+            "cost": 1,
+            "card_type": "skill",
+            "ethereal": True,
+            "effects": [{"type": "block", "amount": 10}],
+        }
+    )
+    state = _combat_state()
+    state.hand = ["ghostly_armor#1", "strike#1"]
+
+    end_turn(state, registry)
+
+    assert "ghostly_armor#1" in state.exhaust_pile
+    assert "ghostly_armor#1" not in state.discard_pile
+    assert "strike#1" in state.discard_pile
+
+
+def test_end_turn_keeps_non_ethereal_discard_behavior() -> None:
+    registry = _enemy_registry()
+    state = _combat_state()
+    state.hand = ["strike#1", "defend#1"]
+
+    end_turn(state, registry)
+
+    assert state.exhaust_pile == []
+    assert "strike#1" in state.discard_pile
+    assert "defend#1" in state.discard_pile
+
+
+def test_end_turn_burn_damage_happens_before_ethereal_exhaust() -> None:
+    registry = _enemy_registry()
+    registry.cards().register(
+        {
+            "id": "ghostly_armor",
+            "name": "幽魂护甲",
+            "cost": 1,
+            "card_type": "skill",
+            "ethereal": True,
+            "effects": [{"type": "block", "amount": 10}],
+        }
+    )
+    state = _combat_state()
+    state.player.hp = 20
+    state.hand = ["burn#1", "ghostly_armor#1"]
+
+    resolved = end_turn(state, registry)
+
+    assert [effect["type"] for effect in resolved][:1] == ["damage"]
+    assert "burn#1" in state.discard_pile
+    assert "ghostly_armor#1" in state.exhaust_pile
+
+
+def test_enemy_attack_triggers_flame_barrier_counter_damage() -> None:
+    registry = _enemy_registry()
+    state = _combat_state()
+    state.active_powers = [{"power_id": "flame_barrier", "amount": 4}]
+
+    resolved = end_turn(state, registry)
+
+    assert any(
+        effect.get("power_id") == "flame_barrier" and effect.get("type") == "damage"
+        for effect in resolved
+    )
+
+
+def test_start_turn_applies_demon_form_strength_gain() -> None:
+    state = _combat_state()
+    state.active_powers = [{"power_id": "demon_form", "amount": 2}]
+
+    start_turn(state)
+
+    assert any(
+        status.status_id == "strength" and status.stacks == 2
+        for status in state.player.statuses
+    )
+
+
 def test_end_turn_use_case_returns_structured_result() -> None:
     registry = _enemy_registry()
     state = _combat_state()
@@ -305,7 +426,10 @@ def test_lagavulin_cycles_attack_siphon_soul_then_attack_after_sleep() -> None:
 
     assert [effect["type"] for effect in attack] == ["damage"]
     assert [effect["type"] for effect in siphon] == ["strength", "dexterity"]
-    assert [effect["target_instance_id"] for effect in siphon] == ["player-1", "player-1"]
+    assert [effect["target_instance_id"] for effect in siphon] == [
+        "player-1",
+        "player-1",
+    ]
     assert state.player.statuses == [
         StatusState(status_id="strength", stacks=-2),
         StatusState(status_id="dexterity", stacks=-2),
@@ -313,7 +437,9 @@ def test_lagavulin_cycles_attack_siphon_soul_then_attack_after_sleep() -> None:
     assert [effect["type"] for effect in next_attack] == ["damage"]
 
 
-def test_preview_enemy_move_reports_lagavulin_siphon_soul_after_opening_attack() -> None:
+def test_preview_enemy_move_reports_lagavulin_siphon_soul_after_opening_attack() -> (
+    None
+):
     registry = _Registry()
     registry.enemies().register(
         {
@@ -340,7 +466,9 @@ def test_preview_enemy_move_reports_lagavulin_siphon_soul_after_opening_attack()
     state.enemies[0].enemy_id = "lagavulin"
     state.enemies[0].statuses = []
 
-    preview = preview_enemy_move(state, state.enemies[0], registry.enemies().get("lagavulin"))
+    preview = preview_enemy_move(
+        state, state.enemies[0], registry.enemies().get("lagavulin")
+    )
 
     assert preview is not None
     assert preview["move"] == "siphon_soul"
@@ -378,7 +506,9 @@ def test_lagavulin_siphon_soul_logs_strength_and_dexterity_loss() -> None:
     assert state.log == ["Lagavulin，并使你失去 2 力量，并使你失去 2 敏捷。"]
 
 
-def test_preview_enemy_move_for_display_summarizes_lagavulin_siphon_soul_as_loss() -> None:
+def test_preview_enemy_move_for_display_summarizes_lagavulin_siphon_soul_as_loss() -> (
+    None
+):
     registry = _Registry()
     registry.enemies().register(
         {
@@ -405,7 +535,9 @@ def test_preview_enemy_move_for_display_summarizes_lagavulin_siphon_soul_as_loss
     state.enemies[0].enemy_id = "lagavulin"
     state.enemies[0].statuses = []
 
-    preview = preview_enemy_move_for_display(state, state.enemies[0], registry.enemies().get("lagavulin"))
+    preview = preview_enemy_move_for_display(
+        state, state.enemies[0], registry.enemies().get("lagavulin")
+    )
 
     assert preview is not None
     assert preview["move"] == "siphon_soul"
@@ -608,11 +740,17 @@ def test_lagavulin_sleeps_for_first_three_enemy_turns_then_attacks() -> None:
         resolved = end_turn(state, registry)
         assert resolved == []
         assert state.player.hp == 80
-        sleeping_statuses = [status for status in state.enemies[0].statuses if status.status_id == "sleeping"]
+        sleeping_statuses = [
+            status
+            for status in state.enemies[0].statuses
+            if status.status_id == "sleeping"
+        ]
         if expected_sleep_stacks == 0:
             assert sleeping_statuses == []
         else:
-            assert [status.stacks for status in sleeping_statuses] == [expected_sleep_stacks]
+            assert [status.stacks for status in sleeping_statuses] == [
+                expected_sleep_stacks
+            ]
 
     resolved = end_turn(state, registry)
 
@@ -771,16 +909,6 @@ def test_end_turn_consumes_existing_temporary_statuses_on_both_sides() -> None:
 
 def test_end_turn_log_reports_burn_trigger_and_enemy_adding_burn() -> None:
     registry = _Registry()
-    registry.cards().register(
-        {
-            "id": "burn",
-            "name": "灼伤",
-            "cost": -1,
-            "playable": False,
-            "can_appear_in_shop": False,
-            "effects": [],
-        }
-    )
     registry.enemies().register(
         {
             "id": "hexaghost",
@@ -907,16 +1035,6 @@ def test_end_turn_doubt_applies_weak_after_existing_weak_expires() -> None:
 
 def test_run_end_turn_logs_doubt_triggered_weak() -> None:
     registry = _enemy_registry_without_attacks()
-    registry.cards().register(
-        {
-            "id": "doubt",
-            "name": "疑虑",
-            "cost": -1,
-            "playable": False,
-            "can_appear_in_shop": False,
-            "effects": [],
-        }
-    )
     state = _combat_state()
     state.hand = ["doubt#1"]
 
@@ -968,12 +1086,20 @@ def test_preview_enemy_move_reuses_combat_turn_logic_without_mutating_state() ->
         log=[],
     )
 
-    sleeping_preview = preview_enemy_move(state, state.enemies[0], registry.enemies().get("lagavulin"))
+    sleeping_preview = preview_enemy_move(
+        state, state.enemies[0], registry.enemies().get("lagavulin")
+    )
     assert sleeping_preview == {"move": "sleep", "sleep_turns": 2}
-    assert [status.stacks for status in state.enemies[0].statuses if status.status_id == "sleeping"] == [2]
+    assert [
+        status.stacks
+        for status in state.enemies[0].statuses
+        if status.status_id == "sleeping"
+    ] == [2]
 
     state.enemies[0].statuses.clear()
-    attack_preview = preview_enemy_move(state, state.enemies[0], registry.enemies().get("lagavulin"))
+    attack_preview = preview_enemy_move(
+        state, state.enemies[0], registry.enemies().get("lagavulin")
+    )
     assert attack_preview is not None
     assert attack_preview.get("move") == "heavy_slam"
     assert attack_preview.get("effects") == [{"type": "damage", "amount": 18}]
@@ -988,7 +1114,9 @@ def test_preview_enemy_move_reuses_combat_turn_logic_without_mutating_state() ->
         (73, 24),
     ],
 )
-def test_hexaghost_divider_scales_damage_by_player_hp(starting_hp: int, expected_total_damage: int) -> None:
+def test_hexaghost_divider_scales_damage_by_player_hp(
+    starting_hp: int, expected_total_damage: int
+) -> None:
     registry = _hexaghost_registry()
     state = CombatState(
         round_number=1,
@@ -1037,7 +1165,12 @@ def test_hexaghost_divider_only_occurs_on_opening_turn_then_loops_without_it() -
                 {"move": "divider", "effects": [], "once": True},
                 {"move": "sear", "effects": [{"type": "damage", "amount": 6}]},
                 {"move": "tackle", "effects": [{"type": "damage", "amount": 14}]},
-                {"move": "inferno", "effects": [{"type": "add_card_to_discard", "card_id": "burn", "count": 2}]},
+                {
+                    "move": "inferno",
+                    "effects": [
+                        {"type": "add_card_to_discard", "card_id": "burn", "count": 2}
+                    ],
+                },
                 {"move": "tackle", "effects": [{"type": "damage", "amount": 14}]},
             ],
             "intent_policy": "scripted",
@@ -1071,7 +1204,9 @@ def test_hexaghost_divider_only_occurs_on_opening_turn_then_loops_without_it() -
         log=[],
     )
 
-    preview = preview_enemy_move(state, state.enemies[0], registry.enemies().get("hexaghost"))
+    preview = preview_enemy_move(
+        state, state.enemies[0], registry.enemies().get("hexaghost")
+    )
 
     assert preview is not None
     assert preview.get("move") == "sear"
@@ -1088,18 +1223,24 @@ def test_preview_enemy_move_for_display_applies_negative_strength_to_damage() ->
     state = _combat_state()
     state.enemies[0].statuses.append(StatusState(status_id="strength", stacks=-2))
 
-    preview = preview_enemy_move_for_display(state, state.enemies[0], registry.enemies().get("training_slime"))
+    preview = preview_enemy_move_for_display(
+        state, state.enemies[0], registry.enemies().get("training_slime")
+    )
 
     assert preview is not None
     assert preview.get("effects") == [{"type": "damage", "amount": 3}]
 
 
-def test_preview_enemy_move_for_display_floors_negative_strength_damage_at_zero() -> None:
+def test_preview_enemy_move_for_display_floors_negative_strength_damage_at_zero() -> (
+    None
+):
     registry = _enemy_registry()
     state = _combat_state()
     state.enemies[0].statuses.append(StatusState(status_id="strength", stacks=-9))
 
-    preview = preview_enemy_move_for_display(state, state.enemies[0], registry.enemies().get("training_slime"))
+    preview = preview_enemy_move_for_display(
+        state, state.enemies[0], registry.enemies().get("training_slime")
+    )
 
     assert preview is not None
     assert preview.get("effects") == [{"type": "damage", "amount": 0}]

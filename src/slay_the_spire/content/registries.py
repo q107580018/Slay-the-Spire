@@ -54,13 +54,17 @@ def _require_optional_bool(value: object, field_name: str, *, default: bool) -> 
     return value
 
 
-def _require_optional_mapping(value: object, field_name: str) -> Mapping[str, object] | None:
+def _require_optional_mapping(
+    value: object, field_name: str
+) -> Mapping[str, object] | None:
     if value is None:
         return None
     return _require_mapping(value, field_name)
 
 
-def _require_optional_int_keyed_str_mapping(value: object, field_name: str) -> dict[int, str]:
+def _require_optional_int_keyed_str_mapping(
+    value: object, field_name: str
+) -> dict[int, str]:
     if value is None:
         return {}
     mapping = _require_mapping(value, field_name)
@@ -71,7 +75,9 @@ def _require_optional_int_keyed_str_mapping(value: object, field_name: str) -> d
         except (TypeError, ValueError) as exc:
             raise TypeError(f"{field_name} keys must be int-like strings") from exc
         if key in parsed:
-            raise ValueError(f"{field_name} contains duplicate normalized key: {raw_key}")
+            raise ValueError(
+                f"{field_name} contains duplicate normalized key: {raw_key}"
+            )
         parsed[_require_int(key, f"{field_name} key")] = _require_str(
             raw_value,
             f"{field_name}.{raw_key}",
@@ -82,7 +88,10 @@ def _require_optional_int_keyed_str_mapping(value: object, field_name: str) -> d
 def _require_optional_str_list(value: object, field_name: str) -> list[str]:
     if value is None:
         return []
-    return [_require_str(item, f"{field_name} item") for item in _require_list(value, field_name)]
+    return [
+        _require_str(item, f"{field_name} item")
+        for item in _require_list(value, field_name)
+    ]
 
 
 @dataclass(slots=True, frozen=True)
@@ -97,6 +106,7 @@ class CardDef:
     upgrades_to: str | None = None
     playable: bool = True
     exhausts: bool = False
+    ethereal: bool = False
 
 
 @dataclass(slots=True, frozen=True)
@@ -201,7 +211,9 @@ class _BaseRegistry(Generic[T]):
 
 class CardRegistry(_BaseRegistry[CardDef]):
     _ALLOWED_CARD_TYPES = frozenset({"attack", "skill", "power", "status", "curse"})
-    _ALLOWED_ACQUISITION_TAGS = frozenset({"starter", "combat_reward", "shop", "event", "generated", "status", "curse"})
+    _ALLOWED_ACQUISITION_TAGS = frozenset(
+        {"starter", "combat_reward", "shop", "event", "generated", "status", "curse"}
+    )
 
     def register(self, payload: Mapping[str, object]) -> CardDef:
         record = self._build(payload)
@@ -210,7 +222,9 @@ class CardRegistry(_BaseRegistry[CardDef]):
         self._items[record.id] = record
         return record
 
-    def _infer_card_type(self, data: Mapping[str, object], effects: list[Mapping[str, object]]) -> str:
+    def _infer_card_type(
+        self, data: Mapping[str, object], effects: list[Mapping[str, object]]
+    ) -> str:
         explicit_type = _require_optional_str(data.get("card_type"), "card_type")
         if explicit_type is not None:
             if explicit_type not in self._ALLOWED_CARD_TYPES:
@@ -224,12 +238,20 @@ class CardRegistry(_BaseRegistry[CardDef]):
         effect_types = {str(effect.get("type")) for effect in effects}
         if "add_power" in effect_types:
             return "power"
-        if effect_types & {"damage", "damage_all_enemies", "damage_all_enemies_x_times", "vulnerable", "weak"}:
+        if effect_types & {
+            "damage",
+            "damage_all_enemies",
+            "damage_all_enemies_x_times",
+            "vulnerable",
+            "weak",
+        }:
             return "attack"
         return "skill"
 
     def _normalize_acquisition_tags(self, data: Mapping[str, object]) -> list[str]:
-        tags = _require_optional_str_list(data.get("acquisition_tags"), "acquisition_tags")
+        tags = _require_optional_str_list(
+            data.get("acquisition_tags"), "acquisition_tags"
+        )
         for tag in tags:
             if tag not in self._ALLOWED_ACQUISITION_TAGS:
                 raise ValueError("acquisition_tags must contain only supported tags")
@@ -247,8 +269,15 @@ class CardRegistry(_BaseRegistry[CardDef]):
             acquisition_tags=self._normalize_acquisition_tags(data),
             rarity=_require_optional_str(data.get("rarity"), "rarity"),
             upgrades_to=_require_optional_str(data.get("upgrades_to"), "upgrades_to"),
-            playable=_require_optional_bool(data.get("playable"), "playable", default=True),
-            exhausts=_require_optional_bool(data.get("exhausts"), "exhausts", default=False),
+            playable=_require_optional_bool(
+                data.get("playable"), "playable", default=True
+            ),
+            exhausts=_require_optional_bool(
+                data.get("exhausts"), "exhausts", default=False
+            ),
+            ethereal=_require_optional_bool(
+                data.get("ethereal"), "ethereal", default=False
+            ),
         )
 
 
@@ -284,8 +313,13 @@ class RelicRegistry(_BaseRegistry[RelicDef]):
 
     def _build(self, payload: Mapping[str, object]) -> RelicDef:
         data = _require_mapping(payload, "payload")
-        trigger_hooks = [_require_str(item, "trigger_hooks item") for item in _require_list(data.get("trigger_hooks"), "trigger_hooks")]
-        passive_effects = _require_record_list(data.get("passive_effects"), "passive_effects")
+        trigger_hooks = [
+            _require_str(item, "trigger_hooks item")
+            for item in _require_list(data.get("trigger_hooks"), "trigger_hooks")
+        ]
+        passive_effects = _require_record_list(
+            data.get("passive_effects"), "passive_effects"
+        )
         return RelicDef(
             id=_require_str(data.get("id"), "id"),
             name=_require_str(data.get("name"), "name"),
@@ -293,8 +327,12 @@ class RelicRegistry(_BaseRegistry[RelicDef]):
             passive_effects=[dict(item) for item in passive_effects],
             summary=_require_optional_str(data.get("summary"), "summary"),
             description=_require_optional_str(data.get("description"), "description"),
-            replaces_relic_id=_require_optional_str(data.get("replaces_relic_id"), "replaces_relic_id"),
-            disabled_actions=_require_optional_str_list(data.get("disabled_actions"), "disabled_actions"),
+            replaces_relic_id=_require_optional_str(
+                data.get("replaces_relic_id"), "replaces_relic_id"
+            ),
+            disabled_actions=_require_optional_str_list(
+                data.get("disabled_actions"), "disabled_actions"
+            ),
             blocks_gold_gain=_require_optional_bool(
                 data.get("blocks_gold_gain"),
                 "blocks_gold_gain",
@@ -318,7 +356,10 @@ class EncounterRegistry(_BaseRegistry[EncounterDef]):
 
     def _build(self, payload: Mapping[str, object]) -> EncounterDef:
         data = _require_mapping(payload, "payload")
-        enemy_ids = [_require_str(item, "enemy_ids item") for item in _require_list(data.get("enemy_ids"), "enemy_ids")]
+        enemy_ids = [
+            _require_str(item, "enemy_ids item")
+            for item in _require_list(data.get("enemy_ids"), "enemy_ids")
+        ]
         if not enemy_ids:
             raise ValueError("enemy_ids must not be empty")
         return EncounterDef(
@@ -389,7 +430,9 @@ class ActRegistry(_BaseRegistry[ActDef]):
     def _build(self, payload: Mapping[str, object]) -> ActDef:
         data = _require_mapping(payload, "payload")
         map_config_data = _require_mapping(data.get("map_config"), "map_config")
-        floor_count = _require_int(map_config_data.get("floor_count"), "map_config.floor_count")
+        floor_count = _require_int(
+            map_config_data.get("floor_count"), "map_config.floor_count"
+        )
         fixed_floor_room_types = _require_optional_int_keyed_str_mapping(
             map_config_data.get("fixed_floor_room_types"),
             "map_config.fixed_floor_room_types",
@@ -399,8 +442,12 @@ class ActRegistry(_BaseRegistry[ActDef]):
                 raise ValueError(
                     "map_config.fixed_floor_room_types floor must be between 1 and floor_count",
                 )
-        room_rules_data = _require_mapping(map_config_data.get("room_rules"), "map_config.room_rules")
-        room_weights_data = _require_optional_mapping(room_rules_data.get("room_weights"), "map_config.room_rules.room_weights")
+        room_rules_data = _require_mapping(
+            map_config_data.get("room_rules"), "map_config.room_rules"
+        )
+        room_weights_data = _require_optional_mapping(
+            room_rules_data.get("room_weights"), "map_config.room_rules.room_weights"
+        )
         minimum_counts_data = _require_optional_mapping(
             room_rules_data.get("minimum_counts"),
             "map_config.room_rules.minimum_counts",
@@ -408,15 +455,24 @@ class ActRegistry(_BaseRegistry[ActDef]):
         room_rules = {
             "early_floors": [
                 _require_str(item, "map_config.room_rules.early_floors item")
-                for item in _require_list(room_rules_data.get("early_floors"), "map_config.room_rules.early_floors")
+                for item in _require_list(
+                    room_rules_data.get("early_floors"),
+                    "map_config.room_rules.early_floors",
+                )
             ],
             "mid_floors": [
                 _require_str(item, "map_config.room_rules.mid_floors item")
-                for item in _require_list(room_rules_data.get("mid_floors"), "map_config.room_rules.mid_floors")
+                for item in _require_list(
+                    room_rules_data.get("mid_floors"),
+                    "map_config.room_rules.mid_floors",
+                )
             ],
             "late_floors": [
                 _require_str(item, "map_config.room_rules.late_floors item")
-                for item in _require_list(room_rules_data.get("late_floors"), "map_config.room_rules.late_floors")
+                for item in _require_list(
+                    room_rules_data.get("late_floors"),
+                    "map_config.room_rules.late_floors",
+                )
             ],
             "min_floor_for_elite": _require_int(
                 room_rules_data.get("min_floor_for_elite"),
@@ -438,17 +494,23 @@ class ActRegistry(_BaseRegistry[ActDef]):
         if room_weights_data is not None:
             room_rules["room_weights"] = {
                 key: {
-                    _require_str(room_type, f"map_config.room_rules.room_weights.{key} key"): _require_int(
+                    _require_str(
+                        room_type, f"map_config.room_rules.room_weights.{key} key"
+                    ): _require_int(
                         weight,
                         f"map_config.room_rules.room_weights.{key}.{room_type}",
                     )
-                    for room_type, weight in _require_mapping(value, f"map_config.room_rules.room_weights.{key}").items()
+                    for room_type, weight in _require_mapping(
+                        value, f"map_config.room_rules.room_weights.{key}"
+                    ).items()
                 }
                 for key, value in room_weights_data.items()
             }
         if minimum_counts_data is not None:
             room_rules["minimum_counts"] = {
-                _require_str(room_type, "map_config.room_rules.minimum_counts key"): _require_int(
+                _require_str(
+                    room_type, "map_config.room_rules.minimum_counts key"
+                ): _require_int(
                     count,
                     f"map_config.room_rules.minimum_counts.{room_type}",
                 )
@@ -463,7 +525,10 @@ class ActRegistry(_BaseRegistry[ActDef]):
             boss_pool_id=_require_str(data.get("boss_pool_id"), "boss_pool_id"),
             map_config=ActMapConfig(
                 floor_count=floor_count,
-                starting_columns=_require_int(map_config_data.get("starting_columns"), "map_config.starting_columns"),
+                starting_columns=_require_int(
+                    map_config_data.get("starting_columns"),
+                    "map_config.starting_columns",
+                ),
                 min_branch_choices=_require_int(
                     map_config_data.get("min_branch_choices"),
                     "map_config.min_branch_choices",
@@ -472,7 +537,9 @@ class ActRegistry(_BaseRegistry[ActDef]):
                     map_config_data.get("max_branch_choices"),
                     "map_config.max_branch_choices",
                 ),
-                boss_room_type=_require_str(map_config_data.get("boss_room_type"), "map_config.boss_room_type"),
+                boss_room_type=_require_str(
+                    map_config_data.get("boss_room_type"), "map_config.boss_room_type"
+                ),
                 fixed_floor_room_types=fixed_floor_room_types,
                 post_boss_room_type=_require_optional_str(
                     map_config_data.get("post_boss_room_type"),
@@ -494,16 +561,30 @@ class CharacterRegistry(_BaseRegistry[CharacterDef]):
 
     def _build(self, payload: Mapping[str, object]) -> CharacterDef:
         data = _require_mapping(payload, "payload")
-        starter_deck = [_require_str(item, "starter_deck item") for item in _require_list(data.get("starter_deck"), "starter_deck")]
-        starter_relic_ids = [_require_str(item, "starter_relic_ids item") for item in _require_list(data.get("starter_relic_ids"), "starter_relic_ids")]
+        starter_deck = [
+            _require_str(item, "starter_deck item")
+            for item in _require_list(data.get("starter_deck"), "starter_deck")
+        ]
+        starter_relic_ids = [
+            _require_str(item, "starter_relic_ids item")
+            for item in _require_list(
+                data.get("starter_relic_ids"), "starter_relic_ids"
+            )
+        ]
         return CharacterDef(
             id=_require_str(data.get("id"), "id"),
             name=_require_str(data.get("name"), "name"),
             starter_deck=starter_deck,
             starter_relic_ids=starter_relic_ids,
-            starting_act_id=_require_str(data.get("starting_act_id"), "starting_act_id"),
-            starter_card_pool_id=_require_str(data.get("starter_card_pool_id"), "starter_card_pool_id"),
-            starter_relic_pool_id=_require_str(data.get("starter_relic_pool_id"), "starter_relic_pool_id"),
+            starting_act_id=_require_str(
+                data.get("starting_act_id"), "starting_act_id"
+            ),
+            starter_card_pool_id=_require_str(
+                data.get("starter_card_pool_id"), "starter_card_pool_id"
+            ),
+            starter_relic_pool_id=_require_str(
+                data.get("starter_relic_pool_id"), "starter_relic_pool_id"
+            ),
         )
 
 

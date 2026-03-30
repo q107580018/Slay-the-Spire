@@ -4,7 +4,11 @@ from collections.abc import Mapping, Sequence
 
 from slay_the_spire.content.registries import EnemyDef
 from slay_the_spire.domain.effects.effect_resolver import resolve_effect_queue
-from slay_the_spire.domain.effects.effect_types import block_effect, copy_effect, damage_effect
+from slay_the_spire.domain.effects.effect_types import (
+    block_effect,
+    copy_effect,
+    damage_effect,
+)
 from slay_the_spire.domain.hooks.hook_types import HookRegistration
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
@@ -72,13 +76,17 @@ def _tick_temporary_statuses(entity: PlayerCombatState | EnemyState) -> None:
             StatusState(
                 status_id=status.status_id,
                 stacks=remaining_stacks,
-                duration=None if status.duration is None else max(status.duration - 1, 1),
+                duration=None
+                if status.duration is None
+                else max(status.duration - 1, 1),
             )
         )
     entity.statuses = next_statuses
 
 
-def _consume_status_stack(entity: PlayerCombatState | EnemyState, status_id: str) -> bool:
+def _consume_status_stack(
+    entity: PlayerCombatState | EnemyState, status_id: str
+) -> bool:
     for index, status in enumerate(entity.statuses):
         if status.status_id != status_id:
             continue
@@ -120,7 +128,9 @@ def _is_once_move(move: Mapping[str, object]) -> bool:
     return once
 
 
-def _active_enemy_move(state: CombatState, enemy_def: EnemyDef) -> Mapping[str, object] | None:
+def _active_enemy_move(
+    state: CombatState, enemy_def: EnemyDef
+) -> Mapping[str, object] | None:
     if not enemy_def.move_table:
         return None
 
@@ -147,7 +157,9 @@ def _active_enemy_move(state: CombatState, enemy_def: EnemyDef) -> Mapping[str, 
     return _require_mapping(active_moves[move_index], "move_table item")
 
 
-def preview_enemy_move(state: CombatState, enemy: EnemyState, enemy_def: EnemyDef) -> Mapping[str, object] | None:
+def preview_enemy_move(
+    state: CombatState, enemy: EnemyState, enemy_def: EnemyDef
+) -> Mapping[str, object] | None:
     if enemy.hp <= 0 or not enemy_def.move_table:
         return None
     sleeping_stacks = _status_stacks(enemy, "sleeping")
@@ -157,10 +169,14 @@ def preview_enemy_move(state: CombatState, enemy: EnemyState, enemy_def: EnemyDe
 
 
 def _strength_bonus(entity: PlayerCombatState | EnemyState) -> int:
-    return sum(status.stacks for status in entity.statuses if status.status_id == "strength")
+    return sum(
+        status.stacks for status in entity.statuses if status.status_id == "strength"
+    )
 
 
-def _adjust_damage_for_strength(effect: Mapping[str, object], strength_bonus: int) -> JsonDict:
+def _adjust_damage_for_strength(
+    effect: Mapping[str, object], strength_bonus: int
+) -> JsonDict:
     adjusted = copy_effect(effect)
     if adjusted.get("type") != "damage":
         return adjusted
@@ -188,7 +204,9 @@ def preview_enemy_move_for_display(
     effects = adjusted_preview.get("effects")
     if isinstance(effects, list):
         adjusted_preview["effects"] = [
-            _adjust_damage_for_strength(effect, strength_bonus) if isinstance(effect, Mapping) else effect
+            _adjust_damage_for_strength(effect, strength_bonus)
+            if isinstance(effect, Mapping)
+            else effect
             for effect in effects
         ]
         return adjusted_preview
@@ -196,7 +214,9 @@ def preview_enemy_move_for_display(
     return _adjust_damage_for_strength(adjusted_preview, strength_bonus)
 
 
-def _select_enemy_move(state: CombatState, enemy: EnemyState, enemy_def: EnemyDef) -> Mapping[str, object] | None:
+def _select_enemy_move(
+    state: CombatState, enemy: EnemyState, enemy_def: EnemyDef
+) -> Mapping[str, object] | None:
     preview = preview_enemy_move(state, enemy, enemy_def)
     if preview is None:
         return None
@@ -228,7 +248,11 @@ def _effects_from_payload(
             raise TypeError("effect type must be a string")
         target = effect.get("target")
         if target is not None:
-            if not isinstance(target, str) or target not in {"player", "opponent", "self"}:
+            if not isinstance(target, str) or target not in {
+                "player",
+                "opponent",
+                "self",
+            }:
                 raise ValueError("effect target must be one of: player, opponent, self")
             if "target_instance_id" not in effect:
                 if target == "self":
@@ -239,11 +263,17 @@ def _effects_from_payload(
                     effect["target_instance_id"] = default_target_id
         if "source_instance_id" not in effect:
             effect["source_instance_id"] = source_instance_id
-        if effect_type in {"damage", "block", "draw", "vulnerable", "weak"} and "target_instance_id" not in effect:
+        if (
+            effect_type in {"damage", "block", "draw", "vulnerable", "weak"}
+            and "target_instance_id" not in effect
+        ):
             if default_target_id is None:
                 raise ValueError(f"{effect_type} effect requires a target")
             effect["target_instance_id"] = default_target_id
-        if effect_type in {"strength", "dexterity"} and "target_instance_id" not in effect:
+        if (
+            effect_type in {"strength", "dexterity"}
+            and "target_instance_id" not in effect
+        ):
             effect["target_instance_id"] = source_instance_id
         materialized.append(effect)
     return materialized
@@ -259,7 +289,9 @@ def _divider_damage_per_hit(player_hp: int) -> int:
     return 4
 
 
-def _burn_end_turn_effects(hand: Sequence[str], player_instance_id: str) -> list[JsonDict]:
+def _burn_end_turn_effects(
+    hand: Sequence[str], player_instance_id: str
+) -> list[JsonDict]:
     effects: list[JsonDict] = []
     for card_instance_id in hand:
         if card_id_from_instance_id(card_instance_id) != "burn":
@@ -274,7 +306,9 @@ def _burn_end_turn_effects(hand: Sequence[str], player_instance_id: str) -> list
     return effects
 
 
-def _post_tick_hand_end_turn_effects(hand: Sequence[str], player_instance_id: str) -> list[JsonDict]:
+def _post_tick_hand_end_turn_effects(
+    hand: Sequence[str], player_instance_id: str
+) -> list[JsonDict]:
     effects: list[JsonDict] = []
     for card_instance_id in hand:
         if card_id_from_instance_id(card_instance_id) != "doubt":
@@ -288,6 +322,18 @@ def _post_tick_hand_end_turn_effects(hand: Sequence[str], player_instance_id: st
             }
         )
     return effects
+
+
+def _move_end_turn_hand_cards(
+    state: CombatState, registry: ContentProviderPort
+) -> None:
+    for card_instance_id in tuple(state.hand):
+        card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
+        if card_def.ethereal:
+            state.exhaust_pile.append(card_instance_id)
+        else:
+            state.discard_pile.append(card_instance_id)
+    state.hand.clear()
 
 
 def _active_power_end_turn_effects(state: CombatState) -> list[JsonDict]:
@@ -345,6 +391,17 @@ def _clear_temporary_power(state: CombatState, power_id: str) -> None:
     ]
 
 
+def _apply_start_turn_powers(state: CombatState) -> None:
+    for power in state.active_powers:
+        if power.get("power_id") != "demon_form":
+            continue
+        amount = power.get("amount")
+        if isinstance(amount, int) and amount > 0:
+            state.player.statuses.append(
+                StatusState(status_id="strength", stacks=amount)
+            )
+
+
 def start_turn(
     state: CombatState,
     *,
@@ -352,6 +409,8 @@ def start_turn(
     energy_per_turn: int = DEFAULT_ENERGY_PER_TURN,
 ) -> CombatState:
     _clear_block_for_turn_start(state.player)
+    _clear_temporary_power(state, "flame_barrier")
+    _apply_start_turn_powers(state)
     state.energy = energy_per_turn
     _draw_cards(state, amount=max(hand_size - len(state.hand), 0))
     return state
@@ -414,23 +473,30 @@ def end_turn(
     hand_at_end_turn = tuple(state.hand)
     _clear_temporary_power(state, "battle_trance")
     state.effect_queue.extend(_active_power_end_turn_effects(state))
-    state.effect_queue.extend(_burn_end_turn_effects(hand_at_end_turn, state.player.instance_id))
+    state.effect_queue.extend(
+        _burn_end_turn_effects(hand_at_end_turn, state.player.instance_id)
+    )
     if state.effect_queue:
-        resolved.extend(resolve_effect_queue(state, hook_registrations=hook_registrations))
-    state.discard_pile.extend(state.hand)
-    state.hand.clear()
+        resolved.extend(
+            resolve_effect_queue(state, hook_registrations=hook_registrations)
+        )
+    _move_end_turn_hand_cards(state, registry)
     if state.player.hp <= 0:
         return resolved
     _tick_temporary_statuses(state.player)
-    state.effect_queue.extend(_post_tick_hand_end_turn_effects(hand_at_end_turn, state.player.instance_id))
+    state.effect_queue.extend(
+        _post_tick_hand_end_turn_effects(hand_at_end_turn, state.player.instance_id)
+    )
     if state.effect_queue:
-        resolved.extend(resolve_effect_queue(state, hook_registrations=hook_registrations))
+        resolved.extend(
+            resolve_effect_queue(state, hook_registrations=hook_registrations)
+        )
     resolved.extend(
         run_enemy_turn(
-        state,
-        registry,
-        hook_registrations=hook_registrations,
-    )
+            state,
+            registry,
+            hook_registrations=hook_registrations,
+        )
     )
     if state.player.hp <= 0:
         return resolved

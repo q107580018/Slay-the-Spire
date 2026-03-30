@@ -326,6 +326,86 @@
       "acquisition_tags": []
     },
     {
+      "id": "clothesline",
+      "name": "晾衣绳",
+      "cost": 2,
+      "rarity": "common",
+      "upgrades_to": "clothesline_plus",
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 12
+        },
+        {
+          "type": "weak",
+          "stacks": 2
+        }
+      ],
+      "card_type": "attack",
+      "acquisition_tags": [
+        "combat_reward",
+        "shop"
+      ]
+    },
+    {
+      "id": "clothesline_plus",
+      "name": "晾衣绳+",
+      "cost": 2,
+      "rarity": "common",
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 14
+        },
+        {
+          "type": "weak",
+          "stacks": 3
+        }
+      ],
+      "card_type": "attack",
+      "acquisition_tags": []
+    },
+    {
+      "id": "thunderclap",
+      "name": "震地",
+      "cost": 1,
+      "rarity": "common",
+      "upgrades_to": "thunderclap_plus",
+      "effects": [
+        {
+          "type": "damage_all_enemies",
+          "amount": 4
+        },
+        {
+          "type": "vulnerable_all_enemies",
+          "stacks": 1
+        }
+      ],
+      "card_type": "attack",
+      "acquisition_tags": [
+        "combat_reward",
+        "shop"
+      ]
+    },
+    {
+      "id": "thunderclap_plus",
+      "name": "震地+",
+      "cost": 1,
+      "rarity": "common",
+      "effects": [
+        {
+          "type": "damage_all_enemies",
+          "amount": 7
+        },
+        {
+          "type": "vulnerable_all_enemies",
+          "stacks": 1
+        }
+      ],
+      "card_type": "attack",
+      "acquisition_tags": []
+    },
+    {
       "id": "inflame",
       "name": "燃烧",
       "cost": 1,
@@ -624,6 +704,194 @@
       "acquisition_tags": []
     },
     {
+      "id": "uppercut",
+      "name": "升龙拳",
+      "cost": 2,
+      "rarity": "uncommon",
+      "upgrades_to": "uppercut_plus",
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 13
+        },
+        {
+          "type": "weak",
+          "stacks": 1
+        },
+        {
+          "type": "vulnerable",
+          "stacks": 1
+        }
+      ],
+      "card_type": "attack",
+      "acquisition_tags": [
+        "combat_reward",
+        "shop"
+      ]
+    },
+    {
+      "id": "uppercut_plus",
+      "name": "升龙拳+",
+      "cost": 2,
+      "rarity": "uncommon",
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 13
+        },
+        {
+          "type": "weak",
+          "stacks": 2
+        },
+        {
+          "type": "vulnerable",
+          "stacks": 2
+        }
+      ],
+      "card_type": "attack",
+      "acquisition_tags": []
+    },
+    {
+      "id": "flame_barrier",
+      "name": "火焰屏障",
+      "cost": 2,
+      "rarity": "uncommon",
+      "upgrades_to": "flame_barrier_plus",
+      "effects": [
+        {
+          "type": "block",
+          "amount": 12
+        },
+        {
+          "type": "add_power",
+          "power_id": "flame_barrier",
+          "amount": 4
+        }
+      ],
+      "card_type": "skill",
+      "acquisition_tags": [
+        "combat_reward",
+        "shop"
+      ]
+    },
+    {
+      "id": "flame_barrier_plus",
+      "name": "火焰屏障+",
+      "cost": 2,
+      "rarity": "uncommon",
+      "effects": [
+        {
+          "type": "block",
+          "amount": 16
+        },
+        {
+          "type": "add_power",
+          "power_id": "flame_barrier",
+          "amount": 6
+        }
+      ],
+      "card_type": "skill",
+      "acquisition_tags": []
+    },
+    {
+      "id": "ghostly_armor",
+      "name": "幽魂护甲",
+      "cost": 1,
+      "rarity": "uncommon",
+      "upgrades_to": "ghostly_armor_plus",
+      "ethereal": true,
+      "effects": [
+        {
+          "type": "block",
+          "amount": 10
+        }
+      ],
+      "card_type": "skill",
+      "acquisition_tags": [
+        "combat_reward",
+        "shop"
+      ]
+    },
+    {
+      "id": "ghostly_armor_plus",
+      "name": "幽魂护甲+",
+      "cost": 1,
+      "rarity": "uncommon",
+      "ethereal": true,
+      "effects": [
+        {
+          "type": "block",
+          "amount": 13
+        }
+      ],
+      "card_type": "skill",
+      "acquisition_tags": []
+    },
+    {
+      "id": "disarm",
+      "name": "缴械",
+      "cost": 1,
+      "rarity": "uncommon",
+      "upgrades_to": "disarm_plus",
+      "exhausts": true,
+      "effects": [
+        {
+          "type": "strength",
+          "amount": -2
+        }
+      ],
+      "card_type": "skill",
+      "acquisition_tags": [
+        "combat_reward",
+        "shop"
+      ]
+    },
+    {
+      "id": "disarm_plus",
+      "name": "缴械+",
+      "cost": 1,
+      "rarity": "uncommon",
+      "exhausts": true,
+      "effects": [
+        {
+          "type": "strength",
+          "amount": -3
+        }
+      ],
+      "card_type": "skill",
+      "acquisition_tags": []
+    },
+    {
+      "id": "entrench",
+      "name": "壁垒",
+      "cost": 2,
+      "rarity": "uncommon",
+      "upgrades_to": "entrench_plus",
+      "effects": [
+        {
+          "type": "double_block"
+        }
+      ],
+      "card_type": "skill",
+      "acquisition_tags": [
+        "combat_reward",
+        "shop"
+      ]
+    },
+    {
+      "id": "entrench_plus",
+      "name": "壁垒+",
+      "cost": 1,
+      "rarity": "uncommon",
+      "effects": [
+        {
+          "type": "double_block"
+        }
+      ],
+      "card_type": "skill",
+      "acquisition_tags": []
+    },
+    {
       "id": "true_grit",
       "name": "坚毅",
       "cost": 1,
@@ -856,6 +1124,40 @@
         }
       ],
       "card_type": "skill",
+      "acquisition_tags": []
+    },
+    {
+      "id": "demon_form",
+      "name": "恶魔形态",
+      "cost": 3,
+      "rarity": "rare",
+      "upgrades_to": "demon_form_plus",
+      "effects": [
+        {
+          "type": "add_power",
+          "power_id": "demon_form",
+          "amount": 2
+        }
+      ],
+      "card_type": "power",
+      "acquisition_tags": [
+        "combat_reward",
+        "shop"
+      ]
+    },
+    {
+      "id": "demon_form_plus",
+      "name": "恶魔形态+",
+      "cost": 3,
+      "rarity": "rare",
+      "effects": [
+        {
+          "type": "add_power",
+          "power_id": "demon_form",
+          "amount": 3
+        }
+      ],
+      "card_type": "power",
       "acquisition_tags": []
     }
   ]

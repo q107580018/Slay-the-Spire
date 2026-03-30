@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from slay_the_spire.domain.effects.effect_resolver import resolve_effect_queue, resolve_next_effect
+from slay_the_spire.domain.effects.effect_resolver import (
+    resolve_effect_queue,
+    resolve_next_effect,
+)
 from slay_the_spire.domain.effects.effect_types import (
     EFFECT_EMIT_HOOK,
     EFFECT_NOOP,
@@ -56,7 +59,9 @@ def test_effects_append_to_queue_tail_in_order():
     state = make_combat_state(
         enemies=[make_enemy("enemy-1", 3)],
         effect_queue=[
-            damage_effect(source_instance_id="player-1", target_instance_id="enemy-1", amount=3),
+            damage_effect(
+                source_instance_id="player-1", target_instance_id="enemy-1", amount=3
+            ),
             noop_effect(reason="existing"),
         ],
     )
@@ -67,14 +72,18 @@ def test_effects_append_to_queue_tail_in_order():
         EFFECT_NOOP,
         EFFECT_EMIT_HOOK,
     ]
-    assert [effect.get("hook_name") for effect in state.effect_queue[1:]] == ["on_enemy_defeated"]
+    assert [effect.get("hook_name") for effect in state.effect_queue[1:]] == [
+        "on_enemy_defeated"
+    ]
 
 
 def test_resolver_never_recurses_synchronously():
     state = make_combat_state(
         enemies=[make_enemy("enemy-1", 3), make_enemy("enemy-2", 10)],
         effect_queue=[
-            damage_effect(source_instance_id="player-1", target_instance_id="enemy-1", amount=3),
+            damage_effect(
+                source_instance_id="player-1", target_instance_id="enemy-1", amount=3
+            ),
         ],
     )
 
@@ -102,8 +111,12 @@ def test_dead_targets_become_noop_effects():
     state = make_combat_state(
         enemies=[make_enemy("enemy-1", 1)],
         effect_queue=[
-            damage_effect(source_instance_id="player-1", target_instance_id="enemy-1", amount=2),
-            damage_effect(source_instance_id="player-1", target_instance_id="enemy-1", amount=2),
+            damage_effect(
+                source_instance_id="player-1", target_instance_id="enemy-1", amount=2
+            ),
+            damage_effect(
+                source_instance_id="player-1", target_instance_id="enemy-1", amount=2
+            ),
         ],
     )
 
@@ -119,20 +132,26 @@ def test_on_enemy_defeated_enqueues_before_on_combat_end():
     state = make_combat_state(
         enemies=[make_enemy("enemy-1", 4)],
         effect_queue=[
-            damage_effect(source_instance_id="player-1", target_instance_id="enemy-1", amount=4),
+            damage_effect(
+                source_instance_id="player-1", target_instance_id="enemy-1", amount=4
+            ),
         ],
     )
 
     resolve_next_effect(state)
 
-    assert [effect["hook_name"] for effect in state.effect_queue] == ["on_enemy_defeated"]
+    assert [effect["hook_name"] for effect in state.effect_queue] == [
+        "on_enemy_defeated"
+    ]
 
 
 def test_on_combat_end_is_enqueued_only_after_defeat_hook_resolves():
     state = make_combat_state(
         enemies=[make_enemy("enemy-1", 4)],
         effect_queue=[
-            damage_effect(source_instance_id="player-1", target_instance_id="enemy-1", amount=4),
+            damage_effect(
+                source_instance_id="player-1", target_instance_id="enemy-1", amount=4
+            ),
             noop_effect(reason="existing-tail"),
         ],
     )
@@ -152,7 +171,10 @@ def test_on_combat_end_is_enqueued_only_after_defeat_hook_resolves():
     resolve_next_effect(state)
     resolve_next_effect(state, hook_registrations=registrations)
 
-    assert [effect["type"] for effect in state.effect_queue] == [EFFECT_NOOP, EFFECT_EMIT_HOOK]
+    assert [effect["type"] for effect in state.effect_queue] == [
+        EFFECT_NOOP,
+        EFFECT_EMIT_HOOK,
+    ]
     assert state.effect_queue[0]["reason"] == "defeat-follow-up"
     assert state.effect_queue[1]["hook_name"] == "on_combat_end"
 
@@ -161,8 +183,12 @@ def test_on_combat_end_fires_once_even_if_multiple_enemies_die():
     state = make_combat_state(
         enemies=[make_enemy("enemy-1", 2), make_enemy("enemy-2", 2)],
         effect_queue=[
-            damage_effect(source_instance_id="player-1", target_instance_id="enemy-1", amount=2),
-            damage_effect(source_instance_id="player-1", target_instance_id="enemy-2", amount=2),
+            damage_effect(
+                source_instance_id="player-1", target_instance_id="enemy-1", amount=2
+            ),
+            damage_effect(
+                source_instance_id="player-1", target_instance_id="enemy-2", amount=2
+            ),
         ],
     )
 
@@ -209,7 +235,9 @@ def test_gain_energy_effect_increases_combat_energy() -> None:
 
     resolved = resolve_effect_queue(state)
 
-    assert resolved == [{"type": "gain_energy", "amount": 1, "result": {"gained_energy": 1}}]
+    assert resolved == [
+        {"type": "gain_energy", "amount": 1, "result": {"gained_energy": 1}}
+    ]
     assert state.energy == 4
 
 
@@ -236,7 +264,9 @@ def test_add_power_effect_appends_active_power_and_applies_inflame_strength() ->
 def test_strength_effect_defaults_to_source_target_when_target_is_missing() -> None:
     state = make_combat_state(
         enemies=[make_enemy("enemy-1", 3)],
-        effect_queue=[{"type": "strength", "source_instance_id": "enemy-1", "amount": 3}],
+        effect_queue=[
+            {"type": "strength", "source_instance_id": "enemy-1", "amount": 3}
+        ],
     )
 
     resolved = resolve_next_effect(state)
@@ -257,7 +287,9 @@ def test_damage_effect_reports_structured_resolution_details():
     state = make_combat_state(
         enemies=[enemy],
         effect_queue=[
-            damage_effect(source_instance_id="player-1", target_instance_id="enemy-1", amount=4),
+            damage_effect(
+                source_instance_id="player-1", target_instance_id="enemy-1", amount=4
+            ),
         ],
     )
 
@@ -276,7 +308,9 @@ def test_damage_effect_applies_source_strength_to_player_damage() -> None:
     state = make_combat_state(
         enemies=[make_enemy("enemy-1", 10)],
         effect_queue=[
-            damage_effect(source_instance_id="player-1", target_instance_id="enemy-1", amount=4),
+            damage_effect(
+                source_instance_id="player-1", target_instance_id="enemy-1", amount=4
+            ),
         ],
     )
     state.player.statuses.append(StatusState(status_id="strength", stacks=2))
@@ -296,8 +330,12 @@ def test_damage_effect_applies_strength_to_each_damage_hit() -> None:
     state = make_combat_state(
         enemies=[make_enemy("enemy-1", 20)],
         effect_queue=[
-            damage_effect(source_instance_id="player-1", target_instance_id="enemy-1", amount=2),
-            damage_effect(source_instance_id="player-1", target_instance_id="enemy-1", amount=2),
+            damage_effect(
+                source_instance_id="player-1", target_instance_id="enemy-1", amount=2
+            ),
+            damage_effect(
+                source_instance_id="player-1", target_instance_id="enemy-1", amount=2
+            ),
         ],
     )
     state.player.statuses.append(StatusState(status_id="strength", stacks=2))
@@ -313,7 +351,9 @@ def test_damage_effect_applies_enemy_strength_to_player_damage() -> None:
     state = make_combat_state(
         enemies=[make_enemy("enemy-1", 10)],
         effect_queue=[
-            damage_effect(source_instance_id="enemy-1", target_instance_id="player-1", amount=4),
+            damage_effect(
+                source_instance_id="enemy-1", target_instance_id="player-1", amount=4
+            ),
         ],
     )
     state.enemies[0].statuses.append(StatusState(status_id="strength", stacks=2))
@@ -335,7 +375,9 @@ def test_damage_effect_keeps_strength_weak_and_vulnerable_order_semantics() -> N
     state = make_combat_state(
         enemies=[enemy],
         effect_queue=[
-            damage_effect(source_instance_id="player-1", target_instance_id="enemy-1", amount=5),
+            damage_effect(
+                source_instance_id="player-1", target_instance_id="enemy-1", amount=5
+            ),
         ],
     )
     state.player.statuses.append(StatusState(status_id="strength", stacks=1))
@@ -466,11 +508,33 @@ def test_block_effect_applies_player_dexterity_and_floors_at_zero() -> None:
     assert state.player.block == 0
 
 
+def test_double_block_effect_doubles_current_block() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 10)],
+        effect_queue=[
+            {
+                "type": "double_block",
+                "source_instance_id": "player-1",
+                "target_instance_id": "player-1",
+            }
+        ],
+    )
+    state.player.block = 7
+
+    resolved = resolve_effect_queue(state)
+
+    assert resolved[0]["type"] == "double_block"
+    assert resolved[0]["result"] == {"previous_block": 7, "doubled_block": 14}
+    assert state.player.block == 14
+
+
 def test_damage_effect_applies_negative_strength_and_floors_at_zero() -> None:
     state = make_combat_state(
         enemies=[make_enemy("enemy-1", 10)],
         effect_queue=[
-            damage_effect(source_instance_id="player-1", target_instance_id="enemy-1", amount=6),
+            damage_effect(
+                source_instance_id="player-1", target_instance_id="enemy-1", amount=6
+            ),
         ],
     )
     state.player.statuses.append(StatusState(status_id="strength", stacks=-8))
@@ -503,7 +567,9 @@ def test_draw_effect_refills_from_discard_pile_when_draw_pile_runs_out():
 def test_lose_hp_effect_reduces_player_hp_without_touching_block() -> None:
     state = make_combat_state(
         enemies=[make_enemy("enemy-1", 10)],
-        effect_queue=[{"type": "lose_hp", "target_instance_id": "player-1", "amount": 3}],
+        effect_queue=[
+            {"type": "lose_hp", "target_instance_id": "player-1", "amount": 3}
+        ],
     )
     state.player.block = 9
 

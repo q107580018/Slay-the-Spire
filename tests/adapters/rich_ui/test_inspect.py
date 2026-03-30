@@ -9,7 +9,9 @@ from slay_the_spire.adapters.presentation.inspect import (
     render_card_detail_panel,
     render_reward_detail_panel,
 )
-from slay_the_spire.adapters.presentation.inspect_registry import format_shared_inspect_menu
+from slay_the_spire.adapters.presentation.inspect_registry import (
+    format_shared_inspect_menu,
+)
 from slay_the_spire.adapters.presentation.renderer import render_room
 from slay_the_spire.app.session import MenuState, start_session
 from slay_the_spire.content.provider import StarterContentProvider
@@ -76,7 +78,9 @@ def test_format_relic_detail_lines_include_relic_semantics() -> None:
     assert any("描述" in line.plain for line in boss_lines)
     assert any("取代燃烧之血" in line.plain for line in boss_lines)
     assert any("替换" in line.plain for line in boss_lines)
-    assert any("阻止获得金币" in line.plain or "金币" in line.plain for line in boss_lines)
+    assert any(
+        "阻止获得金币" in line.plain or "金币" in line.plain for line in boss_lines
+    )
 
 
 def test_format_relic_detail_lines_translate_gold_bonus_effect() -> None:
@@ -159,6 +163,24 @@ def test_render_card_detail_panel_marks_x_cost_card_as_playable() -> None:
     assert "是否可打出: 是" in output
 
 
+def test_render_card_detail_panel_shows_ethereal_keyword() -> None:
+    session = start_session(seed=5)
+    registry = StarterContentProvider(session.content_root)
+
+    output = _export(render_card_detail_panel("ghostly_armor#1", registry))
+
+    assert "回合结束时若仍在手牌中，则消耗" in output
+
+
+def test_format_card_detail_lines_show_demon_form_power_text() -> None:
+    session = start_session(seed=5)
+    registry = StarterContentProvider(session.content_root)
+
+    lines = format_card_detail_lines("demon_form#1", registry)
+
+    assert "每回合开始时获得 2 层力量" in "\n".join(line.plain for line in lines)
+
+
 def test_format_card_detail_lines_keep_unplayable_curse_as_unplayable() -> None:
     session = start_session(seed=5)
     registry = StarterContentProvider(session.content_root)
@@ -190,7 +212,11 @@ def test_format_relic_detail_lines_translate_disabled_actions_and_gold_rules() -
 
 
 def test_render_non_combat_inspect_root_shows_shared_sections() -> None:
-    session = replace(start_session(seed=5), room_state=_event_room(), menu_state=MenuState(mode="inspect_root"))
+    session = replace(
+        start_session(seed=5),
+        room_state=_event_room(),
+        menu_state=MenuState(mode="inspect_root"),
+    )
 
     output = render_room(
         run_state=session.run_state,
@@ -236,7 +262,10 @@ def test_shared_inspect_menu_registry_formats_shared_modes_for_both_contexts() -
 
     assert combat_card_detail_menu == format_card_detail_menu()
     assert non_combat_card_detail_menu == format_card_detail_menu()
-    assert deck_menu == ["输入上方编号查看卡牌详情", f"{len(session.run_state.deck) + 1}. 返回上一步"]
+    assert deck_menu == [
+        "输入上方编号查看卡牌详情",
+        f"{len(session.run_state.deck) + 1}. 返回上一步",
+    ]
 
 
 def test_render_non_combat_inspect_pages_show_stats_deck_relics_and_potions() -> None:
@@ -251,7 +280,9 @@ def test_render_non_combat_inspect_pages_show_stats_deck_relics_and_potions() ->
         act_state=session.act_state,
         room_state=session.room_state,
         registry=_provider(session),
-        menu_state=MenuState(mode="inspect_stats", inspect_parent_mode="root", inspect_item_id="stats"),
+        menu_state=MenuState(
+            mode="inspect_stats", inspect_parent_mode="root", inspect_item_id="stats"
+        ),
         run_phase=session.run_phase,
     )
     deck_output = render_room(
@@ -259,7 +290,9 @@ def test_render_non_combat_inspect_pages_show_stats_deck_relics_and_potions() ->
         act_state=session.act_state,
         room_state=session.room_state,
         registry=_provider(session),
-        menu_state=MenuState(mode="inspect_deck", inspect_parent_mode="root", inspect_item_id="deck"),
+        menu_state=MenuState(
+            mode="inspect_deck", inspect_parent_mode="root", inspect_item_id="deck"
+        ),
         run_phase=session.run_phase,
     )
     relics_output = render_room(
@@ -267,7 +300,9 @@ def test_render_non_combat_inspect_pages_show_stats_deck_relics_and_potions() ->
         act_state=session.act_state,
         room_state=session.room_state,
         registry=_provider(session),
-        menu_state=MenuState(mode="inspect_relics", inspect_parent_mode="root", inspect_item_id="relics"),
+        menu_state=MenuState(
+            mode="inspect_relics", inspect_parent_mode="root", inspect_item_id="relics"
+        ),
         run_phase=session.run_phase,
     )
     potions_output = render_room(
@@ -275,7 +310,11 @@ def test_render_non_combat_inspect_pages_show_stats_deck_relics_and_potions() ->
         act_state=session.act_state,
         room_state=session.room_state,
         registry=_provider(session),
-        menu_state=MenuState(mode="inspect_potions", inspect_parent_mode="root", inspect_item_id="potions"),
+        menu_state=MenuState(
+            mode="inspect_potions",
+            inspect_parent_mode="root",
+            inspect_item_id="potions",
+        ),
         run_phase=session.run_phase,
     )
 
@@ -298,7 +337,11 @@ def test_render_non_combat_card_detail_does_not_fall_back_to_root_menu() -> None
         act_state=session.act_state,
         room_state=session.room_state,
         registry=_provider(session),
-        menu_state=MenuState(mode="inspect_card_detail", inspect_parent_mode="inspect_deck", inspect_item_id="strike#1"),
+        menu_state=MenuState(
+            mode="inspect_card_detail",
+            inspect_parent_mode="inspect_deck",
+            inspect_item_id="strike#1",
+        ),
         run_phase=session.run_phase,
     )
 
@@ -308,7 +351,9 @@ def test_render_non_combat_card_detail_does_not_fall_back_to_root_menu() -> None
     assert "前往下一个房间" not in output
 
 
-def test_format_reward_detail_lines_include_reward_id_and_human_readable_labels() -> None:
+def test_format_reward_detail_lines_include_reward_id_and_human_readable_labels() -> (
+    None
+):
     session = start_session(seed=5)
     registry = StarterContentProvider(session.content_root)
 
@@ -340,7 +385,9 @@ def test_format_reward_detail_lines_localize_event_rewards() -> None:
     nothing_lines = format_reward_detail_lines("event:nothing", registry)
     other_lines = format_reward_detail_lines("event:unknown_outcome", registry)
 
-    assert any("奖励 ID: event:gain_upgrade" in line.plain for line in gain_upgrade_lines)
+    assert any(
+        "奖励 ID: event:gain_upgrade" in line.plain for line in gain_upgrade_lines
+    )
     assert any("事件结果" in line.plain for line in gain_upgrade_lines)
     assert any("获得升级" in line.plain for line in gain_upgrade_lines)
     assert any("奖励 ID: event:nothing" in line.plain for line in nothing_lines)
@@ -387,7 +434,9 @@ def test_render_combat_inspect_root_includes_piles_and_enemy_details() -> None:
     assert "返回战斗" not in output
 
 
-def test_render_combat_inspect_pages_show_pile_summary_card_detail_and_enemy_detail() -> None:
+def test_render_combat_inspect_pages_show_pile_summary_card_detail_and_enemy_detail() -> (
+    None
+):
     session = start_session(seed=1)
     registry = _provider(session)
     combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
@@ -401,7 +450,9 @@ def test_render_combat_inspect_pages_show_pile_summary_card_detail_and_enemy_det
         act_state=session.act_state,
         room_state=session.room_state,
         registry=registry,
-        menu_state=MenuState(mode="inspect_hand", inspect_parent_mode="root", inspect_item_id="hand"),
+        menu_state=MenuState(
+            mode="inspect_hand", inspect_parent_mode="root", inspect_item_id="hand"
+        ),
         run_phase=session.run_phase,
     )
     card_output = render_room(
@@ -421,7 +472,11 @@ def test_render_combat_inspect_pages_show_pile_summary_card_detail_and_enemy_det
         act_state=session.act_state,
         room_state=session.room_state,
         registry=registry,
-        menu_state=MenuState(mode="inspect_enemy_list", inspect_parent_mode="inspect_root", inspect_item_id="enemies"),
+        menu_state=MenuState(
+            mode="inspect_enemy_list",
+            inspect_parent_mode="inspect_root",
+            inspect_item_id="enemies",
+        ),
         run_phase=session.run_phase,
     )
     enemy_output = render_room(
@@ -429,7 +484,11 @@ def test_render_combat_inspect_pages_show_pile_summary_card_detail_and_enemy_det
         act_state=session.act_state,
         room_state=session.room_state,
         registry=registry,
-        menu_state=MenuState(mode="inspect_enemy_detail", inspect_parent_mode="inspect_enemy_list", inspect_item_id="enemy-1"),
+        menu_state=MenuState(
+            mode="inspect_enemy_detail",
+            inspect_parent_mode="inspect_enemy_list",
+            inspect_item_id="enemy-1",
+        ),
         run_phase=session.run_phase,
     )
 
@@ -467,7 +526,9 @@ def test_render_combat_inspect_pages_show_pile_summary_card_detail_and_enemy_det
 
 def test_render_combat_shared_inspect_pages_show_real_stats_and_relics() -> None:
     base_session = start_session(seed=5)
-    combat_state = CombatState.from_dict(base_session.room_state.payload["combat_state"])
+    combat_state = CombatState.from_dict(
+        base_session.room_state.payload["combat_state"]
+    )
     combat_state.player.statuses.append(StatusState(status_id="strength", stacks=2))
     combat_state.active_powers = [{"power_id": "metallicize", "amount": 3}]
     session = replace(
@@ -475,7 +536,10 @@ def test_render_combat_shared_inspect_pages_show_real_stats_and_relics() -> None
         run_state=replace(base_session.run_state, gold=123),
         room_state=replace(
             base_session.room_state,
-            payload={**base_session.room_state.payload, "combat_state": combat_state.to_dict()},
+            payload={
+                **base_session.room_state.payload,
+                "combat_state": combat_state.to_dict(),
+            },
         ),
     )
 
@@ -484,7 +548,9 @@ def test_render_combat_shared_inspect_pages_show_real_stats_and_relics() -> None
         act_state=session.act_state,
         room_state=session.room_state,
         registry=_provider(session),
-        menu_state=MenuState(mode="inspect_stats", inspect_parent_mode="root", inspect_item_id="stats"),
+        menu_state=MenuState(
+            mode="inspect_stats", inspect_parent_mode="root", inspect_item_id="stats"
+        ),
         run_phase=session.run_phase,
     )
     relics_output = render_room(
@@ -492,7 +558,9 @@ def test_render_combat_shared_inspect_pages_show_real_stats_and_relics() -> None
         act_state=session.act_state,
         room_state=session.room_state,
         registry=_provider(session),
-        menu_state=MenuState(mode="inspect_relics", inspect_parent_mode="root", inspect_item_id="relics"),
+        menu_state=MenuState(
+            mode="inspect_relics", inspect_parent_mode="root", inspect_item_id="relics"
+        ),
         run_phase=session.run_phase,
     )
 
@@ -515,17 +583,25 @@ def test_render_combat_inspect_list_pages_do_not_repeat_full_list_in_footer() ->
     registry = _provider(session)
     combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
     fifth_draw_card = combat_state.draw_pile[4]
-    fifth_draw_name = registry.cards().get(card_id_from_instance_id(fifth_draw_card)).name
+    fifth_draw_name = (
+        registry.cards().get(card_id_from_instance_id(fifth_draw_card)).name
+    )
     first_enemy = combat_state.enemies[0]
     first_enemy_name = registry.enemies().get(first_enemy.enemy_id).name
-    first_enemy_line = f"1. {first_enemy_name} | 生命: {first_enemy.hp}/{first_enemy.max_hp}"
+    first_enemy_line = (
+        f"1. {first_enemy_name} | 生命: {first_enemy.hp}/{first_enemy.max_hp}"
+    )
 
     draw_pile_output = render_room(
         run_state=session.run_state,
         act_state=session.act_state,
         room_state=session.room_state,
         registry=registry,
-        menu_state=MenuState(mode="inspect_draw_pile", inspect_parent_mode="root", inspect_item_id="draw_pile"),
+        menu_state=MenuState(
+            mode="inspect_draw_pile",
+            inspect_parent_mode="root",
+            inspect_item_id="draw_pile",
+        ),
         run_phase=session.run_phase,
     )
     enemy_list_output = render_room(
@@ -533,7 +609,11 @@ def test_render_combat_inspect_list_pages_do_not_repeat_full_list_in_footer() ->
         act_state=session.act_state,
         room_state=session.room_state,
         registry=_provider(session),
-        menu_state=MenuState(mode="inspect_enemy_list", inspect_parent_mode="inspect_root", inspect_item_id="enemies"),
+        menu_state=MenuState(
+            mode="inspect_enemy_list",
+            inspect_parent_mode="inspect_root",
+            inspect_item_id="enemies",
+        ),
         run_phase=session.run_phase,
     )
 
@@ -582,7 +662,11 @@ def test_render_hexaghost_enemy_detail_localizes_divider_summary() -> None:
         act_state=session.act_state,
         room_state=room_state,
         registry=_provider(session),
-        menu_state=MenuState(mode="inspect_enemy_detail", inspect_parent_mode="inspect_enemy_list", inspect_item_id="enemy-1"),
+        menu_state=MenuState(
+            mode="inspect_enemy_detail",
+            inspect_parent_mode="inspect_enemy_list",
+            inspect_item_id="enemy-1",
+        ),
         run_phase=session.run_phase,
     )
 
@@ -591,7 +675,9 @@ def test_render_hexaghost_enemy_detail_localizes_divider_summary() -> None:
     assert "招式表预览: divider: 6 段攻击（每段伤害随生命变化）" in output
 
 
-def test_render_inspect_enemy_list_and_detail_apply_strength_to_intent_preview() -> None:
+def test_render_inspect_enemy_list_and_detail_apply_strength_to_intent_preview() -> (
+    None
+):
     session = start_session(seed=5)
     combat_state = CombatState(
         round_number=1,
@@ -630,7 +716,11 @@ def test_render_inspect_enemy_list_and_detail_apply_strength_to_intent_preview()
         act_state=session.act_state,
         room_state=room_state,
         registry=_provider(session),
-        menu_state=MenuState(mode="inspect_enemy_list", inspect_parent_mode="inspect_root", inspect_item_id="enemies"),
+        menu_state=MenuState(
+            mode="inspect_enemy_list",
+            inspect_parent_mode="inspect_root",
+            inspect_item_id="enemies",
+        ),
         run_phase=session.run_phase,
     )
     enemy_detail_output = render_room(
@@ -638,7 +728,11 @@ def test_render_inspect_enemy_list_and_detail_apply_strength_to_intent_preview()
         act_state=session.act_state,
         room_state=room_state,
         registry=_provider(session),
-        menu_state=MenuState(mode="inspect_enemy_detail", inspect_parent_mode="inspect_enemy_list", inspect_item_id="enemy-1"),
+        menu_state=MenuState(
+            mode="inspect_enemy_detail",
+            inspect_parent_mode="inspect_enemy_list",
+            inspect_item_id="enemy-1",
+        ),
         run_phase=session.run_phase,
     )
 

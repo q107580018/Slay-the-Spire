@@ -74,7 +74,12 @@ def _combat_state(
     )
 
 
-def _provider_with_card(*, card_id: str = "custom_strike", cost: int = 1, effects: list[dict[str, object]] | None = None) -> _Provider:
+def _provider_with_card(
+    *,
+    card_id: str = "custom_strike",
+    cost: int = 1,
+    effects: list[dict[str, object]] | None = None,
+) -> _Provider:
     provider = _Provider()
     provider.cards().register(
         {
@@ -112,12 +117,17 @@ def test_playing_skill_grants_strength_to_gremlin_nob() -> None:
         enemy_ids=["gremlin_nob"],
         enemy_hps=[40],
     )
-    provider = _provider_with_card(card_id="skill_guard", cost=1, effects=[{"type": "block", "amount": 5}])
+    provider = _provider_with_card(
+        card_id="skill_guard", cost=1, effects=[{"type": "block", "amount": 5}]
+    )
 
     result = play_card(state, "skill_guard#1", None, provider)
 
     assert result.combat_state is state
-    assert [effect["type"] for effect in result.resolved_effects] == ["strength", "block"]
+    assert [effect["type"] for effect in result.resolved_effects] == [
+        "strength",
+        "block",
+    ]
     assert state.enemies[0].statuses == [StatusState(status_id="strength", stacks=2)]
 
 
@@ -180,7 +190,9 @@ def test_play_card_applies_negative_player_strength_to_damage_effects() -> None:
 def test_play_card_applies_negative_player_dexterity_to_block_effects() -> None:
     state = _combat_state(hand=["skill_guard#1"])
     state.player.statuses.append(StatusState(status_id="dexterity", stacks=-2))
-    provider = _provider_with_card(card_id="skill_guard", cost=1, effects=[{"type": "block", "amount": 5}])
+    provider = _provider_with_card(
+        card_id="skill_guard", cost=1, effects=[{"type": "block", "amount": 5}]
+    )
 
     result = play_card(state, "skill_guard#1", None, provider)
 
@@ -190,7 +202,9 @@ def test_play_card_applies_negative_player_dexterity_to_block_effects() -> None:
 def test_play_card_defaults_draw_target_to_player() -> None:
     state = _combat_state(hand=["draw_card#1"])
     state.draw_pile = ["bonus_card#1"]
-    provider = _provider_with_card(card_id="draw_card", effects=[{"type": "draw", "amount": 1}])
+    provider = _provider_with_card(
+        card_id="draw_card", effects=[{"type": "draw", "amount": 1}]
+    )
 
     result = play_card(state, "draw_card#1", None, provider)
 
@@ -213,17 +227,24 @@ def test_play_card_creates_a_new_anger_copy_in_discard_pile() -> None:
     result = play_card(state, "anger#1", "enemy-1", provider)
 
     assert result.combat_state is state
-    assert [effect["type"] for effect in result.resolved_effects] == ["damage", "create_card_copy"]
+    assert [effect["type"] for effect in result.resolved_effects] == [
+        "damage",
+        "create_card_copy",
+    ]
     assert state.energy == 3
     assert state.hand == []
     assert state.discard_pile == ["anger#1", "anger#2"]
     assert state.enemies[0].hp == 4
-    assert state.log == ["你打出 Custom Strike，对 Training Dummy 造成 6 伤害，并向弃牌堆加入 1 张Custom Strike。"]
+    assert state.log == [
+        "你打出 Custom Strike，对 Training Dummy 造成 6 伤害，并向弃牌堆加入 1 张Custom Strike。"
+    ]
 
 
 def test_play_card_uses_registry_to_resolve_card_definition() -> None:
     state = _combat_state(hand=["registry_card#9"])
-    provider = _provider_with_card(card_id="registry_card", effects=[{"type": "damage", "amount": 7}])
+    provider = _provider_with_card(
+        card_id="registry_card", effects=[{"type": "damage", "amount": 7}]
+    )
 
     result = play_card(state, "registry_card#9", "enemy-1", provider)
 
@@ -283,12 +304,32 @@ def test_play_card_applies_vulnerable_status_effects() -> None:
     result = play_card(state, "bash#1", "enemy-1", provider)
 
     assert result.combat_state is state
-    assert [effect["type"] for effect in result.resolved_effects] == ["damage", "vulnerable"]
+    assert [effect["type"] for effect in result.resolved_effects] == [
+        "damage",
+        "vulnerable",
+    ]
     assert state.enemies[0].hp == 2
     assert len(state.enemies[0].statuses) == 1
     assert state.enemies[0].statuses[0].status_id == "vulnerable"
     assert state.enemies[0].statuses[0].stacks == 2
-    assert state.log == ["你打出 Custom Strike，对 Training Dummy 造成 8 伤害，并施加 2 层易伤。"]
+    assert state.log == [
+        "你打出 Custom Strike，对 Training Dummy 造成 8 伤害，并施加 2 层易伤。"
+    ]
+
+
+def test_play_card_disarm_applies_negative_strength_to_target_enemy() -> None:
+    state = _combat_state(hand=["disarm#1"])
+    provider = _provider_with_card(
+        card_id="disarm",
+        effects=[{"type": "strength", "amount": -2}],
+    )
+
+    result = play_card(state, "disarm#1", "enemy-1", provider)
+
+    assert result.combat_state is state
+    assert [effect["type"] for effect in result.resolved_effects] == ["strength"]
+    assert state.player.statuses == []
+    assert state.enemies[0].statuses == [StatusState(status_id="strength", stacks=-2)]
 
 
 def test_play_card_damage_is_reduced_while_player_is_weak() -> None:
@@ -332,7 +373,9 @@ def test_play_card_appends_damage_log_entry() -> None:
 
 def test_play_card_appends_block_log_entry() -> None:
     state = _combat_state(hand=["guard#1"])
-    provider = _provider_with_card(card_id="guard", effects=[{"type": "block", "amount": 5}])
+    provider = _provider_with_card(
+        card_id="guard", effects=[{"type": "block", "amount": 5}]
+    )
 
     play_card(state, "guard#1", None, provider)
 
@@ -349,10 +392,33 @@ def test_play_card_all_enemy_attack_hits_all_enemies_without_target() -> None:
     result = play_card(state, "cleave#1", None, provider)
 
     assert result.combat_state is state
-    assert [effect["type"] for effect in result.resolved_effects] == ["damage", "damage"]
+    assert [effect["type"] for effect in result.resolved_effects] == [
+        "damage",
+        "damage",
+    ]
     assert [enemy.hp for enemy in state.enemies] == [12, 12]
     assert state.log == ["你打出 Custom Strike，对 Training Dummy 造成 16 伤害。"]
 
+
+def test_play_card_thunderclap_applies_vulnerable_to_all_enemies() -> None:
+    state = _combat_state(hand=["thunderclap#1"], enemy_hps=[10, 10])
+    provider = _provider_with_card(
+        card_id="thunderclap",
+        effects=[
+            {"type": "damage_all_enemies", "amount": 4},
+            {"type": "vulnerable_all_enemies", "stacks": 1},
+        ],
+    )
+
+    play_card(state, "thunderclap#1", None, provider)
+
+    assert all(
+        any(
+            status.status_id == "vulnerable" and status.stacks == 1
+            for status in enemy.statuses
+        )
+        for enemy in state.enemies
+    )
 
 
 def test_play_card_x_cost_whirlwind_spends_all_energy_and_hits_all_enemies() -> None:
@@ -392,7 +458,9 @@ def test_play_card_x_cost_whirlwind_applies_strength_to_each_hit() -> None:
 
     assert result.combat_state is state
     assert [enemy.hp for enemy in state.enemies] == [6, 6]
-    assert all(effect["result"]["applied_amount"] == 7 for effect in result.resolved_effects)
+    assert all(
+        effect["result"]["applied_amount"] == 7 for effect in result.resolved_effects
+    )
     assert state.log == ["你打出 Custom Strike，对 Training Dummy 造成 28 伤害。"]
 
 
@@ -411,7 +479,9 @@ def test_play_card_draw_log_uses_refilled_discard_cards() -> None:
     play_card(state, "pommel_strike_plus#1", "enemy-1", provider)
 
     assert state.hand == ["bonus_a#1", "bonus_b#1"]
-    assert state.log == ["你打出 Custom Strike，对 Training Dummy 造成 10 伤害，并抽 2 张牌。"]
+    assert state.log == [
+        "你打出 Custom Strike，对 Training Dummy 造成 10 伤害，并抽 2 张牌。"
+    ]
 
 
 def test_play_card_bloodletting_gains_energy_and_loses_hp() -> None:
@@ -428,7 +498,10 @@ def test_play_card_bloodletting_gains_energy_and_loses_hp() -> None:
     result = play_card(state, "bloodletting#1", None, provider)
 
     assert result.combat_state is state
-    assert [effect["type"] for effect in result.resolved_effects] == ["gain_energy", "lose_hp"]
+    assert [effect["type"] for effect in result.resolved_effects] == [
+        "gain_energy",
+        "lose_hp",
+    ]
     assert state.energy == 3
     assert state.player.hp == 37
     assert state.log == ["你打出 Custom Strike，获得 2 点能量，并失去 3 点生命。"]
@@ -489,7 +562,10 @@ def test_play_card_true_grit_plus_can_target_a_hand_card_to_exhaust() -> None:
     result = play_card(state, "true_grit_plus#1", "strike#2", provider)
 
     assert result.combat_state is state
-    assert [effect["type"] for effect in result.resolved_effects] == ["block", "exhaust_target_card"]
+    assert [effect["type"] for effect in result.resolved_effects] == [
+        "block",
+        "exhaust_target_card",
+    ]
     assert state.hand == []
     assert state.discard_pile == ["true_grit_plus#1"]
     assert state.exhaust_pile == ["strike#2"]
@@ -545,7 +621,10 @@ def test_play_card_armaments_plus_upgrades_all_remaining_hand_cards() -> None:
     result = play_card(state, "armaments_plus#1", None, provider)
 
     assert result.combat_state is state
-    assert [effect["type"] for effect in result.resolved_effects] == ["block", "upgrade_all_hand"]
+    assert [effect["type"] for effect in result.resolved_effects] == [
+        "block",
+        "upgrade_all_hand",
+    ]
     assert state.hand == ["strike_plus#2", "defend_plus#3"]
     assert state.discard_pile == ["armaments_plus#1"]
     assert state.player.block == 5

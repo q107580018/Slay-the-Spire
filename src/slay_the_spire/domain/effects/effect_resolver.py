@@ -9,6 +9,7 @@ from slay_the_spire.domain.effects.effect_types import (
     EFFECT_CREATE_CARD_COPY,
     EFFECT_DAMAGE,
     EFFECT_DEXTERITY,
+    EFFECT_DOUBLE_BLOCK,
     EFFECT_DRAW,
     EFFECT_EMIT_HOOK,
     EFFECT_EXHAUST_RANDOM_HAND,
@@ -23,6 +24,7 @@ from slay_the_spire.domain.effects.effect_types import (
     EFFECT_VULNERABLE,
     EFFECT_WEAK,
     copy_effect,
+    damage_effect,
     emit_hook_effect,
     noop_effect,
 )
@@ -35,7 +37,9 @@ from slay_the_spire.domain.models.statuses import StatusState
 from slay_the_spire.shared.types import JsonDict, JsonValue
 
 
-def _get_target(state: CombatState, instance_id: object) -> PlayerCombatState | EnemyState | None:
+def _get_target(
+    state: CombatState, instance_id: object
+) -> PlayerCombatState | EnemyState | None:
     if not isinstance(instance_id, str):
         return None
     try:
@@ -48,7 +52,9 @@ def _is_dead(target: PlayerCombatState | EnemyState | None) -> bool:
     return target is None or target.hp <= 0
 
 
-def _damage_target(target: PlayerCombatState | EnemyState, amount: int) -> tuple[int, int]:
+def _damage_target(
+    target: PlayerCombatState | EnemyState, amount: int
+) -> tuple[int, int]:
     remaining = max(amount, 0)
     blocked = min(target.block, remaining)
     target.block -= blocked
@@ -69,13 +75,17 @@ def _vulnerable_bonus(target: PlayerCombatState | EnemyState) -> int:
 def _is_weak(source: PlayerCombatState | EnemyState | None) -> bool:
     if source is None:
         return False
-    return any(status.status_id == "weak" and status.stacks > 0 for status in source.statuses)
+    return any(
+        status.status_id == "weak" and status.stacks > 0 for status in source.statuses
+    )
 
 
 def _status_total(entity: PlayerCombatState | EnemyState | None, status_id: str) -> int:
     if entity is None:
         return 0
-    return sum(status.stacks for status in entity.statuses if status.status_id == status_id)
+    return sum(
+        status.stacks for status in entity.statuses if status.status_id == status_id
+    )
 
 
 def _strength_bonus(source: PlayerCombatState | EnemyState | None) -> int:
@@ -121,7 +131,12 @@ def _with_result(effect: JsonDict, **result: JsonValue) -> JsonDict:
 
 def _next_card_instance_id(state: CombatState, card_id: str) -> str:
     highest_suffix = 0
-    for card_instance_id in [*state.hand, *state.draw_pile, *state.discard_pile, *state.exhaust_pile]:
+    for card_instance_id in [
+        *state.hand,
+        *state.draw_pile,
+        *state.discard_pile,
+        *state.exhaust_pile,
+    ]:
         try:
             existing_card_id = card_id_from_instance_id(card_instance_id)
         except (TypeError, ValueError):
@@ -134,7 +149,9 @@ def _next_card_instance_id(state: CombatState, card_id: str) -> str:
     return f"{card_id}#{highest_suffix + 1}"
 
 
-def _append_card_to_zone(state: CombatState, *, zone: str, card_instance_id: str) -> None:
+def _append_card_to_zone(
+    state: CombatState, *, zone: str, card_instance_id: str
+) -> None:
     if zone == "hand":
         state.hand.append(card_instance_id)
         return
@@ -158,7 +175,9 @@ def _remove_card_from_zones(state: CombatState, card_instance_id: str) -> bool:
     return False
 
 
-def _replace_card_in_zones(state: CombatState, from_card_instance_id: str, to_card_instance_id: str) -> bool:
+def _replace_card_in_zones(
+    state: CombatState, from_card_instance_id: str, to_card_instance_id: str
+) -> bool:
     for zone in (state.hand, state.draw_pile, state.discard_pile, state.exhaust_pile):
         for index, current in enumerate(zone):
             if current == from_card_instance_id:
@@ -167,11 +186,22 @@ def _replace_card_in_zones(state: CombatState, from_card_instance_id: str, to_ca
     return False
 
 
-def _pseudo_random_hand_selection(state: CombatState, candidates: list[str], *, count: int) -> list[str]:
+def _pseudo_random_hand_selection(
+    state: CombatState, candidates: list[str], *, count: int
+) -> list[str]:
     if count <= 0 or not candidates:
         return []
     ordered = sorted(candidates)
-    seed_basis = sum(ord(char) for item in [*state.hand, *state.draw_pile, *state.discard_pile, *state.exhaust_pile] for char in item)
+    seed_basis = sum(
+        ord(char)
+        for item in [
+            *state.hand,
+            *state.draw_pile,
+            *state.discard_pile,
+            *state.exhaust_pile,
+        ]
+        for char in item
+    )
     start_index = seed_basis % len(ordered)
     rotated = ordered[start_index:] + ordered[:start_index]
     return rotated[: min(count, len(rotated))]
@@ -210,7 +240,9 @@ def _apply_status(
         if next_stacks == 0:
             target.statuses.pop(index)
         else:
-            target.statuses[index] = StatusState(status_id=status_id, stacks=next_stacks)
+            target.statuses[index] = StatusState(
+                status_id=status_id, stacks=next_stacks
+            )
         return
     target.statuses.append(StatusState(status_id=status_id, stacks=stacks))
 
@@ -228,7 +260,9 @@ def _append_or_increase_power(
         if power.get("power_id") != power_id:
             continue
         raw_existing_amount = power.get("amount")
-        existing_amount = raw_existing_amount if isinstance(raw_existing_amount, int) else 0
+        existing_amount = (
+            raw_existing_amount if isinstance(raw_existing_amount, int) else 0
+        )
         power["amount"] = existing_amount + normalized_amount
         if normalized_self_damage is not None:
             power["self_damage"] = normalized_self_damage
@@ -244,15 +278,32 @@ def _append_or_increase_power(
     return next_power
 
 
+def _flame_barrier_amount(state: CombatState) -> int:
+    for power in state.active_powers:
+        if power.get("power_id") != "flame_barrier":
+            continue
+        raw_amount = power.get("amount")
+        if isinstance(raw_amount, int) and raw_amount > 0:
+            return raw_amount
+    return 0
+
+
 def _has_pending_hook(state: CombatState, hook_name: str) -> bool:
     for effect in state.effect_queue:
-        if effect.get("type") == EFFECT_EMIT_HOOK and effect.get("hook_name") == hook_name:
+        if (
+            effect.get("type") == EFFECT_EMIT_HOOK
+            and effect.get("hook_name") == hook_name
+        ):
             return True
     return False
 
 
-def _maybe_enqueue_combat_end(state: CombatState, *, payload: JsonDict | None = None) -> None:
-    if all(enemy.hp == 0 for enemy in state.enemies) and not _has_pending_hook(state, "on_combat_end"):
+def _maybe_enqueue_combat_end(
+    state: CombatState, *, payload: JsonDict | None = None
+) -> None:
+    if all(enemy.hp == 0 for enemy in state.enemies) and not _has_pending_hook(
+        state, "on_combat_end"
+    ):
         state.effect_queue.append(
             emit_hook_effect(
                 hook_name="on_combat_end",
@@ -275,9 +326,21 @@ def resolve_next_effect(
             return noop_effect(reason="dead_target")
         was_alive = target.hp > 0
         source = _get_target(state, effect.get("source_instance_id"))
+        if isinstance(source, EnemyState) and isinstance(target, PlayerCombatState):
+            flame_barrier_amount = _flame_barrier_amount(state)
+            if flame_barrier_amount > 0:
+                reflected_damage = damage_effect(
+                    source_instance_id=target.instance_id,
+                    target_instance_id=source.instance_id,
+                    amount=flame_barrier_amount,
+                )
+                reflected_damage["power_id"] = "flame_barrier"
+                state.effect_queue.insert(0, reflected_damage)
         applied_amount = _damage_amount(source, target, int(effect.get("amount", 0)))
         blocked, actual_damage = _damage_target(target, applied_amount)
-        target_defeated = isinstance(target, EnemyState) and was_alive and target.hp == 0
+        target_defeated = (
+            isinstance(target, EnemyState) and was_alive and target.hp == 0
+        )
         if target_defeated:
             state.effect_queue.append(
                 emit_hook_effect(
@@ -301,6 +364,18 @@ def resolve_next_effect(
         gained_block = max(int(effect.get("amount", 0)) + _dexterity_bonus(source), 0)
         target.block += gained_block
         return _with_result(effect, gained_block=gained_block)
+
+    if effect_type == EFFECT_DOUBLE_BLOCK:
+        target = _get_target(state, effect.get("target_instance_id"))
+        if _is_dead(target):
+            return noop_effect(reason="dead_target")
+        previous_block = max(target.block, 0)
+        target.block = previous_block * 2
+        return _with_result(
+            effect,
+            previous_block=previous_block,
+            doubled_block=target.block,
+        )
 
     if effect_type == EFFECT_STRENGTH:
         target_instance_id = effect.get("target_instance_id")
@@ -408,7 +483,9 @@ def resolve_next_effect(
 
     if effect_type == EFFECT_EXHAUST_RANDOM_HAND:
         count = max(int(effect.get("count", 1)), 0)
-        exhausted_cards = _pseudo_random_hand_selection(state, list(state.hand), count=count)
+        exhausted_cards = _pseudo_random_hand_selection(
+            state, list(state.hand), count=count
+        )
         for card_instance_id in exhausted_cards:
             if _remove_card_from_zones(state, card_instance_id):
                 state.exhaust_pile.append(card_instance_id)
@@ -432,7 +509,9 @@ def resolve_next_effect(
             raise TypeError("upgraded_card_id must be a string")
         _old_card_id, suffix = target_card_instance_id.split("#", 1)
         upgraded_card_instance_id = f"{upgraded_card_id}#{suffix}"
-        if not _replace_card_in_zones(state, target_card_instance_id, upgraded_card_instance_id):
+        if not _replace_card_in_zones(
+            state, target_card_instance_id, upgraded_card_instance_id
+        ):
             return noop_effect(reason="missing_target_card")
         return _with_result(
             effect,
@@ -456,7 +535,9 @@ def resolve_next_effect(
             _old_card_id, suffix = card_instance_id.split("#", 1)
             upgraded_card_instance_id = f"{upgraded_card_id}#{suffix}"
             state.hand[index] = upgraded_card_instance_id
-            upgraded_cards.append({"from": card_instance_id, "to": upgraded_card_instance_id})
+            upgraded_cards.append(
+                {"from": card_instance_id, "to": upgraded_card_instance_id}
+            )
         return _with_result(effect, upgraded_cards=upgraded_cards)
 
     if effect_type == EFFECT_ADD_POWER:
@@ -519,5 +600,7 @@ def resolve_effect_queue(
 ) -> list[JsonDict]:
     resolved: list[JsonDict] = []
     while state.effect_queue:
-        resolved.append(resolve_next_effect(state, hook_registrations=hook_registrations))
+        resolved.append(
+            resolve_next_effect(state, hook_registrations=hook_registrations)
+        )
     return resolved

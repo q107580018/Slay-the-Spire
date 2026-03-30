@@ -11,19 +11,34 @@ from slay_the_spire.domain.effects.effect_types import (
     EFFECT_UPGRADE_TARGET_CARD,
     EFFECT_UPGRADE_ALL_HAND,
     EFFECT_VULNERABLE,
+    EFFECT_VULNERABLE_ALL_ENEMIES,
     EFFECT_WEAK,
     copy_effect,
 )
 from slay_the_spire.domain.hooks.hook_types import HookRegistration
-from slay_the_spire.domain.models.cards import CombatActionResult, card_id_from_instance_id
+from slay_the_spire.domain.models.cards import (
+    CombatActionResult,
+    card_id_from_instance_id,
+)
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.content.registries import CardDef
 from slay_the_spire.ports.content_provider import ContentProviderPort
 from slay_the_spire.shared.types import JsonDict
-from slay_the_spire.use_cases.combat_events import build_player_action_events, capture_entity_snapshots
-from slay_the_spire.use_cases.combat_log import append_log_entries, describe_player_action
+from slay_the_spire.use_cases.combat_events import (
+    build_player_action_events,
+    capture_entity_snapshots,
+)
+from slay_the_spire.use_cases.combat_log import (
+    append_log_entries,
+    describe_player_action,
+)
 
-_TARGETED_EFFECT_TYPES = {EFFECT_DAMAGE, EFFECT_VULNERABLE, EFFECT_WEAK}
+_TARGETED_EFFECT_TYPES = {
+    EFFECT_DAMAGE,
+    EFFECT_VULNERABLE,
+    EFFECT_WEAK,
+    "strength",
+}
 _HAND_TARGETED_EFFECT_TYPES = {EFFECT_EXHAUST_TARGET_CARD, EFFECT_UPGRADE_TARGET_CARD}
 
 
@@ -69,6 +84,18 @@ def _materialize_card_effects(
                         }
                     )
             continue
+        if effect_type == EFFECT_VULNERABLE_ALL_ENEMIES:
+            stacks = int(effect.get("stacks", 0))
+            for enemy in combat_state.enemies:
+                effects.append(
+                    {
+                        "type": EFFECT_VULNERABLE,
+                        "stacks": stacks,
+                        "source_instance_id": source_instance_id,
+                        "target_instance_id": enemy.instance_id,
+                    }
+                )
+            continue
         if "source_instance_id" not in effect:
             effect["source_instance_id"] = source_instance_id
         if effect_type in _TARGETED_EFFECT_TYPES:
@@ -84,7 +111,9 @@ def _materialize_card_effects(
                 raise ValueError("target card is not in hand")
             effect["target_card_instance_id"] = target_id
             if effect_type == EFFECT_UPGRADE_TARGET_CARD:
-                target_card_def = registry.cards().get(card_id_from_instance_id(target_id))
+                target_card_def = registry.cards().get(
+                    card_id_from_instance_id(target_id)
+                )
                 if target_card_def.upgrades_to is None:
                     raise ValueError("所选卡牌无法升级。")
                 effect["upgraded_card_id"] = target_card_def.upgrades_to
@@ -93,11 +122,18 @@ def _materialize_card_effects(
             for hand_card_instance_id in combat_state.hand:
                 if hand_card_instance_id == card_instance_id:
                     continue
-                hand_card_def = registry.cards().get(card_id_from_instance_id(hand_card_instance_id))
+                hand_card_def = registry.cards().get(
+                    card_id_from_instance_id(hand_card_instance_id)
+                )
                 if hand_card_def.upgrades_to is not None:
-                    upgrades[card_id_from_instance_id(hand_card_instance_id)] = hand_card_def.upgrades_to
+                    upgrades[card_id_from_instance_id(hand_card_instance_id)] = (
+                        hand_card_def.upgrades_to
+                    )
             effect["upgrades"] = upgrades
-        elif effect_type in {"block", "draw", "lose_hp"} and "target_instance_id" not in effect:
+        elif (
+            effect_type in {"block", "draw", "lose_hp"}
+            and "target_instance_id" not in effect
+        ):
             effect["target_instance_id"] = source_instance_id
         effects.append(effect)
     return effects

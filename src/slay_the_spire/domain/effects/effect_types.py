@@ -14,8 +14,10 @@ EFFECT_LOSE_HP = "lose_hp"
 EFFECT_DRAW = "draw"
 EFFECT_GAIN_ENERGY = "gain_energy"
 EFFECT_VULNERABLE = "vulnerable"
+EFFECT_VULNERABLE_ALL_ENEMIES = "vulnerable_all_enemies"
 EFFECT_WEAK = "weak"
 EFFECT_DEXTERITY = "dexterity"
+EFFECT_DOUBLE_BLOCK = "double_block"
 EFFECT_CREATE_CARD_COPY = "create_card_copy"
 EFFECT_ADD_CARD_TO_DISCARD = "add_card_to_discard"
 EFFECT_EXHAUST_RANDOM_HAND = "exhaust_random_hand"
@@ -39,7 +41,9 @@ def copy_effect(effect: Mapping[str, JsonValue]) -> JsonDict:
     return {key: _copy_json_value(value) for key, value in effect.items()}
 
 
-def damage_effect(*, target_instance_id: str, amount: int, source_instance_id: str | None = None) -> JsonDict:
+def damage_effect(
+    *, target_instance_id: str, amount: int, source_instance_id: str | None = None
+) -> JsonDict:
     effect: JsonDict = {
         "type": EFFECT_DAMAGE,
         "target_instance_id": target_instance_id,
@@ -50,7 +54,9 @@ def damage_effect(*, target_instance_id: str, amount: int, source_instance_id: s
     return effect
 
 
-def block_effect(*, target_instance_id: str, amount: int, source_instance_id: str | None = None) -> JsonDict:
+def block_effect(
+    *, target_instance_id: str, amount: int, source_instance_id: str | None = None
+) -> JsonDict:
     effect: JsonDict = {
         "type": EFFECT_BLOCK,
         "target_instance_id": target_instance_id,

@@ -50,6 +50,8 @@ _POWER_LABELS: dict[str, str] = {
     "inflame": "燃烧",
     "metallicize": "金属化",
     "combust": "燃烧躯体",
+    "flame_barrier": "火焰屏障",
+    "demon_form": "恶魔形态",
 }
 
 _POTION_TARGET_LABELS: dict[str, str] = {
@@ -79,7 +81,9 @@ def hp_style_for_ratio(ratio: float) -> str:
     return "hp.high"
 
 
-def render_hp_bar(current: int, maximum: int, *, width: int = HP_BAR_WIDTH, show_values: bool = True) -> Text:
+def render_hp_bar(
+    current: int, maximum: int, *, width: int = HP_BAR_WIDTH, show_values: bool = True
+) -> Text:
     ratio = 0 if maximum <= 0 else max(0, min(current / maximum, 1))
     filled = round(width * ratio)
     bar = "█" * filled + "░" * (width - filled)
@@ -126,7 +130,13 @@ def _styled_choice(option: str | Text) -> Text:
 
 def render_menu(options: list[str | Text], *, title: str | None = None) -> Panel:
     body = Group(*(_styled_choice(option) for option in options))
-    return Panel(body, title=title or None, box=PANEL_BOX, border_style="menu.border", expand=False)
+    return Panel(
+        body,
+        title=title or None,
+        box=PANEL_BOX,
+        border_style="menu.border",
+        expand=False,
+    )
 
 
 def special_card_rule_text(card_id: str) -> str | None:
@@ -180,7 +190,9 @@ def summarize_active_powers(active_powers: Sequence[Mapping[str, object]]) -> st
 
 def render_card_name(card_def: CardDef) -> Text:
     rendered = Text()
-    rendered.append(card_def.name, style=_CARD_RARITY_STYLES.get(card_def.rarity or "", "card.name"))
+    rendered.append(
+        card_def.name, style=_CARD_RARITY_STYLES.get(card_def.rarity or "", "card.name")
+    )
     if is_upgraded_card(card_def):
         rendered.stylize("card.upgraded")
     return rendered
@@ -192,7 +204,9 @@ def _signed_status_change(amount: int, label: str) -> str:
     return f"获得 {amount} {label}"
 
 
-def summarize_effect(effect: Mapping[str, object], *, detailed_status_cards: bool = False) -> str:
+def summarize_effect(
+    effect: Mapping[str, object], *, detailed_status_cards: bool = False
+) -> str:
     effect_type = effect.get("type")
     if effect.get("move") == "divider":
         return "6 段攻击（每段伤害随生命变化）"
@@ -212,6 +226,8 @@ def summarize_effect(effect: Mapping[str, object], *, detailed_status_cards: boo
         return f"抽 {int(effect.get('amount', 0))} 张牌"
     if effect_type == "gain_energy":
         return f"获得 {int(effect.get('amount', 0))} 点能量"
+    if effect_type == "double_block":
+        return "格挡翻倍"
     if effect_type == "add_power":
         power_id = effect.get("power_id")
         amount = int(effect.get("amount", 0))
@@ -221,7 +237,13 @@ def summarize_effect(effect: Mapping[str, object], *, detailed_status_cards: boo
             return f"回合结束时获得 {amount} 格挡"
         if power_id == "combust":
             self_damage = int(effect.get("self_damage", 1))
-            return f"回合结束时对所有敌人造成 {amount} 伤害，自己失去 {self_damage} 点生命"
+            return (
+                f"回合结束时对所有敌人造成 {amount} 伤害，自己失去 {self_damage} 点生命"
+            )
+        if power_id == "flame_barrier":
+            return f"本回合内每次被敌人攻击时反弹 {amount} 伤害"
+        if power_id == "demon_form":
+            return f"每回合开始时获得 {amount} 层力量"
         return f"获得持续效果 {power_id} {amount}"
     if effect_type == "strength":
         return _signed_status_change(int(effect.get("amount", 0)), "力量")
@@ -229,6 +251,8 @@ def summarize_effect(effect: Mapping[str, object], *, detailed_status_cards: boo
         return _signed_status_change(int(effect.get("amount", 0)), "敏捷")
     if effect_type == "vulnerable":
         return f"施加 {int(effect.get('stacks', 0))} 易伤"
+    if effect_type == "vulnerable_all_enemies":
+        return f"对所有敌人施加 {int(effect.get('stacks', 0))} 易伤"
     if effect_type == "weak":
         return f"施加 {int(effect.get('stacks', 0))} 虚弱"
     if effect_type == "exhaust_random_hand":
@@ -268,7 +292,10 @@ def summarize_card_effects(
     *,
     detailed_status_cards: bool = False,
 ) -> str:
-    summaries = [summarize_effect(effect, detailed_status_cards=detailed_status_cards) for effect in effects]
+    summaries = [
+        summarize_effect(effect, detailed_status_cards=detailed_status_cards)
+        for effect in effects
+    ]
     return " / ".join(summary for summary in summaries if summary) or "-"
 
 
