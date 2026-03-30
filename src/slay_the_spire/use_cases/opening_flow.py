@@ -79,7 +79,7 @@ def _pick_free_reward_kind(rng: Random) -> str:
 
 
 def _pick_tradeoff_reward_kind(rng: Random) -> str:
-    kinds = ["upgrade_card", "remove_card", "curse_card"]
+    kinds = ["upgrade_card", "remove_card", "curse_bonus"]
     return rng.choice(kinds)
 
 
@@ -121,9 +121,23 @@ def _build_reward_payload(*, reward_kind: str, registry, rng: Random) -> dict[st
         return {"action": "upgrade_card"}
     if reward_kind == "remove_card":
         return {"action": "remove_card"}
-    if reward_kind == "curse_card":
-        card_id = _choose_curse_card_id(registry=registry, rng=rng)
-        return {"reward_id": f"card:{card_id}", "card_id": card_id}
+    if reward_kind == "curse_bonus":
+        premium_kind = rng.choice(["gold", "relic", "rare_card"])
+        if premium_kind == "gold":
+            return {"reward_type": "gold", "reward_id": "gold:250", "amount": 250}
+        if premium_kind == "relic":
+            relic_id = _choose_relic_id(registry=registry, rng=rng)
+            return {
+                "reward_type": "relic",
+                "reward_id": f"relic:{relic_id}",
+                "relic_id": relic_id,
+            }
+        card_id = _choose_rare_card_id(registry=registry, rng=rng)
+        return {
+            "reward_type": "card",
+            "reward_id": f"card:{card_id}",
+            "card_id": card_id,
+        }
     raise ValueError(f"unsupported reward_kind: {reward_kind}")
 
 
@@ -132,7 +146,7 @@ def _build_cost_payload(*, reward_kind: str, rng: Random) -> tuple[str | None, d
         return "hp_loss", {"amount": rng.choice([6, 8, 10])}
     if reward_kind == "remove_card":
         return "gold_loss", {"amount": 75}
-    if reward_kind == "curse_card":
+    if reward_kind == "curse_bonus":
         return "curse", {"card_id": "doubt"}
     return None, {}
 
@@ -151,7 +165,7 @@ def _build_description(
         "rare_card": "获得稀有牌",
         "upgrade_card": "升级 1 张牌",
         "remove_card": "移除 1 张牌",
-        "curse_card": "获得诅咒牌",
+        "curse_bonus": "诅咒换取高价值奖励",
     }
     summary = summary_map[reward_kind]
     details = [summary]
@@ -163,8 +177,19 @@ def _build_description(
         details.append(f"获得药水：{reward_payload['potion_id']}")
     elif reward_kind == "rare_card":
         details.append(f"获得稀有牌：{reward_payload['card_id']}")
-    elif reward_kind == "curse_card":
-        details.append(f"获得诅咒牌：{reward_payload['card_id']}")
+    elif reward_kind == "curse_bonus":
+        reward_type = str(reward_payload["reward_type"])
+        if reward_type == "gold":
+            summary = f"获得 {reward_payload['amount']} 金币"
+            details = [summary]
+        elif reward_type == "relic":
+            summary = "获得稀有遗物"
+            details = [summary, f"获得遗物：{reward_payload['relic_id']}"]
+        elif reward_type == "card":
+            summary = "获得稀有牌"
+            details = [summary, f"获得稀有牌：{reward_payload['card_id']}"]
+        else:
+            raise ValueError(f"unsupported curse bonus reward_type: {reward_type}")
     if cost_kind is not None:
         details.append(_describe_cost(cost_kind, cost_payload))
     return summary, tuple(details)
@@ -249,7 +274,7 @@ def _apply_reward(
         return replace(run_blueprint, potions=[*run_blueprint.potions, potion_id])
     if reward_kind == "rare_card":
         return apply_reward(run_state=run_blueprint, reward_id=str(reward_payload["reward_id"]), registry=registry)
-    if reward_kind == "curse_card":
+    if reward_kind == "curse_bonus":
         return apply_reward(run_state=run_blueprint, reward_id=str(reward_payload["reward_id"]), registry=registry)
     if reward_kind == "upgrade_card":
         return _apply_upgrade_card(run_blueprint, registry=registry, target_card_instance_id=target_card_instance_id)

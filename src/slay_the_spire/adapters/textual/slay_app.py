@@ -376,16 +376,31 @@ def _format_neow_offer_hover_lines(offer, *, registry) -> list[Text | str]:
     if offer.reward_kind == "potion":
         potion_id = str(reward_payload["potion_id"])
         return format_potion_detail_lines(potion_id, registry)
-    if offer.reward_kind in {"rare_card", "curse_card"}:
+    if offer.reward_kind == "rare_card":
         card_id = str(reward_payload["card_id"])
         lines = [
             line
             for line in format_card_detail_lines(f"{card_id}#neow", registry)
             if _plain_label(line) != f"实例 {card_id}#neow"
         ]
-        if offer.cost_kind == "curse":
-            return [*lines, f"代价：{detail_lines[-1]}"]
         return lines
+    if offer.reward_kind == "curse_bonus":
+        reward_type = str(reward_payload["reward_type"])
+        cost_line = f"代价：{detail_lines[-1]}"
+        if reward_type == "gold":
+            return [f"获得 {reward_payload['amount']} 金币", cost_line]
+        if reward_type == "relic":
+            relic_id = str(reward_payload["relic_id"])
+            return [*format_relic_detail_lines(relic_id, registry), cost_line]
+        if reward_type == "card":
+            card_id = str(reward_payload["card_id"])
+            lines = [
+                line
+                for line in format_card_detail_lines(f"{card_id}#neow", registry)
+                if _plain_label(line) != f"实例 {card_id}#neow"
+            ]
+            return [*lines, cost_line]
+        return [*detail_lines[:-1], cost_line]
     if offer.reward_kind == "gold":
         return [
             detail_lines[1],

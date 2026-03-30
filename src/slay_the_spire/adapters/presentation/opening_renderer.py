@@ -54,8 +54,15 @@ def format_neow_offer_detail_lines(offer, *, registry: ContentProviderPort) -> l
         details.append(f"获得药水：{registry.potions().get(potion_id).name}")
     elif offer.reward_kind == "rare_card":
         details.append(f"获得稀有牌：{_localized_card_name(str(reward_payload['card_id']), registry)}")
-    elif offer.reward_kind == "curse_card":
-        details.append(f"获得诅咒牌：{_localized_card_name(str(reward_payload['card_id']), registry)}")
+    elif offer.reward_kind == "curse_bonus":
+        reward_type = str(reward_payload["reward_type"])
+        if reward_type == "gold":
+            details.append(f"获得 {reward_payload['amount']} 金币")
+        elif reward_type == "relic":
+            relic_id = str(reward_payload["relic_id"])
+            details.append(f"获得遗物：{registry.relics().get(relic_id).name}")
+        elif reward_type == "card":
+            details.append(f"获得稀有牌：{_localized_card_name(str(reward_payload['card_id']), registry)}")
     if offer.cost_kind == "hp_loss":
         details.append(f"失去 {offer.cost_payload['amount']} 点生命")
     elif offer.cost_kind == "gold_loss":

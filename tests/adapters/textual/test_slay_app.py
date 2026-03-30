@@ -259,13 +259,12 @@ def test_hover_preview_shows_neow_remove_offer_cost() -> None:
     assert "金币" in preview.plain
 
 
-def test_hover_preview_shows_neow_curse_card_offer_details() -> None:
+def test_hover_preview_shows_neow_curse_bonus_reward_details_and_curse_cost() -> None:
     session = start_new_game_session(seed=5, preferred_character_id="ironclad")
     provider = StarterContentProvider(session.content_root)
     offer = opening_flow._build_offer(
-        "curse-offer", "tradeoff", "curse_card", provider, Random(0)
+        "curse-offer", "tradeoff", "curse_bonus", provider, Random(0)
     )
-    localized_name = provider.cards().get(str(offer.reward_payload["card_id"])).name
     cost_name = provider.cards().get(str(offer.cost_payload["card_id"])).name
     session = replace(
         session, opening_state=replace(session.opening_state, neow_offers=[offer])
@@ -274,10 +273,20 @@ def test_hover_preview_shows_neow_curse_card_offer_details() -> None:
     preview = _hover_preview_renderable(session, f"choose_neow_offer:{offer.offer_id}")
 
     assert preview is not None
-    assert localized_name in preview.plain
-    assert "效果" in preview.plain
     assert "代价" in preview.plain
     assert cost_name in preview.plain
+    assert "获得诅咒牌" not in preview.plain
+    if offer.reward_payload["reward_type"] == "gold":
+        assert "250" in preview.plain
+        assert "金币" in preview.plain
+    elif offer.reward_payload["reward_type"] == "relic":
+        localized_name = provider.relics().get(str(offer.reward_payload["relic_id"])).name
+        assert localized_name in preview.plain
+        assert "效果" in preview.plain
+    else:
+        localized_name = provider.cards().get(str(offer.reward_payload["card_id"])).name
+        assert localized_name in preview.plain
+        assert "效果" in preview.plain
 
 
 def test_hover_preview_shows_opening_target_card_details() -> None:

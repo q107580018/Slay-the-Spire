@@ -68,6 +68,35 @@ def test_build_offer_marks_targeted_rewards_with_specific_requires_target_semant
     assert gold_offer.requires_target is None
 
 
+def test_build_offer_curse_bonus_uses_curse_as_cost_and_non_curse_reward() -> None:
+    provider = _provider()
+
+    offer = opening_flow._build_offer("curse", "tradeoff", "curse_bonus", provider, Random(0))
+
+    assert offer.cost_kind == "curse"
+    assert offer.cost_payload["card_id"] == "doubt"
+    assert offer.reward_kind == "curse_bonus"
+    assert offer.reward_payload["reward_type"] in {"gold", "relic", "card"}
+    assert offer.summary != "获得诅咒牌"
+    assert offer.reward_payload.get("card_id") != "doubt"
+
+
+def test_apply_neow_offer_curse_bonus_adds_curse_and_applies_premium_reward() -> None:
+    provider = _provider()
+    opening = build_opening_state(seed=11, preferred_character_id="ironclad", registry=provider)
+    offer = opening_flow._build_offer("curse", "tradeoff", "curse_bonus", provider, Random(0))
+    opening = replace(opening, neow_offers=[offer])
+    before = opening.run_blueprint
+
+    updated = apply_neow_offer(opening, offer.offer_id, registry=provider)
+
+    assert before is not None
+    assert updated.run_blueprint is not None
+    assert "doubt#11" in updated.run_blueprint.deck
+    if offer.reward_payload["reward_type"] == "gold":
+        assert updated.run_blueprint.gold == before.gold + 250
+
+
 def test_apply_neow_offer_rejects_duplicate_resolution() -> None:
     provider = _provider()
     opening = build_opening_state(seed=11, preferred_character_id="ironclad", registry=provider)
