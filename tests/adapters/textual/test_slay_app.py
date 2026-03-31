@@ -1050,6 +1050,35 @@ def test_textual_log_renderable_omits_combat_summary_panel() -> None:
     assert "战斗记录" in output
 
 
+def test_textual_log_renderable_keeps_last_battle_log_after_combat_resolved() -> None:
+    base = start_session(seed=5)
+    combat_state = CombatState.from_dict(base.room_state.payload["combat_state"])
+    combat_state.log = ["第3回合：打击造成 9 伤害。", "敌人被击败。"]
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            stage="completed",
+            is_resolved=True,
+            rewards=["gold:15"],
+            payload={
+                **base.room_state.payload,
+                "combat_state": combat_state.to_dict(),
+            },
+        ),
+    )
+    buffer = StringIO()
+    console = Console(
+        file=buffer, force_terminal=False, color_system=None, theme=TERMINAL_THEME
+    )
+
+    console.print(_render_to_rich(session))
+
+    output = buffer.getvalue()
+    assert "战斗记录" in output
+    assert "敌人被击败。" in output
+
+
 def test_textual_log_renderable_keeps_player_hp_in_player_panel() -> None:
     session = start_session(seed=5)
     combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])

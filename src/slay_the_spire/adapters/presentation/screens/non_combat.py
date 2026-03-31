@@ -859,6 +859,26 @@ def render_terminal_phase_panel(run_phase: str) -> Panel:
     return Panel(Group(Text(message)), title=title, box=PANEL_BOX, expand=False)
 
 
+def _resolved_combat_log_entries(room_state: RoomState) -> list[str]:
+    if room_state.room_type not in {"combat", "elite", "boss"} or not room_state.is_resolved:
+        return []
+    combat_state = room_state.payload.get("combat_state")
+    if not isinstance(combat_state, dict):
+        return []
+    raw_entries = combat_state.get("log")
+    if not isinstance(raw_entries, list):
+        return []
+    return [entry for entry in raw_entries if isinstance(entry, str)]
+
+
+def render_resolved_combat_log_panel(room_state: RoomState) -> Panel | None:
+    entries = _resolved_combat_log_entries(room_state)
+    if not entries:
+        return None
+    body: list[RenderableType] = [Text(entry) for entry in entries[-5:]]
+    return Panel(Group(*body), title="战斗记录", box=PANEL_BOX, expand=False)
+
+
 def render_non_combat_screen(
     *,
     run_state: RunState,
@@ -900,6 +920,10 @@ def render_non_combat_screen(
         body.append(render_event_body(room_state, registry))
     else:
         body.append(Panel(Group(Text("等待下一步操作。")), title="房间状态", box=PANEL_BOX, expand=False))
+
+    resolved_combat_log_panel = render_resolved_combat_log_panel(room_state)
+    if resolved_combat_log_panel is not None and run_phase == "active":
+        body.append(resolved_combat_log_panel)
 
     if run_phase != "active":
         footer = render_menu(_format_terminal_phase_menu(run_phase))
