@@ -218,6 +218,8 @@ class CardRegistry(_BaseRegistry[CardDef]):
     _ALLOWED_ACQUISITION_TAGS = frozenset(
         {"starter", "combat_reward", "shop", "event", "generated", "status", "curse"}
     )
+    _ALLOWED_PLAY_CONDITIONS = frozenset({"all_attacks_in_hand"})
+    _ALLOWED_COST_REDUCERS = frozenset({"times_hit_this_combat"})
 
     def register(self, payload: Mapping[str, object]) -> CardDef:
         record = self._build(payload)
@@ -261,6 +263,18 @@ class CardRegistry(_BaseRegistry[CardDef]):
                 raise ValueError("acquisition_tags must contain only supported tags")
         return tags
 
+    def _require_supported_optional_str(
+        self,
+        value: object,
+        field_name: str,
+        *,
+        allowed_values: frozenset[str],
+    ) -> str | None:
+        parsed = _require_optional_str(value, field_name)
+        if parsed is not None and parsed not in allowed_values:
+            raise ValueError(f"{field_name} must be a supported value")
+        return parsed
+
     def _build(self, payload: Mapping[str, object]) -> CardDef:
         data = _require_mapping(payload, "payload")
         effects = _require_record_list(data.get("effects"), "effects")
@@ -277,11 +291,15 @@ class CardRegistry(_BaseRegistry[CardDef]):
             acquisition_tags=self._normalize_acquisition_tags(data),
             rarity=_require_optional_str(data.get("rarity"), "rarity"),
             upgrades_to=_require_optional_str(data.get("upgrades_to"), "upgrades_to"),
-            play_condition=_require_optional_str(
-                data.get("play_condition"), "play_condition"
+            play_condition=self._require_supported_optional_str(
+                data.get("play_condition"),
+                "play_condition",
+                allowed_values=self._ALLOWED_PLAY_CONDITIONS,
             ),
-            cost_reducer=_require_optional_str(
-                data.get("cost_reducer"), "cost_reducer"
+            cost_reducer=self._require_supported_optional_str(
+                data.get("cost_reducer"),
+                "cost_reducer",
+                allowed_values=self._ALLOWED_COST_REDUCERS,
             ),
             playable=_require_optional_bool(
                 data.get("playable"), "playable", default=True

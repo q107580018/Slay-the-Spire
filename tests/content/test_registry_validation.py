@@ -100,6 +100,81 @@ def test_card_registry_defaults_extended_fields() -> None:
     assert card.innate is False
 
 
+def test_card_registry_rejects_invalid_play_condition() -> None:
+    registry = CardRegistry()
+
+    with pytest.raises(ValueError, match="play_condition"):
+        registry.register(
+            {
+                "id": "sentinel",
+                "name": "先锋",
+                "cost": 1,
+                "effects": [],
+                "play_condition": "anything_goes",
+            }
+        )
+
+
+def test_card_registry_rejects_invalid_cost_reducer() -> None:
+    registry = CardRegistry()
+
+    with pytest.raises(ValueError, match="cost_reducer"):
+        registry.register(
+            {
+                "id": "clash",
+                "name": "交锋",
+                "cost": 0,
+                "effects": [],
+                "cost_reducer": "any_reducer",
+            }
+        )
+
+
+def test_card_registry_rejects_invalid_innate_type() -> None:
+    registry = CardRegistry()
+
+    with pytest.raises(TypeError, match="innate"):
+        registry.register(
+            {
+                "id": "sentinel",
+                "name": "先锋",
+                "cost": 1,
+                "effects": [],
+                "innate": "yes",
+            }
+        )
+
+
+def test_card_registry_rejects_invalid_on_exhaust_effects_type() -> None:
+    registry = CardRegistry()
+
+    with pytest.raises(TypeError, match="on_exhaust_effects"):
+        registry.register(
+            {
+                "id": "sentinel",
+                "name": "先锋",
+                "cost": 1,
+                "effects": [],
+                "on_exhaust_effects": "gain_energy",
+            }
+        )
+
+
+def test_card_registry_rejects_invalid_on_exhaust_effects_item_shape() -> None:
+    registry = CardRegistry()
+
+    with pytest.raises(TypeError, match="on_exhaust_effects item"):
+        registry.register(
+            {
+                "id": "sentinel",
+                "name": "先锋",
+                "cost": 1,
+                "effects": [],
+                "on_exhaust_effects": ["gain_energy"],
+            }
+        )
+
+
 def test_json_loader_reads_raw_json(tmp_path: Path) -> None:
     path = tmp_path / "payload.json"
     payload = {"cards": [{"id": "strike", "cost": 1, "effects": []}]}
