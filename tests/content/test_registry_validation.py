@@ -63,6 +63,43 @@ def test_card_registry_defaults_ethereal_to_false() -> None:
 
     assert card.ethereal is False
 
+
+def test_card_registry_parses_extended_red_card_fields() -> None:
+    registry = CardRegistry()
+
+    card = registry.register(
+        {
+            "id": "sentinel",
+            "name": "先锋",
+            "cost": 1,
+            "rarity": "uncommon",
+            "effects": [{"type": "block", "amount": 5}],
+            "on_exhaust_effects": [{"type": "gain_energy", "amount": 2}],
+            "play_condition": "all_attacks_in_hand",
+            "cost_reducer": "times_hit_this_combat",
+            "innate": True,
+        }
+    )
+
+    assert card.on_exhaust_effects == [{"type": "gain_energy", "amount": 2}]
+    assert card.play_condition == "all_attacks_in_hand"
+    assert card.cost_reducer == "times_hit_this_combat"
+    assert card.innate is True
+
+
+def test_card_registry_defaults_extended_fields() -> None:
+    registry = CardRegistry()
+
+    card = registry.register(
+        {"id": "strike", "name": "Strike", "cost": 1, "effects": []}
+    )
+
+    assert card.on_exhaust_effects == []
+    assert card.play_condition is None
+    assert card.cost_reducer is None
+    assert card.innate is False
+
+
 def test_json_loader_reads_raw_json(tmp_path: Path) -> None:
     path = tmp_path / "payload.json"
     payload = {"cards": [{"id": "strike", "cost": 1, "effects": []}]}
