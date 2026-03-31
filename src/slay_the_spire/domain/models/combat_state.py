@@ -80,6 +80,17 @@ def _normalize_json_dict(value: Mapping[str, object], field_name: str) -> JsonDi
     return result
 
 
+def _normalize_str_int_dict(value: object, field_name: str) -> dict[str, int]:
+    if not isinstance(value, dict):
+        raise TypeError(f"{field_name} must be a dict")
+    return {
+        _require_str(key, f"{field_name} key"): _require_int(
+            item, f"{field_name} value"
+        )
+        for key, item in value.items()
+    }
+
+
 @dataclass(slots=True, kw_only=True)
 class CombatState:
     schema_version: int = SCHEMA_VERSION
@@ -94,6 +105,9 @@ class CombatState:
     effect_queue: list[JsonDict] = field(default_factory=list)
     active_powers: list[JsonDict] = field(default_factory=list)
     log: list[str] = field(default_factory=list)
+    times_hit_this_combat: int = 0
+    card_play_data: dict[str, int] = field(default_factory=dict)
+    temporary_costs: dict[str, int] = field(default_factory=dict)
     _entity_by_id: dict[str, PlayerCombatState | EnemyState] = field(
         init=False,
         repr=False,
@@ -130,19 +144,40 @@ class CombatState:
         if not isinstance(self.log, list):
             raise TypeError("log must be a list")
         self.hand = [_require_str(item, "hand item") for item in self.hand]
-        self.draw_pile = [_require_str(item, "draw_pile item") for item in self.draw_pile]
-        self.discard_pile = [_require_str(item, "discard_pile item") for item in self.discard_pile]
-        self.exhaust_pile = [_require_str(item, "exhaust_pile item") for item in self.exhaust_pile]
+        self.draw_pile = [
+            _require_str(item, "draw_pile item") for item in self.draw_pile
+        ]
+        self.discard_pile = [
+            _require_str(item, "discard_pile item") for item in self.discard_pile
+        ]
+        self.exhaust_pile = [
+            _require_str(item, "exhaust_pile item") for item in self.exhaust_pile
+        ]
         self.enemies = list(self.enemies)
         self.effect_queue = [
-            _normalize_json_dict(_require_mapping(effect, "effect_queue item"), "effect_queue")
+            _normalize_json_dict(
+                _require_mapping(effect, "effect_queue item"), "effect_queue"
+            )
             for effect in self.effect_queue
         ]
         self.active_powers = [
-            _normalize_json_dict(_require_mapping(power, "active_powers item"), "active_powers")
+            _normalize_json_dict(
+                _require_mapping(power, "active_powers item"), "active_powers"
+            )
             for power in self.active_powers
         ]
         self.log = [_require_str(item, "log item") for item in self.log]
+        self.times_hit_this_combat = _require_int(
+            self.times_hit_this_combat, "times_hit_this_combat"
+        )
+        if self.times_hit_this_combat < 0:
+            raise ValueError("times_hit_this_combat must be non-negative")
+        self.card_play_data = _normalize_str_int_dict(
+            self.card_play_data, "card_play_data"
+        )
+        self.temporary_costs = _normalize_str_int_dict(
+            self.temporary_costs, "temporary_costs"
+        )
         self._refresh_entity_index()
 
     def _refresh_entity_index(self) -> None:
@@ -171,9 +206,18 @@ class CombatState:
             "exhaust_pile": list(self.exhaust_pile),
             "player": self.player.to_dict(),
             "enemies": [enemy.to_dict() for enemy in self.enemies],
-            "effect_queue": [_normalize_json_dict(effect, "effect_queue") for effect in self.effect_queue],
-            "active_powers": [_normalize_json_dict(power, "active_powers") for power in self.active_powers],
+            "effect_queue": [
+                _normalize_json_dict(effect, "effect_queue")
+                for effect in self.effect_queue
+            ],
+            "active_powers": [
+                _normalize_json_dict(power, "active_powers")
+                for power in self.active_powers
+            ],
             "log": list(self.log),
+            "times_hit_this_combat": self.times_hit_this_combat,
+            "card_play_data": dict(self.card_play_data),
+            "temporary_costs": dict(self.temporary_costs),
         }
 
     @classmethod
@@ -184,11 +228,19 @@ class CombatState:
             raise ValueError("unsupported schema_version for CombatState")
         hand = _require_list(_require_field(data, "hand"), "hand")
         draw_pile = _require_list(_require_field(data, "draw_pile"), "draw_pile")
-        discard_pile = _require_list(_require_field(data, "discard_pile"), "discard_pile")
-        exhaust_pile = _require_list(_require_field(data, "exhaust_pile"), "exhaust_pile")
+        discard_pile = _require_list(
+            _require_field(data, "discard_pile"), "discard_pile"
+        )
+        exhaust_pile = _require_list(
+            _require_field(data, "exhaust_pile"), "exhaust_pile"
+        )
         enemies_raw = _require_list(_require_field(data, "enemies"), "enemies")
-        effect_queue_raw = _require_list(_require_field(data, "effect_queue"), "effect_queue")
-        active_powers_raw = _require_list(data.get("active_powers", []), "active_powers")
+        effect_queue_raw = _require_list(
+            _require_field(data, "effect_queue"), "effect_queue"
+        )
+        active_powers_raw = _require_list(
+            data.get("active_powers", []), "active_powers"
+        )
         log = _require_list(_require_field(data, "log"), "log")
         return cls(
             schema_version=SCHEMA_VERSION,
@@ -196,17 +248,39 @@ class CombatState:
             energy=_require_int(data["energy"], "energy"),
             hand=[_require_str(item, "hand item") for item in hand],
             draw_pile=[_require_str(item, "draw_pile item") for item in draw_pile],
-            discard_pile=[_require_str(item, "discard_pile item") for item in discard_pile],
-            exhaust_pile=[_require_str(item, "exhaust_pile item") for item in exhaust_pile],
-            player=PlayerCombatState.from_dict(_require_mapping(data["player"], "player")),
-            enemies=[EnemyState.from_dict(_require_mapping(item, "enemies item")) for item in enemies_raw],
+            discard_pile=[
+                _require_str(item, "discard_pile item") for item in discard_pile
+            ],
+            exhaust_pile=[
+                _require_str(item, "exhaust_pile item") for item in exhaust_pile
+            ],
+            player=PlayerCombatState.from_dict(
+                _require_mapping(data["player"], "player")
+            ),
+            enemies=[
+                EnemyState.from_dict(_require_mapping(item, "enemies item"))
+                for item in enemies_raw
+            ],
             effect_queue=[
-                _normalize_json_dict(_require_mapping(effect, "effect_queue item"), "effect_queue")
+                _normalize_json_dict(
+                    _require_mapping(effect, "effect_queue item"), "effect_queue"
+                )
                 for effect in effect_queue_raw
             ],
             active_powers=[
-                _normalize_json_dict(_require_mapping(power, "active_powers item"), "active_powers")
+                _normalize_json_dict(
+                    _require_mapping(power, "active_powers item"), "active_powers"
+                )
                 for power in active_powers_raw
             ],
             log=[_require_str(item, "log item") for item in log],
+            times_hit_this_combat=_require_int(
+                data.get("times_hit_this_combat", 0), "times_hit_this_combat"
+            ),
+            card_play_data=_normalize_str_int_dict(
+                data.get("card_play_data", {}), "card_play_data"
+            ),
+            temporary_costs=_normalize_str_int_dict(
+                data.get("temporary_costs", {}), "temporary_costs"
+            ),
         )
