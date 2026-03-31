@@ -316,6 +316,7 @@ def test_generate_combat_rewards_samples_from_full_ironclad_reward_pool_in_act1(
     assert "disarm" in seen_cards
     assert "entrench" in seen_cards
     assert "demon_form" in seen_rare_cards
+    assert "barricade" in seen_rare_cards
     assert "inflame" in seen_cards
     assert "metallicize" in seen_cards
     assert "combust" in seen_cards

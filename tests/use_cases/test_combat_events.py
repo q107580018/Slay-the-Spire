@@ -100,14 +100,14 @@ def test_build_player_action_events_uses_structured_effect_results() -> None:
     ]
 
     events = build_player_action_events(
-        card_name="重击",
+        card_name="痛击",
         resolved_effects=resolved_effects,
         entities=snapshots,
         registry=None,
     )
 
     assert events == [
-        CombatEvent(event_type="card_played", actor_name="你", card_name="重击"),
+        CombatEvent(event_type="card_played", actor_name="你", card_name="痛击"),
         CombatEvent(event_type="damage", actor_name="你", target_name="Training Dummy", amount=6, blocked=2, actual_damage=4),
         CombatEvent(event_type="status_applied", actor_name="你", target_name="Training Dummy", status_id="vulnerable", stacks=2),
     ]

@@ -432,7 +432,7 @@ def test_current_action_menu_preserves_card_style_for_hand_targets() -> None:
 
     assert menu is not None
     label = menu.options[0].label
-    assert label.plain == "手牌 打击+ (strike_plus#2)"
+    assert label.plain == "手牌 打击（红）+ (strike_plus#2)"
     assert "card.rarity.basic" in _span_styles(label)
     assert "card.upgraded" in _span_styles(label)
 
@@ -636,7 +636,7 @@ def test_action_list_refresh_keeps_text_styles_for_hand_targets() -> None:
             action_list = app.query_one("#action-list", OptionList)
             prompt = action_list.get_option_at_index(0).prompt
             assert isinstance(prompt, Text)
-            assert prompt.plain == "1. 手牌 打击+ (strike_plus#2)"
+            assert prompt.plain == "1. 手牌 打击（红）+ (strike_plus#2)"
             assert "card.rarity.basic" in _span_styles(prompt)
             assert "card.upgraded" in _span_styles(prompt)
 
@@ -1206,7 +1206,7 @@ def test_clicking_combat_summary_action_opens_card_pile_preview() -> None:
             action_list = app.query_one("#action-list", OptionList)
             preview_plain = _widget_render_plain(preview)
             assert "抽牌堆预览" in preview_plain
-            assert "1. 重击" in preview_plain
+            assert "1. 痛击" in preview_plain
             assert "2. 打击" in preview_plain
             assert summary.render().plain == initial_summary
             assert action_list.get_option_at_index(0).prompt.plain == initial_first_prompt
@@ -1238,7 +1238,7 @@ def test_hovering_combat_summary_action_opens_card_pile_preview() -> None:
             preview = app.query_one("#hover-preview", Static)
             preview_plain = _widget_render_plain(preview)
             assert "抽牌堆预览" in preview_plain
-            assert "1. 重击" in preview_plain
+            assert "1. 痛击" in preview_plain
             assert "2. 打击" in preview_plain
 
     asyncio.run(scenario())
@@ -1279,7 +1279,7 @@ def test_clicking_combat_summary_action_replaces_preview_without_changing_menu()
             summary = app.query_one("#action-summary", Static)
             preview_plain = _widget_render_plain(preview)
             assert "弃牌堆预览" in preview_plain
-            assert "1. 重击" in preview_plain
+            assert "1. 痛击" in preview_plain
             assert summary.render().plain == initial_summary
 
             await pilot.click("#combat-summary-action-exhaust")
@@ -1366,7 +1366,7 @@ def test_combat_pile_preview_hides_draw_order_without_frozen_eye() -> None:
     assert isinstance(preview, Group)
     columns = preview.renderables[1]
     assert isinstance(columns, Columns)
-    assert [entry.plain for entry in columns.renderables] == ["1. 愤怒", "2. 重击"]
+    assert [entry.plain for entry in columns.renderables] == ["1. 愤怒", "2. 痛击"]
 
 
 def test_combat_pile_preview_uses_real_draw_order_with_frozen_eye() -> None:
@@ -1390,7 +1390,7 @@ def test_combat_pile_preview_uses_real_draw_order_with_frozen_eye() -> None:
     assert isinstance(preview, Group)
     columns = preview.renderables[1]
     assert isinstance(columns, Columns)
-    assert [entry.plain for entry in columns.renderables] == ["1. 重击", "2. 愤怒"]
+    assert [entry.plain for entry in columns.renderables] == ["1. 痛击", "2. 愤怒"]
 
 
 def test_current_action_menu_hides_draw_order_without_frozen_eye() -> None:
@@ -1413,7 +1413,7 @@ def test_current_action_menu_hides_draw_order_without_frozen_eye() -> None:
 
     assert menu is not None
     assert menu.options[0].label == "愤怒"
-    assert menu.options[1].label == "重击"
+    assert menu.options[1].label == "痛击"
 
 
 def test_current_action_menu_uses_real_draw_order_with_frozen_eye() -> None:
@@ -1436,7 +1436,7 @@ def test_current_action_menu_uses_real_draw_order_with_frozen_eye() -> None:
     menu = _current_action_menu(session)
 
     assert menu is not None
-    assert menu.options[0].label == "重击"
+    assert menu.options[0].label == "痛击"
     assert menu.options[1].label == "愤怒"
 
 

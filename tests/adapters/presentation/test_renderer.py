@@ -116,7 +116,7 @@ def test_select_card_menu_shows_current_round_and_energy_in_menu_title() -> None
     )
 
     assert "手牌（第1回合，当前能量 3）:" in output
-    assert "1. 打击 费用1 - 造成 6 伤害" in output
+    assert "1. 打击（红） 费用1 - 造成 6 伤害" in output
     assert "6. 结束回合" in output
     assert "7. 返回上一步" in output
 
@@ -1063,8 +1063,8 @@ def test_shop_remove_renderer_uses_localized_card_labels() -> None:
     )
 
     assert "选择要移除的卡牌" in output
-    assert "打击 (strike#1)" in output
-    assert "防御 (defend#2)" in output
+    assert "打击（红） (strike#1)" in output
+    assert "防御（红） (defend#2)" in output
     assert "1. strike#1" not in output
     assert "2. defend#2" not in output
 
@@ -1168,7 +1168,7 @@ def test_rest_renderer_shows_root_and_upgrade_selection_states() -> None:
     assert "Rest" not in root_output
     assert "Smith" not in root_output
     assert "可升级卡牌" in upgrade_output
-    assert "重击" in upgrade_output
+    assert "痛击" in upgrade_output
     assert "bash#9" in upgrade_output
 
 
@@ -1234,8 +1234,8 @@ def test_reward_renderer_uses_concrete_card_offer_labels() -> None:
         run_phase="active",
     )
 
-    assert "卡牌 柄击" in output
-    assert "卡牌 重击" in output
+    assert "卡牌 剑柄打击" in output
+    assert "卡牌 痛击" in output
     assert "卡牌 愤怒" in output
     assert "card_offer:" not in output
 
@@ -1475,7 +1475,7 @@ def test_event_upgrade_menu_shows_card_name_with_instance_id() -> None:
     )
 
     assert "选择要升级的卡牌" in output
-    assert "重击" in output
+    assert "痛击" in output
     assert "bash#9" in output
 
 
@@ -1506,7 +1506,7 @@ def test_event_upgrade_screen_keeps_upgrade_diff_out_of_event_body() -> None:
     )
 
     assert "可升级卡牌" in output
-    assert "重击 (bash#9)" in output
+    assert "痛击 (bash#9)" in output
     assert "升级后" not in output
     assert "造成 10 伤害" not in output
     assert "施加 3 易伤" not in output
@@ -1538,7 +1538,7 @@ def test_rest_upgrade_screen_keeps_upgrade_diff_out_of_rest_panel() -> None:
     )
 
     assert "可升级卡牌" in output
-    assert "重击 (bash#3)" in output
+    assert "痛击 (bash#3)" in output
     assert "升级后" not in output
     assert "造成 10 伤害" not in output
     assert "施加 3 易伤" not in output

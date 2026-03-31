@@ -19,7 +19,7 @@
 - 当前 opening 的 `Neow` 菜单支持悬浮预览更完整的奖励信息：卡牌、遗物、药水会显示与其他 hover preview 一致的详细效果说明
 - 当前 `Neow` 的诅咒 tradeoff 选项会以“加入诅咒牌”作为代价，并发放配套高价值奖励；不会再出现“奖励本身就是诅咒牌”的选项
 - 当前默认交互：Textual TUI，底层复用共享的 `rich` 渲染和 inspect 组件
-- 当前铁甲战士奖励池已补入首批原版扩展卡，包括 `Thunderclap`、`Flame Barrier`、`Ghostly Armor`、`Demon Form` 等
+- 当前铁甲战士奖励池已补入首批原版扩展卡，包括 `Thunderclap`、`Flame Barrier`、`Ghostly Armor`、`Demon Form`、`Barricade` 等；`Entrench` 在中文中使用“巩固”
 - 当前 `Ghostly Armor` 使用通用 `Ethereal` 规则：回合结束时若仍在手牌中，则进入消耗堆
 - 当前抽牌堆在内部按真实顺序结算；默认预览会隐藏真实抽牌顺序，持有 `Frozen Eye` 时才显示真实顺序
 - 当前可编辑内容 `content/cards/ironclad_starter.json` 与打包内容 `src/slay_the_spire/data/content/cards/ironclad_starter.json` 需保持同步

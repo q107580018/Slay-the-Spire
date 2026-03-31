@@ -58,7 +58,7 @@ def test_format_card_detail_lines_include_cost_effects_and_upgrade() -> None:
     assert any("造成 8 伤害" in line.plain for line in lines)
     assert any("施加 2 易伤" in line.plain for line in lines)
     assert any("升级为" in line.plain for line in lines)
-    assert any("重击+" in line.plain for line in lines)
+    assert any("痛击+" in line.plain for line in lines)
 
 
 def test_format_relic_detail_lines_include_relic_semantics() -> None:
@@ -145,8 +145,8 @@ def test_format_card_upgrade_preview_lines_show_before_and_after_effects() -> No
 
     assert "当前" in rendered
     assert "升级后" in rendered
-    assert "重击" in rendered
-    assert "重击+" in rendered
+    assert "痛击" in rendered
+    assert "痛击+" in rendered
     assert "造成 8 伤害" in rendered
     assert "施加 2 易伤" in rendered
     assert "造成 10 伤害" in rendered

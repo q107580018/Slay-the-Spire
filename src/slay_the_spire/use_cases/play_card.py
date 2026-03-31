@@ -185,10 +185,11 @@ def play_card(
 
     combat_state.energy -= energy_spent
     combat_state.hand.remove(card_instance_id)
-    if getattr(card_def, "exhausts", False):
-        combat_state.exhaust_pile.append(card_instance_id)
-    else:
-        combat_state.discard_pile.append(card_instance_id)
+    if card_def.card_type != "power":
+        if getattr(card_def, "exhausts", False):
+            combat_state.exhaust_pile.append(card_instance_id)
+        else:
+            combat_state.discard_pile.append(card_instance_id)
     combat_state.effect_queue.extend(punishment_effects)
     combat_state.effect_queue.extend(materialized_effects)
     resolved_effects = resolve_player_actions(

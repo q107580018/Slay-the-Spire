@@ -76,7 +76,7 @@ def test_provider_exposes_registry_accessors(content_root: Path) -> None:
     provider = StarterContentProvider(content_root)
 
     assert provider.characters().get("ironclad").name == "铁甲战士"
-    assert provider.cards().get("bash").name == "重击"
+    assert provider.cards().get("bash").name == "痛击"
     assert provider.cards().get("bloodletting").name == "放血"
     assert provider.cards().get("true_grit").name == "坚毅"
     assert provider.cards().get("shrug_it_off").name == "耸肩无视"
@@ -84,21 +84,22 @@ def test_provider_exposes_registry_accessors(content_root: Path) -> None:
     assert provider.cards().get("terror").name == "恐怖"
     assert provider.cards().get("inflame").name == "燃烧"
     assert provider.cards().get("metallicize").name == "金属化"
-    assert provider.cards().get("combust").name == "燃烧躯体"
-    assert provider.cards().get("battle_trance").name == "战斗狂热"
-    assert provider.cards().get("battle_trance_plus").name == "战斗狂热+"
-    assert provider.cards().get("offering").name == "献祭"
-    assert provider.cards().get("offering_plus").name == "献祭+"
-    assert provider.cards().get("impervious").name == "坚不可摧"
-    assert provider.cards().get("impervious_plus").name == "坚不可摧+"
-    assert provider.cards().get("clothesline").name == "晾衣绳"
-    assert provider.cards().get("thunderclap").name == "震地"
-    assert provider.cards().get("uppercut").name == "升龙拳"
+    assert provider.cards().get("combust").name == "自燃"
+    assert provider.cards().get("battle_trance").name == "战斗专注"
+    assert provider.cards().get("battle_trance_plus").name == "战斗专注+"
+    assert provider.cards().get("offering").name == "祭品"
+    assert provider.cards().get("offering_plus").name == "祭品+"
+    assert provider.cards().get("impervious").name == "岿然不动"
+    assert provider.cards().get("impervious_plus").name == "岿然不动+"
+    assert provider.cards().get("clothesline").name == "金刚臂"
+    assert provider.cards().get("thunderclap").name == "闪电霹雳"
+    assert provider.cards().get("uppercut").name == "上勾拳"
     assert provider.cards().get("flame_barrier").name == "火焰屏障"
-    assert provider.cards().get("ghostly_armor").name == "幽魂护甲"
+    assert provider.cards().get("ghostly_armor").name == "幽灵铠甲"
     assert provider.cards().get("ghostly_armor").ethereal is True
     assert provider.cards().get("disarm").name == "缴械"
-    assert provider.cards().get("entrench").name == "壁垒"
+    assert provider.cards().get("entrench").name == "巩固"
+    assert provider.cards().get("barricade").name == "壁垒"
     assert provider.cards().get("demon_form").name == "恶魔形态"
     assert provider.cards().get("offering").exhausts is True
     assert provider.cards().get("offering_plus").exhausts is True
@@ -280,7 +281,7 @@ def test_boss_relics_do_not_appear_in_shop_pool(content_root: Path) -> None:
 def test_starter_catalog_passes_startup_integrity(content_root: Path) -> None:
     catalog = ContentCatalog.from_content_root(content_root)
 
-    assert catalog.cards.get("strike").name == "打击"
+    assert catalog.cards.get("strike").name == "打击（红）"
     assert catalog.enemies.get("jaw_worm").id == "jaw_worm"
     assert catalog.relics.get("burning_blood").name == "燃烧之血"
     assert catalog.relics.get("circlet").name == "圆环"

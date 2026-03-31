@@ -79,6 +79,7 @@ def _provider_with_card(
     card_id: str = "custom_strike",
     cost: int = 1,
     effects: list[dict[str, object]] | None = None,
+    card_type: str | None = None,
 ) -> _Provider:
     provider = _Provider()
     provider.cards().register(
@@ -87,7 +88,11 @@ def _provider_with_card(
             "name": "Custom Strike",
             "cost": cost,
             "effects": effects or [{"type": "damage", "amount": 4}],
-            "card_type": "skill" if card_id.startswith("skill_") else "attack",
+            "card_type": (
+                card_type
+                if card_type is not None
+                else ("skill" if card_id.startswith("skill_") else "attack")
+            ),
         }
     )
     provider.enemies().register(
@@ -280,6 +285,7 @@ def test_inflame_adds_strength_via_power_play() -> None:
     provider = _provider_with_card(
         card_id="inflame",
         effects=[{"type": "add_power", "power_id": "inflame", "amount": 2}],
+        card_type="power",
     )
 
     result = play_card(state, "inflame#1", None, provider)
@@ -288,6 +294,8 @@ def test_inflame_adds_strength_via_power_play() -> None:
     assert [effect["type"] for effect in result.resolved_effects] == ["add_power"]
     assert state.active_powers == [{"power_id": "inflame", "amount": 2}]
     assert state.player.statuses == [StatusState(status_id="strength", stacks=2)]
+    assert state.discard_pile == []
+    assert state.exhaust_pile == []
 
 
 def test_play_card_applies_vulnerable_status_effects() -> None:
@@ -513,6 +521,7 @@ def test_play_card_battle_trance_draws_and_blocks_later_draw_effects() -> None:
     provider = _provider_with_card(
         card_id="battle_trance",
         cost=0,
+        card_type="power",
         effects=[
             {"type": "draw", "amount": 1},
             {"type": "add_power", "power_id": "battle_trance", "amount": 1},
@@ -536,7 +545,8 @@ def test_play_card_battle_trance_draws_and_blocks_later_draw_effects() -> None:
     ]
     assert [effect["type"] for effect in second_result.resolved_effects] == ["draw"]
     assert state.hand == ["bonus_card#1"]
-    assert state.discard_pile == ["battle_trance#1", "draw_card#2"]
+    assert state.discard_pile == ["draw_card#2"]
+    assert state.exhaust_pile == []
     assert state.active_powers == [{"power_id": "battle_trance", "amount": 1}]
 
 

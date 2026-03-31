@@ -111,13 +111,19 @@ def test_summarize_effect_localizes_dexterity_loss_effect() -> None:
 
 
 def test_active_power_label_localizes_battle_trance() -> None:
-    assert active_power_label("battle_trance") == "战斗狂热"
+    assert active_power_label("battle_trance") == "战斗专注"
 
 
 def test_summarize_effect_localizes_battle_trance_power_effect() -> None:
     output = summarize_effect({"type": "add_power", "power_id": "battle_trance", "amount": 1})
 
     assert output == "本回合内不能再抽牌"
+
+
+def test_summarize_effect_localizes_barricade_power_effect() -> None:
+    output = summarize_effect({"type": "add_power", "power_id": "barricade", "amount": 1})
+
+    assert output == "你的格挡不会在回合开始时失去"
 
 
 def test_preview_enemy_intent_uses_move_table_without_state() -> None:

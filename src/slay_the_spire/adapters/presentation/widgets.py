@@ -49,10 +49,11 @@ _CARD_RARITY_STYLES: dict[str, str] = {
 _POWER_LABELS: dict[str, str] = {
     "inflame": "燃烧",
     "metallicize": "金属化",
-    "combust": "燃烧躯体",
+    "combust": "自燃",
     "flame_barrier": "火焰屏障",
-    "battle_trance": "战斗狂热",
+    "battle_trance": "战斗专注",
     "demon_form": "恶魔形态",
+    "barricade": "壁垒",
 }
 
 _POTION_TARGET_LABELS: dict[str, str] = {
@@ -247,6 +248,8 @@ def summarize_effect(
             return "本回合内不能再抽牌"
         if power_id == "demon_form":
             return f"每回合开始时获得 {amount} 层力量"
+        if power_id == "barricade":
+            return "你的格挡不会在回合开始时失去"
         return f"获得持续效果 {power_id} {amount}"
     if effect_type == "strength":
         return _signed_status_change(int(effect.get("amount", 0)), "力量")

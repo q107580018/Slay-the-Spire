@@ -105,8 +105,12 @@ def _consume_status_stack(
     return False
 
 
-def _clear_block_for_turn_start(entity: PlayerCombatState | EnemyState) -> None:
+def _clear_block_for_turn_start(
+    entity: PlayerCombatState | EnemyState, *, keep_block: bool = False
+) -> None:
     if _consume_status_stack(entity, "blur"):
+        return
+    if keep_block:
         return
     entity.block = 0
 
@@ -402,13 +406,20 @@ def _apply_start_turn_powers(state: CombatState) -> None:
             _apply_status(state.player, status_id="strength", stacks=amount)
 
 
+def _has_player_power(state: CombatState, power_id: str) -> bool:
+    return any(power.get("power_id") == power_id for power in state.active_powers)
+
+
 def start_turn(
     state: CombatState,
     *,
     hand_size: int = DEFAULT_HAND_SIZE,
     energy_per_turn: int = DEFAULT_ENERGY_PER_TURN,
 ) -> CombatState:
-    _clear_block_for_turn_start(state.player)
+    _clear_block_for_turn_start(
+        state.player,
+        keep_block=_has_player_power(state, "barricade"),
+    )
     _clear_temporary_power(state, "flame_barrier")
     _apply_start_turn_powers(state)
     state.energy = energy_per_turn

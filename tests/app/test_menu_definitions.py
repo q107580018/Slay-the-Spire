@@ -436,7 +436,7 @@ def test_build_reward_menu_lists_skip_card_rewards_when_card_offers_exist() -> N
         "奖励:",
         "1. 金币 +11",
         "2. 卡牌 愤怒",
-        "3. 卡牌 柄击",
+        "3. 卡牌 剑柄打击",
         "4. 卡牌 耸肩无视",
         "5. 跳过卡牌奖励",
         "6. 全部领取",
@@ -659,7 +659,7 @@ def test_build_target_menu_supports_explicit_enemy_title() -> None:
 
 def test_build_target_menu_supports_hand_target_headers() -> None:
     menu = build_target_menu(
-        target_options=[("target_hand:1", "打击 (strike#2)")],
+        target_options=[("target_hand:1", "打击（红） (strike#2)")],
         current_card_name="武装",
         title="选择手牌",
         header_lines=["手牌目标:"],
@@ -669,7 +669,7 @@ def test_build_target_menu_supports_hand_target_headers() -> None:
         "选择手牌:",
         "手牌目标:",
         "当前卡牌: 武装",
-        "1. 打击 (strike#2)",
+        "1. 打击（红） (strike#2)",
         "2. 返回上一步",
     ]
     assert resolve_menu_action("1", menu) == "target_hand:1"
@@ -787,7 +787,7 @@ def test_build_shop_root_menu_binds_offer_and_system_actions() -> None:
     assert format_menu_lines(menu) == [
         "商店操作:",
         f"当前金币: {session.run_state.gold}",
-        "1. 购买卡牌 打击 - 50 金币 [可购买]",
+        "1. 购买卡牌 打击（红） - 50 金币 [可购买]",
         "2. 删牌服务 - 75 金币 [可购买]",
         "3. 离开商店",
         "4. 查看资料",
@@ -817,7 +817,7 @@ def test_build_rest_upgrade_menu_binds_cards_cancel_and_system_actions() -> None
 
     assert format_menu_lines(menu) == [
         "可升级卡牌:",
-        "1. 重击 (bash#10)",
+        "1. 痛击 (bash#10)",
         "2. 取消",
         "3. 保存游戏",
         "4. 读取存档",

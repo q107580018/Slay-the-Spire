@@ -2,7 +2,7 @@
   "cards": [
     {
       "id": "strike",
-      "name": "打击",
+      "name": "打击（红）",
       "cost": 1,
       "rarity": "basic",
       "effects": [
@@ -18,7 +18,7 @@
     },
     {
       "id": "defend",
-      "name": "防御",
+      "name": "防御（红）",
       "cost": 1,
       "rarity": "basic",
       "effects": [
@@ -34,7 +34,7 @@
     },
     {
       "id": "strike_plus",
-      "name": "打击+",
+      "name": "打击（红）+",
       "cost": 1,
       "rarity": "basic",
       "effects": [
@@ -48,7 +48,7 @@
     },
     {
       "id": "defend_plus",
-      "name": "防御+",
+      "name": "防御（红）+",
       "cost": 1,
       "rarity": "basic",
       "effects": [
@@ -62,7 +62,7 @@
     },
     {
       "id": "bash",
-      "name": "重击",
+      "name": "痛击",
       "cost": 2,
       "rarity": "basic",
       "upgrades_to": "bash_plus",
@@ -83,7 +83,7 @@
     },
     {
       "id": "bash_plus",
-      "name": "重击+",
+      "name": "痛击+",
       "cost": 2,
       "rarity": "basic",
       "effects": [
@@ -143,7 +143,7 @@
     },
     {
       "id": "pommel_strike",
-      "name": "柄击",
+      "name": "剑柄打击",
       "cost": 1,
       "rarity": "common",
       "upgrades_to": "pommel_strike_plus",
@@ -165,7 +165,7 @@
     },
     {
       "id": "pommel_strike_plus",
-      "name": "柄击+",
+      "name": "剑柄打击+",
       "cost": 1,
       "rarity": "common",
       "effects": [
@@ -327,7 +327,7 @@
     },
     {
       "id": "clothesline",
-      "name": "晾衣绳",
+      "name": "金刚臂",
       "cost": 2,
       "rarity": "common",
       "upgrades_to": "clothesline_plus",
@@ -349,7 +349,7 @@
     },
     {
       "id": "clothesline_plus",
-      "name": "晾衣绳+",
+      "name": "金刚臂+",
       "cost": 2,
       "rarity": "common",
       "effects": [
@@ -367,7 +367,7 @@
     },
     {
       "id": "thunderclap",
-      "name": "震地",
+      "name": "闪电霹雳",
       "cost": 1,
       "rarity": "common",
       "upgrades_to": "thunderclap_plus",
@@ -389,7 +389,7 @@
     },
     {
       "id": "thunderclap_plus",
-      "name": "震地+",
+      "name": "闪电霹雳+",
       "cost": 1,
       "rarity": "common",
       "effects": [
@@ -475,7 +475,7 @@
     },
     {
       "id": "hemokinesis",
-      "name": "献祭打击",
+      "name": "御血术",
       "cost": 1,
       "rarity": "uncommon",
       "upgrades_to": "hemokinesis_plus",
@@ -497,7 +497,7 @@
     },
     {
       "id": "hemokinesis_plus",
-      "name": "献祭打击+",
+      "name": "御血术+",
       "cost": 1,
       "rarity": "uncommon",
       "effects": [
@@ -515,7 +515,7 @@
     },
     {
       "id": "sword_boomerang",
-      "name": "剑刃回旋镖",
+      "name": "飞剑回旋镖",
       "cost": 1,
       "rarity": "common",
       "upgrades_to": "sword_boomerang_plus",
@@ -541,7 +541,7 @@
     },
     {
       "id": "sword_boomerang_plus",
-      "name": "剑刃回旋镖+",
+      "name": "飞剑回旋镖+",
       "cost": 1,
       "rarity": "common",
       "effects": [
@@ -567,7 +567,7 @@
     },
     {
       "id": "pummel",
-      "name": "连击",
+      "name": "连续拳",
       "cost": 1,
       "rarity": "uncommon",
       "upgrades_to": "pummel_plus",
@@ -598,7 +598,7 @@
     },
     {
       "id": "pummel_plus",
-      "name": "连击+",
+      "name": "连续拳+",
       "cost": 1,
       "rarity": "uncommon",
       "exhausts": true,
@@ -629,7 +629,7 @@
     },
     {
       "id": "combust",
-      "name": "燃烧躯体",
+      "name": "自燃",
       "cost": 1,
       "rarity": "uncommon",
       "upgrades_to": "combust_plus",
@@ -649,7 +649,7 @@
     },
     {
       "id": "combust_plus",
-      "name": "燃烧躯体+",
+      "name": "自燃+",
       "cost": 1,
       "rarity": "uncommon",
       "effects": [
@@ -705,7 +705,7 @@
     },
     {
       "id": "uppercut",
-      "name": "升龙拳",
+      "name": "上勾拳",
       "cost": 2,
       "rarity": "uncommon",
       "upgrades_to": "uppercut_plus",
@@ -731,7 +731,7 @@
     },
     {
       "id": "uppercut_plus",
-      "name": "升龙拳+",
+      "name": "上勾拳+",
       "cost": 2,
       "rarity": "uncommon",
       "effects": [
@@ -795,7 +795,7 @@
     },
     {
       "id": "ghostly_armor",
-      "name": "幽魂护甲",
+      "name": "幽灵铠甲",
       "cost": 1,
       "rarity": "uncommon",
       "upgrades_to": "ghostly_armor_plus",
@@ -814,7 +814,7 @@
     },
     {
       "id": "ghostly_armor_plus",
-      "name": "幽魂护甲+",
+      "name": "幽灵铠甲+",
       "cost": 1,
       "rarity": "uncommon",
       "ethereal": true,
@@ -863,7 +863,7 @@
     },
     {
       "id": "entrench",
-      "name": "壁垒",
+      "name": "巩固",
       "cost": 2,
       "rarity": "uncommon",
       "upgrades_to": "entrench_plus",
@@ -880,7 +880,7 @@
     },
     {
       "id": "entrench_plus",
-      "name": "壁垒+",
+      "name": "巩固+",
       "cost": 1,
       "rarity": "uncommon",
       "effects": [
@@ -889,6 +889,40 @@
         }
       ],
       "card_type": "skill",
+      "acquisition_tags": []
+    },
+    {
+      "id": "barricade",
+      "name": "壁垒",
+      "cost": 3,
+      "rarity": "rare",
+      "upgrades_to": "barricade_plus",
+      "effects": [
+        {
+          "type": "add_power",
+          "power_id": "barricade",
+          "amount": 1
+        }
+      ],
+      "card_type": "power",
+      "acquisition_tags": [
+        "combat_reward",
+        "shop"
+      ]
+    },
+    {
+      "id": "barricade_plus",
+      "name": "壁垒+",
+      "cost": 2,
+      "rarity": "rare",
+      "effects": [
+        {
+          "type": "add_power",
+          "power_id": "barricade",
+          "amount": 1
+        }
+      ],
+      "card_type": "power",
       "acquisition_tags": []
     },
     {
@@ -1002,7 +1036,7 @@
     },
     {
       "id": "battle_trance",
-      "name": "战斗狂热",
+      "name": "战斗专注",
       "cost": 0,
       "rarity": "uncommon",
       "upgrades_to": "battle_trance_plus",
@@ -1025,7 +1059,7 @@
     },
     {
       "id": "battle_trance_plus",
-      "name": "战斗狂热+",
+      "name": "战斗专注+",
       "cost": 0,
       "rarity": "uncommon",
       "effects": [
@@ -1044,7 +1078,7 @@
     },
     {
       "id": "offering",
-      "name": "献祭",
+      "name": "祭品",
       "cost": 0,
       "rarity": "rare",
       "upgrades_to": "offering_plus",
@@ -1071,7 +1105,7 @@
     },
     {
       "id": "offering_plus",
-      "name": "献祭+",
+      "name": "祭品+",
       "cost": 0,
       "rarity": "rare",
       "exhausts": true,
@@ -1094,7 +1128,7 @@
     },
     {
       "id": "impervious",
-      "name": "坚不可摧",
+      "name": "岿然不动",
       "cost": 2,
       "rarity": "rare",
       "upgrades_to": "impervious_plus",
@@ -1113,7 +1147,7 @@
     },
     {
       "id": "impervious_plus",
-      "name": "坚不可摧+",
+      "name": "岿然不动+",
       "cost": 2,
       "rarity": "rare",
       "exhausts": true,

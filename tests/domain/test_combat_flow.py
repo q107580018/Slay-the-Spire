@@ -595,7 +595,7 @@ def test_end_turn_use_case_logs_triggered_active_powers() -> None:
     assert result.combat_state is state
     assert state.log == [
         "金属化触发，获得 3 格挡。",
-        "燃烧躯体触发，对 Training Slime 造成 10 伤害，并失去 1 点生命。",
+        "自燃触发，对 Training Slime 造成 10 伤害，并失去 1 点生命。",
     ]
 
 
@@ -609,7 +609,7 @@ def test_end_turn_use_case_logs_triggered_active_powers_even_when_blocked() -> N
 
     assert result.combat_state is state
     assert state.log == [
-        "燃烧躯体触发，对 Training Slime 造成 5 伤害，格挡抵消 5，实际受到 0，并失去 1 点生命。",
+        "自燃触发，对 Training Slime 造成 5 伤害，格挡抵消 5，实际受到 0，并失去 1 点生命。",
     ]
 
 
@@ -623,7 +623,7 @@ def test_end_turn_use_case_logs_triggered_active_powers_with_lethal_overkill() -
 
     assert result.combat_state is state
     assert state.log == [
-        "燃烧躯体触发，对 Training Slime 造成 3 伤害，并失去 1 点生命。",
+        "自燃触发，对 Training Slime 造成 3 伤害，并失去 1 点生命。",
     ]
 
 
@@ -788,6 +788,17 @@ def test_end_turn_keeps_player_block_when_blur_status_is_active() -> None:
 
     assert state.player.block == 3
     assert state.player.statuses == []
+
+
+def test_end_turn_keeps_player_block_when_barricade_power_is_active() -> None:
+    registry = _enemy_registry()
+    state = _combat_state()
+    state.player.block = 8
+    state.active_powers.append({"power_id": "barricade", "amount": 1})
+
+    end_turn(state, registry)
+
+    assert state.player.block == 3
 
 
 def test_end_turn_clears_enemy_block_at_start_of_enemy_turn() -> None:
