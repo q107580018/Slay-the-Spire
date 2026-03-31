@@ -4,6 +4,7 @@ from collections.abc import Mapping, Sequence
 
 from slay_the_spire.content.registries import EnemyDef
 from slay_the_spire.domain.effects.effect_resolver import (
+    _apply_status,
     refill_draw_pile_from_discard,
     resolve_effect_queue,
 )
@@ -398,9 +399,7 @@ def _apply_start_turn_powers(state: CombatState) -> None:
             continue
         amount = power.get("amount")
         if isinstance(amount, int) and amount > 0:
-            state.player.statuses.append(
-                StatusState(status_id="strength", stacks=amount)
-            )
+            _apply_status(state.player, status_id="strength", stacks=amount)
 
 
 def start_turn(

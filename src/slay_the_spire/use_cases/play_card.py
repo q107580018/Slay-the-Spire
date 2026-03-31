@@ -131,7 +131,7 @@ def _materialize_card_effects(
                     )
             effect["upgrades"] = upgrades
         elif (
-            effect_type in {"block", "draw", "lose_hp"}
+            effect_type in {"block", "draw", "lose_hp", "double_block"}
             and "target_instance_id" not in effect
         ):
             effect["target_instance_id"] = source_instance_id
