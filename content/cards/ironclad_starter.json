@@ -1193,6 +1193,31 @@
       ],
       "card_type": "power",
       "acquisition_tags": []
+    },
+    {
+      "id": "headbutt",
+      "name": "头槌",
+      "cost": 1,
+      "rarity": "common",
+      "upgrades_to": "headbutt_plus",
+      "effects": [
+        {"type": "damage", "amount": 9},
+        {"type": "put_top_of_deck_from_discard"}
+      ],
+      "card_type": "attack",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "headbutt_plus",
+      "name": "头槌+",
+      "cost": 1,
+      "rarity": "common",
+      "effects": [
+        {"type": "damage", "amount": 12},
+        {"type": "put_top_of_deck_from_discard"}
+      ],
+      "card_type": "attack",
+      "acquisition_tags": []
     }
   ]
 }

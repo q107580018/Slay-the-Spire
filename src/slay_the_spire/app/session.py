@@ -7,8 +7,14 @@ from typing import Callable
 from rich.console import RenderableType
 from rich.text import Text
 
-from slay_the_spire.adapters.presentation.opening_renderer import render_opening_screen, render_opening_text
-from slay_the_spire.adapters.presentation.renderer import render_room, render_room_renderable
+from slay_the_spire.adapters.presentation.opening_renderer import (
+    render_opening_screen,
+    render_opening_text,
+)
+from slay_the_spire.adapters.presentation.renderer import (
+    render_room,
+    render_room_renderable,
+)
 from slay_the_spire.adapters.presentation.widgets import render_card_name
 from slay_the_spire.adapters.persistence.save_files import JsonFileSaveRepository
 from slay_the_spire.app.map_labels import format_next_room_labels
@@ -55,7 +61,10 @@ from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.act_state import ActState
 from slay_the_spire.domain.models.room_state import RoomState
 from slay_the_spire.domain.models.run_state import RunState
-from slay_the_spire.domain.rewards.reward_generator import generate_boss_rewards, generate_combat_rewards
+from slay_the_spire.domain.rewards.reward_generator import (
+    generate_boss_rewards,
+    generate_combat_rewards,
+)
 from slay_the_spire.ports.input_port import InputPort
 from slay_the_spire.use_cases.load_game import load_game
 from slay_the_spire.use_cases.apply_reward import apply_reward
@@ -79,12 +88,17 @@ def default_content_root() -> Path:
     packaged_root = packaged_content_root()
     if _is_content_root(packaged_root):
         return packaged_root
-    raise FileNotFoundError("could not locate content root; pass --content-root explicitly")
+    raise FileNotFoundError(
+        "could not locate content root; pass --content-root explicitly"
+    )
 
 
 def _candidate_content_roots() -> tuple[Path, ...]:
     module_path = Path(__file__).resolve()
-    candidates = [module_path.parents[i] / "content" for i in range(1, min(5, len(module_path.parents)))]
+    candidates = [
+        module_path.parents[i] / "content"
+        for i in range(1, min(5, len(module_path.parents)))
+    ]
     candidates.append(Path.cwd() / "content")
     return tuple(dict.fromkeys(candidates))
 
@@ -100,6 +114,8 @@ class MenuState:
     selected_potion_index: int | None = None
     inspect_item_id: str | None = None
     inspect_parent_mode: str | None = None
+    selected_enemy_target_id: str | None = None
+    target_zone: str | None = None
 
 
 @dataclass(slots=True)
@@ -157,8 +173,12 @@ def _with_menu_choice_history(session: SessionState, choice: str) -> SessionStat
     return replace(session, command_history=history)
 
 
-def _preserve_menu_history(updated_session: SessionState, *, history_session: SessionState) -> SessionState:
-    return replace(updated_session, command_history=list(history_session.command_history or []))
+def _preserve_menu_history(
+    updated_session: SessionState, *, history_session: SessionState
+) -> SessionState:
+    return replace(
+        updated_session, command_history=list(history_session.command_history or [])
+    )
 
 
 def _content_provider(session: SessionState) -> StarterContentProvider:
@@ -222,7 +242,9 @@ def _build_opening_character_menu(session: SessionState):
             character_name = provider.characters().get(character_id).name
         except KeyError:
             character_name = character_id
-        options.append((f"select_character:{character_id}", f"选择角色：{character_name}"))
+        options.append(
+            (f"select_character:{character_id}", f"选择角色：{character_name}")
+        )
     options.extend(
         [
             ("save", "保存游戏"),
@@ -237,7 +259,10 @@ def _build_opening_neow_menu(session: SessionState):
     opening_state = session.opening_state
     if opening_state is None:
         return build_menu(title="Neow 赐福", options=[("quit", "退出游戏")])
-    options = [(f"choose_neow_offer:{offer.offer_id}", offer.summary) for offer in opening_state.neow_offers]
+    options = [
+        (f"choose_neow_offer:{offer.offer_id}", offer.summary)
+        for offer in opening_state.neow_offers
+    ]
     options.extend(
         [
             ("save", "保存游戏"),
@@ -257,7 +282,11 @@ def _build_opening_target_card_menu(
 ):
     opening_state = session.opening_state
     if opening_state is None or opening_state.run_blueprint is None:
-        return build_menu(title=title, options=[("back", "返回上一步")], header_lines=["当前没有可选卡牌。"])
+        return build_menu(
+            title=title,
+            options=[("back", "返回上一步")],
+            header_lines=["当前没有可选卡牌。"],
+        )
     provider = _content_provider(session)
     options: list[tuple[str, str | Text]] = []
     for card_instance_id in opening_state.run_blueprint.deck:
@@ -319,8 +348,12 @@ def _start_active_session_from_blueprint(session: SessionState) -> SessionState:
         raise ValueError("opening run blueprint is unavailable")
     provider = _content_provider(session)
     run_state = opening_state.run_blueprint
-    act_state = generate_act_state(run_state.current_act_id or "act1", seed=run_state.seed, registry=provider)
-    room_state = enter_room(run_state, act_state, node_id=act_state.current_node_id, registry=provider)
+    act_state = generate_act_state(
+        run_state.current_act_id or "act1", seed=run_state.seed, registry=provider
+    )
+    room_state = enter_room(
+        run_state, act_state, node_id=act_state.current_node_id, registry=provider
+    )
     return SessionState(
         run_state=run_state,
         act_state=act_state,
@@ -342,9 +375,15 @@ def _room_with_rewards_claimed(room_state: RoomState, reward_id: str) -> RoomSta
     claimed_reward_ids.append(reward_id)
     payload["claimed_reward_ids"] = claimed_reward_ids
     if reward_id.startswith("card_offer:"):
-        remaining_rewards = [reward for reward in room_state.rewards if not reward.startswith("card_offer:")]
+        remaining_rewards = [
+            reward
+            for reward in room_state.rewards
+            if not reward.startswith("card_offer:")
+        ]
     else:
-        remaining_rewards = [reward for reward in room_state.rewards if reward != reward_id]
+        remaining_rewards = [
+            reward for reward in room_state.rewards if reward != reward_id
+        ]
     return RoomState(
         schema_version=room_state.schema_version,
         room_id=room_state.room_id,
@@ -375,11 +414,20 @@ def _boss_rewards_complete(room_state: RoomState) -> bool:
     if boss_rewards is None:
         return False
     claimed_relic_id = boss_rewards.get("claimed_relic_id")
-    return boss_rewards.get("claimed_gold") is True and isinstance(claimed_relic_id, str) and bool(claimed_relic_id)
+    return (
+        boss_rewards.get("claimed_gold") is True
+        and isinstance(claimed_relic_id, str)
+        and bool(claimed_relic_id)
+    )
 
 
 def _has_pending_boss_rewards(room_state: RoomState) -> bool:
-    return room_state.room_type == "boss" and room_state.is_resolved and _boss_rewards(room_state) is not None and not _boss_rewards_complete(room_state)
+    return (
+        room_state.room_type == "boss"
+        and room_state.is_resolved
+        and _boss_rewards(room_state) is not None
+        and not _boss_rewards_complete(room_state)
+    )
 
 
 def _claim_session_reward(session: SessionState, reward_id: str) -> SessionState:
@@ -390,27 +438,41 @@ def _claim_session_reward(session: SessionState, reward_id: str) -> SessionState
         registry=provider,
     )
     updated_room_state = _room_with_rewards_claimed(session.room_state, reward_id)
-    next_menu_state = MenuState(mode="select_reward") if updated_room_state.rewards else MenuState()
+    next_menu_state = (
+        MenuState(mode="select_reward") if updated_room_state.rewards else MenuState()
+    )
     return replace(
         session,
         run_state=updated_run_state,
         room_state=updated_room_state,
-        run_phase=_derive_run_phase(updated_run_state, session.act_state, updated_room_state, registry=provider),
+        run_phase=_derive_run_phase(
+            updated_run_state, session.act_state, updated_room_state, registry=provider
+        ),
         menu_state=next_menu_state,
     )
 
 
 def _claim_all_session_rewards(session: SessionState) -> SessionState:
     updated_session = session
-    for reward_id in [reward for reward in session.room_state.rewards if not reward.startswith("card_offer:")]:
+    for reward_id in [
+        reward
+        for reward in session.room_state.rewards
+        if not reward.startswith("card_offer:")
+    ]:
         updated_session = _claim_session_reward(updated_session, reward_id)
     return updated_session
 
 
 def _skip_card_offer_rewards(session: SessionState) -> SessionState:
-    remaining_rewards = [reward for reward in session.room_state.rewards if not reward.startswith("card_offer:")]
+    remaining_rewards = [
+        reward
+        for reward in session.room_state.rewards
+        if not reward.startswith("card_offer:")
+    ]
     updated_room_state = replace(session.room_state, rewards=remaining_rewards)
-    next_menu_state = MenuState(mode="select_reward") if updated_room_state.rewards else MenuState()
+    next_menu_state = (
+        MenuState(mode="select_reward") if updated_room_state.rewards else MenuState()
+    )
     return replace(session, room_state=updated_room_state, menu_state=next_menu_state)
 
 
@@ -429,7 +491,12 @@ def _open_treasure(session: SessionState) -> SessionState:
         return replace(
             session,
             room_state=updated_room_state,
-            run_phase=_derive_run_phase(session.run_state, session.act_state, updated_room_state, registry=_content_provider(session)),
+            run_phase=_derive_run_phase(
+                session.run_state,
+                session.act_state,
+                updated_room_state,
+                registry=_content_provider(session),
+            ),
             menu_state=MenuState(),
         )
     updated_room_state = replace(
@@ -440,7 +507,12 @@ def _open_treasure(session: SessionState) -> SessionState:
     return replace(
         session,
         room_state=updated_room_state,
-        run_phase=_derive_run_phase(session.run_state, session.act_state, updated_room_state, registry=_content_provider(session)),
+        run_phase=_derive_run_phase(
+            session.run_state,
+            session.act_state,
+            updated_room_state,
+            registry=_content_provider(session),
+        ),
         menu_state=MenuState(),
     )
 
@@ -458,7 +530,12 @@ def _claim_treasure(session: SessionState) -> SessionState:
         return replace(
             session,
             room_state=updated_room_state,
-            run_phase=_derive_run_phase(session.run_state, session.act_state, updated_room_state, registry=_content_provider(session)),
+            run_phase=_derive_run_phase(
+                session.run_state,
+                session.act_state,
+                updated_room_state,
+                registry=_content_provider(session),
+            ),
             menu_state=MenuState(),
         )
     relic_id = session.room_state.payload.get("treasure_relic_id")
@@ -473,7 +550,12 @@ def _claim_treasure(session: SessionState) -> SessionState:
         return replace(
             session,
             room_state=updated_room_state,
-            run_phase=_derive_run_phase(session.run_state, session.act_state, updated_room_state, registry=provider),
+            run_phase=_derive_run_phase(
+                session.run_state,
+                session.act_state,
+                updated_room_state,
+                registry=provider,
+            ),
             menu_state=MenuState(),
         )
     updated_run_state = apply_reward(
@@ -485,13 +567,19 @@ def _claim_treasure(session: SessionState) -> SessionState:
         session.room_state,
         stage="completed",
         is_resolved=True,
-        payload={**session.room_state.payload, "treasure_opened": True, "claimed_treasure_relic_id": relic_id},
+        payload={
+            **session.room_state.payload,
+            "treasure_opened": True,
+            "claimed_treasure_relic_id": relic_id,
+        },
     )
     return replace(
         session,
         run_state=updated_run_state,
         room_state=updated_room_state,
-        run_phase=_derive_run_phase(updated_run_state, session.act_state, updated_room_state, registry=provider),
+        run_phase=_derive_run_phase(
+            updated_run_state, session.act_state, updated_room_state, registry=provider
+        ),
         menu_state=MenuState(),
     )
 
@@ -514,7 +602,9 @@ def _skip_treasure(session: SessionState) -> SessionState:
     return replace(
         session,
         room_state=updated_room_state,
-        run_phase=_derive_run_phase(session.run_state, session.act_state, updated_room_state, registry=provider),
+        run_phase=_derive_run_phase(
+            session.run_state, session.act_state, updated_room_state, registry=provider
+        ),
         menu_state=MenuState(),
     )
 
@@ -544,7 +634,9 @@ def _claim_boss_gold(session: SessionState) -> SessionState:
         session,
         run_state=updated_run_state,
         room_state=updated_room_state,
-        run_phase=_derive_run_phase(updated_run_state, session.act_state, updated_room_state, registry=provider),
+        run_phase=_derive_run_phase(
+            updated_run_state, session.act_state, updated_room_state, registry=provider
+        ),
         menu_state=MenuState(mode="select_boss_reward"),
     )
     return _resolve_boss_reward_completion(updated_session, registry=provider)
@@ -576,7 +668,9 @@ def _claim_boss_relic(session: SessionState, relic_id: str) -> SessionState:
         session,
         run_state=updated_run_state,
         room_state=updated_room_state,
-        run_phase=_derive_run_phase(updated_run_state, session.act_state, updated_room_state, registry=provider),
+        run_phase=_derive_run_phase(
+            updated_run_state, session.act_state, updated_room_state, registry=provider
+        ),
         menu_state=MenuState(mode="select_boss_reward"),
     )
     return _resolve_boss_reward_completion(updated_session, registry=provider)
@@ -588,7 +682,11 @@ def _resolve_boss_reward_completion(
     registry: StarterContentProvider,
 ) -> SessionState:
     if session.room_state.room_type == "boss_chest":
-        return replace(session, run_phase="active", menu_state=_menu_state_for_room(session.room_state))
+        return replace(
+            session,
+            run_phase="active",
+            menu_state=_menu_state_for_room(session.room_state),
+        )
     if not _boss_rewards_complete(session.room_state):
         return session
     current_act = registry.acts().get(session.act_state.act_id)
@@ -624,7 +722,9 @@ def _advance_boss_chest(session: SessionState) -> SessionState:
     if not isinstance(next_act_id, str) or not next_act_id:
         return replace(session, run_phase="victory", menu_state=MenuState())
     updated_run_state = replace(session.run_state, current_act_id=next_act_id)
-    next_act_state = generate_act_state(next_act_id, seed=updated_run_state.seed, registry=provider)
+    next_act_state = generate_act_state(
+        next_act_id, seed=updated_run_state.seed, registry=provider
+    )
     next_room_state = enter_room(
         updated_run_state,
         next_act_state,
@@ -646,11 +746,15 @@ def _combat_target_ids(combat_state: CombatState) -> list[str]:
 
 
 def _combat_is_won(combat_state: CombatState) -> bool:
-    return bool(combat_state.enemies) and all(enemy.hp == 0 for enemy in combat_state.enemies)
+    return bool(combat_state.enemies) and all(
+        enemy.hp == 0 for enemy in combat_state.enemies
+    )
 
 
 def _combat_hook_registrations(session: SessionState):
-    return build_runtime_hook_registrations(session.run_state, _content_provider(session))
+    return build_runtime_hook_registrations(
+        session.run_state, _content_provider(session)
+    )
 
 
 def _selected_potion_index(menu_state: MenuState) -> int | None:
@@ -689,7 +793,9 @@ def _room_with_combat_state(
     )
 
 
-def _session_with_combat_state(session: SessionState, combat_state: CombatState) -> SessionState:
+def _session_with_combat_state(
+    session: SessionState, combat_state: CombatState
+) -> SessionState:
     updated_run_state = replace(
         session.run_state,
         current_hp=combat_state.player.hp,
@@ -702,7 +808,12 @@ def _session_with_combat_state(session: SessionState, combat_state: CombatState)
             stage="defeated",
             is_resolved=False,
         )
-        return replace(session, run_state=updated_run_state, room_state=room_state, run_phase="game_over")
+        return replace(
+            session,
+            run_state=updated_run_state,
+            room_state=room_state,
+            run_phase="game_over",
+        )
     if _combat_is_won(combat_state):
         reward_run_state = updated_run_state
         room_rewards: list[str] = []
@@ -713,7 +824,9 @@ def _session_with_combat_state(session: SessionState, combat_state: CombatState)
                 registry=_content_provider(session),
                 room_type=session.room_state.room_type,
             )
-            reward_run_state = replace(updated_run_state, rare_card_reward_offset=next_rare_offset)
+            reward_run_state = replace(
+                updated_run_state, rare_card_reward_offset=next_rare_offset
+            )
         room_state = _room_with_combat_state(
             session.room_state,
             combat_state,
@@ -738,7 +851,12 @@ def _session_with_combat_state(session: SessionState, combat_state: CombatState)
             session,
             run_state=reward_run_state,
             room_state=room_state,
-            run_phase=_derive_run_phase(reward_run_state, session.act_state, room_state, registry=_content_provider(session)),
+            run_phase=_derive_run_phase(
+                reward_run_state,
+                session.act_state,
+                room_state,
+                registry=_content_provider(session),
+            ),
         )
     room_state = _room_with_combat_state(
         session.room_state,
@@ -759,7 +877,9 @@ def _resolve_hand_card(combat_state: CombatState, hand_index: str) -> str:
     return combat_state.hand[index - 1]
 
 
-def _resolve_target_id(combat_state: CombatState, target_index: str | None) -> str | None:
+def _resolve_target_id(
+    combat_state: CombatState, target_index: str | None
+) -> str | None:
     living_targets = _combat_target_ids(combat_state)
     if target_index is None:
         if len(living_targets) == 1:
@@ -776,32 +896,91 @@ def _resolve_target_id(combat_state: CombatState, target_index: str | None) -> s
     return living_targets[index - 1]
 
 
-def _resolve_hand_target_id(combat_state: CombatState, selected_card_instance_id: str, target_index: str) -> str:
+def _resolve_hand_target_id(
+    combat_state: CombatState, selected_card_instance_id: str, target_index: str
+) -> str:
     if target_index.startswith("hand:"):
         target_index = target_index.split(":", 1)[1]
     try:
         index = int(target_index)
     except ValueError as exc:
         raise ValueError("target index must be an integer") from exc
-    selectable_hand_cards = [card for card in combat_state.hand if card != selected_card_instance_id]
+    selectable_hand_cards = [
+        card for card in combat_state.hand if card != selected_card_instance_id
+    ]
     if index <= 0 or index > len(selectable_hand_cards):
         raise ValueError("target index is out of range")
     return selectable_hand_cards[index - 1]
 
 
 def _card_requires_target(card_instance_id: str, session: SessionState) -> bool:
-    card_def = _content_provider(session).cards().get(card_id_from_instance_id(card_instance_id))
-    return any(effect.get("type") in {"damage", "vulnerable", "exhaust_target_card", "upgrade_target_card"} for effect in card_def.effects)
+    card_def = (
+        _content_provider(session)
+        .cards()
+        .get(card_id_from_instance_id(card_instance_id))
+    )
+    return any(
+        effect.get("type")
+        in {"damage", "vulnerable", "exhaust_target_card", "upgrade_target_card"}
+        for effect in card_def.effects
+    )
 
 
 def _card_requires_hand_target(card_instance_id: str, session: SessionState) -> bool:
-    card_def = _content_provider(session).cards().get(card_id_from_instance_id(card_instance_id))
-    return any(effect.get("type") in {"exhaust_target_card", "upgrade_target_card"} for effect in card_def.effects)
+    card_def = (
+        _content_provider(session)
+        .cards()
+        .get(card_id_from_instance_id(card_instance_id))
+    )
+    return any(
+        effect.get("type") in {"exhaust_target_card", "upgrade_target_card"}
+        for effect in card_def.effects
+    )
 
 
 def _card_requires_enemy_target(card_instance_id: str, session: SessionState) -> bool:
-    card_def = _content_provider(session).cards().get(card_id_from_instance_id(card_instance_id))
-    return any(effect.get("type") in {"damage", "vulnerable"} for effect in card_def.effects)
+    card_def = (
+        _content_provider(session)
+        .cards()
+        .get(card_id_from_instance_id(card_instance_id))
+    )
+    return any(
+        effect.get("type") in {"damage", "vulnerable"} for effect in card_def.effects
+    )
+
+
+def _card_requires_discard_target(card_instance_id: str, session: SessionState) -> bool:
+    card_def = (
+        _content_provider(session)
+        .cards()
+        .get(card_id_from_instance_id(card_instance_id))
+    )
+    return any(
+        effect.get("type") == "put_top_of_deck_from_discard"
+        for effect in card_def.effects
+    )
+
+
+def _card_target_zones(card_instance_id: str, session: SessionState) -> set[str]:
+    """Return the set of zone targets (hand/discard/exhaust) required by the card."""
+    card_def = (
+        _content_provider(session)
+        .cards()
+        .get(card_id_from_instance_id(card_instance_id))
+    )
+    effect_type_set = {str(e.get("type")) for e in card_def.effects}
+    zones: set[str] = set()
+    if effect_type_set & {
+        "exhaust_target_card",
+        "upgrade_target_card",
+        "put_top_of_deck_from_hand",
+    }:
+        zones.add("hand")
+    if effect_type_set & {"put_top_of_deck_from_discard"}:
+        zones.add("discard")
+    if effect_type_set & {"select_from_exhaust_to_hand"}:
+        zones.add("exhaust")
+    return zones
 
 
 def _hand_index_for_card(combat_state: CombatState, card_instance_id: str) -> int:
@@ -825,8 +1004,12 @@ def _advance_to_node(session: SessionState, node_id: str | None) -> SessionState
     if not isinstance(next_node_id, str):
         return session
     provider = StarterContentProvider(session.content_root)
-    room_state = enter_room(session.run_state, session.act_state, node_id=next_node_id, registry=provider)
-    return replace(session, room_state=room_state, menu_state=_menu_state_for_room(room_state))
+    room_state = enter_room(
+        session.run_state, session.act_state, node_id=next_node_id, registry=provider
+    )
+    return replace(
+        session, room_state=room_state, menu_state=_menu_state_for_room(room_state)
+    )
 
 
 def start_session(
@@ -836,12 +1019,18 @@ def start_session(
     content_root: str | Path | None = None,
     save_path: str | Path | None = None,
 ) -> SessionState:
-    resolved_content_root = default_content_root() if content_root is None else Path(content_root)
+    resolved_content_root = (
+        default_content_root() if content_root is None else Path(content_root)
+    )
     resolved_save_path = default_save_path() if save_path is None else Path(save_path)
     provider = StarterContentProvider(resolved_content_root)
     run_state = start_new_run(character_id, seed=seed, registry=provider)
-    act_state = generate_act_state(run_state.current_act_id or "act1", seed=seed, registry=provider)
-    room_state = enter_room(run_state, act_state, node_id=act_state.current_node_id, registry=provider)
+    act_state = generate_act_state(
+        run_state.current_act_id or "act1", seed=seed, registry=provider
+    )
+    room_state = enter_room(
+        run_state, act_state, node_id=act_state.current_node_id, registry=provider
+    )
     return SessionState(
         run_state=run_state,
         act_state=act_state,
@@ -860,11 +1049,19 @@ def start_new_game_session(
     content_root: str | Path | None = None,
     save_path: str | Path | None = None,
 ) -> SessionState:
-    resolved_content_root = default_content_root() if content_root is None else Path(content_root)
+    resolved_content_root = (
+        default_content_root() if content_root is None else Path(content_root)
+    )
     resolved_save_path = default_save_path() if save_path is None else Path(save_path)
     provider = StarterContentProvider(resolved_content_root)
-    opening_state = build_opening_state(seed=seed, preferred_character_id=preferred_character_id, registry=provider)
-    menu_mode = "opening_neow_offer" if opening_state.selected_character_id else "opening_character_select"
+    opening_state = build_opening_state(
+        seed=seed, preferred_character_id=preferred_character_id, registry=provider
+    )
+    menu_mode = (
+        "opening_neow_offer"
+        if opening_state.selected_character_id
+        else "opening_character_select"
+    )
     return SessionState(
         run_state=None,
         act_state=None,
@@ -882,12 +1079,20 @@ def load_session(
     save_path: str | Path | None = None,
     content_root: str | Path | None = None,
 ) -> SessionState:
-    resolved_content_root = default_content_root() if content_root is None else Path(content_root)
+    resolved_content_root = (
+        default_content_root() if content_root is None else Path(content_root)
+    )
     resolved_save_path = default_save_path() if save_path is None else Path(save_path)
     repository = JsonFileSaveRepository(resolved_save_path)
     loaded = load_game(repository=repository)
-    if loaded["run_state"] is None or loaded["act_state"] is None or loaded["room_state"] is None:
-        raise FileNotFoundError(f"save file is empty or incomplete: {resolved_save_path}")
+    if (
+        loaded["run_state"] is None
+        or loaded["act_state"] is None
+        or loaded["room_state"] is None
+    ):
+        raise FileNotFoundError(
+            f"save file is empty or incomplete: {resolved_save_path}"
+        )
     session = SessionState(
         run_state=loaded["run_state"],
         act_state=loaded["act_state"],
@@ -902,7 +1107,9 @@ def load_session(
         ),
         menu_state=_menu_state_for_room(loaded["room_state"]),
     )
-    return _resolve_boss_reward_completion(session, registry=StarterContentProvider(resolved_content_root))
+    return _resolve_boss_reward_completion(
+        session, registry=StarterContentProvider(resolved_content_root)
+    )
 
 
 def render_session(session: SessionState) -> str:
@@ -953,13 +1160,17 @@ def render_session_renderable(session: SessionState) -> RenderableType:
     )
 
 
-def _coerce_route_result(result: SessionRouteResult | tuple[bool, SessionState, str]) -> SessionRouteResult:
+def _coerce_route_result(
+    result: SessionRouteResult | tuple[bool, SessionState, str],
+) -> SessionRouteResult:
     if isinstance(result, SessionRouteResult):
         return result
     running, session, message = result
     rendered = render_session(session)
     if message == rendered:
-        return SessionRouteResult(running=running, session=session, render_message=rendered)
+        return SessionRouteResult(
+            running=running, session=session, render_message=rendered
+        )
     render_suffix = f"\n\n{rendered}"
     if rendered and message.endswith(render_suffix):
         return SessionRouteResult(
@@ -971,7 +1182,9 @@ def _coerce_route_result(result: SessionRouteResult | tuple[bool, SessionState, 
     return SessionRouteResult(running=running, session=session, status_message=message)
 
 
-def _route_command_legacy(command: str, *, session: SessionState) -> tuple[bool, SessionState, str]:
+def _route_command_legacy(
+    command: str, *, session: SessionState
+) -> tuple[bool, SessionState, str]:
     raw_command = command.strip()
     normalized = raw_command.lower()
     next_session = _with_command_history(session, normalized or "look")
@@ -998,13 +1211,26 @@ def _route_command_legacy(command: str, *, session: SessionState) -> tuple[bool,
             return True, next_session, "Usage: play <hand-index> [target-index]"
         try:
             card_instance_id = _resolve_hand_card(combat_state, parts[1])
-            card_def = _content_provider(next_session).cards().get(card_id_from_instance_id(card_instance_id))
+            card_def = (
+                _content_provider(next_session)
+                .cards()
+                .get(card_id_from_instance_id(card_instance_id))
+            )
             target_token = parts[2] if len(parts) == 3 else None
             if _card_requires_hand_target(card_instance_id, next_session):
-                target_id = _resolve_hand_target_id(combat_state, card_instance_id, target_token) if target_token is not None else None
+                target_id = (
+                    _resolve_hand_target_id(
+                        combat_state, card_instance_id, target_token
+                    )
+                    if target_token is not None
+                    else None
+                )
             else:
                 target_id = _resolve_target_id(combat_state, target_token)
-            if _card_requires_target(card_instance_id, next_session) and target_id is None:
+            if (
+                _card_requires_target(card_instance_id, next_session)
+                and target_id is None
+            ):
                 return True, next_session, "Target is required."
             result = play_card(
                 combat_state,
@@ -1074,7 +1300,9 @@ def _message_with_render(session: SessionState, message: str | None) -> str:
     return f"{message}\n\n{rendered}"
 
 
-def _retarget_route_result(result: SessionRouteResult, session: SessionState) -> tuple[bool, SessionState, str]:
+def _retarget_route_result(
+    result: SessionRouteResult, session: SessionState
+) -> tuple[bool, SessionState, str]:
     if result.render_message is None:
         return result.running, session, result.status_message or ""
     if result.status_message is None:
@@ -1092,11 +1320,17 @@ def _save_current_session(session: SessionState) -> tuple[bool, SessionState, st
         room_state=session.room_state,
         combat_state=combat_state,
     )
-    return True, replace(session, menu_state=MenuState()), f"已保存到 {session.save_path}"
+    return (
+        True,
+        replace(session, menu_state=MenuState()),
+        f"已保存到 {session.save_path}",
+    )
 
 
 def _load_current_session(session: SessionState) -> tuple[bool, SessionState, str]:
-    restored = load_session(save_path=session.save_path, content_root=session.content_root)
+    restored = load_session(
+        save_path=session.save_path, content_root=session.content_root
+    )
     restored = replace(restored, command_history=list(session.command_history or []))
     return True, restored, f"已从存档恢复。当前存档: {session.save_path}"
 
@@ -1109,7 +1343,9 @@ def _opening_unsupported_action_message(action: str) -> str:
     return "当前开局操作不可用。"
 
 
-def _route_opening_character_select_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+def _route_opening_character_select_menu(
+    choice: str, session: SessionState
+) -> tuple[bool, SessionState, str]:
     opening_state = session.opening_state
     if opening_state is None:
         return True, session, "opening 状态不可用。"
@@ -1117,16 +1353,32 @@ def _route_opening_character_select_menu(choice: str, session: SessionState) -> 
     if action_id == "quit":
         return False, replace(session, menu_state=MenuState()), "已退出游戏。"
     if action_id in {"save", "load"}:
-        return True, session, _message_with_render(session, _opening_unsupported_action_message(action_id))
+        return (
+            True,
+            session,
+            _message_with_render(
+                session, _opening_unsupported_action_message(action_id)
+            ),
+        )
     if action_id is None or not action_id.startswith("select_character:"):
         return _invalid_menu_choice(session)
     character_id = action_id.split(":", 1)[1]
-    next_opening = build_opening_state(seed=opening_state.seed, preferred_character_id=character_id, registry=_content_provider(session))
-    next_session = replace(session, opening_state=next_opening, menu_state=MenuState(mode="opening_neow_offer"))
+    next_opening = build_opening_state(
+        seed=opening_state.seed,
+        preferred_character_id=character_id,
+        registry=_content_provider(session),
+    )
+    next_session = replace(
+        session,
+        opening_state=next_opening,
+        menu_state=MenuState(mode="opening_neow_offer"),
+    )
     return True, next_session, render_session(next_session)
 
 
-def _route_opening_neow_offer_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+def _route_opening_neow_offer_menu(
+    choice: str, session: SessionState
+) -> tuple[bool, SessionState, str]:
     opening_state = session.opening_state
     if opening_state is None:
         return True, session, "opening 状态不可用。"
@@ -1134,29 +1386,52 @@ def _route_opening_neow_offer_menu(choice: str, session: SessionState) -> tuple[
     if action_id == "quit":
         return False, replace(session, menu_state=MenuState()), "已退出游戏。"
     if action_id in {"save", "load"}:
-        return True, session, _message_with_render(session, _opening_unsupported_action_message(action_id))
+        return (
+            True,
+            session,
+            _message_with_render(
+                session, _opening_unsupported_action_message(action_id)
+            ),
+        )
     if action_id is None or not action_id.startswith("choose_neow_offer:"):
         return _invalid_menu_choice(session)
     offer_id = action_id.split(":", 1)[1]
     try:
-        next_opening = apply_neow_offer(opening_state, offer_id, registry=_content_provider(session))
+        next_opening = apply_neow_offer(
+            opening_state, offer_id, registry=_content_provider(session)
+        )
     except (KeyError, StopIteration, ValueError) as exc:
         return True, session, str(exc)
     if next_opening.pending_neow_offer_id is not None:
-        offer = next((item for item in next_opening.neow_offers if item.offer_id == next_opening.pending_neow_offer_id), None)
+        offer = next(
+            (
+                item
+                for item in next_opening.neow_offers
+                if item.offer_id == next_opening.pending_neow_offer_id
+            ),
+            None,
+        )
         next_mode = "opening_neow_offer"
         if offer is not None and offer.requires_target == "upgrade_card":
             next_mode = "opening_neow_upgrade_card"
         elif offer is not None and offer.requires_target == "remove_card":
             next_mode = "opening_neow_remove_card"
-        next_session = replace(session, opening_state=next_opening, menu_state=MenuState(mode=next_mode))
-        return True, next_session, _message_with_render(next_session, "该 Neow 选项需要先选择目标卡牌。")
+        next_session = replace(
+            session, opening_state=next_opening, menu_state=MenuState(mode=next_mode)
+        )
+        return (
+            True,
+            next_session,
+            _message_with_render(next_session, "该 Neow 选项需要先选择目标卡牌。"),
+        )
     next_session = replace(session, opening_state=next_opening)
     active_session = _start_active_session_from_blueprint(next_session)
     return True, active_session, render_session(active_session)
 
 
-def _opening_neow_offer_session(session: SessionState, opening_state: OpeningState) -> SessionState:
+def _opening_neow_offer_session(
+    session: SessionState, opening_state: OpeningState
+) -> SessionState:
     return replace(
         session,
         opening_state=replace(opening_state, pending_neow_offer_id=None),
@@ -1177,15 +1452,34 @@ def _route_opening_neow_target_menu(
     pending_offer_id = opening_state.pending_neow_offer_id
     if not isinstance(pending_offer_id, str) or not pending_offer_id:
         fallback_session = _opening_neow_offer_session(session, opening_state)
-        return True, fallback_session, _message_with_render(fallback_session, "Neow 选项已失效，已返回主菜单。")
-    offer = next((item for item in opening_state.neow_offers if item.offer_id == pending_offer_id), None)
+        return (
+            True,
+            fallback_session,
+            _message_with_render(fallback_session, "Neow 选项已失效，已返回主菜单。"),
+        )
+    offer = next(
+        (
+            item
+            for item in opening_state.neow_offers
+            if item.offer_id == pending_offer_id
+        ),
+        None,
+    )
     if offer is None or offer.requires_target != expected_target:
         fallback_session = _opening_neow_offer_session(session, opening_state)
-        return True, fallback_session, _message_with_render(fallback_session, "Neow 选项已失效，已返回主菜单。")
+        return (
+            True,
+            fallback_session,
+            _message_with_render(fallback_session, "Neow 选项已失效，已返回主菜单。"),
+        )
     menu = build_opening_action_menu(session)
     if menu is None:
         fallback_session = _opening_neow_offer_session(session, opening_state)
-        return True, fallback_session, _message_with_render(fallback_session, "Neow 选项已失效，已返回主菜单。")
+        return (
+            True,
+            fallback_session,
+            _message_with_render(fallback_session, "Neow 选项已失效，已返回主菜单。"),
+        )
     action_id = resolve_menu_action(choice, menu)
     if action_id == "back":
         fallback_session = _opening_neow_offer_session(session, opening_state)
@@ -1202,16 +1496,30 @@ def _route_opening_neow_target_menu(
         )
     except (KeyError, StopIteration, ValueError):
         fallback_session = _opening_neow_offer_session(session, opening_state)
-        return True, fallback_session, _message_with_render(fallback_session, "目标卡牌无效，已返回 Neow 主菜单。")
+        return (
+            True,
+            fallback_session,
+            _message_with_render(
+                fallback_session, "目标卡牌无效，已返回 Neow 主菜单。"
+            ),
+        )
     next_session = replace(session, opening_state=next_opening)
     active_session = _start_active_session_from_blueprint(next_session)
     return True, active_session, render_session(active_session)
 
 
-def _route_terminal_phase_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
-    action_id = resolve_menu_action(choice, build_terminal_phase_menu(run_phase=session.run_phase))
+def _route_terminal_phase_menu(
+    choice: str, session: SessionState
+) -> tuple[bool, SessionState, str]:
+    action_id = resolve_menu_action(
+        choice, build_terminal_phase_menu(run_phase=session.run_phase)
+    )
     if action_id == "view_terminal":
-        return True, replace(session, menu_state=MenuState()), render_session(replace(session, menu_state=MenuState()))
+        return (
+            True,
+            replace(session, menu_state=MenuState()),
+            render_session(replace(session, menu_state=MenuState())),
+        )
     if action_id == "save":
         return _save_current_session(session)
     if action_id == "load":
@@ -1221,7 +1529,9 @@ def _route_terminal_phase_menu(choice: str, session: SessionState) -> tuple[bool
     return _invalid_menu_choice(session)
 
 
-def _enter_inspect_root(session: SessionState, *, parent_mode: str | None = None) -> SessionState:
+def _enter_inspect_root(
+    session: SessionState, *, parent_mode: str | None = None
+) -> SessionState:
     resolved_parent_mode = parent_mode
     if resolved_parent_mode is None:
         resolved_parent_mode = session.menu_state.inspect_parent_mode or "root"
@@ -1248,7 +1558,9 @@ def _return_from_inspect(session: SessionState) -> SessionState:
 
 
 def _root_view_title(session: SessionState) -> str:
-    if session.room_state.is_resolved and (session.room_state.rewards or _has_pending_boss_rewards(session.room_state)):
+    if session.room_state.is_resolved and (
+        session.room_state.rewards or _has_pending_boss_rewards(session.room_state)
+    ):
         return "领取奖励"
     if session.room_state.room_type == "boss_chest":
         return "Boss宝箱"
@@ -1264,14 +1576,22 @@ def _root_view_title(session: SessionState) -> str:
 
 
 def _normalize_legacy_reward_inspect_mode(session: SessionState) -> SessionState:
-    if session.menu_state.mode not in {"inspect_reward_root", "inspect_reward_list", "inspect_reward_detail"}:
+    if session.menu_state.mode not in {
+        "inspect_reward_root",
+        "inspect_reward_list",
+        "inspect_reward_detail",
+    }:
         return session
     return replace(session, menu_state=MenuState())
 
 
-def _route_inspect_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+def _route_inspect_root_menu(
+    choice: str, session: SessionState
+) -> tuple[bool, SessionState, str]:
     parent_mode = session.menu_state.inspect_parent_mode or "root"
-    action_id = resolve_menu_action(choice, build_inspect_root_menu(room_state=session.room_state))
+    action_id = resolve_menu_action(
+        choice, build_inspect_root_menu(room_state=session.room_state)
+    )
     if action_id is None:
         return _invalid_menu_choice(session)
     shared_target = SHARED_INSPECT_ROOT_ACTIONS.get(action_id)
@@ -1300,15 +1620,23 @@ def _route_inspect_root_menu(choice: str, session: SessionState) -> tuple[bool, 
         return True, next_session, _inspect_transition_message(next_session, title)
     if action_id == "back":
         next_session = _return_from_inspect(session)
-        return True, next_session, _inspect_transition_message(next_session, _root_view_title(next_session))
+        return (
+            True,
+            next_session,
+            _inspect_transition_message(next_session, _root_view_title(next_session)),
+        )
     return _invalid_menu_choice(session)
 
 
-def _route_inspect_deck_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+def _route_inspect_deck_menu(
+    choice: str, session: SessionState
+) -> tuple[bool, SessionState, str]:
     deck = session.run_state.deck
     back_choice = str(len(session.run_state.deck) + 1)
     if choice == back_choice:
-        next_session = _enter_inspect_root(session, parent_mode=session.menu_state.inspect_parent_mode or "root")
+        next_session = _enter_inspect_root(
+            session, parent_mode=session.menu_state.inspect_parent_mode or "root"
+        )
         return True, next_session, _inspect_transition_message(next_session, "资料总览")
     try:
         index = int(choice)
@@ -1327,11 +1655,15 @@ def _route_inspect_deck_menu(choice: str, session: SessionState) -> tuple[bool, 
     return True, next_session, _inspect_transition_message(next_session, "卡牌详情")
 
 
-def _route_inspect_relics_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+def _route_inspect_relics_menu(
+    choice: str, session: SessionState
+) -> tuple[bool, SessionState, str]:
     relics = session.run_state.relics
     back_choice = str(len(relics) + 1)
     if choice == back_choice:
-        next_session = _enter_inspect_root(session, parent_mode=session.menu_state.inspect_parent_mode or "root")
+        next_session = _enter_inspect_root(
+            session, parent_mode=session.menu_state.inspect_parent_mode or "root"
+        )
         return True, next_session, _inspect_transition_message(next_session, "资料总览")
     try:
         index = int(choice)
@@ -1354,10 +1686,14 @@ def _inspect_root_parent_mode_for_room(session: SessionState) -> str:
     return _menu_state_for_room(session.room_state).mode or "root"
 
 
-def _route_inspect_leaf_menu(choice: str, session: SessionState, title: str) -> tuple[bool, SessionState, str]:
+def _route_inspect_leaf_menu(
+    choice: str, session: SessionState, title: str
+) -> tuple[bool, SessionState, str]:
     action_id = resolve_menu_action(choice, build_leaf_menu(title=title))
     if action_id == "back":
-        next_session = _enter_inspect_root(session, parent_mode=session.menu_state.inspect_parent_mode or "root")
+        next_session = _enter_inspect_root(
+            session, parent_mode=session.menu_state.inspect_parent_mode or "root"
+        )
         return True, next_session, _inspect_transition_message(next_session, "资料总览")
     return _invalid_menu_choice(session)
 
@@ -1381,7 +1717,9 @@ def _inspect_card_items(session: SessionState, mode: str) -> list[str]:
     return []
 
 
-def _route_combat_inspect_card_list_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+def _route_combat_inspect_card_list_menu(
+    choice: str, session: SessionState
+) -> tuple[bool, SessionState, str]:
     card_instance_ids = _inspect_card_items(session, session.menu_state.mode)
     back_choice = str(len(card_instance_ids) + 1)
     if choice == back_choice:
@@ -1404,7 +1742,9 @@ def _route_combat_inspect_card_list_menu(choice: str, session: SessionState) -> 
     return True, next_session, _inspect_transition_message(next_session, "卡牌详情")
 
 
-def _route_combat_inspect_enemy_list_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+def _route_combat_inspect_enemy_list_menu(
+    choice: str, session: SessionState
+) -> tuple[bool, SessionState, str]:
     combat_state = _combat_state_from_room(session.room_state)
     if combat_state is None:
         return True, replace(session, menu_state=MenuState()), "战斗状态不可用。"
@@ -1429,7 +1769,9 @@ def _route_combat_inspect_enemy_list_menu(choice: str, session: SessionState) ->
     return True, next_session, _inspect_transition_message(next_session, "敌人详情")
 
 
-def _route_combat_inspect_card_detail_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+def _route_combat_inspect_card_detail_menu(
+    choice: str, session: SessionState
+) -> tuple[bool, SessionState, str]:
     parent_mode = session.menu_state.inspect_parent_mode or "inspect_hand"
     action_id = resolve_menu_action(choice, build_card_detail_menu())
     if action_id == "back_to_list":
@@ -1442,7 +1784,11 @@ def _route_combat_inspect_card_detail_menu(choice: str, session: SessionState) -
                     inspect_item_id="deck",
                 ),
             )
-            return True, next_session, _inspect_transition_message(next_session, "牌组列表")
+            return (
+                True,
+                next_session,
+                _inspect_transition_message(next_session, "牌组列表"),
+            )
         next_session = replace(
             session,
             menu_state=MenuState(
@@ -1455,13 +1801,17 @@ def _route_combat_inspect_card_detail_menu(choice: str, session: SessionState) -
     if action_id == "back_to_root":
         next_session = _enter_inspect_root(
             session,
-            parent_mode="root" if parent_mode != "inspect_deck" else _inspect_root_parent_mode_for_room(session),
+            parent_mode="root"
+            if parent_mode != "inspect_deck"
+            else _inspect_root_parent_mode_for_room(session),
         )
         return True, next_session, _inspect_transition_message(next_session, "资料总览")
     return _invalid_menu_choice(session)
 
 
-def _route_inspect_relic_detail_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+def _route_inspect_relic_detail_menu(
+    choice: str, session: SessionState
+) -> tuple[bool, SessionState, str]:
     action_id = resolve_menu_action(choice, build_relic_detail_menu())
     parent_mode = _inspect_root_parent_mode_for_room(session)
     if action_id == "back_to_list":
@@ -1480,7 +1830,9 @@ def _route_inspect_relic_detail_menu(choice: str, session: SessionState) -> tupl
     return _invalid_menu_choice(session)
 
 
-def _route_combat_inspect_enemy_detail_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+def _route_combat_inspect_enemy_detail_menu(
+    choice: str, session: SessionState
+) -> tuple[bool, SessionState, str]:
     action_id = resolve_menu_action(choice, build_enemy_detail_menu())
     if action_id == "back_to_list":
         next_session = replace(
@@ -1498,12 +1850,18 @@ def _route_combat_inspect_enemy_detail_menu(choice: str, session: SessionState) 
     return _invalid_menu_choice(session)
 
 
-def _route_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+def _route_root_menu(
+    choice: str, session: SessionState
+) -> tuple[bool, SessionState, str]:
     if session.run_phase in {"victory", "game_over"}:
         return _route_terminal_phase_menu(choice, session)
     action_id = resolve_menu_action(
         choice,
-        build_root_menu(room_state=session.room_state, run_state=session.run_state, registry=_content_provider(session)),
+        build_root_menu(
+            room_state=session.room_state,
+            run_state=session.run_state,
+            registry=_content_provider(session),
+        ),
     )
     if action_id is None:
         return _invalid_menu_choice(session)
@@ -1512,20 +1870,30 @@ def _route_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionS
         return True, next_session, render_session(next_session)
     if action_id == "claim_rewards":
         if _has_pending_boss_rewards(session.room_state):
-            next_session = replace(session, menu_state=MenuState(mode="select_boss_reward"))
+            next_session = replace(
+                session, menu_state=MenuState(mode="select_boss_reward")
+            )
             return True, next_session, render_session(next_session)
         if not session.room_state.rewards:
-            return True, replace(session, menu_state=MenuState()), "当前没有可领取的奖励。"
+            return (
+                True,
+                replace(session, menu_state=MenuState()),
+                "当前没有可领取的奖励。",
+            )
         next_session = replace(session, menu_state=MenuState(mode="select_reward"))
         return True, next_session, render_session(next_session)
     if action_id == "next_room":
         next_node_ids = session.room_state.payload.get("next_node_ids", [])
         if isinstance(next_node_ids, list) and len(next_node_ids) > 1:
-            next_session = replace(session, menu_state=MenuState(mode="select_next_room"))
+            next_session = replace(
+                session, menu_state=MenuState(mode="select_next_room")
+            )
             return True, next_session, render_session(next_session)
         result = route_command("next", session=replace(session, menu_state=MenuState()))
         next_session = _preserve_menu_history(result.session, history_session=session)
-        adjusted_session = replace(next_session, menu_state=_menu_state_for_room(next_session.room_state))
+        adjusted_session = replace(
+            next_session, menu_state=_menu_state_for_room(next_session.room_state)
+        )
         return _retarget_route_result(result, adjusted_session)
     if action_id == "advance_boss_chest":
         next_session = _advance_boss_chest(replace(session, menu_state=MenuState()))
@@ -1542,13 +1910,21 @@ def _route_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionS
     if action_id == "play_card":
         combat_state = _combat_state_from_room(session.room_state)
         if combat_state is None or not combat_state.hand:
-            return True, replace(session, menu_state=MenuState()), "当前没有可打出的手牌。"
+            return (
+                True,
+                replace(session, menu_state=MenuState()),
+                "当前没有可打出的手牌。",
+            )
         next_session = replace(session, menu_state=MenuState(mode="select_card"))
         return True, next_session, render_session(next_session)
     if action_id == "use_potion":
         combat_state = _combat_state_from_room(session.room_state)
         if combat_state is None or not session.run_state.potions:
-            return True, replace(session, menu_state=MenuState()), "当前没有可使用的药水。"
+            return (
+                True,
+                replace(session, menu_state=MenuState()),
+                "当前没有可使用的药水。",
+            )
         next_session = replace(session, menu_state=MenuState(mode="select_potion"))
         return True, next_session, render_session(next_session)
     if action_id == "end_turn":
@@ -1557,7 +1933,9 @@ def _route_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionS
         adjusted_session = replace(next_session, menu_state=MenuState())
         return _retarget_route_result(result, adjusted_session)
     if action_id == "event_choice":
-        next_session = replace(session, menu_state=MenuState(mode="select_event_choice"))
+        next_session = replace(
+            session, menu_state=MenuState(mode="select_event_choice")
+        )
         return True, next_session, render_session(next_session)
     if action_id == "open_treasure":
         next_session = _open_treasure(session)
@@ -1575,7 +1953,10 @@ def _menu_state_for_post_play_session(session: SessionState) -> MenuState:
     default_menu_state = _menu_state_for_room(session.room_state)
     if session.run_phase != "active":
         return default_menu_state
-    if session.room_state.room_type not in {"combat", "elite", "boss"} or session.room_state.is_resolved:
+    if (
+        session.room_state.room_type not in {"combat", "elite", "boss"}
+        or session.room_state.is_resolved
+    ):
         return default_menu_state
     combat_state = _combat_state_from_room(session.room_state)
     if combat_state is None or not combat_state.hand:
@@ -1586,15 +1967,26 @@ def _menu_state_for_post_play_session(session: SessionState) -> MenuState:
 def _remove_potion_from_run_state(run_state: RunState, potion_index: int) -> RunState:
     if potion_index <= 0 or potion_index > len(run_state.potions):
         raise ValueError("potion index is out of range")
-    updated_potions = [potion for index, potion in enumerate(run_state.potions, start=1) if index != potion_index]
+    updated_potions = [
+        potion
+        for index, potion in enumerate(run_state.potions, start=1)
+        if index != potion_index
+    ]
     return replace(run_state, potions=updated_potions)
 
 
-def _route_potion_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+def _route_potion_menu(
+    choice: str, session: SessionState
+) -> tuple[bool, SessionState, str]:
     combat_state = _combat_state_from_room(session.room_state)
     if combat_state is None:
         return True, replace(session, menu_state=MenuState()), "战斗状态不可用。"
-    action_id = resolve_menu_action(choice, build_select_potion_menu(run_state=session.run_state, registry=_content_provider(session)))
+    action_id = resolve_menu_action(
+        choice,
+        build_select_potion_menu(
+            run_state=session.run_state, registry=_content_provider(session)
+        ),
+    )
     if action_id == "back":
         next_session = replace(session, menu_state=MenuState())
         return True, next_session, render_session(next_session)
@@ -1609,10 +2001,14 @@ def _route_potion_menu(choice: str, session: SessionState) -> tuple[bool, Sessio
     potion_id = session.run_state.potions[potion_index - 1]
     potion_def = _content_provider(session).potions().get(potion_id)
     enemy_targets = _combat_target_ids(combat_state)
-    if potion_def.target == "any" or (potion_def.target == "enemy" and len(enemy_targets) > 1):
+    if potion_def.target == "any" or (
+        potion_def.target == "enemy" and len(enemy_targets) > 1
+    ):
         next_session = replace(
             session,
-            menu_state=MenuState(mode="select_target", selected_potion_index=potion_index),
+            menu_state=MenuState(
+                mode="select_target", selected_potion_index=potion_index
+            ),
         )
         return True, next_session, render_session(next_session)
     if potion_def.target == "enemy":
@@ -1629,23 +2025,34 @@ def _route_potion_menu(choice: str, session: SessionState) -> tuple[bool, Sessio
         hook_registrations=_combat_hook_registrations(session),
     )
     updated_run_state = _remove_potion_from_run_state(session.run_state, potion_index)
-    resolved_session = _session_with_combat_state(replace(session, run_state=updated_run_state), result.combat_state)
+    resolved_session = _session_with_combat_state(
+        replace(session, run_state=updated_run_state), result.combat_state
+    )
     next_session = replace(resolved_session, menu_state=MenuState())
     return True, next_session, _message_with_render(next_session, result.message)
 
 
-def _route_card_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+def _route_card_menu(
+    choice: str, session: SessionState
+) -> tuple[bool, SessionState, str]:
     combat_state = _combat_state_from_room(session.room_state)
     if combat_state is None:
         return True, replace(session, menu_state=MenuState()), "战斗状态不可用。"
-    action_id = resolve_menu_action(choice, build_select_card_menu(combat_state=combat_state, registry=_content_provider(session)))
+    action_id = resolve_menu_action(
+        choice,
+        build_select_card_menu(
+            combat_state=combat_state, registry=_content_provider(session)
+        ),
+    )
     if action_id == "back":
         next_session = replace(session, menu_state=MenuState())
         return True, next_session, render_session(next_session)
     if action_id == "end_turn":
         result = route_command("end", session=replace(session, menu_state=MenuState()))
         next_session = _preserve_menu_history(result.session, history_session=session)
-        adjusted_session = replace(next_session, menu_state=_menu_state_for_post_play_session(next_session))
+        adjusted_session = replace(
+            next_session, menu_state=_menu_state_for_post_play_session(next_session)
+        )
         return _retarget_route_result(result, adjusted_session)
     if action_id is None or not action_id.startswith("play_card:"):
         return _invalid_menu_choice(session)
@@ -1656,11 +2063,18 @@ def _route_card_menu(choice: str, session: SessionState) -> tuple[bool, SessionS
         return _invalid_menu_choice(session)
     requires_hand_target = _card_requires_hand_target(card_instance_id, session)
     requires_enemy_target = _card_requires_enemy_target(card_instance_id, session)
-    should_select_target = requires_hand_target or (requires_enemy_target and len(_combat_target_ids(combat_state)) > 1)
+    requires_zone_target = bool(_card_target_zones(card_instance_id, session))
+    should_select_target = (
+        requires_hand_target
+        or requires_zone_target
+        or (requires_enemy_target and len(_combat_target_ids(combat_state)) > 1)
+    )
     if should_select_target:
         next_session = replace(
             session,
-            menu_state=MenuState(mode="select_target", selected_card_instance_id=card_instance_id),
+            menu_state=MenuState(
+                mode="select_target", selected_card_instance_id=card_instance_id
+            ),
         )
         return True, next_session, render_session(next_session)
     result = route_command(
@@ -1668,11 +2082,15 @@ def _route_card_menu(choice: str, session: SessionState) -> tuple[bool, SessionS
         session=replace(session, menu_state=MenuState()),
     )
     next_session = _preserve_menu_history(result.session, history_session=session)
-    adjusted_session = replace(next_session, menu_state=_menu_state_for_post_play_session(next_session))
+    adjusted_session = replace(
+        next_session, menu_state=_menu_state_for_post_play_session(next_session)
+    )
     return _retarget_route_result(result, adjusted_session)
 
 
-def _route_target_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+def _route_target_menu(
+    choice: str, session: SessionState
+) -> tuple[bool, SessionState, str]:
     combat_state = _combat_state_from_room(session.room_state)
     if combat_state is None:
         return True, replace(session, menu_state=MenuState()), "战斗状态不可用。"
@@ -1717,15 +2135,92 @@ def _route_target_menu(choice: str, session: SessionState) -> tuple[bool, Sessio
             registry=_content_provider(session),
             hook_registrations=_combat_hook_registrations(session),
         )
-        updated_run_state = _remove_potion_from_run_state(session.run_state, selected_potion_index)
-        resolved_session = _session_with_combat_state(replace(session, run_state=updated_run_state), result.combat_state)
+        updated_run_state = _remove_potion_from_run_state(
+            session.run_state, selected_potion_index
+        )
+        resolved_session = _session_with_combat_state(
+            replace(session, run_state=updated_run_state), result.combat_state
+        )
         next_session = replace(resolved_session, menu_state=MenuState())
         return True, next_session, _message_with_render(next_session, result.message)
-    enemy_targets = _combat_target_ids(combat_state) if _card_requires_enemy_target(selected_card_instance_id, session) else []
-    hand_targets = [card for card in combat_state.hand if card != selected_card_instance_id] if _card_requires_hand_target(selected_card_instance_id, session) else []
+    enemy_targets = (
+        _combat_target_ids(combat_state)
+        if _card_requires_enemy_target(selected_card_instance_id, session)
+        else []
+    )
+    hand_targets = (
+        [card for card in combat_state.hand if card != selected_card_instance_id]
+        if _card_requires_hand_target(selected_card_instance_id, session)
+        else []
+    )
+    discard_targets = (
+        list(combat_state.discard_pile)
+        if _card_requires_discard_target(selected_card_instance_id, session)
+        else []
+    )
+    # Two-stage: if enemy was already chosen and we're now selecting a zone target
+    stored_enemy_id = session.menu_state.selected_enemy_target_id
+    stored_target_zone = session.menu_state.target_zone
+    if stored_enemy_id is not None and stored_target_zone == "discard":
+        # Second stage: pick from discard pile
+        discard_options = [
+            (f"target_discard:{index}", card_id)
+            for index, card_id in enumerate(discard_targets, start=1)
+        ]
+        action_id = resolve_menu_action(
+            choice,
+            build_target_menu(
+                target_options=discard_options,
+                current_card_name=None,
+                title="选择放到牌堆顶的牌（弃牌堆）",
+            ),
+        )
+        if action_id == "back":
+            next_session = replace(
+                session,
+                menu_state=MenuState(
+                    mode="select_target",
+                    selected_card_instance_id=selected_card_instance_id,
+                ),
+            )
+            return True, next_session, render_session(next_session)
+        if action_id is None or not action_id.startswith("target_discard:"):
+            return _invalid_menu_choice(session)
+        try:
+            discard_index = int(action_id.split(":", 1)[1])
+        except ValueError:
+            return _invalid_menu_choice(session)
+        if discard_index <= 0 or discard_index > len(discard_targets):
+            return _invalid_menu_choice(session)
+        discard_card_id = discard_targets[discard_index - 1]
+        try:
+            hand_index = _hand_index_for_card(combat_state, selected_card_instance_id)
+        except ValueError:
+            next_session = replace(session, menu_state=MenuState())
+            return True, next_session, "所选手牌已发生变化，请重新选择。"
+        enemy_index = (
+            enemy_targets.index(stored_enemy_id) + 1
+            if stored_enemy_id in enemy_targets
+            else 1
+        )
+        result = route_command(
+            f"play {hand_index} enemy:{enemy_index} discard:{discard_index}",
+            session=replace(session, menu_state=MenuState()),
+        )
+        next_session = _preserve_menu_history(result.session, history_session=session)
+        adjusted_session = replace(
+            next_session, menu_state=_menu_state_for_post_play_session(next_session)
+        )
+        return _retarget_route_result(result, adjusted_session)
     target_options = [
-        *((f"target_enemy:{index}", target_id) for index, target_id in enumerate(enemy_targets, start=1)),
-        *((f"target_hand:{index}", card_id) for index, card_id in enumerate(hand_targets, start=1)),
+        *(
+            (f"target_enemy:{index}", target_id)
+            for index, target_id in enumerate(enemy_targets, start=1)
+        ),
+        *(
+            (f"target_hand:{index}", card_id)
+            for index, card_id in enumerate(hand_targets, start=1)
+        ),
     ]
     action_id = resolve_menu_action(
         choice,
@@ -1745,6 +2240,25 @@ def _route_target_menu(choice: str, session: SessionState) -> tuple[bool, Sessio
         next_session = replace(session, menu_state=MenuState())
         return True, next_session, "所选手牌已发生变化，请重新选择。"
     if action_id.startswith("target_enemy:"):
+        # Check if a discard-zone follow-up stage is needed
+        if discard_targets:
+            try:
+                enemy_index = int(action_id.split(":", 1)[1])
+            except ValueError:
+                return _invalid_menu_choice(session)
+            if enemy_index <= 0 or enemy_index > len(enemy_targets):
+                return _invalid_menu_choice(session)
+            chosen_enemy_id = enemy_targets[enemy_index - 1]
+            next_session = replace(
+                session,
+                menu_state=MenuState(
+                    mode="select_target",
+                    selected_card_instance_id=selected_card_instance_id,
+                    selected_enemy_target_id=chosen_enemy_id,
+                    target_zone="discard",
+                ),
+            )
+            return True, next_session, render_session(next_session)
         target_token = f"enemy:{action_id.split(':', 1)[1]}"
     elif action_id.startswith("target_hand:"):
         target_token = f"hand:{action_id.split(':', 1)[1]}"
@@ -1755,11 +2269,15 @@ def _route_target_menu(choice: str, session: SessionState) -> tuple[bool, Sessio
         session=replace(session, menu_state=MenuState()),
     )
     next_session = _preserve_menu_history(result.session, history_session=session)
-    adjusted_session = replace(next_session, menu_state=_menu_state_for_post_play_session(next_session))
+    adjusted_session = replace(
+        next_session, menu_state=_menu_state_for_post_play_session(next_session)
+    )
     return _retarget_route_result(result, adjusted_session)
 
 
-def _route_next_room_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+def _route_next_room_menu(
+    choice: str, session: SessionState
+) -> tuple[bool, SessionState, str]:
     next_node_ids = session.room_state.payload.get("next_node_ids", [])
     if not isinstance(next_node_ids, list):
         return _invalid_menu_choice(session)
@@ -1767,7 +2285,10 @@ def _route_next_room_menu(choice: str, session: SessionState) -> tuple[bool, Ses
     action_id = resolve_menu_action(
         choice,
         build_next_room_menu(
-            options=[(f"next_node:{node_id}", label) for node_id, label in zip(next_node_ids, labels, strict=False)]
+            options=[
+                (f"next_node:{node_id}", label)
+                for node_id, label in zip(next_node_ids, labels, strict=False)
+            ]
         ),
     )
     if action_id == "back":
@@ -1778,11 +2299,19 @@ def _route_next_room_menu(choice: str, session: SessionState) -> tuple[bool, Ses
     next_node_id = action_id.split(":", 1)[1]
     if not isinstance(next_node_id, str):
         return _invalid_menu_choice(session)
-    next_session = _advance_to_node(replace(session, menu_state=MenuState()), next_node_id)
-    return True, _preserve_menu_history(next_session, history_session=session), render_session(next_session)
+    next_session = _advance_to_node(
+        replace(session, menu_state=MenuState()), next_node_id
+    )
+    return (
+        True,
+        _preserve_menu_history(next_session, history_session=session),
+        render_session(next_session),
+    )
 
 
-def _route_event_choice_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+def _route_event_choice_menu(
+    choice: str, session: SessionState
+) -> tuple[bool, SessionState, str]:
     event_id = session.room_state.payload.get("event_id")
     if not isinstance(event_id, str):
         return True, replace(session, menu_state=MenuState()), "当前事件不可用。"
@@ -1790,7 +2319,10 @@ def _route_event_choice_menu(choice: str, session: SessionState) -> tuple[bool, 
     action_id = resolve_menu_action(
         choice,
         build_event_choice_menu(
-            options=[(f"choice:{choice_def.get('id')}", str(choice_def.get("label"))) for choice_def in event_def.choices]
+            options=[
+                (f"choice:{choice_def.get('id')}", str(choice_def.get("label")))
+                for choice_def in event_def.choices
+            ]
         ),
     )
     if action_id == "back":
@@ -1811,19 +2343,31 @@ def _route_event_choice_menu(choice: str, session: SessionState) -> tuple[bool, 
         session,
         run_state=result.run_state,
         room_state=result.room_state,
-        run_phase=_derive_run_phase(result.run_state, session.act_state, result.room_state, registry=_content_provider(session)),
+        run_phase=_derive_run_phase(
+            result.run_state,
+            session.act_state,
+            result.room_state,
+            registry=_content_provider(session),
+        ),
         menu_state=_menu_state_for_room(result.room_state),
     )
     return True, next_session, _message_with_render(next_session, result.message)
 
 
-def _route_event_upgrade_card_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+def _route_event_upgrade_card_menu(
+    choice: str, session: SessionState
+) -> tuple[bool, SessionState, str]:
     options = session.room_state.payload.get("upgrade_options", [])
     if not isinstance(options, list):
         return _invalid_menu_choice(session)
     action_id = resolve_menu_action(
         choice,
-        build_event_upgrade_menu(options=[(f"upgrade_card:{card_instance_id}", str(card_instance_id)) for card_instance_id in options]),
+        build_event_upgrade_menu(
+            options=[
+                (f"upgrade_card:{card_instance_id}", str(card_instance_id))
+                for card_instance_id in options
+            ]
+        ),
     )
     if action_id == "cancel":
         result = event_action(
@@ -1845,19 +2389,31 @@ def _route_event_upgrade_card_menu(choice: str, session: SessionState) -> tuple[
         session,
         run_state=result.run_state,
         room_state=result.room_state,
-        run_phase=_derive_run_phase(result.run_state, session.act_state, result.room_state, registry=_content_provider(session)),
+        run_phase=_derive_run_phase(
+            result.run_state,
+            session.act_state,
+            result.room_state,
+            registry=_content_provider(session),
+        ),
         menu_state=_menu_state_for_room(result.room_state),
     )
     return True, next_session, _message_with_render(next_session, result.message)
 
 
-def _route_event_remove_card_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+def _route_event_remove_card_menu(
+    choice: str, session: SessionState
+) -> tuple[bool, SessionState, str]:
     candidates = session.room_state.payload.get("remove_candidates", [])
     if not isinstance(candidates, list):
         return _invalid_menu_choice(session)
     action_id = resolve_menu_action(
         choice,
-        build_event_remove_menu(options=[(f"remove_card:{card_instance_id}", str(card_instance_id)) for card_instance_id in candidates]),
+        build_event_remove_menu(
+            options=[
+                (f"remove_card:{card_instance_id}", str(card_instance_id))
+                for card_instance_id in candidates
+            ]
+        ),
     )
     if action_id == "cancel":
         result = event_action(
@@ -1879,14 +2435,26 @@ def _route_event_remove_card_menu(choice: str, session: SessionState) -> tuple[b
         session,
         run_state=result.run_state,
         room_state=result.room_state,
-        run_phase=_derive_run_phase(result.run_state, session.act_state, result.room_state, registry=_content_provider(session)),
+        run_phase=_derive_run_phase(
+            result.run_state,
+            session.act_state,
+            result.room_state,
+            registry=_content_provider(session),
+        ),
         menu_state=_menu_state_for_room(result.room_state),
     )
     return True, next_session, _message_with_render(next_session, result.message)
 
 
-def _route_reward_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
-    action_id = resolve_menu_action(choice, build_reward_menu(room_state=session.room_state, registry=_content_provider(session)))
+def _route_reward_menu(
+    choice: str, session: SessionState
+) -> tuple[bool, SessionState, str]:
+    action_id = resolve_menu_action(
+        choice,
+        build_reward_menu(
+            room_state=session.room_state, registry=_content_provider(session)
+        ),
+    )
     if action_id is None:
         return _invalid_menu_choice(session)
     if action_id == "back":
@@ -1904,7 +2472,9 @@ def _route_reward_menu(choice: str, session: SessionState) -> tuple[bool, Sessio
     return _invalid_menu_choice(session)
 
 
-def _route_boss_reward_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+def _route_boss_reward_menu(
+    choice: str, session: SessionState
+) -> tuple[bool, SessionState, str]:
     boss_rewards = _boss_rewards(session.room_state)
     if boss_rewards is None:
         return _invalid_menu_choice(session)
@@ -1925,7 +2495,9 @@ def _route_boss_reward_menu(choice: str, session: SessionState) -> tuple[bool, S
     return True, next_session, render_session(next_session)
 
 
-def _route_boss_relic_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+def _route_boss_relic_menu(
+    choice: str, session: SessionState
+) -> tuple[bool, SessionState, str]:
     boss_rewards = _boss_rewards(session.room_state)
     if boss_rewards is None:
         next_session = replace(session, menu_state=MenuState())
@@ -1933,7 +2505,9 @@ def _route_boss_relic_menu(choice: str, session: SessionState) -> tuple[bool, Se
     offers = boss_rewards.get("boss_relic_offers")
     if not isinstance(offers, list):
         return _invalid_menu_choice(session)
-    action_id = resolve_menu_action(choice, build_boss_relic_menu(offers, registry=_content_provider(session)))
+    action_id = resolve_menu_action(
+        choice, build_boss_relic_menu(offers, registry=_content_provider(session))
+    )
     if action_id is None:
         return _invalid_menu_choice(session)
     if action_id == "back":
@@ -1946,10 +2520,16 @@ def _route_boss_relic_menu(choice: str, session: SessionState) -> tuple[bool, Se
     return True, next_session, render_session(next_session)
 
 
-def _route_shop_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+def _route_shop_root_menu(
+    choice: str, session: SessionState
+) -> tuple[bool, SessionState, str]:
     action_id = resolve_menu_action(
         choice,
-        build_shop_root_menu(run_state=session.run_state, room_state=session.room_state, registry=_content_provider(session)),
+        build_shop_root_menu(
+            run_state=session.run_state,
+            room_state=session.room_state,
+            registry=_content_provider(session),
+        ),
     )
     if action_id is None:
         return _invalid_menu_choice(session)
@@ -1962,7 +2542,9 @@ def _route_shop_root_menu(choice: str, session: SessionState) -> tuple[bool, Ses
         return _load_current_session(session)
     if action_id == "quit":
         return False, replace(session, menu_state=MenuState()), "已退出游戏。"
-    result = shop_action(run_state=session.run_state, room_state=session.room_state, action_id=action_id)
+    result = shop_action(
+        run_state=session.run_state, room_state=session.room_state, action_id=action_id
+    )
     next_session = replace(
         session,
         run_state=result.run_state,
@@ -1972,10 +2554,14 @@ def _route_shop_root_menu(choice: str, session: SessionState) -> tuple[bool, Ses
     return True, next_session, _message_with_render(next_session, result.message)
 
 
-def _route_shop_remove_card_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+def _route_shop_remove_card_menu(
+    choice: str, session: SessionState
+) -> tuple[bool, SessionState, str]:
     action_id = resolve_menu_action(
         choice,
-        build_shop_remove_menu(room_state=session.room_state, registry=_content_provider(session)),
+        build_shop_remove_menu(
+            room_state=session.room_state, registry=_content_provider(session)
+        ),
     )
     if action_id is None:
         return _invalid_menu_choice(session)
@@ -1985,7 +2571,9 @@ def _route_shop_remove_card_menu(choice: str, session: SessionState) -> tuple[bo
         return _load_current_session(session)
     if action_id == "quit":
         return False, replace(session, menu_state=MenuState()), "已退出游戏。"
-    result = shop_action(run_state=session.run_state, room_state=session.room_state, action_id=action_id)
+    result = shop_action(
+        run_state=session.run_state, room_state=session.room_state, action_id=action_id
+    )
     next_session = replace(
         session,
         run_state=result.run_state,
@@ -1995,10 +2583,14 @@ def _route_shop_remove_card_menu(choice: str, session: SessionState) -> tuple[bo
     return True, next_session, _message_with_render(next_session, result.message)
 
 
-def _route_rest_root_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+def _route_rest_root_menu(
+    choice: str, session: SessionState
+) -> tuple[bool, SessionState, str]:
     action_id = resolve_menu_action(
         choice,
-        build_rest_root_menu(room_state=session.room_state, run_state=session.run_state),
+        build_rest_root_menu(
+            room_state=session.room_state, run_state=session.run_state
+        ),
     )
     if action_id is None:
         return _invalid_menu_choice(session)
@@ -2026,10 +2618,14 @@ def _route_rest_root_menu(choice: str, session: SessionState) -> tuple[bool, Ses
     return True, next_session, _message_with_render(next_session, result.message)
 
 
-def _route_rest_upgrade_card_menu(choice: str, session: SessionState) -> tuple[bool, SessionState, str]:
+def _route_rest_upgrade_card_menu(
+    choice: str, session: SessionState
+) -> tuple[bool, SessionState, str]:
     action_id = resolve_menu_action(
         choice,
-        build_rest_upgrade_menu(room_state=session.room_state, registry=_content_provider(session)),
+        build_rest_upgrade_menu(
+            room_state=session.room_state, registry=_content_provider(session)
+        ),
     )
     if action_id is None:
         return _invalid_menu_choice(session)
@@ -2054,8 +2650,12 @@ def _route_rest_upgrade_card_menu(choice: str, session: SessionState) -> tuple[b
     return True, next_session, _message_with_render(next_session, result.message)
 
 
-def _route_menu_choice_legacy(choice: str, *, session: SessionState) -> tuple[bool, SessionState, str]:
-    next_session = _normalize_legacy_reward_inspect_mode(_with_menu_choice_history(session, choice.strip()))
+def _route_menu_choice_legacy(
+    choice: str, *, session: SessionState
+) -> tuple[bool, SessionState, str]:
+    next_session = _normalize_legacy_reward_inspect_mode(
+        _with_menu_choice_history(session, choice.strip())
+    )
     if next_session.menu_state.mode == "opening_character_select":
         return _route_opening_character_select_menu(choice.strip(), next_session)
     if next_session.menu_state.mode == "opening_neow_offer":
