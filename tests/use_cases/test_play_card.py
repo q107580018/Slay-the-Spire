@@ -1042,3 +1042,103 @@ def test_play_card_exhume_logs_exhaust_retrieval() -> None:
     play_card(state, "exhume#1", {"exhaust": "strike#9"}, provider)
 
     assert any("从消耗堆" in entry for entry in state.log)
+
+
+def test_play_card_iron_wave_gains_block_and_deals_damage() -> None:
+    state = _combat_state(hand=["iron_wave#1"])
+    provider = _provider_with_card(
+        card_id="iron_wave",
+        effects=[{"type": "block", "amount": 5}, {"type": "damage", "amount": 5}],
+    )
+
+    play_card(state, "iron_wave#1", "enemy-1", provider)
+
+    assert state.player.block == 5
+    assert state.enemies[0].hp == 5
+
+
+def test_play_card_limit_break_doubles_strength() -> None:
+    state = _combat_state(hand=["limit_break#1"])
+    state.player.statuses.append(StatusState(status_id="strength", stacks=3))
+    provider = _provider_with_card(
+        card_id="limit_break", effects=[{"type": "double_strength"}], card_type="skill"
+    )
+
+    play_card(state, "limit_break#1", None, provider)
+
+    assert state.player.statuses == [StatusState(status_id="strength", stacks=6)]
+
+
+def test_play_card_reaper_deals_damage_to_all_enemies_and_heals() -> None:
+    state = _combat_state(hand=["reaper#1"], enemy_hps=[10, 10])
+    state.player.hp = 30
+    provider = _provider_with_card(
+        card_id="reaper",
+        effects=[{"type": "damage_lifesteal_all_enemies", "amount": 4}],
+    )
+
+    play_card(state, "reaper#1", None, provider)
+
+    assert state.enemies[0].hp == 6
+    assert state.enemies[1].hp == 6
+    assert state.player.hp == 38
+
+
+def test_play_card_fiend_fire_exhausts_hand_and_deals_damage_per_card() -> None:
+    state = _combat_state(
+        hand=["fiend_fire#1", "strike#2", "defend#3"], energy=3, enemy_hps=[100]
+    )
+    provider = _provider_with_card(
+        card_id="fiend_fire",
+        effects=[
+            {"type": "exhaust_all_in_hand"},
+            {"type": "damage", "amount": 7},
+        ],
+        card_type="attack",
+    )
+    provider.cards().register(
+        {
+            "id": "strike",
+            "name": "打击",
+            "cost": 1,
+            "card_type": "attack",
+            "effects": [{"type": "damage", "amount": 6}],
+        }
+    )
+    provider.cards().register(
+        {
+            "id": "defend",
+            "name": "防御",
+            "cost": 1,
+            "card_type": "skill",
+            "effects": [{"type": "block", "amount": 5}],
+        }
+    )
+
+    play_card(state, "fiend_fire#1", "enemy-1", provider)
+
+    assert "strike#2" in state.exhaust_pile
+    assert "defend#3" in state.exhaust_pile
+    assert state.hand == []
+    assert state.enemies[0].hp == 93
+
+
+def test_play_card_corruption_adds_power_and_skills_cost_zero() -> None:
+    state = _combat_state(hand=["corruption#1"])
+    provider = _provider_with_card(
+        card_id="corruption",
+        effects=[
+            {
+                "type": "add_power",
+                "power_id": "corruption",
+                "amount": 1,
+            }
+        ],
+        card_type="power",
+    )
+
+    play_card(state, "corruption#1", None, provider)
+
+    assert any(p.get("power_id") == "corruption" for p in state.active_powers)
+    assert state.exhaust_pile == []
+    assert state.discard_pile == []

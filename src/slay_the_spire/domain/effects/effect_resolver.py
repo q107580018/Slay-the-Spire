@@ -13,6 +13,7 @@ from slay_the_spire.domain.effects.effect_types import (
     EFFECT_CREATE_CARD_COPY,
     EFFECT_DAMAGE,
     EFFECT_DAMAGE_EQUAL_TO_BLOCK,
+    EFFECT_DAMAGE_LIFESTEAL_ALL_ENEMIES,
     EFFECT_DAMAGE_PER_STRIKE_IN_DECK,
     EFFECT_DAMAGE_WITH_STRENGTH_MULTIPLIER,
     EFFECT_DEXTERITY,
@@ -1073,6 +1074,36 @@ def resolve_next_effect(
             **effect,
             "result": {"doubled_from": current, "doubled_to": current * 2},
         }
+
+    if effect_type == EFFECT_DAMAGE_LIFESTEAL_ALL_ENEMIES:
+        source = _get_target(state, effect.get("source_instance_id"))
+        base_amount = int(effect.get("amount", 0))
+        total_healed = 0
+        results: list[JsonDict] = []
+        for enemy in state.enemies:
+            if enemy.hp <= 0:
+                continue
+            applied_amount = _damage_amount(source, enemy, base_amount)
+            blocked, actual_damage = _damage_target(enemy, applied_amount)
+            total_healed += actual_damage
+            results.append(
+                {
+                    "target_instance_id": enemy.instance_id,
+                    "applied_amount": applied_amount,
+                    "blocked": blocked,
+                    "actual_damage": actual_damage,
+                    "target_defeated": enemy.hp == 0,
+                }
+            )
+            if enemy.hp == 0:
+                state.effect_queue.append(
+                    emit_hook_effect(
+                        hook_name="on_enemy_defeated",
+                        payload={"target_instance_id": enemy.instance_id},
+                    )
+                )
+        healed = _heal_target(state.player, total_healed)
+        return _with_result(effect, hits=results, total_healed=healed)
 
     raise ValueError(f"unsupported effect type: {effect_type}")
 
