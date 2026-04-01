@@ -404,13 +404,22 @@ def _shop_offer_by_action_id(
 
 def _format_neow_offer_hover_lines(offer, *, registry) -> list[Text | str]:
     detail_lines = format_neow_offer_detail_lines(offer, registry=registry)
+    cost_value = detail_lines[-1] if offer.cost_kind is not None else "无"
+    reward_value = offer.summary
     reward_payload = offer.reward_payload
+    if offer.reward_kind == "gold":
+        reward_value = f"获得 {reward_payload['amount']} 金币"
+    elif offer.reward_kind == "upgrade_card":
+        reward_value = "升级牌组中任意一张可升级的牌"
+    elif offer.reward_kind == "remove_card":
+        reward_value = "移除牌组中任意一张牌"
+    header = f"奖励：{reward_value}    代价：{cost_value}"
     if offer.reward_kind == "relic":
         relic_id = str(reward_payload["relic_id"])
-        return format_relic_detail_lines(relic_id, registry)
+        return [header, *format_relic_detail_lines(relic_id, registry)]
     if offer.reward_kind == "potion":
         potion_id = str(reward_payload["potion_id"])
-        return format_potion_detail_lines(potion_id, registry)
+        return [header, *format_potion_detail_lines(potion_id, registry)]
     if offer.reward_kind == "rare_card":
         card_id = str(reward_payload["card_id"])
         lines = [
@@ -418,15 +427,14 @@ def _format_neow_offer_hover_lines(offer, *, registry) -> list[Text | str]:
             for line in format_card_detail_lines(f"{card_id}#neow", registry)
             if _plain_label(line) != f"实例 {card_id}#neow"
         ]
-        return lines
+        return [header, *lines]
     if offer.reward_kind == "curse_bonus":
         reward_type = str(reward_payload["reward_type"])
-        cost_line = f"代价：{detail_lines[-1]}"
         if reward_type == "gold":
-            return [f"获得 {reward_payload['amount']} 金币", cost_line]
+            return [header, f"获得 {reward_payload['amount']} 金币"]
         if reward_type == "relic":
             relic_id = str(reward_payload["relic_id"])
-            return [*format_relic_detail_lines(relic_id, registry), cost_line]
+            return [header, *format_relic_detail_lines(relic_id, registry)]
         if reward_type == "card":
             card_id = str(reward_payload["card_id"])
             lines = [
@@ -434,17 +442,15 @@ def _format_neow_offer_hover_lines(offer, *, registry) -> list[Text | str]:
                 for line in format_card_detail_lines(f"{card_id}#neow", registry)
                 if _plain_label(line) != f"实例 {card_id}#neow"
             ]
-            return [*lines, cost_line]
-        return [*detail_lines[:-1], cost_line]
+            return [header, *lines]
+        return [header, *detail_lines[:-1]]
     if offer.reward_kind == "gold":
-        return [
-            detail_lines[1],
-        ]
+        return [header, detail_lines[1]]
     if offer.reward_kind == "upgrade_card":
-        return ["升级牌组中任意一张可升级的牌", f"代价：{detail_lines[-1]}"]
+        return [header]
     if offer.reward_kind == "remove_card":
-        return ["移除牌组中任意一张牌", f"代价：{detail_lines[-1]}"]
-    return detail_lines
+        return [header]
+    return [header, *detail_lines]
 
 
 def _opening_hover_preview_renderable(

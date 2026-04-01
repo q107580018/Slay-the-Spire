@@ -232,7 +232,8 @@ def test_hover_preview_shows_neow_gold_offer_amount_without_cost() -> None:
     assert preview is not None
     assert str(offer.reward_payload["amount"]) in preview.plain
     assert "金币" in preview.plain
-    assert "代价" not in preview.plain
+    assert "代价" in preview.plain
+    assert "无" in preview.plain
 
 
 def test_hover_preview_shows_neow_upgrade_offer_cost() -> None:
@@ -288,8 +289,12 @@ def test_hover_preview_shows_neow_curse_bonus_reward_details_and_curse_cost() ->
 
     assert preview is not None
     assert "代价" in preview.plain
-    assert cost_name in preview.plain
+    assert "随机诅咒牌" in preview.plain
+    assert cost_name not in preview.plain
     assert "获得诅咒牌" not in preview.plain
+    first_line = preview.plain.splitlines()[0]
+    assert first_line.startswith("奖励：")
+    assert "代价：" in first_line
     if offer.reward_payload["reward_type"] == "gold":
         assert "250" in preview.plain
         assert "金币" in preview.plain
