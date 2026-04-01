@@ -5,6 +5,8 @@ from collections.abc import Mapping, Sequence
 from slay_the_spire.content.registries import EnemyDef
 from slay_the_spire.domain.effects.effect_resolver import (
     _apply_status,
+    _draw_cards,
+    _move_cards_to_exhaust,
     refill_draw_pile_from_discard,
     resolve_effect_queue,
 )
@@ -30,19 +32,6 @@ def _require_mapping(value: object, field_name: str) -> Mapping[str, object]:
     if not isinstance(value, Mapping):
         raise TypeError(f"{field_name} must be a mapping")
     return value
-
-
-def _draw_cards(state: CombatState, *, amount: int) -> None:
-    for power in state.active_powers:
-        if power.get("power_id") == "battle_trance":
-            raw_amount = power.get("amount")
-            if isinstance(raw_amount, int) and raw_amount > 0:
-                return
-    for _ in range(max(amount, 0)):
-        if not state.draw_pile:
-            if not refill_draw_pile_from_discard(state):
-                break
-        state.hand.append(state.draw_pile.pop(0))
 
 
 def _status_stacks(enemy: EnemyState, status_id: str) -> int:
@@ -336,7 +325,7 @@ def _move_end_turn_hand_cards(
     for card_instance_id in tuple(state.hand):
         card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
         if card_def.ethereal:
-            state.exhaust_pile.append(card_instance_id)
+            _move_cards_to_exhaust(state, [card_instance_id], registry=registry)
         else:
             state.discard_pile.append(card_instance_id)
     state.hand.clear()
@@ -406,6 +395,51 @@ def _apply_start_turn_powers(state: CombatState) -> None:
             _apply_status(state.player, status_id="strength", stacks=amount)
 
 
+def _apply_brutality(state: CombatState) -> None:
+    for power in state.active_powers:
+        if power.get("power_id") != "brutality":
+            continue
+        raw_amount = power.get("amount")
+        amount = raw_amount if isinstance(raw_amount, int) else 0
+        raw_self_damage = power.get("self_damage", 1)
+        self_damage = raw_self_damage if isinstance(raw_self_damage, int) else 0
+        if self_damage > 0:
+            state.effect_queue.append(
+                {
+                    "type": "lose_hp",
+                    "source_instance_id": state.player.instance_id,
+                    "target_instance_id": state.player.instance_id,
+                    "amount": self_damage,
+                    "power_id": "brutality",
+                    "trigger": "start_turn_power",
+                }
+            )
+        if amount > 0:
+            state.effect_queue.append(
+                {
+                    "type": "draw",
+                    "source_instance_id": state.player.instance_id,
+                    "target_instance_id": state.player.instance_id,
+                    "amount": amount,
+                    "power_id": "brutality",
+                    "trigger": "start_turn_power",
+                }
+            )
+
+
+def _remove_flex_power(state: CombatState) -> None:
+    next_active_powers: list[JsonDict] = []
+    for power in state.active_powers:
+        if power.get("power_id") != "flex_power":
+            next_active_powers.append(power)
+            continue
+        raw_amount = power.get("amount")
+        amount = raw_amount if isinstance(raw_amount, int) else 0
+        if amount > 0:
+            _apply_status(state.player, status_id="strength", stacks=-amount)
+    state.active_powers = next_active_powers
+
+
 def _has_player_power(state: CombatState, power_id: str) -> bool:
     return any(power.get("power_id") == power_id for power in state.active_powers)
 
@@ -415,6 +449,9 @@ def start_turn(
     *,
     hand_size: int = DEFAULT_HAND_SIZE,
     energy_per_turn: int = DEFAULT_ENERGY_PER_TURN,
+    registry: ContentProviderPort | None = None,
+    resolved_effects: list[JsonDict] | None = None,
+    hook_registrations: Sequence[HookRegistration] = (),
 ) -> CombatState:
     _clear_block_for_turn_start(
         state.player,
@@ -423,7 +460,20 @@ def start_turn(
     _clear_temporary_power(state, "flame_barrier")
     _apply_start_turn_powers(state)
     state.energy = energy_per_turn
-    _draw_cards(state, amount=max(hand_size - len(state.hand), 0))
+    _apply_brutality(state)
+    _draw_cards(
+        state,
+        amount=max(hand_size - len(state.hand), 0),
+        registry=registry,
+    )
+    if state.effect_queue:
+        resolved = resolve_effect_queue(
+            state,
+            hook_registrations=hook_registrations,
+            registry=registry,
+        )
+        if resolved_effects is not None:
+            resolved_effects.extend(resolved)
     return state
 
 
@@ -431,8 +481,13 @@ def resolve_player_actions(
     state: CombatState,
     *,
     hook_registrations: Sequence[HookRegistration] = (),
+    registry: ContentProviderPort | None = None,
 ) -> list[JsonDict]:
-    return resolve_effect_queue(state, hook_registrations=hook_registrations)
+    return resolve_effect_queue(
+        state,
+        hook_registrations=hook_registrations,
+        registry=registry,
+    )
 
 
 def run_enemy_turn(
@@ -469,7 +524,11 @@ def run_enemy_turn(
                 default_target_id=state.player.instance_id,
             )
         )
-    return resolve_effect_queue(state, hook_registrations=hook_registrations)
+    return resolve_effect_queue(
+        state,
+        hook_registrations=hook_registrations,
+        registry=registry,
+    )
 
 
 def end_turn(
@@ -483,13 +542,18 @@ def end_turn(
     resolved = []
     hand_at_end_turn = tuple(state.hand)
     _clear_temporary_power(state, "battle_trance")
+    _remove_flex_power(state)
     state.effect_queue.extend(_active_power_end_turn_effects(state))
     state.effect_queue.extend(
         _burn_end_turn_effects(hand_at_end_turn, state.player.instance_id)
     )
     if state.effect_queue:
         resolved.extend(
-            resolve_effect_queue(state, hook_registrations=hook_registrations)
+            resolve_effect_queue(
+                state,
+                hook_registrations=hook_registrations,
+                registry=registry,
+            )
         )
     _move_end_turn_hand_cards(state, registry)
     if state.player.hp <= 0:
@@ -500,8 +564,14 @@ def end_turn(
     )
     if state.effect_queue:
         resolved.extend(
-            resolve_effect_queue(state, hook_registrations=hook_registrations)
+            resolve_effect_queue(
+                state,
+                hook_registrations=hook_registrations,
+                registry=registry,
+            )
         )
+    if state.player.hp <= 0:
+        return resolved
     resolved.extend(
         run_enemy_turn(
             state,
@@ -518,5 +588,8 @@ def end_turn(
         state,
         hand_size=hand_size,
         energy_per_turn=energy_per_turn,
+        registry=registry,
+        resolved_effects=resolved,
+        hook_registrations=hook_registrations,
     )
     return resolved

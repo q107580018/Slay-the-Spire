@@ -197,12 +197,7 @@ def test_save_load_preserves_act2_progress_and_multi_enemy_room(tmp_path: Path) 
     room_state = enter_room(run_state, act_state, node_id=node_id, registry=provider)
     repository = JsonFileSaveRepository(tmp_path / "act2_multi_enemy.json")
 
-    save_game(
-        repository=repository,
-        run_state=run_state,
-        act_state=act_state,
-        room_state=room_state,
-    )
+    save_game(repository=repository, run_state=run_state, act_state=act_state, room_state=room_state)
 
     restored = load_game(repository=repository)
     combat_state = CombatState.from_dict(restored["room_state"].payload["combat_state"])
@@ -285,6 +280,8 @@ def test_save_load_round_trips_extended_combat_state(tmp_path: Path) -> None:
     )
 
     restored = load_game(repository=repository)
+
+    assert restored["combat_state"] is not None
     assert restored["combat_state"].to_dict() == combat_state.to_dict()
 
 
@@ -454,15 +451,7 @@ def test_load_game_rejects_mismatched_combat_state_sources(tmp_path: Path) -> No
 def test_load_game_rejects_unknown_schema_version(tmp_path: Path) -> None:
     repository = JsonFileSaveRepository(tmp_path / "save.json")
     (tmp_path / "save.json").write_text(
-        json.dumps(
-            {
-                "schema_version": 999,
-                "run_state": None,
-                "act_state": None,
-                "room_state": None,
-                "combat_state": None,
-            }
-        ),
+        json.dumps({"schema_version": 999, "run_state": None, "act_state": None, "room_state": None, "combat_state": None}),
         encoding="utf-8",
     )
 
@@ -560,15 +549,10 @@ def test_save_load_preserves_boss_chest_room_state(tmp_path: Path) -> None:
     assert restored["room_state"].room_type == "boss_chest"
     assert restored["room_state"].is_resolved is True
     assert restored["room_state"].payload["next_act_id"] == "act2"
-    assert (
-        restored["room_state"].payload["boss_rewards"]["claimed_relic_id"]
-        == "black_blood"
-    )
+    assert restored["room_state"].payload["boss_rewards"]["claimed_relic_id"] == "black_blood"
 
 
-def test_load_game_rejects_previous_schema_version_with_clear_error(
-    tmp_path: Path,
-) -> None:
+def test_load_game_rejects_previous_schema_version_with_clear_error(tmp_path: Path) -> None:
     repository = JsonFileSaveRepository(tmp_path / "save.json")
     (tmp_path / "save.json").write_text(
         json.dumps(

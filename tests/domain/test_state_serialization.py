@@ -90,12 +90,8 @@ def test_room_state_payload_round_trips_shop_inventory_fields():
         stage="waiting_input",
         payload={
             "cards": [{"offer_id": "card-1", "card_id": "strike", "price": 50}],
-            "relics": [
-                {"offer_id": "relic-1", "relic_id": "burning_blood", "price": 150}
-            ],
-            "potions": [
-                {"offer_id": "potion-1", "potion_id": "fire_potion", "price": 60}
-            ],
+            "relics": [{"offer_id": "relic-1", "relic_id": "burning_blood", "price": 150}],
+            "potions": [{"offer_id": "potion-1", "potion_id": "fire_potion", "price": 60}],
             "remove_price": 75,
             "remove_candidates": ["strike#1", "defend#2"],
         },
@@ -133,9 +129,7 @@ def test_room_and_combat_state_round_trip_without_python_object_refs():
         player=player,
         enemies=[enemy],
         effect_queue=[],
-        active_powers=[
-            {"power_id": "inflame", "stacks": 2, "meta": {"source": "relic"}}
-        ],
+        active_powers=[{"power_id": "inflame", "stacks": 2, "meta": {"source": "relic"}}],
         log=["combat starts"],
     )
     room_state = RoomState(
@@ -194,9 +188,7 @@ def test_combat_state_round_trips_active_powers() -> None:
         ),
         enemies=[],
         effect_queue=[],
-        active_powers=[
-            {"power_id": "inflame", "stacks": 2, "meta": {"source": "relic"}}
-        ],
+        active_powers=[{"power_id": "inflame", "stacks": 2, "meta": {"source": "relic"}}],
         log=[],
     )
 
@@ -259,22 +251,46 @@ def test_combat_state_from_dict_defaults_missing_active_powers_to_empty_list() -
     assert restored.active_powers == []
 
 
+def test_combat_state_from_dict_defaults_missing_runtime_card_state_fields() -> None:
+    restored = CombatState.from_dict(
+        {
+            "schema_version": 1,
+            "round_number": 1,
+            "energy": 3,
+            "hand": [],
+            "draw_pile": [],
+            "discard_pile": [],
+            "exhaust_pile": [],
+            "player": {
+                "schema_version": 1,
+                "instance_id": "player-1",
+                "hp": 80,
+                "max_hp": 80,
+                "block": 0,
+                "statuses": [],
+                "kind": "player",
+            },
+            "enemies": [],
+            "effect_queue": [],
+            "log": [],
+        }
+    )
+
+    assert restored.times_hit_this_combat == 0
+    assert restored.card_play_data == {}
+    assert restored.temporary_costs == {}
+
+
 def test_act_state_constructor_rejects_dangling_next_node_edges():
     with pytest.raises(ValueError, match="next_node_ids"):
         ActState(
-            schema_version=1,
-            act_id="act-1",
-            current_node_id="node-1",
-            nodes=[
-                ActNodeState(
-                    node_id="node-1",
-                    row=0,
-                    col=0,
-                    room_type="combat",
-                    next_node_ids=["node-2"],
-                ),
-            ],
-            visited_node_ids=[],
+                schema_version=1,
+                act_id="act-1",
+                current_node_id="node-1",
+                nodes=[
+                ActNodeState(node_id="node-1", row=0, col=0, room_type="combat", next_node_ids=["node-2"]),
+                ],
+                visited_node_ids=[],
         )
 
 
@@ -407,15 +423,7 @@ def test_run_state_constructor_rejects_empty_optional_identity(kwargs, field_nam
                 "schema_version": 1,
                 "act_id": 1,
                 "current_node_id": "node-1",
-                "nodes": [
-                    ActNodeState(
-                        node_id="node-1",
-                        row=0,
-                        col=0,
-                        room_type="combat",
-                        next_node_ids=[],
-                    )
-                ],
+                "nodes": [ActNodeState(node_id="node-1", row=0, col=0, room_type="combat", next_node_ids=[])],
                 "visited_node_ids": [],
             },
             TypeError,
@@ -427,15 +435,7 @@ def test_run_state_constructor_rejects_empty_optional_identity(kwargs, field_nam
                 "schema_version": 1,
                 "act_id": "act-1",
                 "current_node_id": 1,
-                "nodes": [
-                    ActNodeState(
-                        node_id="node-1",
-                        row=0,
-                        col=0,
-                        room_type="combat",
-                        next_node_ids=[],
-                    )
-                ],
+                "nodes": [ActNodeState(node_id="node-1", row=0, col=0, room_type="combat", next_node_ids=[])],
                 "visited_node_ids": [],
             },
             TypeError,
@@ -447,15 +447,7 @@ def test_run_state_constructor_rejects_empty_optional_identity(kwargs, field_nam
                 "schema_version": 1,
                 "act_id": "",
                 "current_node_id": "node-1",
-                "nodes": [
-                    ActNodeState(
-                        node_id="node-1",
-                        row=0,
-                        col=0,
-                        room_type="combat",
-                        next_node_ids=[],
-                    )
-                ],
+                "nodes": [ActNodeState(node_id="node-1", row=0, col=0, room_type="combat", next_node_ids=[])],
                 "visited_node_ids": [],
             },
             ValueError,
@@ -467,15 +459,7 @@ def test_run_state_constructor_rejects_empty_optional_identity(kwargs, field_nam
                 "schema_version": 1,
                 "act_id": "act-1",
                 "current_node_id": "",
-                "nodes": [
-                    ActNodeState(
-                        node_id="node-1",
-                        row=0,
-                        col=0,
-                        room_type="combat",
-                        next_node_ids=[],
-                    )
-                ],
+                "nodes": [ActNodeState(node_id="node-1", row=0, col=0, room_type="combat", next_node_ids=[])],
                 "visited_node_ids": [],
             },
             ValueError,
@@ -505,35 +489,17 @@ def test_identity_like_fields_are_validated_on_direct_construction(
         ),
         (
             PlayerCombatState,
-            {
-                "instance_id": "player-1",
-                "hp": True,
-                "max_hp": 10,
-                "block": 0,
-                "statuses": [],
-            },
+            {"instance_id": "player-1", "hp": True, "max_hp": 10, "block": 0, "statuses": []},
             "hp",
         ),
         (
             PlayerCombatState,
-            {
-                "instance_id": "player-1",
-                "hp": 10,
-                "max_hp": True,
-                "block": 0,
-                "statuses": [],
-            },
+            {"instance_id": "player-1", "hp": 10, "max_hp": True, "block": 0, "statuses": []},
             "max_hp",
         ),
         (
             PlayerCombatState,
-            {
-                "instance_id": "player-1",
-                "hp": 10,
-                "max_hp": 10,
-                "block": True,
-                "statuses": [],
-            },
+            {"instance_id": "player-1", "hp": 10, "max_hp": 10, "block": True, "statuses": []},
             "block",
         ),
         (
@@ -1107,15 +1073,7 @@ def test_combat_state_from_dict_rejects_non_string_effect_queue_keys():
 
 @pytest.mark.parametrize(
     "field_name",
-    [
-        "hand",
-        "draw_pile",
-        "discard_pile",
-        "exhaust_pile",
-        "enemies",
-        "effect_queue",
-        "log",
-    ],
+    ["hand", "draw_pile", "discard_pile", "exhaust_pile", "enemies", "effect_queue", "log"],
 )
 def test_combat_state_from_dict_requires_collection_fields(field_name):
     payload = {
@@ -1226,10 +1184,7 @@ def test_entity_from_dict_requires_statuses(factory, payload):
                 "log": [],
             },
         ),
-        (
-            StatusState,
-            {"schema_version": True, "status_id": "weak", "stacks": 1, "duration": 2},
-        ),
+        (StatusState, {"schema_version": True, "status_id": "weak", "stacks": 1, "duration": 2}),
     ],
 )
 def test_constructors_reject_boolean_schema_versions(factory, kwargs):
@@ -1340,6 +1295,49 @@ def test_combat_state_from_dict_rejects_string_lists(field, value):
         CombatState.from_dict(payload)
 
 
+@pytest.mark.parametrize(
+    ("field", "value", "error_type", "match"),
+    [
+        ("times_hit_this_combat", True, TypeError, "times_hit_this_combat"),
+        ("times_hit_this_combat", -1, ValueError, "times_hit_this_combat"),
+        ("card_play_data", [], TypeError, "card_play_data"),
+        ("card_play_data", {1: 2}, TypeError, "card_play_data key"),
+        ("card_play_data", {"rampage#1": True}, TypeError, "card_play_data value"),
+        ("temporary_costs", [], TypeError, "temporary_costs"),
+        ("temporary_costs", {1: 0}, TypeError, "temporary_costs key"),
+        ("temporary_costs", {"immolate#7": True}, TypeError, "temporary_costs value"),
+    ],
+)
+def test_combat_state_from_dict_rejects_invalid_runtime_card_state_fields(
+    field, value, error_type, match
+):
+    payload = {
+        "schema_version": 1,
+        "round_number": 1,
+        "energy": 3,
+        "hand": [],
+        "draw_pile": [],
+        "discard_pile": [],
+        "exhaust_pile": [],
+        "player": {
+            "schema_version": 1,
+            "instance_id": "player-1",
+            "hp": 80,
+            "max_hp": 80,
+            "block": 0,
+            "statuses": [],
+            "kind": "player",
+        },
+        "enemies": [],
+        "effect_queue": [],
+        "log": [],
+    }
+    payload[field] = value
+
+    with pytest.raises(error_type, match=match):
+        CombatState.from_dict(payload)
+
+
 def test_status_state_from_dict_rejects_non_mapping():
     with pytest.raises(TypeError):
         StatusState.from_dict(["not", "a", "mapping"])  # type: ignore[arg-type]
@@ -1447,23 +1445,9 @@ def test_act_state_rebuilds_derived_node_index_on_load():
         act_id="act-1",
         current_node_id="node-2",
         nodes=[
-            ActNodeState(
-                node_id="node-1",
-                row=0,
-                col=0,
-                room_type="combat",
-                next_node_ids=["node-2"],
-            ),
-            ActNodeState(
-                node_id="node-2",
-                row=1,
-                col=0,
-                room_type="event",
-                next_node_ids=["node-3"],
-            ),
-            ActNodeState(
-                node_id="node-3", row=2, col=0, room_type="boss", next_node_ids=[]
-            ),
+            ActNodeState(node_id="node-1", row=0, col=0, room_type="combat", next_node_ids=["node-2"]),
+            ActNodeState(node_id="node-2", row=1, col=0, room_type="event", next_node_ids=["node-3"]),
+            ActNodeState(node_id="node-3", row=2, col=0, room_type="boss", next_node_ids=[]),
         ],
         visited_node_ids=["node-1"],
         enemy_pool_id="basic",
