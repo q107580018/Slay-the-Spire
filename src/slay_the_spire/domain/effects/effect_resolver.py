@@ -22,6 +22,7 @@ from slay_the_spire.domain.effects.effect_types import (
     EFFECT_DRAW,
     EFFECT_EMIT_HOOK,
     EFFECT_EXHAUST_ALL_IN_HAND,
+    EFFECT_EXHAUST_ALL_IN_HAND_DAMAGE,
     EFFECT_EXHAUST_ALL_NON_ATTACKS_GAIN_BLOCK,
     EFFECT_EXHAUST_ALL_NON_ATTACKS_IN_HAND,
     EFFECT_EXHAUST_RANDOM_HAND,
@@ -518,6 +519,36 @@ def _first_living_enemy(state: CombatState) -> EnemyState | None:
     return None
 
 
+def _enqueue_juggernaut_on_gain_block(
+    state: CombatState, *, target: CombatEntityState, gained_block: int
+) -> None:
+    if (
+        not isinstance(target, PlayerCombatState)
+        or target.instance_id != state.player.instance_id
+        or gained_block <= 0
+    ):
+        return
+    for power in state.active_powers:
+        if power.get("power_id") != "juggernaut":
+            continue
+        raw_amount = power.get("amount")
+        amount = raw_amount if isinstance(raw_amount, int) else 0
+        if amount <= 0:
+            continue
+        enemy = _first_living_enemy(state)
+        if enemy is None:
+            break
+        juggernaut_damage = damage_effect(
+            source_instance_id=state.player.instance_id,
+            target_instance_id=enemy.instance_id,
+            amount=amount,
+        )
+        juggernaut_damage["power_id"] = "juggernaut"
+        juggernaut_damage["trigger"] = "on_gain_block"
+        state.effect_queue.insert(0, juggernaut_damage)
+        break
+
+
 def _apply_status(
     target: PlayerCombatState | EnemyState,
     *,
@@ -690,30 +721,9 @@ def resolve_next_effect(
         source = _get_target(state, effect.get("source_instance_id"))
         gained_block = max(int(effect.get("amount", 0)) + _dexterity_bonus(source), 0)
         target.block += gained_block
-        if (
-            isinstance(target, PlayerCombatState)
-            and target.instance_id == state.player.instance_id
-            and gained_block > 0
-        ):
-            for power in state.active_powers:
-                if power.get("power_id") != "juggernaut":
-                    continue
-                raw_amount = power.get("amount")
-                amount = raw_amount if isinstance(raw_amount, int) else 0
-                if amount <= 0:
-                    continue
-                enemy = _first_living_enemy(state)
-                if enemy is None:
-                    break
-                juggernaut_damage = damage_effect(
-                    source_instance_id=state.player.instance_id,
-                    target_instance_id=enemy.instance_id,
-                    amount=amount,
-                )
-                juggernaut_damage["power_id"] = "juggernaut"
-                juggernaut_damage["trigger"] = "on_gain_block"
-                state.effect_queue.insert(0, juggernaut_damage)
-                break
+        _enqueue_juggernaut_on_gain_block(
+            state, target=target, gained_block=gained_block
+        )
         return _with_result(effect, gained_block=gained_block)
 
     if effect_type == EFFECT_DOUBLE_BLOCK:
@@ -874,6 +884,9 @@ def resolve_next_effect(
             0,
         )
         source.block += gained_block
+        _enqueue_juggernaut_on_gain_block(
+            state, target=source, gained_block=gained_block
+        )
         return _with_result(
             effect,
             exhausted_cards=exhausted_cards,
@@ -903,6 +916,24 @@ def resolve_next_effect(
             effect,
             exhausted_cards=exhausted_cards,
             exhausted_count=len(exhausted_cards),
+        )
+
+    if effect_type == EFFECT_EXHAUST_ALL_IN_HAND_DAMAGE:
+        exhausted_cards = _move_cards_to_exhaust(
+            state,
+            list(state.hand),
+            registry=registry,
+        )
+        return _resolve_damage_effect(
+            state,
+            effect,
+            base_amount=len(exhausted_cards) * int(effect.get("amount_per_card", 0)),
+            extra_result={
+                "exhausted_cards": exhausted_cards,
+                "exhausted_count": len(exhausted_cards),
+                "base_amount": len(exhausted_cards)
+                * int(effect.get("amount_per_card", 0)),
+            },
         )
 
     if effect_type == EFFECT_EXHAUST_RANDOM_HAND:

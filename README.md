@@ -22,6 +22,7 @@
 - 当前铁甲战士红卡已按原版 1 代完整补齐，包含普通 / 非普通 / 稀有 / 无限升级 `Searing Blow`、动态费用 `Blood for Blood`、条件出牌 `Clash`、消耗联动 `Dark Embrace` / `Feel No Pain`、状态牌联动 `Evolve` / `Fire Breathing`、双目标牌 `Headbutt` 等完整机制
 - 当前 `Corruption` 已按原版规则生效：所有技能牌耗能变为 `0`，且在被打出时进入消耗堆；相关逻辑已收口到通用“卡牌运行时规则”层，便于继续扩展其他运行时覆写效果
 - 当前 `Rampage` / `Rampage+` 已支持按同一张卡实例进行战斗内累计伤害；`Rampage+` 的每次增伤为 `+8`
+- 当前 `Fiend Fire` / `Fiend Fire+` 已按原版规则生效：消耗所有其他手牌，并按被消耗的牌数对目标结算每张 `7` / `10` 点伤害
 - 当前战斗状态牌已包含 `Burn`、`Wound`、`Dazed`，并支持对应的抽牌、消耗和回合结束联动
 - 当前 `Ghostly Armor` 使用通用 `Ethereal` 规则：回合结束时若仍在手牌中，则进入消耗堆
 - 当前抽牌堆在内部按真实顺序结算；默认预览会隐藏真实抽牌顺序，持有 `Frozen Eye` 时才显示真实顺序

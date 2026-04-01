@@ -80,6 +80,22 @@ from slay_the_spire.use_cases.use_potion import use_potion
 from slay_the_spire.use_cases.start_run import start_new_run
 from slay_the_spire.use_cases.opening_flow import apply_neow_offer, build_opening_state
 
+_ENEMY_TARGET_EFFECT_TYPES = {
+    "damage",
+    "damage_equal_to_block",
+    "vulnerable",
+    "weak",
+    "spot_weakness_strength",
+    "damage_on_kill_gain_max_hp",
+    "rampage_damage",
+    "strength",
+}
+_HAND_TARGET_EFFECT_TYPES = {
+    "exhaust_target_card",
+    "upgrade_target_card",
+    "put_top_of_deck_from_hand",
+}
+
 
 def default_content_root() -> Path:
     for candidate in _candidate_content_roots():
@@ -920,14 +936,7 @@ def _card_requires_target(card_instance_id: str, session: SessionState) -> bool:
         .get(card_id_from_instance_id(card_instance_id))
     )
     return any(
-        effect.get("type")
-        in {
-            "damage",
-            "vulnerable",
-            "exhaust_target_card",
-            "upgrade_target_card",
-            "put_top_of_deck_from_hand",
-        }
+        effect.get("type") in _ENEMY_TARGET_EFFECT_TYPES | _HAND_TARGET_EFFECT_TYPES
         for effect in card_def.effects
     )
 
@@ -938,11 +947,7 @@ def _card_requires_hand_target(card_instance_id: str, session: SessionState) -> 
         .cards()
         .get(card_id_from_instance_id(card_instance_id))
     )
-    return any(
-        effect.get("type")
-        in {"exhaust_target_card", "upgrade_target_card", "put_top_of_deck_from_hand"}
-        for effect in card_def.effects
-    )
+    return any(effect.get("type") in _HAND_TARGET_EFFECT_TYPES for effect in card_def.effects)
 
 
 def _card_requires_enemy_target(card_instance_id: str, session: SessionState) -> bool:
@@ -951,9 +956,7 @@ def _card_requires_enemy_target(card_instance_id: str, session: SessionState) ->
         .cards()
         .get(card_id_from_instance_id(card_instance_id))
     )
-    return any(
-        effect.get("type") in {"damage", "vulnerable"} for effect in card_def.effects
-    )
+    return any(effect.get("type") in _ENEMY_TARGET_EFFECT_TYPES for effect in card_def.effects)
 
 
 def _card_requires_discard_target(card_instance_id: str, session: SessionState) -> bool:

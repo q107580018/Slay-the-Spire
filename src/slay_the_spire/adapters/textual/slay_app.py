@@ -71,6 +71,22 @@ from slay_the_spire.adapters.presentation.inspect import (
 from slay_the_spire.adapters.presentation.widgets import render_card_name
 from slay_the_spire.use_cases.start_run import start_new_run
 
+_ENEMY_TARGET_EFFECT_TYPES = {
+    "damage",
+    "damage_equal_to_block",
+    "vulnerable",
+    "weak",
+    "spot_weakness_strength",
+    "damage_on_kill_gain_max_hp",
+    "rampage_damage",
+    "strength",
+}
+_HAND_TARGET_EFFECT_TYPES = {
+    "exhaust_target_card",
+    "upgrade_target_card",
+    "put_top_of_deck_from_hand",
+}
+
 _ROOM_LABELS: dict[str, str] = {
     "combat": "战斗房",
     "elite": "精英房",
@@ -645,11 +661,8 @@ def _build_target_action_menu(session: SessionState) -> MenuDefinition | None:
     card_def = registry.cards().get(card_id_from_instance_id(selected_card))
     current_card_name = render_card_name(card_def)
     effect_types = {str(effect.get("type")) for effect in card_def.effects}
-    requires_enemy_target = bool(effect_types & {"damage", "vulnerable", "weak"})
-    requires_hand_target = bool(
-        effect_types
-        & {"exhaust_target_card", "upgrade_target_card", "put_top_of_deck_from_hand"}
-    )
+    requires_enemy_target = bool(effect_types & _ENEMY_TARGET_EFFECT_TYPES)
+    requires_hand_target = bool(effect_types & _HAND_TARGET_EFFECT_TYPES)
 
     enemy_target_options: list[tuple[str, str | Text]] = []
     if requires_enemy_target or not requires_hand_target:

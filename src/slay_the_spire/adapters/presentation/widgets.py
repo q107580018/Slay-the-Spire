@@ -27,6 +27,9 @@ _SPECIAL_CARD_RULE_TEXT: dict[str, str] = {
 _SPECIAL_CARD_LABELS: dict[str, str] = {
     "burn": "灼伤",
     "doubt": "疑虑",
+    "wound": "伤口",
+    "dazed": "迷糊",
+    "injury": "伤口",
 }
 
 _CARD_RARITY_LABELS: dict[str, str] = {
@@ -65,6 +68,9 @@ _POWER_LABELS: dict[str, str] = {
     "juggernaut": "势不可当",
     "double_tap": "双发",
     "spot_weakness": "观察弱点",
+    "berserk": "狂暴",
+    "flex_power": "活动肌肉",
+    "corruption": "腐化",
 }
 
 _POTION_TARGET_LABELS: dict[str, str] = {
@@ -226,7 +232,7 @@ def summarize_effect(
     if effect_type == "damage_all_enemies":
         return f"对所有敌人造成 {int(effect.get('amount', 0))} 伤害"
     if effect_type == "damage_all_enemies_x_times":
-        return f"X 次对所有敌人各造成 {int(effect.get('amount', 0))} 伤害"
+        return f"按本次消耗的能量值，对所有敌人各造成 {int(effect.get('amount', 0))} 伤害"
     if effect_type == "damage_equal_to_block":
         return "造成等同于当前格挡的伤害"
     if effect_type == "double_strength":
@@ -272,6 +278,9 @@ def summarize_effect(
         return "消耗手中所有非攻击牌"
     if effect_type == "exhaust_all_in_hand":
         return "消耗手中所有牌"
+    if effect_type == "exhaust_all_in_hand_damage":
+        amount_per = int(effect.get("amount_per_card", 0))
+        return f"消耗手中所有牌。每张被消耗的牌造成 {amount_per} 伤害"
     if effect_type == "play_top_of_deck":
         return "打出牌堆顶的牌"
     if effect_type == "add_card_to_draw_pile":
@@ -341,7 +350,15 @@ def summarize_effect(
             return f"每次抽到状态牌或诅咒牌时，对所有敌人造成 {amount} 伤害"
         if power_id == "corruption":
             return "所有技能牌耗能变为0。所有技能牌在被打出时被消耗。"
-        return f"获得持续效果 {power_id} {amount}"
+        if power_id == "berserk":
+            return f"每回合开始时获得 {amount} 点能量"
+        if power_id == "flex_power":
+            return f"本回合结束时失去 {amount} 层力量"
+        if isinstance(power_id, str):
+            power_name = active_power_label(power_id)
+            if power_name != power_id:
+                return f"获得持续效果：{power_name} {amount}"
+        return f"获得持续效果 {amount}"
     if effect_type == "strength":
         return _signed_status_change(int(effect.get("amount", 0)), "力量")
     if effect_type == "dexterity":
@@ -380,7 +397,7 @@ def summarize_effect(
                 summary += f"（{rule_text}）"
         return summary
     if isinstance(effect_type, str):
-        return effect_type
+        return "未知效果"
     return "-"
 
 
@@ -436,6 +453,10 @@ def summarize_card_effects_for_instance(
 
 
 def summarize_card_definition(card_def: CardDef) -> str:
+    if card_def.id == "disarm":
+        return "使敌人失去2点力量。"
+    if card_def.id == "disarm_plus":
+        return "使敌人失去3点力量。"
     summary = summarize_card_effects(card_def.effects)
     if summary != "-":
         return summary
@@ -451,6 +472,10 @@ def summarize_card_definition_for_instance(
     card_instance_id: str,
     combat_state: CombatState | None = None,
 ) -> str:
+    if card_def.id == "disarm":
+        return "使敌人失去2点力量。"
+    if card_def.id == "disarm_plus":
+        return "使敌人失去3点力量。"
     summary = summarize_card_effects_for_instance(
         card_def.effects,
         card_instance_id=card_instance_id,

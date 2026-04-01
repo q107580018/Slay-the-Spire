@@ -2622,11 +2622,8 @@
       "exhausts": true,
       "effects": [
         {
-          "type": "exhaust_all_in_hand"
-        },
-        {
-          "type": "damage",
-          "amount": 7
+          "type": "exhaust_all_in_hand_damage",
+          "amount_per_card": 7
         }
       ],
       "card_type": "attack",
@@ -2643,11 +2640,8 @@
       "exhausts": true,
       "effects": [
         {
-          "type": "exhaust_all_in_hand"
-        },
-        {
-          "type": "damage",
-          "amount": 10
+          "type": "exhaust_all_in_hand_damage",
+          "amount_per_card": 10
         }
       ],
       "card_type": "attack",

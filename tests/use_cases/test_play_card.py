@@ -163,6 +163,22 @@ def test_play_card_rejects_missing_target_for_targeted_effect() -> None:
     assert state.to_dict() == before
 
 
+def test_play_card_body_slam_deals_damage_equal_to_player_block() -> None:
+    state = _combat_state(hand=["body_slam#1"], enemy_hps=[20])
+    state.player.block = 12
+    provider = _provider_with_card(
+        card_id="body_slam",
+        cost=1,
+        effects=[{"type": "damage_equal_to_block"}],
+        card_type="attack",
+    )
+
+    result = play_card(state, "body_slam#1", "enemy-1", provider)
+
+    assert result.combat_state is state
+    assert state.enemies[0].hp == 8
+
+
 def test_play_card_blood_for_blood_uses_damage_taken_as_cost_reduction() -> None:
     state = _combat_state(hand=["blood_for_blood#1"], energy=2)
     state.times_hit_this_combat = 3
@@ -598,6 +614,22 @@ def test_play_card_appends_block_log_entry() -> None:
     play_card(state, "guard#1", None, provider)
 
     assert state.log == ["你打出 Custom Strike，获得 5 格挡。"]
+
+
+def test_play_card_logs_juggernaut_damage_as_triggered_power() -> None:
+    state = _combat_state(hand=["guard#1"], enemy_hps=[20])
+    state.active_powers = [{"power_id": "juggernaut", "amount": 7}]
+    provider = _provider_with_card(
+        card_id="guard", effects=[{"type": "block", "amount": 5}]
+    )
+
+    result = play_card(state, "guard#1", None, provider)
+
+    assert [effect["type"] for effect in result.resolved_effects] == ["block", "damage"]
+    assert state.log == [
+        "你打出 Custom Strike，获得 5 格挡。",
+        "势不可当触发，对 Training Dummy 造成 7 伤害。",
+    ]
 
 
 def test_play_card_all_enemy_attack_hits_all_enemies_without_target() -> None:
@@ -1191,8 +1223,7 @@ def test_play_card_fiend_fire_exhausts_hand_and_deals_damage_per_card() -> None:
     provider = _provider_with_card(
         card_id="fiend_fire",
         effects=[
-            {"type": "exhaust_all_in_hand"},
-            {"type": "damage", "amount": 7},
+            {"type": "exhaust_all_in_hand_damage", "amount_per_card": 7},
         ],
         card_type="attack",
     )
@@ -1220,7 +1251,7 @@ def test_play_card_fiend_fire_exhausts_hand_and_deals_damage_per_card() -> None:
     assert "strike#2" in state.exhaust_pile
     assert "defend#3" in state.exhaust_pile
     assert state.hand == []
-    assert state.enemies[0].hp == 93
+    assert state.enemies[0].hp == 86
 
 
 def test_play_card_corruption_adds_power_and_skills_cost_zero() -> None:

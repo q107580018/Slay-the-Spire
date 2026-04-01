@@ -61,6 +61,15 @@ def test_format_card_detail_lines_include_cost_effects_and_upgrade() -> None:
     assert any("痛击+" in line.plain for line in lines)
 
 
+def test_format_card_detail_lines_show_fiend_fire_per_card_damage_text() -> None:
+    session = start_session(seed=5)
+    registry = StarterContentProvider(session.content_root)
+
+    lines = format_card_detail_lines("fiend_fire#1", registry)
+
+    assert any("消耗手中所有牌。每张被消耗的牌造成 7 伤害" in line.plain for line in lines)
+
+
 def test_format_relic_detail_lines_include_relic_semantics() -> None:
     session = start_session(seed=5)
     registry = StarterContentProvider(session.content_root)
@@ -207,6 +216,15 @@ def test_format_card_detail_lines_show_demon_form_power_text() -> None:
     lines = format_card_detail_lines("demon_form#1", registry)
 
     assert "每回合开始时获得 2 层力量" in "\n".join(line.plain for line in lines)
+
+
+def test_format_card_detail_lines_show_disarm_enemy_strength_loss_text() -> None:
+    session = start_session(seed=5)
+    registry = StarterContentProvider(session.content_root)
+
+    lines = format_card_detail_lines("disarm#1", registry)
+
+    assert "使敌人失去2点力量。" in "\n".join(line.plain for line in lines)
 
 
 def test_format_card_detail_lines_keep_unplayable_curse_as_unplayable() -> None:

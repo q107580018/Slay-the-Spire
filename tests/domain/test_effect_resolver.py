@@ -103,6 +103,10 @@ def test_full_ironclad_effect_types_are_declared() -> None:
         == "exhaust_all_non_attacks_in_hand"
     )
     assert effect_types.EFFECT_EXHAUST_ALL_IN_HAND == "exhaust_all_in_hand"
+    assert (
+        effect_types.EFFECT_EXHAUST_ALL_IN_HAND_DAMAGE
+        == "exhaust_all_in_hand_damage"
+    )
     assert effect_types.EFFECT_DOUBLE_STRENGTH == "double_strength"
     assert (
         effect_types.EFFECT_DAMAGE_LIFESTEAL_ALL_ENEMIES
@@ -952,6 +956,35 @@ def test_exhaust_all_non_attacks_gain_block_moves_cards_and_grants_block() -> No
     assert state.player.block == 10
 
 
+def test_exhaust_all_non_attacks_gain_block_triggers_juggernaut_damage() -> None:
+    provider = _CardProvider()
+    _register_test_card(provider, card_id="defend", card_type="skill")
+    _register_test_card(provider, card_id="strike", card_type="attack")
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 20)],
+        effect_queue=[
+            {
+                "type": "exhaust_all_non_attacks_gain_block",
+                "source_instance_id": "player-1",
+                "amount_per_card": 5,
+            }
+        ],
+    )
+    state.active_powers.append({"power_id": "juggernaut", "amount": 7})
+    state.hand = ["defend#1", "strike#1"]
+
+    resolved = resolve_effect_queue(state, registry=provider)
+
+    assert [effect["type"] for effect in resolved] == [
+        "exhaust_all_non_attacks_gain_block",
+        "damage",
+    ]
+    assert resolved[1]["power_id"] == "juggernaut"
+    assert resolved[1]["target_instance_id"] == "enemy-1"
+    assert state.player.block == 5
+    assert state.enemies[0].hp == 13
+
+
 def test_exhaust_all_non_attacks_in_hand_moves_only_non_attacks() -> None:
     provider = _CardProvider()
     _register_test_card(provider, card_id="defend", card_type="skill")
@@ -990,6 +1023,40 @@ def test_exhaust_all_in_hand_moves_all_cards_and_reports_count() -> None:
     }
     assert state.hand == []
     assert state.exhaust_pile == ["defend#1", "ghostly_armor#1", "strike#1"]
+
+
+def test_exhaust_all_in_hand_damage_scales_damage_by_exhausted_count() -> None:
+    provider = _CardProvider()
+    _register_test_card(provider, card_id="defend", card_type="skill")
+    _register_test_card(provider, card_id="strike", card_type="attack")
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 30)],
+        effect_queue=[
+            {
+                "type": "exhaust_all_in_hand_damage",
+                "source_instance_id": "player-1",
+                "target_instance_id": "enemy-1",
+                "amount_per_card": 7,
+            }
+        ],
+    )
+    state.hand = ["defend#1", "strike#1"]
+
+    resolved = resolve_next_effect(state, registry=provider)
+
+    assert resolved["type"] == "exhaust_all_in_hand_damage"
+    assert resolved["result"] == {
+        "exhausted_cards": ["defend#1", "strike#1"],
+        "exhausted_count": 2,
+        "base_amount": 14,
+        "applied_amount": 14,
+        "blocked": 0,
+        "actual_damage": 14,
+        "target_defeated": False,
+    }
+    assert state.hand == []
+    assert state.exhaust_pile == ["defend#1", "strike#1"]
+    assert state.enemies[0].hp == 16
 
 
 def test_on_exhaust_effects_trigger_when_card_is_exhausted() -> None:

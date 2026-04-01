@@ -152,7 +152,7 @@ def format_card_detail_lines(
         lines.append(
             Text.assemble(
                 ("关键词 ", "summary.label"),
-                "Ethereal（回合结束时若仍在手牌中，则消耗）",
+                "虚无（回合结束时若仍在手牌中，则消耗）",
             )
         )
     if card_def.upgrades_to is not None:
@@ -565,7 +565,7 @@ def render_card_detail_panel(
         lines.append(
             Text.assemble(
                 ("关键词: ", "summary.label"),
-                "Ethereal（回合结束时若仍在手牌中，则消耗）",
+                "虚无（回合结束时若仍在手牌中，则消耗）",
             )
         )
     return Panel(Group(*lines), title="卡牌详情", box=PANEL_BOX, expand=False)

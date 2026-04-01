@@ -488,6 +488,37 @@ def test_current_action_menu_warcry_shows_only_hand_targets() -> None:
     assert menu.options[0].label.plain == "手牌 打击（红） (strike#2)"
 
 
+def test_current_action_menu_rampage_shows_only_enemy_targets() -> None:
+    session = start_session(seed=5)
+    combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
+    combat_state.hand = ["rampage#1", "strike#2"]
+    session = replace(
+        session,
+        room_state=replace(
+            session.room_state,
+            payload={
+                **session.room_state.payload,
+                "combat_state": combat_state.to_dict(),
+            },
+        ),
+        menu_state=replace(
+            session.menu_state,
+            mode="select_target",
+            selected_card_instance_id="rampage#1",
+        ),
+    )
+
+    menu = _current_action_menu(session)
+
+    assert menu is not None
+    assert menu.title == "选择敌人"
+    assert [option.action_id for option in menu.options] == [
+        "target_enemy:1",
+        "target_enemy:2",
+        "back",
+    ]
+
+
 def test_current_action_menu_preserves_current_card_style_in_target_menu() -> None:
     session = start_session(seed=5)
     combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
@@ -543,7 +574,7 @@ def test_action_summary_refresh_keeps_current_card_styles_in_target_menu() -> No
             await pilot.pause()
             summary = app.query_one("#action-summary", Static)
             rendered = summary.render()
-            assert rendered.plain.startswith("选择目标")
+            assert rendered.plain.startswith("选择敌人")
             assert "当前卡牌: 愤怒+" in rendered.plain
             assert rendered.spans
             card_name_start = rendered.plain.index("愤怒+")

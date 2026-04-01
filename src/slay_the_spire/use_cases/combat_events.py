@@ -76,6 +76,22 @@ def build_player_action_events(
             target_name = _target_name(entities, effect)
             if target_name is None:
                 continue
+            power_id = effect.get("power_id")
+            if isinstance(power_id, str):
+                events.append(
+                    CombatEvent(
+                        event_type="active_power_triggered",
+                        actor_name=active_power_label(power_id),
+                        actor_instance_id=str(effect.get("source_instance_id"))
+                        if isinstance(effect.get("source_instance_id"), str)
+                        else None,
+                        target_name=target_name,
+                        amount=_result_int(result, "applied_amount"),
+                        blocked=_result_int(result, "blocked"),
+                        actual_damage=_result_int(result, "actual_damage"),
+                    )
+                )
+                continue
             events.append(
                 CombatEvent(
                     event_type="damage",

@@ -8,6 +8,8 @@ from slay_the_spire.domain.effects.effect_types import (
     EFFECT_DAMAGE,
     EFFECT_DAMAGE_ALL_ENEMIES,
     EFFECT_DAMAGE_ALL_ENEMIES_X_TIMES,
+    EFFECT_DAMAGE_EQUAL_TO_BLOCK,
+    EFFECT_EXHAUST_ALL_IN_HAND_DAMAGE,
     EFFECT_DAMAGE_ON_KILL_GAIN_MAX_HP,
     EFFECT_EXHAUST_TARGET_CARD,
     EFFECT_PUT_TOP_OF_DECK_FROM_DISCARD,
@@ -38,6 +40,7 @@ from slay_the_spire.use_cases.combat_events import (
 from slay_the_spire.use_cases.combat_log import (
     append_log_entries,
     describe_player_action,
+    describe_triggered_active_powers,
 )
 from slay_the_spire.use_cases.card_runtime_rules import (
     resolve_post_play_destination,
@@ -48,6 +51,8 @@ TargetSelection = str | dict[str, str] | None
 
 _TARGETED_EFFECT_TYPES = {
     EFFECT_DAMAGE,
+    EFFECT_DAMAGE_EQUAL_TO_BLOCK,
+    EFFECT_EXHAUST_ALL_IN_HAND_DAMAGE,
     EFFECT_VULNERABLE,
     EFFECT_WEAK,
     EFFECT_SPOT_WEAKNESS_STRENGTH,
@@ -355,16 +360,18 @@ def play_card(
         combat_state.discard_pile.append(card_instance_id)
     elif card_instance_id in combat_state._cards_in_limbo:
         combat_state._cards_in_limbo.remove(card_instance_id)
+    player_action_events = build_player_action_events(
+        card_name=card_def.name,
+        resolved_effects=resolved_effects,
+        entities=snapshots_before,
+        registry=registry,
+    )
     append_log_entries(
         combat_state,
-        describe_player_action(
-            events=build_player_action_events(
-                card_name=card_def.name,
-                resolved_effects=resolved_effects,
-                entities=snapshots_before,
-                registry=registry,
-            ),
-        ),
+        [
+            *describe_player_action(events=player_action_events),
+            *describe_triggered_active_powers(events=player_action_events),
+        ],
     )
     return CombatActionResult(
         combat_state=combat_state,

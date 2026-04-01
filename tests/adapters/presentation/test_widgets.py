@@ -114,6 +114,10 @@ def test_active_power_label_localizes_battle_trance() -> None:
     assert active_power_label("battle_trance") == "战斗专注"
 
 
+def test_active_power_label_localizes_berserk() -> None:
+    assert active_power_label("berserk") == "狂暴"
+
+
 def test_summarize_effect_localizes_battle_trance_power_effect() -> None:
     output = summarize_effect(
         {"type": "add_power", "power_id": "battle_trance", "amount": 1}
@@ -157,6 +161,14 @@ def test_preview_enemy_intent_uses_first_move_for_multi_move_enemy() -> None:
     output = preview_enemy_intent(enemy_def)
 
     assert output == "造成 7 伤害"
+
+
+def test_summarize_effect_exhaust_all_in_hand_damage_mentions_per_card_damage() -> None:
+    output = summarize_effect(
+        {"type": "exhaust_all_in_hand_damage", "amount_per_card": 7}
+    )
+
+    assert output == "消耗手中所有牌。每张被消耗的牌造成 7 伤害"
 
 
 def test_preview_enemy_intent_shows_readable_summary_for_divider() -> None:
@@ -293,6 +305,24 @@ def test_summarize_effect_localizes_corruption_power() -> None:
         summarize_effect({"type": "add_power", "power_id": "corruption", "amount": 1})
         == "所有技能牌耗能变为0。所有技能牌在被打出时被消耗。"
     )
+
+
+def test_summarize_effect_localizes_berserk_power() -> None:
+    assert (
+        summarize_effect({"type": "add_power", "power_id": "berserk", "amount": 1})
+        == "每回合开始时获得 1 点能量"
+    )
+
+
+def test_summarize_effect_localizes_flex_power() -> None:
+    assert (
+        summarize_effect({"type": "add_power", "power_id": "flex_power", "amount": 2})
+        == "本回合结束时失去 2 层力量"
+    )
+
+
+def test_summarize_effect_uses_chinese_for_unknown_effect_type() -> None:
+    assert summarize_effect({"type": "some_untranslated_effect"}) == "未知效果"
 
 
 def test_render_room_inspect_enemy_detail_uses_shared_hp_bar_contract() -> None:
