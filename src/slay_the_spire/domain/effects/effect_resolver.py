@@ -154,6 +154,7 @@ def _next_card_instance_id(state: CombatState, card_id: str) -> str:
         *state.draw_pile,
         *state.discard_pile,
         *state.exhaust_pile,
+        *state._cards_in_limbo,
     ]:
         try:
             existing_card_id = card_id_from_instance_id(card_instance_id)

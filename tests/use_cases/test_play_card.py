@@ -423,7 +423,7 @@ def test_play_card_creates_a_new_anger_copy_in_discard_pile() -> None:
     ]
     assert state.energy == 3
     assert state.hand == []
-    assert state.discard_pile == ["anger#1", "anger#2"]
+    assert state.discard_pile == ["anger#2", "anger#1"]
     assert state.enemies[0].hp == 4
     assert state.log == [
         "你打出 Custom Strike，对 Training Dummy 造成 6 伤害，并向弃牌堆加入 1 张Custom Strike。"
@@ -671,10 +671,33 @@ def test_play_card_draw_log_uses_refilled_discard_cards() -> None:
 
     play_card(state, "pommel_strike_plus#1", "enemy-1", provider)
 
-    assert state.hand == ["bonus_a#1", "pommel_strike_plus#1"]
+    assert state.hand == ["bonus_a#1", "bonus_b#1"]
+    assert state.draw_pile == []
+    assert state.discard_pile == ["pommel_strike_plus#1"]
     assert state.log == [
         "你打出 Custom Strike，对 Training Dummy 造成 10 伤害，并抽 2 张牌。"
     ]
+
+
+def test_play_card_shrug_it_off_does_not_draw_itself_when_refilling_discard() -> None:
+    state = _combat_state(hand=["shrug_it_off_plus#1"])
+    state.draw_pile = []
+    state.discard_pile = ["bonus_b#1"]
+    provider = _provider_with_card(
+        card_id="shrug_it_off_plus",
+        cost=1,
+        card_type="skill",
+        effects=[
+            {"type": "block", "amount": 11},
+            {"type": "draw", "amount": 1},
+        ],
+    )
+
+    play_card(state, "shrug_it_off_plus#1", None, provider)
+
+    assert state.hand == ["bonus_b#1"]
+    assert state.draw_pile == []
+    assert state.discard_pile == ["shrug_it_off_plus#1"]
 
 
 def test_play_card_bloodletting_gains_energy_and_loses_hp() -> None:

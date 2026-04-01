@@ -114,6 +114,12 @@ class CombatState:
         compare=False,
         default_factory=dict,
     )
+    _cards_in_limbo: list[str] = field(
+        init=False,
+        repr=False,
+        compare=False,
+        default_factory=list,
+    )
 
     def __post_init__(self) -> None:
         self.schema_version = _require_schema_version(self.schema_version)
