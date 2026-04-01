@@ -417,6 +417,54 @@ def test_damage_per_strike_in_deck_counts_other_perfected_strike_copies() -> Non
     assert state.enemies[0].hp == 34
 
 
+def test_rampage_damage_scales_with_per_card_play_counter() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 50)],
+        effect_queue=[
+            {
+                "type": "rampage_damage",
+                "source_instance_id": "player-1",
+                "target_instance_id": "enemy-1",
+                "card_instance_id": "rampage_plus#1",
+                "amount": 8,
+                "increment": 8,
+            },
+            {
+                "type": "rampage_damage",
+                "source_instance_id": "player-1",
+                "target_instance_id": "enemy-1",
+                "card_instance_id": "rampage_plus#1",
+                "amount": 8,
+                "increment": 8,
+            },
+        ],
+    )
+
+    first = resolve_next_effect(state)
+    second = resolve_next_effect(state)
+
+    assert first["type"] == "rampage_damage"
+    assert first["result"] == {
+        "applied_amount": 8,
+        "blocked": 0,
+        "actual_damage": 8,
+        "target_defeated": False,
+        "play_count_before": 0,
+        "play_count_after": 1,
+    }
+    assert second["type"] == "rampage_damage"
+    assert second["result"] == {
+        "applied_amount": 16,
+        "blocked": 0,
+        "actual_damage": 16,
+        "target_defeated": False,
+        "play_count_before": 1,
+        "play_count_after": 2,
+    }
+    assert state.enemies[0].hp == 26
+    assert state.card_play_data["rampage_plus#1"] == 2
+
+
 def test_add_card_to_draw_pile_creates_new_cards() -> None:
     state = make_combat_state(
         enemies=[make_enemy("enemy-1", 3)],

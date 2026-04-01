@@ -32,6 +32,7 @@ from slay_the_spire.domain.effects.effect_types import (
     EFFECT_DAMAGE_ON_KILL_GAIN_MAX_HP,
     EFFECT_NOOP,
     EFFECT_PUT_TOP_OF_DECK_FROM_DISCARD,
+    EFFECT_RAMPAGE_DAMAGE,
     EFFECT_SELECT_FROM_EXHAUST_TO_HAND,
     EFFECT_SPOT_WEAKNESS_STRENGTH,
     EFFECT_STRENGTH,
@@ -654,6 +655,32 @@ def resolve_next_effect(
             + int(effect.get("amount_per_strike", 0)) * strike_count,
             extra_result={"strike_count": strike_count},
         )
+
+    if effect_type == EFFECT_RAMPAGE_DAMAGE:
+        base_amount = int(effect.get("amount", 0))
+        increment = int(effect.get("increment", 5))
+        card_instance_id = effect.get("card_instance_id")
+        play_count_before = (
+            state.card_play_data.get(card_instance_id, 0)
+            if isinstance(card_instance_id, str)
+            else 0
+        )
+        resolved = _resolve_damage_effect(
+            state,
+            effect,
+            base_amount=base_amount + increment * play_count_before,
+            extra_result={
+                "play_count_before": play_count_before,
+                "play_count_after": (
+                    play_count_before + 1
+                    if isinstance(card_instance_id, str)
+                    else play_count_before
+                ),
+            },
+        )
+        if isinstance(card_instance_id, str):
+            state.card_play_data[card_instance_id] = play_count_before + 1
+        return resolved
 
     if effect_type == EFFECT_BLOCK:
         target = _get_target(state, effect.get("target_instance_id"))

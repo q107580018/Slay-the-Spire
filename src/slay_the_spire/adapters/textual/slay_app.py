@@ -531,14 +531,21 @@ def _hover_preview_renderable(session: SessionState, action_id: str) -> Text | N
         return _reward_preview_renderable(session, action_id)
     card_instance_id = _card_preview_instance_id(session, action_id)
     if card_instance_id is not None:
+        combat_state = _combat_state_from_session(session)
         if session.menu_state.mode in {"rest_upgrade_card", "event_upgrade_card"}:
             return _text_from_lines(
                 format_card_upgrade_preview_lines(
-                    card_instance_id, _content_provider(session)
+                    card_instance_id,
+                    _content_provider(session),
+                    combat_state=combat_state,
                 )
             )
         return _text_from_lines(
-            format_card_detail_lines(card_instance_id, _content_provider(session))
+            format_card_detail_lines(
+                card_instance_id,
+                _content_provider(session),
+                combat_state=combat_state,
+            )
         )
     relic_id = _relic_preview_id(session, action_id)
     if relic_id is not None:

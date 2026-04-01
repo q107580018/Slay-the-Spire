@@ -11,6 +11,7 @@ from slay_the_spire.domain.effects.effect_types import (
     EFFECT_DAMAGE_ON_KILL_GAIN_MAX_HP,
     EFFECT_EXHAUST_TARGET_CARD,
     EFFECT_PUT_TOP_OF_DECK_FROM_DISCARD,
+    EFFECT_RAMPAGE_DAMAGE,
     EFFECT_SELECT_FROM_EXHAUST_TO_HAND,
     EFFECT_SPOT_WEAKNESS_STRENGTH,
     EFFECT_UPGRADE_TARGET_CARD,
@@ -46,6 +47,7 @@ _TARGETED_EFFECT_TYPES = {
     EFFECT_WEAK,
     EFFECT_SPOT_WEAKNESS_STRENGTH,
     EFFECT_DAMAGE_ON_KILL_GAIN_MAX_HP,
+    EFFECT_RAMPAGE_DAMAGE,
     "strength",
 }
 _HAND_TARGETED_EFFECT_TYPES = {EFFECT_EXHAUST_TARGET_CARD, EFFECT_UPGRADE_TARGET_CARD}
@@ -160,6 +162,8 @@ def _materialize_card_effects(
             continue
         if "source_instance_id" not in effect:
             effect["source_instance_id"] = source_instance_id
+        if effect_type == EFFECT_RAMPAGE_DAMAGE:
+            effect["card_instance_id"] = card_instance_id
         if effect_type in _TARGETED_EFFECT_TYPES:
             if resolved_enemy_id is None:
                 raise ValueError("target is required for targeted cards")

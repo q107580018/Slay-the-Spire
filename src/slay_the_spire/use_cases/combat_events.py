@@ -65,7 +65,14 @@ def build_player_action_events(
     for effect in resolved_effects:
         effect_type = effect.get("type")
         result = _result_mapping(effect)
-        if effect_type == "damage":
+        if effect_type in {
+            "damage",
+            "rampage_damage",
+            "damage_equal_to_block",
+            "damage_with_strength_multiplier",
+            "damage_per_strike_in_deck",
+            "damage_on_kill_gain_max_hp",
+        }:
             target_name = _target_name(entities, effect)
             if target_name is None:
                 continue

@@ -465,6 +465,31 @@ def test_play_card_applies_player_strength_to_damage_effects() -> None:
     assert state.enemies[0].hp == 4
 
 
+def test_play_card_rampage_tracks_card_instance_and_scales_damage() -> None:
+    state = _combat_state(hand=["rampage_plus#1"], energy=3, enemy_hps=[50])
+    provider = _provider_with_card(
+        card_id="rampage_plus",
+        effects=[{"type": "rampage_damage", "amount": 8, "increment": 8}],
+    )
+
+    first = play_card(state, "rampage_plus#1", "enemy-1", provider)
+
+    state.discard_pile.remove("rampage_plus#1")
+    state.hand.append("rampage_plus#1")
+    second = play_card(state, "rampage_plus#1", "enemy-1", provider)
+
+    assert first.resolved_effects[0]["type"] == "rampage_damage"
+    assert first.resolved_effects[0]["result"]["applied_amount"] == 8
+    assert second.resolved_effects[0]["type"] == "rampage_damage"
+    assert second.resolved_effects[0]["result"]["applied_amount"] == 16
+    assert state.card_play_data == {"rampage_plus#1": 2}
+    assert state.enemies[0].hp == 26
+    assert state.log == [
+        "你打出 Custom Strike，对 Training Dummy 造成 8 伤害。",
+        "你打出 Custom Strike，对 Training Dummy 造成 16 伤害。",
+    ]
+
+
 def test_inflame_adds_strength_via_power_play() -> None:
     state = _combat_state(hand=["inflame#1"])
     provider = _provider_with_card(

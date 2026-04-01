@@ -112,7 +112,9 @@ def render_shared_inspect_panel(
     if mode == "inspect_potions":
         return render_shared_potions_panel(title=_LEAF_TITLES[mode][context], run_state=run_state, registry=registry)
     if mode == "inspect_card_detail" and isinstance(card_instance_id, str):
-        return render_card_detail_panel(card_instance_id, registry)
+        return render_card_detail_panel(
+            card_instance_id, registry, combat_state=combat_state
+        )
     if mode == "inspect_relic_detail" and isinstance(card_instance_id, str):
         return render_relic_detail_panel(card_instance_id, registry)
     return None

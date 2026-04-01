@@ -37,7 +37,7 @@ from slay_the_spire.adapters.presentation.widgets import (
     render_menu,
     render_statuses,
     summarize_active_powers,
-    summarize_card_definition,
+    summarize_card_definition_for_instance,
     summarize_enemy_move_preview,
 )
 from slay_the_spire.app.menu_definitions import (
@@ -412,7 +412,7 @@ def render_hand_panel(combat_state: CombatState, registry: ContentProviderPort) 
             Text.assemble(
                 f"{index}. ",
                 render_card_name(card_def),
-                f" ({cost_label}) - {summarize_card_definition(card_def)}",
+                f" ({cost_label}) - {summarize_card_definition_for_instance(card_def, card_instance_id=card_instance_id, combat_state=combat_state)}",
             )
         )
     return Panel(Group(*lines), title=title, box=PANEL_BOX, expand=False)
@@ -459,13 +459,21 @@ def _inspect_body_panel(
     if shared_panel is not None:
         return shared_panel
     if mode == "inspect_hand":
-        return render_card_pile_panel("手牌列表", combat_state.hand, registry)
+        return render_card_pile_panel(
+            "手牌列表", combat_state.hand, registry, combat_state=combat_state
+        )
     if mode == "inspect_draw_pile":
-        return render_card_pile_panel("抽牌堆列表", combat_state.draw_pile, registry)
+        return render_card_pile_panel(
+            "抽牌堆列表", combat_state.draw_pile, registry, combat_state=combat_state
+        )
     if mode == "inspect_discard_pile":
-        return render_card_pile_panel("弃牌堆列表", combat_state.discard_pile, registry)
+        return render_card_pile_panel(
+            "弃牌堆列表", combat_state.discard_pile, registry, combat_state=combat_state
+        )
     if mode == "inspect_exhaust_pile":
-        return render_card_pile_panel("消耗堆列表", combat_state.exhaust_pile, registry)
+        return render_card_pile_panel(
+            "消耗堆列表", combat_state.exhaust_pile, registry, combat_state=combat_state
+        )
     if mode == "inspect_enemy_list":
         return render_enemy_list_panel(combat_state, registry)
     if mode == "inspect_enemy_detail":

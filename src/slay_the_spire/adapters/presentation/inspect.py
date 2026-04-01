@@ -18,6 +18,7 @@ from slay_the_spire.adapters.presentation.widgets import (
     render_card_name,
     special_card_rule_text,
     summarize_card_definition,
+    summarize_card_definition_for_instance,
     summarize_card_effects,
     summarize_effect,
     summarize_active_powers,
@@ -119,7 +120,10 @@ def _upgrade_target_label(card_def: CardDef, registry: ContentProviderPort) -> s
 
 
 def format_card_detail_lines(
-    card_instance_id: str, registry: ContentProviderPort
+    card_instance_id: str,
+    registry: ContentProviderPort,
+    *,
+    combat_state: CombatState | None = None,
 ) -> list[Text]:
     card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
     cost_label = (
@@ -129,7 +133,14 @@ def format_card_detail_lines(
         Text.assemble(("名称 ", "summary.label"), render_card_name(card_def)),
         Text.assemble(("费用 ", "summary.label"), cost_label),
         Text.assemble(("类型 ", "summary.label"), _card_type_label(card_def)),
-        Text.assemble(("效果 ", "summary.label"), summarize_card_definition(card_def)),
+        Text.assemble(
+            ("效果 ", "summary.label"),
+            summarize_card_definition_for_instance(
+                card_def,
+                card_instance_id=card_instance_id,
+                combat_state=combat_state,
+            ),
+        ),
         Text.assemble(("稀有度 ", "summary.label"), card_rarity_label(card_def)),
         Text.assemble(
             ("状态 ", "summary.label"),
@@ -152,7 +163,13 @@ def format_card_detail_lines(
     return lines
 
 
-def _card_upgrade_preview_line(*, title: str, card_def: CardDef) -> Text:
+def _card_upgrade_preview_line(
+    *,
+    title: str,
+    card_def: CardDef,
+    card_instance_id: str,
+    combat_state: CombatState | None = None,
+) -> Text:
     return Text.assemble(
         (f"{title} ", "summary.label"),
         ("名称 ", "summary.label"),
@@ -160,22 +177,41 @@ def _card_upgrade_preview_line(*, title: str, card_def: CardDef) -> Text:
         (" | 费用 ", "summary.label"),
         _card_cost_label(card_def),
         (" | 效果 ", "summary.label"),
-        summarize_card_definition(card_def),
+        summarize_card_definition_for_instance(
+            card_def,
+            card_instance_id=card_instance_id,
+            combat_state=combat_state,
+        ),
         (" | 状态 ", "summary.label"),
         "已升级" if is_upgraded_card(card_def) else "未升级",
     )
 
 
 def format_card_upgrade_preview_lines(
-    card_instance_id: str, registry: ContentProviderPort
+    card_instance_id: str,
+    registry: ContentProviderPort,
+    *,
+    combat_state: CombatState | None = None,
 ) -> list[Text]:
     card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
     if card_def.upgrades_to is None:
-        return format_card_detail_lines(card_instance_id, registry)
+        return format_card_detail_lines(
+            card_instance_id, registry, combat_state=combat_state
+        )
     upgraded_def = registry.cards().get(card_def.upgrades_to)
     return [
-        _card_upgrade_preview_line(title="当前", card_def=card_def),
-        _card_upgrade_preview_line(title="升级后", card_def=upgraded_def),
+        _card_upgrade_preview_line(
+            title="当前",
+            card_def=card_def,
+            card_instance_id=card_instance_id,
+            combat_state=combat_state,
+        ),
+        _card_upgrade_preview_line(
+            title="升级后",
+            card_def=upgraded_def,
+            card_instance_id=f"{upgraded_def.id}#{card_instance_id.split('#', 1)[1]}",
+            combat_state=combat_state,
+        ),
     ]
 
 
@@ -359,7 +395,11 @@ def render_reward_detail_panel(reward_id: str, registry: ContentProviderPort) ->
 
 
 def format_card_instance_menu(
-    title: str, card_instance_ids: list[str], registry: ContentProviderPort
+    title: str,
+    card_instance_ids: list[str],
+    registry: ContentProviderPort,
+    *,
+    combat_state: CombatState | None = None,
 ) -> list[str | Text]:
     del title
     lines: list[str | Text] = []
@@ -368,7 +408,11 @@ def format_card_instance_menu(
     else:
         for index, card_instance_id in enumerate(card_instance_ids, start=1):
             card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
-            effect_summary = summarize_card_definition(card_def)
+            effect_summary = summarize_card_definition_for_instance(
+                card_def,
+                card_instance_id=card_instance_id,
+                combat_state=combat_state,
+            )
             lines.append(
                 Text.assemble(
                     f"{index}. ",
@@ -381,11 +425,17 @@ def format_card_instance_menu(
 
 
 def render_card_pile_panel(
-    title: str, card_instance_ids: list[str], registry: ContentProviderPort
+    title: str,
+    card_instance_ids: list[str],
+    registry: ContentProviderPort,
+    *,
+    combat_state: CombatState | None = None,
 ) -> Panel:
     body = [
         line if isinstance(line, Text) else Text(line)
-        for line in format_card_instance_menu(title, card_instance_ids, registry)
+        for line in format_card_instance_menu(
+            title, card_instance_ids, registry, combat_state=combat_state
+        )
     ]
     return Panel(Group(*body), title=title, box=PANEL_BOX, expand=False)
 
@@ -481,7 +531,10 @@ def render_relic_detail_panel(relic_id: str, registry: ContentProviderPort) -> P
 
 
 def render_card_detail_panel(
-    card_instance_id: str, registry: ContentProviderPort
+    card_instance_id: str,
+    registry: ContentProviderPort,
+    *,
+    combat_state: CombatState | None = None,
 ) -> Panel:
     card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
     playable_label = "是" if card_def.playable else "否"
@@ -497,7 +550,12 @@ def render_card_detail_panel(
         Text.assemble(("类型: ", "summary.label"), _card_type_label(card_def)),
         Text.assemble(("是否可打出: ", "summary.label"), playable_label),
         Text.assemble(
-            ("完整效果: ", "summary.label"), _full_effect_summary(card_def, registry)
+            ("完整效果: ", "summary.label"),
+            summarize_card_definition_for_instance(
+                card_def,
+                card_instance_id=card_instance_id,
+                combat_state=combat_state,
+            ),
         ),
         Text.assemble(
             ("升级目标: ", "summary.label"), _upgrade_target_label(card_def, registry)

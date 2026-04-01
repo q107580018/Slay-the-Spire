@@ -140,6 +140,29 @@ def test_render_hand_panel_keeps_unplayable_curse_as_unplayable() -> None:
     assert "(无法打出)" in output
 
 
+def test_render_hand_panel_shows_scaled_rampage_damage_for_card_instance() -> None:
+    session = start_session(seed=5)
+    combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
+    combat_state.hand = ["rampage#1", "rampage_plus#2"]
+    combat_state.card_play_data = {"rampage#1": 1, "rampage_plus#2": 1}
+    room_state = replace(
+        session.room_state,
+        payload={**session.room_state.payload, "combat_state": combat_state.to_dict()},
+    )
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=room_state,
+        registry=_provider(session),
+        menu_state=MenuState(),
+        run_phase=session.run_phase,
+    )
+
+    assert "暴走 (1) - 造成 13 伤害（每次使用后永久增加 5 伤害）" in output
+    assert "暴走+ (1) - 造成 16 伤害（每次使用后永久增加 8 伤害）" in output
+
+
 def test_select_card_menu_keeps_card_name_styles() -> None:
     session = start_session(seed=5)
     combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])

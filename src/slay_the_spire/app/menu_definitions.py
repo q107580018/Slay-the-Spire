@@ -12,6 +12,7 @@ from slay_the_spire.adapters.presentation.widgets import (
     potion_timing_label,
     render_card_name,
     summarize_card_definition,
+    summarize_card_definition_for_instance,
     summarize_effect,
 )
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
@@ -536,7 +537,11 @@ def build_select_card_menu(*, combat_state: CombatState, registry: ContentProvid
             if not getattr(card_def, "playable", True)
             else f"费用{format_card_cost(resolved_cost)}"
         )
-        effect_summary = summarize_card_definition(card_def)
+        effect_summary = summarize_card_definition_for_instance(
+            card_def,
+            card_instance_id=card_instance_id,
+            combat_state=combat_state,
+        )
         options.append((f"play_card:{index}", Text.assemble(render_card_name(card_def), f" {cost_label} - {effect_summary}")))
     options.append(("end_turn", "结束回合"))
     options.append(("back", "返回上一步"))

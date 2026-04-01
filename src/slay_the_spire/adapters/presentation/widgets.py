@@ -8,6 +8,7 @@ from rich.text import Text
 
 from slay_the_spire.adapters.presentation.theme import HP_BAR_WIDTH, PANEL_BOX
 from slay_the_spire.content.registries import CardDef, EnemyDef
+from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.statuses import StatusState
 
 _STATUS_LABELS: dict[str, tuple[str, str]] = {
@@ -252,7 +253,8 @@ def summarize_effect(
         return f"造成 {amount} 伤害，击杀则永久增加 {hp_gain} 最大生命"
     if effect_type == "rampage_damage":
         amount = int(effect.get("amount", 0))
-        return f"造成 {amount} 伤害（每次使用后永久增加 5 伤害）"
+        increment = int(effect.get("increment", 5))
+        return f"造成 {amount} 伤害（每次使用后永久增加 {increment} 伤害）"
     if effect_type == "damage_with_strength_multiplier":
         base = int(effect.get("base", 0))
         multiplier = int(effect.get("multiplier", 1))
@@ -392,8 +394,66 @@ def summarize_card_effects(
     return " / ".join(summary for summary in summaries if summary) or "-"
 
 
+def _resolve_effect_for_card_instance(
+    effect: Mapping[str, object],
+    *,
+    card_instance_id: str,
+    combat_state: CombatState | None,
+) -> Mapping[str, object]:
+    if effect.get("type") != "rampage_damage":
+        return effect
+    play_count = 0
+    if combat_state is not None:
+        play_count = int(combat_state.card_play_data.get(card_instance_id, 0))
+    base_amount = int(effect.get("amount", 0))
+    increment = int(effect.get("increment", 5))
+    resolved = dict(effect)
+    resolved["amount"] = base_amount + increment * play_count
+    return resolved
+
+
+def summarize_card_effects_for_instance(
+    effects: Sequence[Mapping[str, object]],
+    *,
+    card_instance_id: str,
+    combat_state: CombatState | None = None,
+    detailed_status_cards: bool = False,
+) -> str:
+    summaries = [
+        summarize_effect(
+            _resolve_effect_for_card_instance(
+                effect,
+                card_instance_id=card_instance_id,
+                combat_state=combat_state,
+            ),
+            detailed_status_cards=detailed_status_cards,
+        )
+        for effect in effects
+    ]
+    return " / ".join(summary for summary in summaries if summary) or "-"
+
+
 def summarize_card_definition(card_def: CardDef) -> str:
     summary = summarize_card_effects(card_def.effects)
+    if summary != "-":
+        return summary
+    special_rule = special_card_rule_text(card_def.id)
+    if special_rule is not None:
+        return special_rule
+    return "无效果"
+
+
+def summarize_card_definition_for_instance(
+    card_def: CardDef,
+    *,
+    card_instance_id: str,
+    combat_state: CombatState | None = None,
+) -> str:
+    summary = summarize_card_effects_for_instance(
+        card_def.effects,
+        card_instance_id=card_instance_id,
+        combat_state=combat_state,
+    )
     if summary != "-":
         return summary
     special_rule = special_card_rule_text(card_def.id)

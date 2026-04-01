@@ -153,6 +153,34 @@ def test_format_card_upgrade_preview_lines_show_before_and_after_effects() -> No
     assert "施加 3 易伤" in rendered
 
 
+def test_format_card_detail_lines_show_scaled_rampage_damage_from_combat_state() -> None:
+    session = start_session(seed=5)
+    registry = StarterContentProvider(session.content_root)
+    combat_state = CombatState(
+        round_number=1,
+        energy=3,
+        hand=["rampage#1"],
+        draw_pile=[],
+        discard_pile=[],
+        exhaust_pile=[],
+        player=PlayerCombatState(
+            instance_id="player-1",
+            hp=80,
+            max_hp=80,
+            block=0,
+            statuses=[],
+        ),
+        enemies=[],
+        effect_queue=[],
+        log=[],
+        card_play_data={"rampage#1": 1},
+    )
+
+    lines = format_card_detail_lines("rampage#1", registry, combat_state=combat_state)
+
+    assert "造成 13 伤害" in "\n".join(line.plain for line in lines)
+
+
 def test_render_card_detail_panel_marks_x_cost_card_as_playable() -> None:
     session = start_session(seed=5)
     registry = StarterContentProvider(session.content_root)
@@ -505,7 +533,7 @@ def test_render_combat_inspect_pages_show_pile_summary_card_detail_and_enemy_det
     assert "类型: 攻击" in card_output
     assert "是否可打出: 是" in card_output
     assert "完整效果: 造成 6 伤害" in card_output
-    assert "升级目标: -" in card_output
+    assert "升级目标: 打击（红）+" in card_output
     assert "返回卡牌列表" in card_output
     assert "敌人列表" in enemy_list_output
     assert first_enemy_def.name in enemy_list_output
