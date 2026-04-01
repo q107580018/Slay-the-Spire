@@ -101,12 +101,16 @@ class CardDef:
     cost: int
     effects: list[JsonDict]
     card_type: str
+    on_exhaust_effects: list[JsonDict] = field(default_factory=list)
     acquisition_tags: list[str] = field(default_factory=list)
     rarity: str | None = None
     upgrades_to: str | None = None
+    play_condition: str | None = None
+    cost_reducer: str | None = None
     playable: bool = True
     exhausts: bool = False
     ethereal: bool = False
+    innate: bool = False
 
 
 @dataclass(slots=True, frozen=True)
@@ -214,6 +218,8 @@ class CardRegistry(_BaseRegistry[CardDef]):
     _ALLOWED_ACQUISITION_TAGS = frozenset(
         {"starter", "combat_reward", "shop", "event", "generated", "status", "curse"}
     )
+    _ALLOWED_PLAY_CONDITIONS = frozenset({"all_attacks_in_hand"})
+    _ALLOWED_COST_REDUCERS = frozenset({"times_hit_this_combat"})
 
     def register(self, payload: Mapping[str, object]) -> CardDef:
         record = self._build(payload)
@@ -257,18 +263,44 @@ class CardRegistry(_BaseRegistry[CardDef]):
                 raise ValueError("acquisition_tags must contain only supported tags")
         return tags
 
+    def _require_supported_optional_str(
+        self,
+        value: object,
+        field_name: str,
+        *,
+        allowed_values: frozenset[str],
+    ) -> str | None:
+        parsed = _require_optional_str(value, field_name)
+        if parsed is not None and parsed not in allowed_values:
+            raise ValueError(f"{field_name} must be a supported value")
+        return parsed
+
     def _build(self, payload: Mapping[str, object]) -> CardDef:
         data = _require_mapping(payload, "payload")
         effects = _require_record_list(data.get("effects"), "effects")
+        on_exhaust_effects = _require_record_list(
+            data.get("on_exhaust_effects", []), "on_exhaust_effects"
+        )
         return CardDef(
             id=_require_str(data.get("id"), "id"),
             name=_require_str(data.get("name"), "name"),
             cost=_require_int(data.get("cost"), "cost"),
             effects=[dict(item) for item in effects],
+            on_exhaust_effects=[dict(item) for item in on_exhaust_effects],
             card_type=self._infer_card_type(data, effects),
             acquisition_tags=self._normalize_acquisition_tags(data),
             rarity=_require_optional_str(data.get("rarity"), "rarity"),
             upgrades_to=_require_optional_str(data.get("upgrades_to"), "upgrades_to"),
+            play_condition=self._require_supported_optional_str(
+                data.get("play_condition"),
+                "play_condition",
+                allowed_values=self._ALLOWED_PLAY_CONDITIONS,
+            ),
+            cost_reducer=self._require_supported_optional_str(
+                data.get("cost_reducer"),
+                "cost_reducer",
+                allowed_values=self._ALLOWED_COST_REDUCERS,
+            ),
             playable=_require_optional_bool(
                 data.get("playable"), "playable", default=True
             ),
@@ -278,6 +310,7 @@ class CardRegistry(_BaseRegistry[CardDef]):
             ethereal=_require_optional_bool(
                 data.get("ethereal"), "ethereal", default=False
             ),
+            innate=_require_optional_bool(data.get("innate"), "innate", default=False),
         )
 
 

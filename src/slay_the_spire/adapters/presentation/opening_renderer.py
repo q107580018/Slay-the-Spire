@@ -68,7 +68,7 @@ def format_neow_offer_detail_lines(offer, *, registry: ContentProviderPort) -> l
     elif offer.cost_kind == "gold_loss":
         details.append(f"失去 {offer.cost_payload['amount']} 金币")
     elif offer.cost_kind == "curse":
-        details.append(f"牌组中加入诅咒牌：{_localized_card_name(str(offer.cost_payload['card_id']), registry)}")
+        details.append("牌组中加入一张随机诅咒牌")
     return details
 
 

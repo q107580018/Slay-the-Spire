@@ -38,6 +38,33 @@
         "generated",
         "status"
       ]
+    },
+    {
+      "id": "wound",
+      "name": "伤口",
+      "cost": -1,
+      "rarity": "special",
+      "playable": false,
+      "effects": [],
+      "card_type": "status",
+      "acquisition_tags": [
+        "generated",
+        "status"
+      ]
+    },
+    {
+      "id": "dazed",
+      "name": "迷糊",
+      "cost": -1,
+      "rarity": "special",
+      "playable": false,
+      "exhausts": true,
+      "effects": [],
+      "card_type": "status",
+      "acquisition_tags": [
+        "generated",
+        "status"
+      ]
     }
   ]
 }

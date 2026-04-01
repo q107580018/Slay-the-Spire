@@ -83,11 +83,12 @@ def test_build_offer_curse_bonus_uses_curse_as_cost_and_non_curse_reward() -> No
     offer = opening_flow._build_offer("curse", "tradeoff", "curse_bonus", provider, Random(0))
 
     assert offer.cost_kind == "curse"
-    assert offer.cost_payload["card_id"] == "doubt"
+    cost_card_id = str(offer.cost_payload["card_id"])
+    assert provider.cards().get(cost_card_id).card_type == "curse"
     assert offer.reward_kind == "curse_bonus"
     assert offer.reward_payload["reward_type"] in {"gold", "relic", "card"}
     assert offer.summary != "获得诅咒牌"
-    assert offer.reward_payload.get("card_id") != "doubt"
+    assert offer.reward_payload.get("card_id") != cost_card_id
 
 
 def test_apply_neow_offer_curse_bonus_adds_curse_and_applies_premium_reward() -> None:
@@ -101,7 +102,8 @@ def test_apply_neow_offer_curse_bonus_adds_curse_and_applies_premium_reward() ->
 
     assert before is not None
     assert updated.run_blueprint is not None
-    assert "doubt#11" in updated.run_blueprint.deck
+    cost_card_id = str(offer.cost_payload["card_id"])
+    assert f"{cost_card_id}#11" in updated.run_blueprint.deck
     if offer.reward_payload["reward_type"] == "gold":
         assert updated.run_blueprint.gold == before.gold + 250
 

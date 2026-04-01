@@ -195,6 +195,34 @@ def test_combat_state_round_trips_active_powers() -> None:
     assert CombatState.from_dict(state.to_dict()).to_dict() == state.to_dict()
 
 
+def test_combat_state_round_trips_runtime_card_state() -> None:
+    state = CombatState(
+        schema_version=1,
+        round_number=2,
+        energy=1,
+        hand=["rampage#1"],
+        draw_pile=[],
+        discard_pile=[],
+        exhaust_pile=[],
+        player=PlayerCombatState(
+            instance_id="player-1",
+            hp=40,
+            max_hp=83,
+            block=0,
+            statuses=[],
+        ),
+        enemies=[],
+        effect_queue=[],
+        active_powers=[],
+        log=[],
+        times_hit_this_combat=2,
+        card_play_data={"rampage#1": 3},
+        temporary_costs={"immolate#7": 0},
+    )
+
+    assert CombatState.from_dict(state.to_dict()).to_dict() == state.to_dict()
+
+
 def test_combat_state_from_dict_defaults_missing_active_powers_to_empty_list() -> None:
     restored = CombatState.from_dict(
         {
@@ -221,6 +249,36 @@ def test_combat_state_from_dict_defaults_missing_active_powers_to_empty_list() -
     )
 
     assert restored.active_powers == []
+
+
+def test_combat_state_from_dict_defaults_missing_runtime_card_state_fields() -> None:
+    restored = CombatState.from_dict(
+        {
+            "schema_version": 1,
+            "round_number": 1,
+            "energy": 3,
+            "hand": [],
+            "draw_pile": [],
+            "discard_pile": [],
+            "exhaust_pile": [],
+            "player": {
+                "schema_version": 1,
+                "instance_id": "player-1",
+                "hp": 80,
+                "max_hp": 80,
+                "block": 0,
+                "statuses": [],
+                "kind": "player",
+            },
+            "enemies": [],
+            "effect_queue": [],
+            "log": [],
+        }
+    )
+
+    assert restored.times_hit_this_combat == 0
+    assert restored.card_play_data == {}
+    assert restored.temporary_costs == {}
 
 
 def test_act_state_constructor_rejects_dangling_next_node_edges():
@@ -1234,6 +1292,49 @@ def test_combat_state_from_dict_rejects_string_lists(field, value):
     payload[field] = value
 
     with pytest.raises(TypeError):
+        CombatState.from_dict(payload)
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "error_type", "match"),
+    [
+        ("times_hit_this_combat", True, TypeError, "times_hit_this_combat"),
+        ("times_hit_this_combat", -1, ValueError, "times_hit_this_combat"),
+        ("card_play_data", [], TypeError, "card_play_data"),
+        ("card_play_data", {1: 2}, TypeError, "card_play_data key"),
+        ("card_play_data", {"rampage#1": True}, TypeError, "card_play_data value"),
+        ("temporary_costs", [], TypeError, "temporary_costs"),
+        ("temporary_costs", {1: 0}, TypeError, "temporary_costs key"),
+        ("temporary_costs", {"immolate#7": True}, TypeError, "temporary_costs value"),
+    ],
+)
+def test_combat_state_from_dict_rejects_invalid_runtime_card_state_fields(
+    field, value, error_type, match
+):
+    payload = {
+        "schema_version": 1,
+        "round_number": 1,
+        "energy": 3,
+        "hand": [],
+        "draw_pile": [],
+        "discard_pile": [],
+        "exhaust_pile": [],
+        "player": {
+            "schema_version": 1,
+            "instance_id": "player-1",
+            "hp": 80,
+            "max_hp": 80,
+            "block": 0,
+            "statuses": [],
+            "kind": "player",
+        },
+        "enemies": [],
+        "effect_queue": [],
+        "log": [],
+    }
+    payload[field] = value
+
+    with pytest.raises(error_type, match=match):
         CombatState.from_dict(payload)
 
 

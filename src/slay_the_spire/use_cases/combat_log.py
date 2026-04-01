@@ -21,21 +21,48 @@ def describe_player_action(*, events: Sequence[CombatEvent]) -> list[str]:
     if not events:
         return []
 
-    card_name = next((event.card_name for event in events if event.event_type == "card_played" and event.card_name), None)
+    card_name = next(
+        (
+            event.card_name
+            for event in events
+            if event.event_type == "card_played" and event.card_name
+        ),
+        None,
+    )
     target_parts: OrderedDict[str, dict[str, int]] = OrderedDict()
     self_parts: list[str] = []
 
     for event in events:
-        if event.event_type == "damage" and event.target_name is not None and event.actual_damage > 0:
-            part = target_parts.setdefault(event.target_name, {"damage": 0, "vulnerable": 0, "weak": 0})
+        if (
+            event.event_type == "damage"
+            and event.target_name is not None
+            and event.actual_damage > 0
+        ):
+            part = target_parts.setdefault(
+                event.target_name, {"damage": 0, "vulnerable": 0, "weak": 0}
+            )
             part["damage"] += event.actual_damage
             continue
-        if event.event_type == "status_applied" and event.status_id == "vulnerable" and event.target_name is not None and event.stacks > 0:
-            part = target_parts.setdefault(event.target_name, {"damage": 0, "vulnerable": 0, "weak": 0})
+        if (
+            event.event_type == "status_applied"
+            and event.status_id == "vulnerable"
+            and event.target_name is not None
+            and event.stacks > 0
+        ):
+            part = target_parts.setdefault(
+                event.target_name, {"damage": 0, "vulnerable": 0, "weak": 0}
+            )
             part["vulnerable"] += event.stacks
             continue
-        if event.event_type == "status_applied" and event.status_id == "weak" and event.target_name is not None and event.stacks > 0:
-            part = target_parts.setdefault(event.target_name, {"damage": 0, "vulnerable": 0, "weak": 0})
+        if (
+            event.event_type == "status_applied"
+            and event.status_id == "weak"
+            and event.target_name is not None
+            and event.stacks > 0
+        ):
+            part = target_parts.setdefault(
+                event.target_name, {"damage": 0, "vulnerable": 0, "weak": 0}
+            )
             part["weak"] += event.stacks
             continue
         if event.event_type == "block_gained" and event.amount > 0:
@@ -44,7 +71,11 @@ def describe_player_action(*, events: Sequence[CombatEvent]) -> list[str]:
         if event.event_type == "draw" and event.amount > 0:
             self_parts.append(f"抽 {event.amount} 张牌")
             continue
-        if event.event_type == "add_card_to_discard" and event.card_name is not None and event.count > 0:
+        if (
+            event.event_type == "add_card_to_discard"
+            and event.card_name is not None
+            and event.count > 0
+        ):
             self_parts.append(f"向弃牌堆加入 {event.count} 张{event.card_name}")
             continue
         if event.event_type == "gain_energy" and event.amount > 0:
@@ -61,6 +92,18 @@ def describe_player_action(*, events: Sequence[CombatEvent]) -> list[str]:
             continue
         if event.event_type == "upgrade_card" and event.count > 0:
             self_parts.append(f"升级 {event.count} 张手牌")
+        if event.event_type == "reorder_draw_pile" and event.count > 0:
+            self_parts.append("将 1 张弃牌放回牌堆顶")
+            continue
+        if event.event_type == "exhaust_to_hand" and event.count > 0:
+            self_parts.append("从消耗堆取回 1 张牌")
+            continue
+        if event.event_type == "copy_to_hand" and event.count > 0:
+            self_parts.append("复制 1 张牌到手牌")
+            continue
+        if event.event_type == "double_strength":
+            self_parts.append("使力量翻倍")
+            continue
 
     parts: list[str] = []
     for target_name, values in target_parts.items():
@@ -69,10 +112,18 @@ def describe_player_action(*, events: Sequence[CombatEvent]) -> list[str]:
             target_line = f"对 {target_name} 造成 {values['damage']} 伤害"
         if values["vulnerable"] > 0:
             vulnerable_line = f"施加 {values['vulnerable']} 层易伤"
-            target_line = f"{target_line}，并{vulnerable_line}" if target_line else f"对 {target_name}{vulnerable_line}"
+            target_line = (
+                f"{target_line}，并{vulnerable_line}"
+                if target_line
+                else f"对 {target_name}{vulnerable_line}"
+            )
         if values["weak"] > 0:
             weak_line = f"施加 {values['weak']} 层虚弱"
-            target_line = f"{target_line}，并{weak_line}" if target_line else f"对 {target_name}{weak_line}"
+            target_line = (
+                f"{target_line}，并{weak_line}"
+                if target_line
+                else f"对 {target_name}{weak_line}"
+            )
         if target_line:
             parts.append(target_line)
     parts.extend(self_parts)
@@ -93,12 +144,17 @@ def describe_enemy_turn(*, events: Sequence[CombatEvent]) -> list[str]:
     entries: list[str] = []
     for actor_events in grouped.values():
         actor_name = actor_events[0].actor_name
-        sleep_event = next((event for event in actor_events if event.event_type == "sleep"), None)
+        sleep_event = next(
+            (event for event in actor_events if event.event_type == "sleep"), None
+        )
         if sleep_event is not None:
             entries.append(f"{actor_name}沉睡，暂不行动。")
             continue
 
-        if all(event.event_type == "damage" and event.target_name == "你" for event in actor_events):
+        if all(
+            event.event_type == "damage" and event.target_name == "你"
+            for event in actor_events
+        ):
             if actor_name == "灼伤":
                 total_amount = sum(event.amount for event in actor_events)
                 total_blocked = sum(event.blocked for event in actor_events)
@@ -122,21 +178,42 @@ def describe_enemy_turn(*, events: Sequence[CombatEvent]) -> list[str]:
             if event.event_type == "gain_strength" and event.amount > 0:
                 parts.append(f"获得 {event.amount} 层力量")
                 continue
-            if event.event_type == "add_card_to_discard" and event.card_name is not None and event.count > 0:
+            if (
+                event.event_type == "add_card_to_discard"
+                and event.card_name is not None
+                and event.count > 0
+            ):
                 parts.append(f"向你的弃牌堆加入 {event.count} 张{event.card_name}")
                 continue
-            if event.event_type == "status_applied" and event.status_id == "vulnerable" and event.stacks > 0:
+            if (
+                event.event_type == "status_applied"
+                and event.status_id == "vulnerable"
+                and event.stacks > 0
+            ):
                 parts.append(f"施加 {event.stacks} 层易伤")
                 continue
-            if event.event_type == "status_applied" and event.status_id == "weak" and event.stacks > 0:
+            if (
+                event.event_type == "status_applied"
+                and event.status_id == "weak"
+                and event.stacks > 0
+            ):
                 parts.append(f"施加 {event.stacks} 层虚弱")
                 continue
-            if event.event_type == "status_applied" and event.status_id in {"strength", "dexterity"} and event.target_name is not None and event.stacks != 0:
+            if (
+                event.event_type == "status_applied"
+                and event.status_id in {"strength", "dexterity"}
+                and event.target_name is not None
+                and event.stacks != 0
+            ):
                 status_label = "力量" if event.status_id == "strength" else "敏捷"
                 if event.stacks > 0:
-                    parts.append(f"使{event.target_name}获得 {event.stacks} {status_label}")
+                    parts.append(
+                        f"使{event.target_name}获得 {event.stacks} {status_label}"
+                    )
                 else:
-                    parts.append(f"使{event.target_name}失去 {abs(event.stacks)} {status_label}")
+                    parts.append(
+                        f"使{event.target_name}失去 {abs(event.stacks)} {status_label}"
+                    )
                 continue
             if event.event_type == "block_gained" and event.amount > 0:
                 parts.append(f"获得 {event.amount} 格挡")
@@ -153,11 +230,23 @@ def describe_triggered_active_powers(*, events: Sequence[CombatEvent]) -> list[s
 
     for event in events:
         if event.event_type != "active_power_triggered":
+            if event.event_type == "active_power_draw":
+                part = grouped.setdefault(
+                    event.actor_name,
+                    {
+                        "block": 0,
+                        "draw": 0,
+                        "damage_targets": OrderedDict(),
+                        "lose_hp": 0,
+                    },
+                )
+                part["draw"] = int(part["draw"]) + event.amount
             continue
         part = grouped.setdefault(
             event.actor_name,
             {
                 "block": 0,
+                "draw": 0,
                 "damage_targets": OrderedDict(),
                 "lose_hp": 0,
             },
@@ -165,10 +254,14 @@ def describe_triggered_active_powers(*, events: Sequence[CombatEvent]) -> list[s
         if event.target_name is None and event.amount > 0 and event.actual_damage == 0:
             part["block"] = int(part["block"]) + event.amount
             continue
-        if event.target_name is not None and (event.amount > 0 or event.blocked > 0 or event.actual_damage > 0):
+        if event.target_name is not None and (
+            event.amount > 0 or event.blocked > 0 or event.actual_damage > 0
+        ):
             damage_targets = part["damage_targets"]
             assert isinstance(damage_targets, OrderedDict)
-            totals = damage_targets.setdefault(event.target_name, {"amount": 0, "blocked": 0, "actual_damage": 0})
+            totals = damage_targets.setdefault(
+                event.target_name, {"amount": 0, "blocked": 0, "actual_damage": 0}
+            )
             assert isinstance(totals, dict)
             totals["amount"] = int(totals["amount"]) + event.amount
             totals["blocked"] = int(totals["blocked"]) + event.blocked
@@ -183,6 +276,9 @@ def describe_triggered_active_powers(*, events: Sequence[CombatEvent]) -> list[s
         block = int(payload["block"])
         if block > 0:
             parts.append(f"获得 {block} 格挡")
+        draw = int(payload["draw"])
+        if draw > 0:
+            parts.append(f"抽 {draw} 张牌")
         damage_targets = payload["damage_targets"]
         assert isinstance(damage_targets, OrderedDict)
         for target_name, totals in damage_targets.items():

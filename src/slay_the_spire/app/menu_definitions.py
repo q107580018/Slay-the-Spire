@@ -19,6 +19,7 @@ from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.room_state import RoomState
 from slay_the_spire.domain.models.run_state import RunState
 from slay_the_spire.ports.content_provider import ContentProviderPort
+from slay_the_spire.use_cases.play_card import resolve_card_cost
 
 
 @dataclass(frozen=True, slots=True)
@@ -529,7 +530,12 @@ def build_select_card_menu(*, combat_state: CombatState, registry: ContentProvid
     options: list[tuple[str, str | Text]] = []
     for index, card_instance_id in enumerate(combat_state.hand, start=1):
         card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
-        cost_label = "无法打出" if not getattr(card_def, "playable", True) else f"费用{format_card_cost(card_def.cost)}"
+        resolved_cost = resolve_card_cost(card_def, combat_state, card_instance_id)
+        cost_label = (
+            "无法打出"
+            if not getattr(card_def, "playable", True)
+            else f"费用{format_card_cost(resolved_cost)}"
+        )
         effect_summary = summarize_card_definition(card_def)
         options.append((f"play_card:{index}", Text.assemble(render_card_name(card_def), f" {cost_label} - {effect_summary}")))
     options.append(("end_turn", "结束回合"))

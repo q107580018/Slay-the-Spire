@@ -235,6 +235,56 @@ def test_load_game_restores_run_state_seen_event_ids(tmp_path: Path) -> None:
     assert restored["run_state"].seen_event_ids == ["shining_light", "golden_idol"]
 
 
+def test_save_load_round_trips_extended_combat_state(tmp_path: Path) -> None:
+    combat_state = CombatState(
+        round_number=2,
+        energy=1,
+        hand=["rampage#1"],
+        draw_pile=[],
+        discard_pile=[],
+        exhaust_pile=[],
+        player=PlayerCombatState(
+            instance_id="player-1",
+            hp=30,
+            max_hp=85,
+            block=0,
+            statuses=[],
+        ),
+        enemies=[],
+        effect_queue=[],
+        active_powers=[],
+        log=[],
+        times_hit_this_combat=3,
+        card_play_data={"rampage#1": 2},
+        temporary_costs={"infernal_blade_roll#1": 0},
+    )
+
+    repository = JsonFileSaveRepository(tmp_path / "save.json")
+    save_game(
+        repository=repository,
+        run_state=_run_state(),
+        act_state=_act_state(),
+        room_state=RoomState(
+            room_id="act1:hallway",
+            room_type="combat",
+            stage="waiting_input",
+            payload={
+                "act_id": "act1",
+                "node_id": "hallway",
+                "combat_state": combat_state.to_dict(),
+            },
+            is_resolved=False,
+            rewards=[],
+        ),
+        combat_state=combat_state,
+    )
+
+    restored = load_game(repository=repository)
+
+    assert restored["combat_state"] is not None
+    assert restored["combat_state"].to_dict() == combat_state.to_dict()
+
+
 def test_save_load_round_trips_treasure_room_payload(tmp_path: Path) -> None:
     repository = JsonFileSaveRepository(tmp_path / "treasure.json")
     room_state = RoomState(

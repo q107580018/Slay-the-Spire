@@ -90,7 +90,11 @@ def _build_offer(offer_id: str, category: str, reward_kind: str, registry, rng: 
         rng=rng,
     )
     requires_target = reward_kind if reward_kind in {"upgrade_card", "remove_card"} else None
-    cost_kind, cost_payload = _build_cost_payload(reward_kind=reward_kind, rng=rng)
+    cost_kind, cost_payload = _build_cost_payload(
+        reward_kind=reward_kind,
+        registry=registry,
+        rng=rng,
+    )
     summary, detail_lines = _build_description(reward_kind=reward_kind, reward_payload=reward_payload, cost_kind=cost_kind, cost_payload=cost_payload)
     return NeowOffer(
         offer_id=offer_id,
@@ -141,13 +145,13 @@ def _build_reward_payload(*, reward_kind: str, registry, rng: Random) -> dict[st
     raise ValueError(f"unsupported reward_kind: {reward_kind}")
 
 
-def _build_cost_payload(*, reward_kind: str, rng: Random) -> tuple[str | None, dict[str, object]]:
+def _build_cost_payload(*, reward_kind: str, registry, rng: Random) -> tuple[str | None, dict[str, object]]:
     if reward_kind == "upgrade_card":
         return "hp_loss", {"amount": rng.choice([6, 8, 10])}
     if reward_kind == "remove_card":
         return "gold_loss", {"amount": 75}
     if reward_kind == "curse_bonus":
-        return "curse", {"card_id": "doubt"}
+        return "curse", {"card_id": _choose_curse_card_id(registry=registry, rng=rng)}
     return None, {}
 
 
@@ -201,7 +205,7 @@ def _describe_cost(cost_kind: str, cost_payload: dict[str, object]) -> str:
     if cost_kind == "gold_loss":
         return f"失去 {cost_payload['amount']} 金币"
     if cost_kind == "curse":
-        return f"牌组中加入诅咒牌：{cost_payload['card_id']}"
+        return "牌组中加入一张随机诅咒牌"
     return cost_kind
 
 

@@ -88,16 +88,36 @@ def _run_state(
     )
 
 
-def _act_state(*, node_id: str, room_type: str, next_node_ids: list[str] | None = None) -> ActState:
+def _act_state(
+    *, node_id: str, room_type: str, next_node_ids: list[str] | None = None
+) -> ActState:
     resolved_next_node_ids = [] if next_node_ids is None else list(next_node_ids)
     return ActState(
         act_id="act1",
         current_node_id="start",
         nodes=[
-            ActNodeState(node_id="start", row=0, col=0, room_type="combat", next_node_ids=[node_id]),
-            ActNodeState(node_id=node_id, row=1, col=0, room_type=room_type, next_node_ids=resolved_next_node_ids),
+            ActNodeState(
+                node_id="start",
+                row=0,
+                col=0,
+                room_type="combat",
+                next_node_ids=[node_id],
+            ),
+            ActNodeState(
+                node_id=node_id,
+                row=1,
+                col=0,
+                room_type=room_type,
+                next_node_ids=resolved_next_node_ids,
+            ),
             *[
-                ActNodeState(node_id=next_node_id, row=2, col=index, room_type="combat", next_node_ids=[])
+                ActNodeState(
+                    node_id=next_node_id,
+                    row=2,
+                    col=index,
+                    room_type="combat",
+                    next_node_ids=[],
+                )
                 for index, next_node_id in enumerate(resolved_next_node_ids)
             ],
         ],
@@ -155,10 +175,30 @@ def test_enter_room_switches_to_late_pool_after_three_prior_combat_rooms() -> No
             act_id="act1",
             current_node_id="r3c0",
             nodes=[
-                ActNodeState(node_id="start", row=0, col=0, room_type="combat", next_node_ids=["r1c0"]),
-                ActNodeState(node_id="r1c0", row=1, col=0, room_type="combat", next_node_ids=["r2c0"]),
-                ActNodeState(node_id="r2c0", row=2, col=0, room_type="combat", next_node_ids=["r3c0"]),
-                ActNodeState(node_id="r3c0", row=3, col=0, room_type="combat", next_node_ids=[]),
+                ActNodeState(
+                    node_id="start",
+                    row=0,
+                    col=0,
+                    room_type="combat",
+                    next_node_ids=["r1c0"],
+                ),
+                ActNodeState(
+                    node_id="r1c0",
+                    row=1,
+                    col=0,
+                    room_type="combat",
+                    next_node_ids=["r2c0"],
+                ),
+                ActNodeState(
+                    node_id="r2c0",
+                    row=2,
+                    col=0,
+                    room_type="combat",
+                    next_node_ids=["r3c0"],
+                ),
+                ActNodeState(
+                    node_id="r3c0", row=3, col=0, room_type="combat", next_node_ids=[]
+                ),
             ],
             visited_node_ids=["start", "r1c0", "r2c0"],
             enemy_pool_id="act1_basic",
@@ -197,13 +237,18 @@ def test_enter_room_shop_cards_come_from_shop_tagged_cards() -> None:
     offered_cards = [item["card_id"] for item in room_state.payload["cards"]]
 
     assert offered_cards
-    assert all("shop" in provider.cards().get(card_id).acquisition_tags for card_id in offered_cards)
+    assert all(
+        "shop" in provider.cards().get(card_id).acquisition_tags
+        for card_id in offered_cards
+    )
     assert "burn" not in offered_cards
     assert "doubt" not in offered_cards
     assert "injury" not in offered_cards
 
 
-def test_enter_room_does_not_fallback_to_enemy_pool_when_encounter_pool_is_missing() -> None:
+def test_enter_room_does_not_fallback_to_enemy_pool_when_encounter_pool_is_missing() -> (
+    None
+):
     with pytest.raises(KeyError, match="act1_basic"):
         enter_room(
             _run_state(seed=7),
@@ -233,10 +278,34 @@ def test_enter_room_raises_when_no_encounter_entries_match_combat_count() -> Non
                 act_id="act1",
                 current_node_id="r3c0",
                 nodes=[
-                    ActNodeState(node_id="start", row=0, col=0, room_type="combat", next_node_ids=["r1c0"]),
-                    ActNodeState(node_id="r1c0", row=1, col=0, room_type="combat", next_node_ids=["r2c0"]),
-                    ActNodeState(node_id="r2c0", row=2, col=0, room_type="combat", next_node_ids=["r3c0"]),
-                    ActNodeState(node_id="r3c0", row=3, col=0, room_type="combat", next_node_ids=[]),
+                    ActNodeState(
+                        node_id="start",
+                        row=0,
+                        col=0,
+                        room_type="combat",
+                        next_node_ids=["r1c0"],
+                    ),
+                    ActNodeState(
+                        node_id="r1c0",
+                        row=1,
+                        col=0,
+                        room_type="combat",
+                        next_node_ids=["r2c0"],
+                    ),
+                    ActNodeState(
+                        node_id="r2c0",
+                        row=2,
+                        col=0,
+                        room_type="combat",
+                        next_node_ids=["r3c0"],
+                    ),
+                    ActNodeState(
+                        node_id="r3c0",
+                        row=3,
+                        col=0,
+                        room_type="combat",
+                        next_node_ids=[],
+                    ),
                 ],
                 visited_node_ids=["start", "r1c0", "r2c0"],
                 enemy_pool_id="act1_basic",
@@ -245,7 +314,9 @@ def test_enter_room_raises_when_no_encounter_entries_match_combat_count() -> Non
                 event_pool_id="act1_events",
             ),
             "r3c0",
-            _SingleEncounterProvider(_content_provider(), encounter_id="single_red_louse"),
+            _SingleEncounterProvider(
+                _content_provider(), encounter_id="single_red_louse"
+            ),
         )
 
 
@@ -271,23 +342,32 @@ def test_enter_event_room_skips_once_per_run_events_already_seen() -> None:
     assert room_state.payload["event_id"] == "the_cleric"
 
 
-def test_enter_treasure_room_generates_deterministic_relic_payload_and_keeps_next_nodes() -> None:
+def test_enter_treasure_room_generates_deterministic_relic_payload_and_keeps_next_nodes() -> (
+    None
+):
     first_room = enter_room(
         _run_state(seed=13),
-        _act_state(node_id="r1c0", room_type="treasure", next_node_ids=["r2c0", "r2c1"]),
+        _act_state(
+            node_id="r1c0", room_type="treasure", next_node_ids=["r2c0", "r2c1"]
+        ),
         "r1c0",
         _content_provider(),
     )
     second_room = enter_room(
         _run_state(seed=13),
-        _act_state(node_id="r1c0", room_type="treasure", next_node_ids=["r2c0", "r2c1"]),
+        _act_state(
+            node_id="r1c0", room_type="treasure", next_node_ids=["r2c0", "r2c1"]
+        ),
         "r1c0",
         _content_provider(),
     )
 
     assert first_room.room_type == "treasure"
     assert first_room.payload["next_node_ids"] == ["r2c0", "r2c1"]
-    assert first_room.payload["treasure_relic_id"] == second_room.payload["treasure_relic_id"]
+    assert (
+        first_room.payload["treasure_relic_id"]
+        == second_room.payload["treasure_relic_id"]
+    )
 
 
 def test_enter_treasure_room_skips_owned_relics_from_candidate_pool() -> None:
@@ -298,10 +378,15 @@ def test_enter_treasure_room_skips_owned_relics_from_candidate_pool() -> None:
         _content_provider(),
     )
 
-    assert room_state.payload["treasure_relic_id"] not in {"burning_blood", "golden_idol"}
+    assert room_state.payload["treasure_relic_id"] not in {
+        "burning_blood",
+        "golden_idol",
+    }
 
 
-def test_enter_treasure_room_falls_back_to_circlet_when_no_relic_candidates_remain() -> None:
+def test_enter_treasure_room_falls_back_to_circlet_when_no_relic_candidates_remain() -> (
+    None
+):
     room_state = enter_room(
         _run_state(
             seed=13,
@@ -328,7 +413,9 @@ def test_enter_treasure_room_falls_back_to_circlet_when_no_relic_candidates_rema
 
 def test_enter_combat_room_applies_blood_vial_on_combat_start() -> None:
     room_state = enter_room(
-        _run_state(seed=7, relics=["burning_blood", "blood_vial"], current_hp=70, max_hp=80),
+        _run_state(
+            seed=7, relics=["burning_blood", "blood_vial"], current_hp=70, max_hp=80
+        ),
         _act_state(node_id="r1c0", room_type="combat"),
         "r1c0",
         _content_provider(),
@@ -365,3 +452,38 @@ def test_treasure_candidate_pool_uses_non_shop_relics_only() -> None:
     assert isinstance(treasure_relic_id, str)
     assert treasure_relic_id != "circlet"
     assert registry.relics().get(treasure_relic_id).can_appear_in_shop is False
+
+
+def test_enter_room_places_innate_cards_into_opening_hand_first() -> None:
+    # seed=42 with 8-card deck places brutality_plus#2 at position 6 after shuffle,
+    # so without innate ordering it would NOT be in the opening 5-card hand.
+    # brutality_plus is already in the content registry with innate=True.
+    provider = _content_provider()
+    run_state = RunState(
+        seed=42,
+        character_id="ironclad",
+        current_act_id="act1",
+        current_hp=80,
+        max_hp=80,
+        gold=99,
+        deck=[
+            "strike#1",
+            "brutality_plus#2",
+            "defend#3",
+            "bash#4",
+            "strike#5",
+            "defend#6",
+            "strike#7",
+            "defend#8",
+        ],
+        relics=["burning_blood"],
+        potions=[],
+        card_removal_count=0,
+        seen_event_ids=[],
+    )
+    act_state = _act_state(node_id="r1c0", room_type="combat")
+
+    room_state = enter_room(run_state, act_state, "r1c0", provider)
+    combat_state = CombatState.from_dict(room_state.payload["combat_state"])
+
+    assert "brutality_plus#2" in combat_state.hand

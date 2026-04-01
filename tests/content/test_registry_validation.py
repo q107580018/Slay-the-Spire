@@ -63,6 +63,118 @@ def test_card_registry_defaults_ethereal_to_false() -> None:
 
     assert card.ethereal is False
 
+
+def test_card_registry_parses_extended_red_card_fields() -> None:
+    registry = CardRegistry()
+
+    card = registry.register(
+        {
+            "id": "sentinel",
+            "name": "哨卫",
+            "cost": 1,
+            "rarity": "uncommon",
+            "effects": [{"type": "block", "amount": 5}],
+            "on_exhaust_effects": [{"type": "gain_energy", "amount": 2}],
+            "play_condition": "all_attacks_in_hand",
+            "cost_reducer": "times_hit_this_combat",
+            "innate": True,
+        }
+    )
+
+    assert card.on_exhaust_effects == [{"type": "gain_energy", "amount": 2}]
+    assert card.play_condition == "all_attacks_in_hand"
+    assert card.cost_reducer == "times_hit_this_combat"
+    assert card.innate is True
+
+
+def test_card_registry_defaults_extended_fields() -> None:
+    registry = CardRegistry()
+
+    card = registry.register(
+        {"id": "strike", "name": "Strike", "cost": 1, "effects": []}
+    )
+
+    assert card.on_exhaust_effects == []
+    assert card.play_condition is None
+    assert card.cost_reducer is None
+    assert card.innate is False
+
+
+def test_card_registry_rejects_invalid_play_condition() -> None:
+    registry = CardRegistry()
+
+    with pytest.raises(ValueError, match="play_condition"):
+        registry.register(
+            {
+                "id": "sentinel",
+                "name": "哨卫",
+                "cost": 1,
+                "effects": [],
+                "play_condition": "anything_goes",
+            }
+        )
+
+
+def test_card_registry_rejects_invalid_cost_reducer() -> None:
+    registry = CardRegistry()
+
+    with pytest.raises(ValueError, match="cost_reducer"):
+        registry.register(
+            {
+                "id": "clash",
+                "name": "交锋",
+                "cost": 0,
+                "effects": [],
+                "cost_reducer": "any_reducer",
+            }
+        )
+
+
+def test_card_registry_rejects_invalid_innate_type() -> None:
+    registry = CardRegistry()
+
+    with pytest.raises(TypeError, match="innate"):
+        registry.register(
+            {
+                "id": "sentinel",
+                "name": "哨卫",
+                "cost": 1,
+                "effects": [],
+                "innate": "yes",
+            }
+        )
+
+
+def test_card_registry_rejects_invalid_on_exhaust_effects_type() -> None:
+    registry = CardRegistry()
+
+    with pytest.raises(TypeError, match="on_exhaust_effects"):
+        registry.register(
+            {
+                "id": "sentinel",
+                "name": "哨卫",
+                "cost": 1,
+                "effects": [],
+                "on_exhaust_effects": "gain_energy",
+            }
+        )
+
+
+def test_card_registry_rejects_invalid_on_exhaust_effects_item_shape() -> None:
+    registry = CardRegistry()
+
+    with pytest.raises(TypeError, match="on_exhaust_effects item"):
+        registry.register(
+            {
+                "id": "sentinel",
+                "name": "哨卫",
+                "cost": 1,
+                "effects": [],
+                "on_exhaust_effects": ["gain_energy"],
+            }
+        )
+
+
 def test_json_loader_reads_raw_json(tmp_path: Path) -> None:
     path = tmp_path / "payload.json"
     payload = {"cards": [{"id": "strike", "cost": 1, "effects": []}]}
@@ -461,3 +573,70 @@ def test_act_registry_accepts_map_config_instead_of_static_nodes(
     assert act.map_config.fixed_floor_room_types[9] == "treasure"
     assert act.map_config.post_boss_room_type == "boss_chest"
     assert act.map_config.room_rules["min_floor_for_shop"] == 2
+
+
+@pytest.mark.parametrize("content_root", _content_roots())
+def test_provider_exposes_wound_and_dazed_status_cards(content_root: Path) -> None:
+    provider = StarterContentProvider(content_root)
+
+    assert provider.cards().get("wound").card_type == "status"
+    assert provider.cards().get("wound").playable is False
+    assert provider.cards().get("dazed").card_type == "status"
+    assert provider.cards().get("dazed").exhausts is True
+
+
+@pytest.mark.parametrize(
+    ("card_id", "expected_name"),
+    [
+        ("body_slam", "全身撞击"),
+        ("clash", "交锋"),
+        ("flex", "活动肌肉"),
+        ("havoc", "破灭"),
+        ("heavy_blade", "重刃"),
+        ("iron_wave", "铁斩波"),
+        ("perfected_strike", "完美打击"),
+        ("warcry", "战吼"),
+        ("wild_strike", "狂野打击"),
+        ("blood_for_blood", "以血还血"),
+        ("burning_pact", "燃烧契约"),
+        ("carnage", "残杀"),
+        ("dark_embrace", "黑暗之拥"),
+        ("dropkick", "飞身踢"),
+        ("dual_wield", "双持"),
+        ("evolve", "进化"),
+        ("feel_no_pain", "无惧疼痛"),
+        ("fire_breathing", "火焰吐息"),
+        ("infernal_blade", "地狱之刃"),
+        ("intimidate", "威吓"),
+        ("power_through", "硬撑"),
+        ("rage", "狂怒"),
+        ("rampage", "暴走"),
+        ("reckless_charge", "无谋冲锋"),
+        ("rupture", "撕裂"),
+        ("searing_blow", "灼热攻击"),
+        ("second_wind", "重振精神"),
+        ("seeing_red", "盛怒"),
+        ("sentinel", "哨卫"),
+        ("sever_soul", "断魂斩"),
+        ("spot_weakness", "观察弱点"),
+        ("berserk", "狂暴"),
+        ("shockwave", "震荡波"),
+        ("bludgeon", "重锤"),
+        ("brutality", "残暴"),
+        ("double_tap", "双发"),
+        ("exhume", "发掘"),
+        ("feed", "狂宴"),
+        ("fiend_fire", "恶魔之焰"),
+        ("immolate", "燔祭"),
+        ("juggernaut", "势不可当"),
+        ("limit_break", "突破极限"),
+        ("reaper", "死亡收割"),
+        ("corruption", "腐化"),
+    ],
+)
+def test_provider_loads_remaining_ironclad_cards(
+    card_id: str, expected_name: str
+) -> None:
+    root = Path(__file__).resolve().parents[2] / "content"
+    provider = StarterContentProvider(root)
+    assert provider.cards().get(card_id).name == expected_name

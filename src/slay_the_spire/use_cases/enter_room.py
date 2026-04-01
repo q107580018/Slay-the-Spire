@@ -5,6 +5,7 @@ from slay_the_spire.domain.effects.effect_resolver import resolve_effect_queue
 from slay_the_spire.domain.hooks.hook_dispatcher import dispatch_hook
 from slay_the_spire.domain.hooks.runtime import build_runtime_hook_registrations
 from slay_the_spire.domain.models.act_state import ActState
+from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
 from slay_the_spire.domain.models.room_state import RoomState
@@ -36,7 +37,9 @@ def _combat_encounter_count(act_state: ActState) -> int:
     )
 
 
-def _build_enemy_state(enemy_id: str, registry: ContentProviderPort, *, instance_id: str) -> EnemyState:
+def _build_enemy_state(
+    enemy_id: str, registry: ContentProviderPort, *, instance_id: str
+) -> EnemyState:
     enemy_def = registry.enemies().get(enemy_id)
     statuses: list[StatusState] = []
     if enemy_def.move_table:
@@ -67,7 +70,9 @@ def _select_combat_enemy_ids(
 ) -> tuple[str | None, list[str]]:
     encounter_entries = list(registry.encounter_pool_entries(enemy_pool_id))
     if not encounter_entries:
-        raise ValueError(f"encounter pool {enemy_pool_id} must contain at least one encounter")
+        raise ValueError(
+            f"encounter pool {enemy_pool_id} must contain at least one encounter"
+        )
     combat_count = _combat_encounter_count(act_state)
     eligible_entries = [
         entry
@@ -88,6 +93,23 @@ def _select_combat_enemy_ids(
     return encounter_id, list(encounter.enemy_ids)
 
 
+def _split_innate_cards(
+    deck_instance_ids: list[str], registry: ContentProviderPort
+) -> tuple[list[str], list[str]]:
+    innate_cards: list[str] = []
+    normal_cards: list[str] = []
+    for card_instance_id in deck_instance_ids:
+        try:
+            card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
+            if getattr(card_def, "innate", False):
+                innate_cards.append(card_instance_id)
+            else:
+                normal_cards.append(card_instance_id)
+        except (KeyError, ValueError):
+            normal_cards.append(card_instance_id)
+    return innate_cards, normal_cards
+
+
 def _build_combat_state(
     run_state: RunState,
     act_state: ActState,
@@ -97,8 +119,12 @@ def _build_combat_state(
     registry: ContentProviderPort,
 ) -> tuple[CombatState, str | None]:
     character = registry.characters().get(run_state.character_id)
-    deck_instance_ids = list(run_state.deck) or _build_card_instance_ids(list(character.starter_deck))
+    deck_instance_ids = list(run_state.deck) or _build_card_instance_ids(
+        list(character.starter_deck)
+    )
     _offer_rng(run_state, room_id, "combat:draw_order").shuffle(deck_instance_ids)
+    innate_cards, normal_cards = _split_innate_cards(deck_instance_ids, registry)
+    deck_instance_ids = innate_cards + normal_cards
     encounter_id, enemy_ids = _select_combat_enemy_ids(
         run_state,
         act_state,
@@ -149,9 +175,15 @@ def _sample_ids(ids: list[str], *, count: int, rng) -> list[str]:
     return working[:count]
 
 
-def _build_shop_payload(run_state: RunState, *, room_id: str, registry: ContentProviderPort) -> dict[str, object]:
-    card_ids = [card.id for card in registry.cards().all() if "shop" in card.acquisition_tags]
-    relic_ids = [relic.id for relic in registry.relics().all() if relic.can_appear_in_shop]
+def _build_shop_payload(
+    run_state: RunState, *, room_id: str, registry: ContentProviderPort
+) -> dict[str, object]:
+    card_ids = [
+        card.id for card in registry.cards().all() if "shop" in card.acquisition_tags
+    ]
+    relic_ids = [
+        relic.id for relic in registry.relics().all() if relic.can_appear_in_shop
+    ]
     potion_ids = [potion.id for potion in registry.potions().all()]
     card_rng = _offer_rng(run_state, room_id, "cards")
     relic_rng = _offer_rng(run_state, room_id, "relics")
@@ -159,16 +191,26 @@ def _build_shop_payload(run_state: RunState, *, room_id: str, registry: ContentP
 
     card_prices = {"strike": 50, "defend": 50, "bash": 75}
     cards = [
-        {"offer_id": f"card-{index}", "card_id": card_id, "price": card_prices.get(card_id, 60)}
-        for index, card_id in enumerate(_sample_ids(card_ids, count=3, rng=card_rng), start=1)
+        {
+            "offer_id": f"card-{index}",
+            "card_id": card_id,
+            "price": card_prices.get(card_id, 60),
+        }
+        for index, card_id in enumerate(
+            _sample_ids(card_ids, count=3, rng=card_rng), start=1
+        )
     ]
     relics = [
         {"offer_id": f"relic-{index}", "relic_id": relic_id, "price": 150}
-        for index, relic_id in enumerate(_sample_ids(relic_ids, count=1, rng=relic_rng), start=1)
+        for index, relic_id in enumerate(
+            _sample_ids(relic_ids, count=1, rng=relic_rng), start=1
+        )
     ]
     potions = [
         {"offer_id": f"potion-{index}", "potion_id": potion_id, "price": 60}
-        for index, potion_id in enumerate(_sample_ids(potion_ids, count=2, rng=potion_rng), start=1)
+        for index, potion_id in enumerate(
+            _sample_ids(potion_ids, count=2, rng=potion_rng), start=1
+        )
     ]
     return {
         "cards": cards,
@@ -178,7 +220,13 @@ def _build_shop_payload(run_state: RunState, *, room_id: str, registry: ContentP
     }
 
 
-def _build_event_payload(run_state: RunState, *, room_id: str, event_pool_id: str, registry: ContentProviderPort) -> dict[str, object]:
+def _build_event_payload(
+    run_state: RunState,
+    *,
+    room_id: str,
+    event_pool_id: str,
+    registry: ContentProviderPort,
+) -> dict[str, object]:
     event_entries = [
         entry
         for entry in registry.event_pool_entries(event_pool_id)
@@ -196,8 +244,12 @@ def _build_event_payload(run_state: RunState, *, room_id: str, event_pool_id: st
     return {"event_pool_id": event_pool_id, "event_id": event_id}
 
 
-def _build_treasure_payload(run_state: RunState, *, room_id: str, registry: ContentProviderPort) -> dict[str, object]:
-    candidate_ids = _treasure_relic_candidate_ids(run_state=run_state, registry=registry)
+def _build_treasure_payload(
+    run_state: RunState, *, room_id: str, registry: ContentProviderPort
+) -> dict[str, object]:
+    candidate_ids = _treasure_relic_candidate_ids(
+        run_state=run_state, registry=registry
+    )
     if not candidate_ids:
         registry.relics().get(_TREASURE_FALLBACK_RELIC_ID)
         return {"treasure_relic_id": _TREASURE_FALLBACK_RELIC_ID}
@@ -205,7 +257,9 @@ def _build_treasure_payload(run_state: RunState, *, room_id: str, registry: Cont
     return {"treasure_relic_id": rng.choice(sorted(candidate_ids))}
 
 
-def _treasure_relic_candidate_ids(*, run_state: RunState, registry: ContentProviderPort) -> list[str]:
+def _treasure_relic_candidate_ids(
+    *, run_state: RunState, registry: ContentProviderPort
+) -> list[str]:
     return [
         relic.id
         for relic in registry.relics().all()
@@ -221,7 +275,12 @@ def _mark_node_visited(act_state: ActState, node_id: str) -> None:
         act_state.visited_node_ids.append(node_id)
 
 
-def enter_room(run_state: RunState, act_state: ActState, node_id: str, registry: ContentProviderPort) -> RoomState:
+def enter_room(
+    run_state: RunState,
+    act_state: ActState,
+    node_id: str,
+    registry: ContentProviderPort,
+) -> RoomState:
     current_node = act_state.get_node(node_id)
     room_kind = _room_type_for_node(act_state, current_node.node_id)
     room_id = f"{act_state.act_id}:{current_node.node_id}"
@@ -264,11 +323,15 @@ def enter_room(run_state: RunState, act_state: ActState, node_id: str, registry:
             )
         )
     elif room_kind == "shop":
-        payload.update(_build_shop_payload(run_state, room_id=room_id, registry=registry))
+        payload.update(
+            _build_shop_payload(run_state, room_id=room_id, registry=registry)
+        )
     elif room_kind == "rest":
         payload["actions"] = ["rest", "smith"]
     elif room_kind == "treasure":
-        payload.update(_build_treasure_payload(run_state, room_id=room_id, registry=registry))
+        payload.update(
+            _build_treasure_payload(run_state, room_id=room_id, registry=registry)
+        )
     room_state = RoomState(
         room_id=room_id,
         room_type=room_kind,
