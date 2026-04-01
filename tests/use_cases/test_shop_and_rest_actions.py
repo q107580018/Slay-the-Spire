@@ -202,7 +202,7 @@ def test_rest_smith_transitions_to_select_upgrade_card() -> None:
     )
 
     assert result.room_state.stage == "select_upgrade_card"
-    assert result.room_state.payload["upgrade_options"] == ["bash#3"]
+    assert result.room_state.payload["upgrade_options"] == ["strike#1", "defend#2", "bash#3"]
 
 
 def test_rest_is_blocked_by_fusion_hammer() -> None:

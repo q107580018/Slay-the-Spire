@@ -5,6 +5,7 @@
       "name": "打击（红）",
       "cost": 1,
       "rarity": "basic",
+      "upgrades_to": "strike_plus",
       "effects": [
         {
           "type": "damage",
@@ -21,6 +22,7 @@
       "name": "防御（红）",
       "cost": 1,
       "rarity": "basic",
+      "upgrades_to": "defend_plus",
       "effects": [
         {
           "type": "block",
@@ -2033,7 +2035,7 @@
         {
           "type": "rampage_damage",
           "amount": 8,
-          "increment": 5
+          "increment": 8
         }
       ],
       "card_type": "attack",
