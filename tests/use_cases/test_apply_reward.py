@@ -284,7 +284,7 @@ def test_generate_combat_rewards_samples_from_full_ironclad_reward_pool_in_act1(
     seen_cards: set[str] = set()
     seen_rare_cards: set[str] = set()
 
-    for seed in range(1, 80):
+    for seed in range(1, 200):
         rewards, _next_rare_offset = generate_combat_rewards(
             room_id="act1:hallway_reward",
             run_state=replace(_run_state(), seed=seed),

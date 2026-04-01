@@ -457,17 +457,8 @@ def test_treasure_candidate_pool_uses_non_shop_relics_only() -> None:
 def test_enter_room_places_innate_cards_into_opening_hand_first() -> None:
     # seed=42 with 8-card deck places brutality_plus#2 at position 6 after shuffle,
     # so without innate ordering it would NOT be in the opening 5-card hand.
+    # brutality_plus is already in the content registry with innate=True.
     provider = _content_provider()
-    provider.cards().register(
-        {
-            "id": "brutality_plus",
-            "name": "残忍+",
-            "cost": 0,
-            "card_type": "power",
-            "innate": True,
-            "effects": [{"type": "add_power", "power_id": "brutality", "amount": 1}],
-        }
-    )
     run_state = RunState(
         seed=42,
         character_id="ironclad",

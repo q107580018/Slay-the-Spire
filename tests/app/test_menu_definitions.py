@@ -44,7 +44,12 @@ class _RegistryMap:
 
 
 class _PotionTestProvider:
-    def __init__(self, *, potions: dict[str, PotionDef], enemies: dict[str, EnemyDef] | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        potions: dict[str, PotionDef],
+        enemies: dict[str, EnemyDef] | None = None,
+    ) -> None:
         self._potions = _RegistryMap(potions)
         self._enemies = _RegistryMap(enemies or {})
 
@@ -55,10 +60,17 @@ class _PotionTestProvider:
         return self._enemies
 
 
-def test_build_root_menu_binds_resolved_combat_without_rewards_to_inspect_action() -> None:
+def test_build_root_menu_binds_resolved_combat_without_rewards_to_inspect_action() -> (
+    None
+):
     session = replace(
         start_session(seed=5),
-        room_state=replace(start_session(seed=5).room_state, stage="completed", is_resolved=True, rewards=[]),
+        room_state=replace(
+            start_session(seed=5).room_state,
+            stage="completed",
+            is_resolved=True,
+            rewards=[],
+        ),
     )
 
     menu = build_root_menu(room_state=session.room_state)
@@ -78,7 +90,10 @@ def test_build_root_menu_binds_resolved_combat_without_rewards_to_inspect_action
 def test_build_root_menu_binds_combat_use_potion_action() -> None:
     session = start_session(seed=5)
 
-    menu = build_root_menu(room_state=session.room_state, run_state=replace(session.run_state, potions=["fire_potion"]))
+    menu = build_root_menu(
+        room_state=session.room_state,
+        run_state=replace(session.run_state, potions=["fire_potion"]),
+    )
 
     assert format_menu_lines(menu) == [
         "可选操作:",
@@ -93,7 +108,9 @@ def test_build_root_menu_binds_combat_use_potion_action() -> None:
     assert resolve_menu_action("2", menu) == "use_potion"
 
 
-def test_build_root_menu_hides_out_of_combat_potions_when_registry_is_provided() -> None:
+def test_build_root_menu_hides_out_of_combat_potions_when_registry_is_provided() -> (
+    None
+):
     session = start_session(seed=5)
     registry = _PotionTestProvider(
         potions={
@@ -107,7 +124,11 @@ def test_build_root_menu_hides_out_of_combat_potions_when_registry_is_provided()
         }
     )
 
-    menu = build_root_menu(room_state=session.room_state, run_state=replace(session.run_state, potions=["rest_potion"]), registry=registry)
+    menu = build_root_menu(
+        room_state=session.room_state,
+        run_state=replace(session.run_state, potions=["rest_potion"]),
+        registry=registry,
+    )
 
     assert "使用药水" not in format_menu_lines(menu)
 
@@ -126,7 +147,9 @@ def test_build_select_potion_menu_hides_out_of_combat_potions() -> None:
         }
     )
 
-    menu = build_select_potion_menu(run_state=replace(session.run_state, potions=["rest_potion"]), registry=registry)
+    menu = build_select_potion_menu(
+        run_state=replace(session.run_state, potions=["rest_potion"]), registry=registry
+    )
 
     assert format_menu_lines(menu) == [
         "药水:",
@@ -184,7 +207,9 @@ def test_build_potion_target_menu_for_any_target_includes_self_and_enemies() -> 
         },
     )
 
-    menu = build_potion_target_menu(combat_state=combat_state, potion_id="flex_potion", registry=registry)
+    menu = build_potion_target_menu(
+        combat_state=combat_state, potion_id="flex_potion", registry=registry
+    )
 
     assert format_menu_lines(menu) == [
         "选择目标:",
@@ -214,7 +239,12 @@ def test_build_root_menu_binds_pending_boss_rewards_to_reward_actions() -> None:
                     "generated_by": "boss_reward_generator",
                     "gold_reward": 95,
                     "claimed_gold": False,
-                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"],
+                    "boss_relic_offers": [
+                        "black_blood",
+                        "ectoplasm",
+                        "coffee_dripper",
+                        "fusion_hammer",
+                    ],
                     "claimed_relic_id": None,
                 },
             },
@@ -324,7 +354,9 @@ def test_build_inspect_root_menu_binds_combat_choices_to_actions() -> None:
     assert resolve_menu_action("10", menu) == "back"
 
 
-def test_build_inspect_root_menu_binds_pending_boss_rewards_to_non_combat_choices() -> None:
+def test_build_inspect_root_menu_binds_pending_boss_rewards_to_non_combat_choices() -> (
+    None
+):
     session = replace(
         start_session(seed=5),
         room_state=replace(
@@ -340,7 +372,12 @@ def test_build_inspect_root_menu_binds_pending_boss_rewards_to_non_combat_choice
                     "generated_by": "boss_reward_generator",
                     "gold_reward": 95,
                     "claimed_gold": False,
-                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"],
+                    "boss_relic_offers": [
+                        "black_blood",
+                        "ectoplasm",
+                        "coffee_dripper",
+                        "fusion_hammer",
+                    ],
                     "claimed_relic_id": None,
                 },
             },
@@ -402,7 +439,9 @@ def test_build_select_potion_menu_lists_potions_with_effects_and_back() -> None:
 def test_build_reward_menu_binds_labels_and_claim_actions() -> None:
     session = replace(
         start_session(seed=5),
-        room_state=replace(start_session(seed=5).room_state, is_resolved=True, rewards=["gold:99"]),
+        room_state=replace(
+            start_session(seed=5).room_state, is_resolved=True, rewards=["gold:99"]
+        ),
     )
     registry = StarterContentProvider(session.content_root)
 
@@ -425,7 +464,12 @@ def test_build_reward_menu_lists_skip_card_rewards_when_card_offers_exist() -> N
         room_state=replace(
             start_session(seed=5).room_state,
             is_resolved=True,
-            rewards=["gold:11", "card_offer:anger", "card_offer:pommel_strike", "card_offer:shrug_it_off"],
+            rewards=[
+                "gold:11",
+                "card_offer:anger",
+                "card_offer:pommel_strike",
+                "card_offer:shrug_it_off",
+            ],
         ),
     )
     registry = StarterContentProvider(session.content_root)
@@ -602,7 +646,12 @@ def test_build_boss_reward_menu_binds_gold_relic_and_back_actions() -> None:
             "generated_by": "boss_reward_generator",
             "gold_reward": 99,
             "claimed_gold": False,
-            "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"],
+            "boss_relic_offers": [
+                "black_blood",
+                "ectoplasm",
+                "coffee_dripper",
+                "fusion_hammer",
+            ],
             "claimed_relic_id": None,
         }
     )
@@ -624,7 +673,12 @@ def test_build_boss_reward_menu_marks_claimed_gold_as_completed() -> None:
             "generated_by": "boss_reward_generator",
             "gold_reward": 99,
             "claimed_gold": True,
-            "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"],
+            "boss_relic_offers": [
+                "black_blood",
+                "ectoplasm",
+                "coffee_dripper",
+                "fusion_hammer",
+            ],
             "claimed_relic_id": None,
         }
     )
@@ -694,13 +748,52 @@ def test_build_target_menu_keeps_current_card_text_style() -> None:
     assert "card.upgraded" in _span_styles(menu.header_lines[0])
 
 
+def test_build_select_card_menu_uses_runtime_cost_when_temporary_cost_exists() -> None:
+    session = start_session(seed=5)
+    combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
+    combat_state.hand = ["infernal_roll#1"]
+    combat_state.temporary_costs = {"infernal_roll#1": 0}
+    registry = StarterContentProvider(session.content_root)
+    registry.cards().register(
+        {
+            "id": "infernal_roll",
+            "name": "Infernal Roll",
+            "cost": 2,
+            "effects": [{"type": "damage", "amount": 10}],
+        }
+    )
+
+    menu = build_select_card_menu(combat_state=combat_state, registry=registry)
+
+    assert "费用0" in format_menu_lines(menu)[1]
+
+
+def test_build_select_card_menu_uses_reduced_runtime_cost_when_card_has_cost_reducer() -> (
+    None
+):
+    session = start_session(seed=5)
+    combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
+    combat_state.hand = ["blood_for_blood#1"]
+    combat_state.times_hit_this_combat = 3
+    registry = StarterContentProvider(session.content_root)
+
+    menu = build_select_card_menu(combat_state=combat_state, registry=registry)
+
+    assert "费用1" in format_menu_lines(menu)[1]
+
+
 def test_build_boss_reward_menu_marks_claimed_relic_as_completed() -> None:
     menu = build_boss_reward_menu(
         {
             "generated_by": "boss_reward_generator",
             "gold_reward": 99,
             "claimed_gold": True,
-            "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"],
+            "boss_relic_offers": [
+                "black_blood",
+                "ectoplasm",
+                "coffee_dripper",
+                "fusion_hammer",
+            ],
             "claimed_relic_id": "black_blood",
         }
     )
@@ -752,7 +845,12 @@ def test_build_terminal_phase_menu_binds_result_and_system_actions() -> None:
 
 
 def test_build_next_room_menu_binds_node_actions_and_back() -> None:
-    menu = build_next_room_menu(options=[("next_node:r2c0", "战 r2c0 (2,0)"), ("next_node:r2c1", "店 r2c1 (2,1)")])
+    menu = build_next_room_menu(
+        options=[
+            ("next_node:r2c0", "战 r2c0 (2,0)"),
+            ("next_node:r2c1", "店 r2c1 (2,1)"),
+        ]
+    )
 
     assert format_menu_lines(menu) == [
         "请选择下一个房间:",
@@ -782,7 +880,9 @@ def test_build_shop_root_menu_binds_offer_and_system_actions() -> None:
     )
     registry = StarterContentProvider(session.content_root)
 
-    menu = build_shop_root_menu(run_state=session.run_state, room_state=session.room_state, registry=registry)
+    menu = build_shop_root_menu(
+        run_state=session.run_state, room_state=session.room_state, registry=registry
+    )
 
     assert format_menu_lines(menu) == [
         "商店操作:",
