@@ -9,6 +9,7 @@ from slay_the_spire.domain.effects.effect_types import (
     EFFECT_DAMAGE_ALL_ENEMIES,
     EFFECT_DAMAGE_ALL_ENEMIES_X_TIMES,
     EFFECT_EXHAUST_TARGET_CARD,
+    EFFECT_PUT_TOP_OF_DECK_FROM_DISCARD,
     EFFECT_UPGRADE_TARGET_CARD,
     EFFECT_UPGRADE_ALL_HAND,
     EFFECT_VULNERABLE,
@@ -34,6 +35,8 @@ from slay_the_spire.use_cases.combat_log import (
     describe_player_action,
 )
 
+TargetSelection = str | dict[str, str] | None
+
 _TARGETED_EFFECT_TYPES = {
     EFFECT_DAMAGE,
     EFFECT_VULNERABLE,
@@ -41,6 +44,20 @@ _TARGETED_EFFECT_TYPES = {
     "strength",
 }
 _HAND_TARGETED_EFFECT_TYPES = {EFFECT_EXHAUST_TARGET_CARD, EFFECT_UPGRADE_TARGET_CARD}
+
+
+def _enemy_target_id(target: TargetSelection) -> str | None:
+    if isinstance(target, str):
+        return target
+    if isinstance(target, dict):
+        return target.get("enemy")
+    return None
+
+
+def _zone_target_id(target: TargetSelection, zone: str) -> str | None:
+    if isinstance(target, dict):
+        return target.get(zone)
+    return None
 
 
 def resolve_card_cost(
@@ -75,9 +92,10 @@ def _materialize_card_effects(
     card_instance_id: str,
     registry: ContentProviderPort,
     source_instance_id: str,
-    target_id: str | None,
+    target_id: TargetSelection,
     energy_spent: int,
 ) -> list[JsonDict]:
+    resolved_enemy_id = _enemy_target_id(target_id)
     effects: list[JsonDict] = []
     for raw_effect in raw_effects:
         effect = copy_effect(raw_effect)
@@ -125,24 +143,31 @@ def _materialize_card_effects(
         if "source_instance_id" not in effect:
             effect["source_instance_id"] = source_instance_id
         if effect_type in _TARGETED_EFFECT_TYPES:
-            if target_id is None:
+            if resolved_enemy_id is None:
                 raise ValueError("target is required for targeted cards")
-            effect["target_instance_id"] = target_id
+            effect["target_instance_id"] = resolved_enemy_id
         elif effect_type in _HAND_TARGETED_EFFECT_TYPES:
-            if target_id is None:
+            hand_target = _zone_target_id(target_id, "hand") or (
+                target_id if isinstance(target_id, str) else None
+            )
+            if hand_target is None:
                 raise ValueError("target is required for targeted cards")
-            if target_id == card_instance_id:
+            if hand_target == card_instance_id:
                 raise ValueError("不能将当前打出的牌作为目标。")
-            if target_id not in combat_state.hand:
+            if hand_target not in combat_state.hand:
                 raise ValueError("target card is not in hand")
-            effect["target_card_instance_id"] = target_id
+            effect["target_card_instance_id"] = hand_target
             if effect_type == EFFECT_UPGRADE_TARGET_CARD:
                 target_card_def = registry.cards().get(
-                    card_id_from_instance_id(target_id)
+                    card_id_from_instance_id(hand_target)
                 )
                 if target_card_def.upgrades_to is None:
                     raise ValueError("所选卡牌无法升级。")
                 effect["upgraded_card_id"] = target_card_def.upgrades_to
+        elif effect_type == EFFECT_PUT_TOP_OF_DECK_FROM_DISCARD:
+            discard_target = _zone_target_id(target_id, "discard")
+            if discard_target is not None:
+                effect["target_card_instance_id"] = discard_target
         elif effect_type == EFFECT_UPGRADE_ALL_HAND:
             upgrades: dict[str, str] = {}
             for hand_card_instance_id in combat_state.hand:
@@ -168,7 +193,7 @@ def _materialize_card_effects(
 def play_card(
     combat_state: CombatState,
     card_instance_id: str,
-    target_id: str | None,
+    target_id: TargetSelection,
     registry: ContentProviderPort,
     *,
     hook_registrations: Sequence[HookRegistration] = (),

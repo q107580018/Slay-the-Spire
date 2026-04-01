@@ -72,7 +72,7 @@ from slay_the_spire.use_cases.event_action import event_action
 from slay_the_spire.use_cases.resolve_event_choice import resolve_event_choice
 from slay_the_spire.use_cases.end_turn import end_turn
 from slay_the_spire.use_cases.enter_room import enter_room
-from slay_the_spire.use_cases.play_card import play_card
+from slay_the_spire.use_cases.play_card import TargetSelection, play_card
 from slay_the_spire.use_cases.rest_action import rest_action
 from slay_the_spire.use_cases.save_game import save_game
 from slay_the_spire.use_cases.shop_action import shop_action
@@ -1207,26 +1207,52 @@ def _route_command_legacy(
         if combat_state is None:
             return True, next_session, "Combat state is unavailable."
         parts = normalized.split()
-        if len(parts) not in {2, 3}:
+        if len(parts) < 2:
             return True, next_session, "Usage: play <hand-index> [target-index]"
         try:
             card_instance_id = _resolve_hand_card(combat_state, parts[1])
-            card_def = (
-                _content_provider(next_session)
-                .cards()
-                .get(card_id_from_instance_id(card_instance_id))
-            )
-            target_token = parts[2] if len(parts) == 3 else None
-            if _card_requires_hand_target(card_instance_id, next_session):
+            target_tokens = parts[2:] if len(parts) > 2 else []
+            # Parse structured targets (e.g. "enemy:1 discard:1")
+            if len(target_tokens) > 1 or any(
+                ":" in t and not t.startswith("enemy:") and not t.startswith("hand:")
+                for t in target_tokens
+            ):
+                token_map: dict[str, str] = {}
+                for token in target_tokens:
+                    if ":" in token:
+                        zone, raw_index = token.split(":", 1)
+                        if zone == "enemy":
+                            living = _combat_target_ids(combat_state)
+                            idx = int(raw_index)
+                            if idx <= 0 or idx > len(living):
+                                raise ValueError("target index is out of range")
+                            token_map["enemy"] = living[idx - 1]
+                        elif zone == "hand":
+                            selectable = [
+                                c for c in combat_state.hand if c != card_instance_id
+                            ]
+                            idx = int(raw_index)
+                            if idx <= 0 or idx > len(selectable):
+                                raise ValueError("target index is out of range")
+                            token_map["hand"] = selectable[idx - 1]
+                        elif zone == "discard":
+                            idx = int(raw_index)
+                            if idx <= 0 or idx > len(combat_state.discard_pile):
+                                raise ValueError("target index is out of range")
+                            token_map["discard"] = combat_state.discard_pile[idx - 1]
+                target_id: TargetSelection = token_map if token_map else None
+            elif _card_requires_hand_target(card_instance_id, next_session):
                 target_id = (
                     _resolve_hand_target_id(
-                        combat_state, card_instance_id, target_token
+                        combat_state, card_instance_id, target_tokens[0]
                     )
-                    if target_token is not None
+                    if target_tokens
                     else None
                 )
             else:
-                target_id = _resolve_target_id(combat_state, target_token)
+                target_id = _resolve_target_id(
+                    combat_state, target_tokens[0] if target_tokens else None
+                )
             if (
                 _card_requires_target(card_instance_id, next_session)
                 and target_id is None

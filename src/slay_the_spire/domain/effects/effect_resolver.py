@@ -27,6 +27,7 @@ from slay_the_spire.domain.effects.effect_types import (
     EFFECT_HEAL,
     EFFECT_LOSE_HP,
     EFFECT_NOOP,
+    EFFECT_PUT_TOP_OF_DECK_FROM_DISCARD,
     EFFECT_STRENGTH,
     EFFECT_UPGRADE_ALL_HAND,
     EFFECT_UPGRADE_TARGET_CARD,
@@ -976,6 +977,14 @@ def resolve_next_effect(
                 payload=payload if isinstance(payload, dict) else None,
             )
         return effect
+
+    if effect_type == EFFECT_PUT_TOP_OF_DECK_FROM_DISCARD:
+        target_card = effect.get("target_card_instance_id")
+        if isinstance(target_card, str) and target_card in state.discard_pile:
+            state.discard_pile.remove(target_card)
+            state.draw_pile.insert(0, target_card)
+            return {**effect, "result": {"moved": target_card}}
+        return {**effect, "result": {"moved": None}}
 
     if effect_type == EFFECT_NOOP:
         return effect

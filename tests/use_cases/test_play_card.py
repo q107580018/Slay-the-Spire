@@ -849,3 +849,48 @@ def test_play_card_clash_rejects_non_attack_cards_in_hand() -> None:
 
     with pytest.raises(ValueError, match="非攻击牌"):
         play_card(state, "clash#1", "enemy-1", provider)
+
+
+def test_play_card_headbutt_moves_discard_target_to_top_of_draw_pile() -> None:
+    state = _combat_state(hand=["headbutt#1"], enemy_hps=[20])
+    state.discard_pile = ["bash#9"]
+    provider = _Provider()
+    provider.cards().register(
+        {
+            "id": "headbutt",
+            "name": "头槌",
+            "cost": 1,
+            "effects": [
+                {"type": "damage", "amount": 9},
+                {"type": "put_top_of_deck_from_discard"},
+            ],
+            "card_type": "attack",
+        }
+    )
+    provider.cards().register(
+        {
+            "id": "bash",
+            "name": "Bash",
+            "cost": 2,
+            "effects": [{"type": "damage", "amount": 8}],
+        }
+    )
+    provider.enemies().register(
+        {
+            "id": "training_dummy",
+            "name": "Training Dummy",
+            "hp": 20,
+            "move_table": [],
+            "intent_policy": "scripted",
+        }
+    )
+
+    result = play_card(
+        state,
+        "headbutt#1",
+        {"enemy": "enemy-1", "discard": "bash#9"},
+        provider,
+    )
+
+    assert state.draw_pile[0] == "bash#9"
+    assert state.enemies[0].hp == 11
