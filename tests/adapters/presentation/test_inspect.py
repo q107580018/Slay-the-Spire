@@ -190,6 +190,37 @@ def test_format_card_detail_lines_show_scaled_rampage_damage_from_combat_state()
     assert "造成 13 伤害" in "\n".join(line.plain for line in lines)
 
 
+def test_format_card_detail_lines_show_scaled_perfected_strike_damage_from_combat_state() -> None:
+    session = start_session(seed=5)
+    registry = StarterContentProvider(session.content_root)
+    combat_state = CombatState(
+        round_number=1,
+        energy=3,
+        hand=["perfected_strike#1", "strike#2"],
+        draw_pile=["wild_strike#3"],
+        discard_pile=["pommel_strike#4"],
+        exhaust_pile=["twin_strike#5"],
+        player=PlayerCombatState(
+            instance_id="player-1",
+            hp=80,
+            max_hp=80,
+            block=0,
+            statuses=[],
+        ),
+        enemies=[],
+        effect_queue=[],
+        log=[],
+    )
+
+    lines = format_card_detail_lines(
+        "perfected_strike#1", registry, combat_state=combat_state
+    )
+    rendered = "\n".join(line.plain for line in lines)
+
+    assert "造成 16 伤害" in rendered
+    assert "名字中有“打击”的牌" in rendered
+
+
 def test_render_card_detail_panel_marks_x_cost_card_as_playable() -> None:
     session = start_session(seed=5)
     registry = StarterContentProvider(session.content_root)

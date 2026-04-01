@@ -160,6 +160,21 @@ def test_single_enemy_attack_card_plays_without_entering_target_menu() -> None:
     assert "造成 6 伤害" in message
 
 
+def test_single_enemy_perfected_strike_plays_without_entering_target_menu() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=_combat_room(hand=["perfected_strike#1"], enemy_count=1),
+    )
+
+    _running, select_card_session, _message = route_menu_choice("1", session=session)
+    _running, played_session, message = route_menu_choice("1", session=select_card_session)
+
+    assert select_card_session.menu_state.mode == "select_card"
+    assert played_session.menu_state.mode == "root"
+    assert "选择敌人" not in message
+    assert "造成 8 伤害" in message
+
+
 def test_nonlethal_card_play_keeps_select_card_menu_open_when_hand_remains() -> None:
     session = replace(start_session(seed=5), room_state=_combat_room(hand=["anger#1", "strike#2"], enemy_count=1))
 
@@ -197,7 +212,7 @@ def test_hand_target_card_still_enters_hand_target_menu() -> None:
     )
 
     _running, select_card_session, _message = route_menu_choice("1", session=session)
-    _running, target_session, _message = route_menu_choice("1", session=select_card_session)
+    _running, target_session, message = route_menu_choice("1", session=select_card_session)
 
     assert select_card_session.menu_state.mode == "select_card"
     assert target_session.menu_state.mode == "select_target"

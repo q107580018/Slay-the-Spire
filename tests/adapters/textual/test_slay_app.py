@@ -2036,6 +2036,61 @@ def test_hover_preview_shows_scaled_rampage_damage_in_combat_menu() -> None:
     assert "造成 13 伤害" in preview.plain
     assert "每次使用后永久增加 5 伤害" in preview.plain
 
+
+def test_hover_preview_shows_scaled_perfected_strike_damage_in_combat_menu() -> None:
+    base = start_session(seed=5)
+    combat_state = CombatState(
+        round_number=1,
+        energy=3,
+        hand=["perfected_strike#1", "strike#2"],
+        draw_pile=["wild_strike#3"],
+        discard_pile=["pommel_strike#4"],
+        exhaust_pile=["twin_strike#5"],
+        player=PlayerCombatState(
+            instance_id="player-1",
+            hp=80,
+            max_hp=80,
+            block=0,
+            statuses=[],
+        ),
+        enemies=[
+            EnemyState(
+                instance_id="enemy-1",
+                enemy_id="slime",
+                hp=12,
+                max_hp=12,
+                block=0,
+                statuses=[],
+            )
+        ],
+        effect_queue=[],
+        log=[],
+    )
+    session = replace(
+        base,
+        room_state=replace(
+            base.room_state,
+            room_type="combat",
+            stage="waiting_input",
+            is_resolved=False,
+            payload={
+                "node_id": "r1c0",
+                "room_kind": "hallway",
+                "enemy_pool_id": "act1_basic",
+                "next_node_ids": ["r2c0"],
+                "combat_state": combat_state.to_dict(),
+            },
+        ),
+        menu_state=replace(base.menu_state, mode="select_card"),
+    )
+
+    preview = _hover_preview_renderable(session, "play_card:1")
+
+    assert preview is not None
+    assert "完美打击" in preview.plain
+    assert "造成 16 伤害" in preview.plain
+    assert "名字中有“打击”的牌" in preview.plain
+
 def test_hover_preview_keeps_card_effect_visible_at_default_size() -> None:
     base = start_session(seed=5)
     combat_state = CombatState(

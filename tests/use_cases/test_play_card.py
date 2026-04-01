@@ -736,6 +736,40 @@ def test_play_card_draw_log_uses_refilled_discard_cards() -> None:
     ]
 
 
+def test_play_card_perfected_strike_uses_bonus_per_strike_and_logs_actual_damage() -> None:
+    state = _combat_state(hand=["perfected_strike#1", "strike#2"], enemy_hps=[20])
+    state.draw_pile = ["wild_strike#3"]
+    state.discard_pile = ["pommel_strike#4"]
+    state.exhaust_pile = ["twin_strike#5"]
+    provider = _Provider()
+    provider.cards().register(
+        {
+            "id": "perfected_strike",
+            "name": "完美打击",
+            "cost": 2,
+            "effects": [
+                {"type": "damage_per_strike_in_deck", "base": 6, "bonus_per_strike": 2}
+            ],
+            "card_type": "attack",
+        }
+    )
+    provider.enemies().register(
+        {
+            "id": "training_dummy",
+            "name": "Training Dummy",
+            "hp": 20,
+            "move_table": [],
+            "intent_policy": "scripted",
+        }
+    )
+
+    result = play_card(state, "perfected_strike#1", "enemy-1", provider)
+
+    assert result.resolved_effects[0]["result"]["applied_amount"] == 16
+    assert state.enemies[0].hp == 4
+    assert state.log == ["你打出 完美打击，对 Training Dummy 造成 16 伤害。"]
+
+
 def test_play_card_shrug_it_off_does_not_draw_itself_when_refilling_discard() -> None:
     state = _combat_state(hand=["shrug_it_off_plus#1"])
     state.draw_pile = []

@@ -208,6 +208,20 @@ def _is_strike_like_card(card_instance_id: str) -> bool:
     return "strike" in card_id
 
 
+def _strike_count(state: CombatState) -> int:
+    return sum(
+        1
+        for card_instance_id in [
+            *state.hand,
+            *state.draw_pile,
+            *state.discard_pile,
+            *state.exhaust_pile,
+            *state._cards_in_limbo,
+        ]
+        if _is_strike_like_card(card_instance_id)
+    )
+
+
 def _resolve_damage_effect(
     state: CombatState,
     effect: JsonDict,
@@ -668,23 +682,14 @@ def resolve_next_effect(
         )
 
     if effect_type == EFFECT_DAMAGE_PER_STRIKE_IN_DECK:
-        excluded_card_instance_id = effect.get("excluding_card_instance_id")
-        strike_count = sum(
-            1
-            for card_instance_id in [
-                *state.hand,
-                *state.draw_pile,
-                *state.discard_pile,
-                *state.exhaust_pile,
-            ]
-            if card_instance_id != excluded_card_instance_id
-            and _is_strike_like_card(card_instance_id)
+        strike_count = _strike_count(state)
+        bonus_per_strike = int(
+            effect.get("bonus_per_strike", effect.get("amount_per_strike", 0))
         )
         return _resolve_damage_effect(
             state,
             effect,
-            base_amount=int(effect.get("base", 0))
-            + int(effect.get("amount_per_strike", 0)) * strike_count,
+            base_amount=int(effect.get("base", 0)) + bonus_per_strike * strike_count,
             extra_result={"strike_count": strike_count},
         )
 

@@ -366,45 +366,12 @@ def test_damage_per_strike_in_deck_counts_strike_cards_in_all_zones() -> None:
                 "source_instance_id": "player-1",
                 "target_instance_id": "enemy-1",
                 "base": 6,
-                "amount_per_strike": 2,
-                "excluding_card_instance_id": "perfected_strike#5",
+                "bonus_per_strike": 2,
             }
         ],
     )
     state.hand = ["strike#1", "perfected_strike#5"]
     state.draw_pile = ["wild_strike#2", "defend#3"]
-    state.discard_pile = ["pommel_strike#4"]
-    state.exhaust_pile = ["twin_strike#6", "bash#7"]
-
-    resolved = resolve_next_effect(state)
-
-    assert resolved["type"] == "damage_per_strike_in_deck"
-    assert resolved["result"] == {
-        "applied_amount": 14,
-        "blocked": 0,
-        "actual_damage": 14,
-        "target_defeated": False,
-        "strike_count": 4,
-    }
-    assert state.enemies[0].hp == 26
-
-
-def test_damage_per_strike_in_deck_counts_other_perfected_strike_copies() -> None:
-    state = make_combat_state(
-        enemies=[make_enemy("enemy-1", 50)],
-        effect_queue=[
-            {
-                "type": "damage_per_strike_in_deck",
-                "source_instance_id": "player-1",
-                "target_instance_id": "enemy-1",
-                "base": 6,
-                "amount_per_strike": 2,
-                "excluding_card_instance_id": "perfected_strike#5",
-            }
-        ],
-    )
-    state.hand = ["perfected_strike#5", "strike#1"]
-    state.draw_pile = ["perfected_strike#8", "wild_strike#2"]
     state.discard_pile = ["pommel_strike#4"]
     state.exhaust_pile = ["twin_strike#6", "bash#7"]
 
@@ -418,7 +385,38 @@ def test_damage_per_strike_in_deck_counts_other_perfected_strike_copies() -> Non
         "target_defeated": False,
         "strike_count": 5,
     }
-    assert state.enemies[0].hp == 34
+    assert state.enemies[0].hp == 24
+
+
+def test_damage_per_strike_in_deck_counts_other_perfected_strike_copies() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 50)],
+        effect_queue=[
+            {
+                "type": "damage_per_strike_in_deck",
+                "source_instance_id": "player-1",
+                "target_instance_id": "enemy-1",
+                "base": 6,
+                "bonus_per_strike": 2,
+            }
+        ],
+    )
+    state.hand = ["perfected_strike#5", "strike#1"]
+    state.draw_pile = ["perfected_strike#8", "wild_strike#2"]
+    state.discard_pile = ["pommel_strike#4"]
+    state.exhaust_pile = ["twin_strike#6", "bash#7"]
+
+    resolved = resolve_next_effect(state)
+
+    assert resolved["type"] == "damage_per_strike_in_deck"
+    assert resolved["result"] == {
+        "applied_amount": 18,
+        "blocked": 0,
+        "actual_damage": 18,
+        "target_defeated": False,
+        "strike_count": 6,
+    }
+    assert state.enemies[0].hp == 32
 
 
 def test_rampage_damage_scales_with_per_card_play_counter() -> None:

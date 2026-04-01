@@ -171,6 +171,14 @@ def test_summarize_effect_exhaust_all_in_hand_damage_mentions_per_card_damage() 
     assert output == "消耗手中所有牌。每张被消耗的牌造成 7 伤害"
 
 
+def test_summarize_effect_damage_per_strike_in_deck_mentions_actual_rule() -> None:
+    output = summarize_effect(
+        {"type": "damage_per_strike_in_deck", "base": 6, "bonus_per_strike": 2}
+    )
+
+    assert output == '造成 6 伤害。你每有一张名字中有“打击”的牌，伤害+2'
+
+
 def test_preview_enemy_intent_shows_readable_summary_for_divider() -> None:
     enemy_def = EnemyDef(
         id="hexaghost",

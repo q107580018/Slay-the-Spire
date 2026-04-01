@@ -8,6 +8,7 @@ from rich.text import Text
 
 from slay_the_spire.adapters.presentation.theme import HP_BAR_WIDTH, PANEL_BOX
 from slay_the_spire.content.registries import CardDef, EnemyDef
+from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.statuses import StatusState
 
@@ -90,6 +91,27 @@ _POTION_TIMING_LABELS: dict[str, str] = {
     "out_of_combat": "战斗外",
     "any": "任意时机",
 }
+
+
+def _is_strike_like_card(card_instance_id: str) -> bool:
+    try:
+        card_id = card_id_from_instance_id(card_instance_id)
+    except (TypeError, ValueError):
+        return False
+    return "strike" in card_id
+
+
+def _count_strike_cards(combat_state: CombatState) -> int:
+    return sum(
+        1
+        for other_card_instance_id in [
+            *combat_state.hand,
+            *combat_state.draw_pile,
+            *combat_state.discard_pile,
+            *combat_state.exhaust_pile,
+        ]
+        if _is_strike_like_card(other_card_instance_id)
+    )
 
 
 def hp_style_for_ratio(ratio: float) -> str:
@@ -267,7 +289,18 @@ def summarize_effect(
         return f"造成 {base} + 力量 × {multiplier} 伤害"
     if effect_type == "damage_per_strike_in_deck":
         base = int(effect.get("base", 0))
-        return f'每张命名含"击"的牌造成 {base} 伤害'
+        bonus_per_strike = int(
+            effect.get("bonus_per_strike", effect.get("amount_per_strike", 0))
+        )
+        resolved_amount = effect.get("resolved_amount")
+        strike_count = effect.get("strike_count")
+        if isinstance(resolved_amount, int) and isinstance(strike_count, int):
+            return (
+                f"造成 {resolved_amount} 伤害"
+                f"（你每有一张名字中有“打击”的牌，伤害+{bonus_per_strike}；"
+                f"当前共 {strike_count} 张）"
+            )
+        return f"造成 {base} 伤害。你每有一张名字中有“打击”的牌，伤害+{bonus_per_strike}"
     if effect_type == "dropkick_effect":
         amount = int(effect.get("amount", 0))
         return f"造成 {amount} 伤害；若敌人处于虚弱状态，获得 1 点能量并抽 1 张牌"
@@ -419,16 +452,26 @@ def _resolve_effect_for_card_instance(
     card_instance_id: str,
     combat_state: CombatState | None,
 ) -> Mapping[str, object]:
-    if effect.get("type") != "rampage_damage":
-        return effect
-    play_count = 0
-    if combat_state is not None:
-        play_count = int(combat_state.card_play_data.get(card_instance_id, 0))
-    base_amount = int(effect.get("amount", 0))
-    increment = int(effect.get("increment", 5))
-    resolved = dict(effect)
-    resolved["amount"] = base_amount + increment * play_count
-    return resolved
+    if effect.get("type") == "rampage_damage":
+        play_count = 0
+        if combat_state is not None:
+            play_count = int(combat_state.card_play_data.get(card_instance_id, 0))
+        base_amount = int(effect.get("amount", 0))
+        increment = int(effect.get("increment", 5))
+        resolved = dict(effect)
+        resolved["amount"] = base_amount + increment * play_count
+        return resolved
+    if effect.get("type") == "damage_per_strike_in_deck" and combat_state is not None:
+        base_amount = int(effect.get("base", 0))
+        bonus_per_strike = int(
+            effect.get("bonus_per_strike", effect.get("amount_per_strike", 0))
+        )
+        strike_count = _count_strike_cards(combat_state)
+        resolved = dict(effect)
+        resolved["resolved_amount"] = base_amount + bonus_per_strike * strike_count
+        resolved["strike_count"] = strike_count
+        return resolved
+    return effect
 
 
 def summarize_card_effects_for_instance(

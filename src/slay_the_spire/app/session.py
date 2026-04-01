@@ -83,6 +83,7 @@ from slay_the_spire.use_cases.opening_flow import apply_neow_offer, build_openin
 _ENEMY_TARGET_EFFECT_TYPES = {
     "damage",
     "damage_equal_to_block",
+    "damage_per_strike_in_deck",
     "vulnerable",
     "weak",
     "spot_weakness_strength",

@@ -163,6 +163,31 @@ def test_render_hand_panel_shows_scaled_rampage_damage_for_card_instance() -> No
     assert "暴走+ (1) - 造成 16 伤害（每次使用后永久增加 8 伤害）" in output
 
 
+def test_render_hand_panel_shows_scaled_perfected_strike_damage_for_card_instance() -> None:
+    session = start_session(seed=5)
+    combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
+    combat_state.hand = ["perfected_strike#1", "strike#2"]
+    combat_state.draw_pile = ["wild_strike#3"]
+    combat_state.discard_pile = ["pommel_strike#4"]
+    combat_state.exhaust_pile = ["twin_strike#5"]
+    room_state = replace(
+        session.room_state,
+        payload={**session.room_state.payload, "combat_state": combat_state.to_dict()},
+    )
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=room_state,
+        registry=_provider(session),
+        menu_state=MenuState(),
+        run_phase=session.run_phase,
+    )
+
+    assert "完美打击 (2) - 造成 16 伤害" in output
+    assert "名字中有“打击”的牌" in output
+
+
 def test_select_card_menu_keeps_card_name_styles() -> None:
     session = start_session(seed=5)
     combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
