@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from slay_the_spire.content.registries import CardRegistry
 from slay_the_spire.domain.effects.effect_resolver import (
     resolve_effect_queue,
     resolve_next_effect,
 )
+from slay_the_spire.domain.effects import effect_types
 from slay_the_spire.domain.effects.effect_types import (
     EFFECT_EMIT_HOOK,
     EFFECT_NOOP,
@@ -15,6 +17,14 @@ from slay_the_spire.domain.hooks.hook_types import HookRegistration
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
 from slay_the_spire.domain.models.statuses import StatusState
+
+
+class _CardProvider:
+    def __init__(self) -> None:
+        self._cards = CardRegistry()
+
+    def cards(self) -> CardRegistry:
+        return self._cards
 
 
 def make_combat_state(
@@ -53,6 +63,71 @@ def make_enemy(instance_id: str, hp: int) -> EnemyState:
         block=0,
         statuses=[],
     )
+
+
+def _register_test_card(
+    provider: _CardProvider,
+    *,
+    card_id: str,
+    card_type: str,
+    on_exhaust_effects: list[dict[str, object]] | None = None,
+) -> None:
+    provider.cards().register(
+        {
+            "id": card_id,
+            "name": card_id,
+            "cost": 1,
+            "effects": [],
+            "card_type": card_type,
+            "on_exhaust_effects": on_exhaust_effects or [],
+        }
+    )
+
+
+def test_full_ironclad_effect_types_are_declared() -> None:
+    assert (
+        effect_types.EFFECT_DAMAGE_WITH_STRENGTH_MULTIPLIER
+        == "damage_with_strength_multiplier"
+    )
+    assert effect_types.EFFECT_DAMAGE_PER_STRIKE_IN_DECK == "damage_per_strike_in_deck"
+    assert effect_types.EFFECT_DAMAGE_EQUAL_TO_BLOCK == "damage_equal_to_block"
+    assert effect_types.EFFECT_WEAK_ALL_ENEMIES == "weak_all_enemies"
+    assert effect_types.EFFECT_ADD_CARD_TO_DRAW_PILE == "add_card_to_draw_pile"
+    assert effect_types.EFFECT_ADD_CARDS_TO_HAND == "add_cards_to_hand"
+    assert (
+        effect_types.EFFECT_EXHAUST_ALL_NON_ATTACKS_GAIN_BLOCK
+        == "exhaust_all_non_attacks_gain_block"
+    )
+    assert (
+        effect_types.EFFECT_EXHAUST_ALL_NON_ATTACKS_IN_HAND
+        == "exhaust_all_non_attacks_in_hand"
+    )
+    assert effect_types.EFFECT_EXHAUST_ALL_IN_HAND == "exhaust_all_in_hand"
+    assert effect_types.EFFECT_DOUBLE_STRENGTH == "double_strength"
+    assert (
+        effect_types.EFFECT_DAMAGE_LIFESTEAL_ALL_ENEMIES
+        == "damage_lifesteal_all_enemies"
+    )
+    assert (
+        effect_types.EFFECT_SELECT_FROM_EXHAUST_TO_HAND == "select_from_exhaust_to_hand"
+    )
+    assert (
+        effect_types.EFFECT_PUT_TOP_OF_DECK_FROM_DISCARD
+        == "put_top_of_deck_from_discard"
+    )
+    assert effect_types.EFFECT_PUT_TOP_OF_DECK_FROM_HAND == "put_top_of_deck_from_hand"
+    assert effect_types.EFFECT_PLAY_TOP_OF_DECK == "play_top_of_deck"
+    assert (
+        effect_types.EFFECT_ADD_RANDOM_ATTACK_ZERO_COST_TO_HAND
+        == "add_random_attack_zero_cost_to_hand"
+    )
+    assert effect_types.EFFECT_COPY_CARD_TO_HAND == "copy_card_to_hand"
+    assert (
+        effect_types.EFFECT_DAMAGE_ON_KILL_GAIN_MAX_HP == "damage_on_kill_gain_max_hp"
+    )
+    assert effect_types.EFFECT_SPOT_WEAKNESS_STRENGTH == "spot_weakness_strength"
+    assert effect_types.EFFECT_DROPKICK_EFFECT == "dropkick_effect"
+    assert effect_types.EFFECT_RAMPAGE_DAMAGE == "rampage_damage"
 
 
 def test_effects_append_to_queue_tail_in_order():
@@ -224,6 +299,158 @@ def test_add_card_to_discard_creates_new_instance_ids() -> None:
 
     assert [effect["type"] for effect in resolved] == ["add_card_to_discard"]
     assert state.discard_pile == ["burn#1", "burn#2"]
+
+
+def test_damage_equal_to_block_uses_current_player_block() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 30)],
+        effect_queue=[
+            {
+                "type": "damage_equal_to_block",
+                "source_instance_id": "player-1",
+                "target_instance_id": "enemy-1",
+            }
+        ],
+    )
+    state.player.block = 11
+
+    resolved = resolve_next_effect(state)
+
+    assert resolved["type"] == "damage_equal_to_block"
+    assert resolved["result"] == {
+        "applied_amount": 11,
+        "blocked": 0,
+        "actual_damage": 11,
+        "target_defeated": False,
+    }
+    assert state.enemies[0].hp == 19
+
+
+def test_damage_with_strength_multiplier_uses_scaled_strength() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 30)],
+        effect_queue=[
+            {
+                "type": "damage_with_strength_multiplier",
+                "source_instance_id": "player-1",
+                "target_instance_id": "enemy-1",
+                "base": 14,
+                "multiplier": 3,
+            }
+        ],
+    )
+    state.player.statuses.append(StatusState(status_id="strength", stacks=2))
+
+    resolved = resolve_next_effect(state)
+
+    assert resolved["type"] == "damage_with_strength_multiplier"
+    assert resolved["result"] == {
+        "applied_amount": 20,
+        "blocked": 0,
+        "actual_damage": 20,
+        "target_defeated": False,
+    }
+    assert state.enemies[0].hp == 10
+
+
+def test_damage_per_strike_in_deck_counts_strike_cards_in_all_zones() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 40)],
+        effect_queue=[
+            {
+                "type": "damage_per_strike_in_deck",
+                "source_instance_id": "player-1",
+                "target_instance_id": "enemy-1",
+                "base": 6,
+                "amount_per_strike": 2,
+                "excluding_card_instance_id": "perfected_strike#5",
+            }
+        ],
+    )
+    state.hand = ["strike#1", "perfected_strike#5"]
+    state.draw_pile = ["wild_strike#2", "defend#3"]
+    state.discard_pile = ["pommel_strike#4"]
+    state.exhaust_pile = ["twin_strike#6", "bash#7"]
+
+    resolved = resolve_next_effect(state)
+
+    assert resolved["type"] == "damage_per_strike_in_deck"
+    assert resolved["result"] == {
+        "applied_amount": 14,
+        "blocked": 0,
+        "actual_damage": 14,
+        "target_defeated": False,
+        "strike_count": 4,
+    }
+    assert state.enemies[0].hp == 26
+
+
+def test_damage_per_strike_in_deck_counts_other_perfected_strike_copies() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 50)],
+        effect_queue=[
+            {
+                "type": "damage_per_strike_in_deck",
+                "source_instance_id": "player-1",
+                "target_instance_id": "enemy-1",
+                "base": 6,
+                "amount_per_strike": 2,
+                "excluding_card_instance_id": "perfected_strike#5",
+            }
+        ],
+    )
+    state.hand = ["perfected_strike#5", "strike#1"]
+    state.draw_pile = ["perfected_strike#8", "wild_strike#2"]
+    state.discard_pile = ["pommel_strike#4"]
+    state.exhaust_pile = ["twin_strike#6", "bash#7"]
+
+    resolved = resolve_next_effect(state)
+
+    assert resolved["type"] == "damage_per_strike_in_deck"
+    assert resolved["result"] == {
+        "applied_amount": 16,
+        "blocked": 0,
+        "actual_damage": 16,
+        "target_defeated": False,
+        "strike_count": 5,
+    }
+    assert state.enemies[0].hp == 34
+
+
+def test_add_card_to_draw_pile_creates_new_cards() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 3)],
+        effect_queue=[
+            {
+                "type": "add_card_to_draw_pile",
+                "card_id": "wound",
+                "count": 2,
+            }
+        ],
+    )
+
+    resolved = resolve_effect_queue(state)
+
+    assert [effect["type"] for effect in resolved] == ["add_card_to_draw_pile"]
+    assert state.draw_pile[-2:] == ["wound#1", "wound#2"]
+
+
+def test_add_cards_to_hand_creates_new_cards() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 3)],
+        effect_queue=[
+            {
+                "type": "add_cards_to_hand",
+                "card_id": "wound",
+                "count": 2,
+            }
+        ],
+    )
+
+    resolved = resolve_effect_queue(state)
+
+    assert [effect["type"] for effect in resolved] == ["add_cards_to_hand"]
+    assert state.hand == ["wound#1", "wound#2"]
 
 
 def test_gain_energy_effect_increases_combat_energy() -> None:
@@ -508,6 +735,31 @@ def test_block_effect_applies_player_dexterity_and_floors_at_zero() -> None:
     assert state.player.block == 0
 
 
+def test_block_effect_triggers_juggernaut_damage() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 20), make_enemy("enemy-2", 20)],
+        effect_queue=[
+            {
+                "type": "block",
+                "source_instance_id": "player-1",
+                "target_instance_id": "player-1",
+                "amount": 5,
+            }
+        ],
+    )
+    state.active_powers.append({"power_id": "juggernaut", "amount": 7})
+
+    resolved = resolve_effect_queue(state)
+
+    assert [effect["type"] for effect in resolved] == ["block", "damage"]
+    assert resolved[0]["result"] == {"gained_block": 5}
+    assert resolved[1]["power_id"] == "juggernaut"
+    assert resolved[1]["target_instance_id"] == "enemy-1"
+    assert state.player.block == 5
+    assert state.enemies[0].hp == 13
+    assert state.enemies[1].hp == 20
+
+
 def test_double_block_effect_doubles_current_block() -> None:
     state = make_combat_state(
         enemies=[make_enemy("enemy-1", 10)],
@@ -622,6 +874,175 @@ def test_exhaust_random_hand_effect_moves_a_remaining_hand_card_to_exhaust() -> 
     assert state.exhaust_pile == exhausted_cards
 
 
+def test_exhaust_all_non_attacks_gain_block_moves_cards_and_grants_block() -> None:
+    provider = _CardProvider()
+    _register_test_card(provider, card_id="defend", card_type="skill")
+    _register_test_card(provider, card_id="ghostly_armor", card_type="skill")
+    _register_test_card(provider, card_id="strike", card_type="attack")
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 10)],
+        effect_queue=[
+            {
+                "type": "exhaust_all_non_attacks_gain_block",
+                "source_instance_id": "player-1",
+                "amount_per_card": 5,
+            }
+        ],
+    )
+    state.hand = ["defend#1", "ghostly_armor#1", "strike#1"]
+
+    resolved = resolve_next_effect(state, registry=provider)
+
+    assert resolved["type"] == "exhaust_all_non_attacks_gain_block"
+    assert resolved["result"] == {
+        "exhausted_cards": ["defend#1", "ghostly_armor#1"],
+        "exhausted_count": 2,
+        "gained_block": 10,
+    }
+    assert state.hand == ["strike#1"]
+    assert state.exhaust_pile == ["defend#1", "ghostly_armor#1"]
+    assert state.player.block == 10
+
+
+def test_exhaust_all_non_attacks_in_hand_moves_only_non_attacks() -> None:
+    provider = _CardProvider()
+    _register_test_card(provider, card_id="defend", card_type="skill")
+    _register_test_card(provider, card_id="ghostly_armor", card_type="skill")
+    _register_test_card(provider, card_id="strike", card_type="attack")
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 10)],
+        effect_queue=[{"type": "exhaust_all_non_attacks_in_hand"}],
+    )
+    state.hand = ["defend#1", "ghostly_armor#1", "strike#1"]
+
+    resolved = resolve_next_effect(state, registry=provider)
+
+    assert resolved["type"] == "exhaust_all_non_attacks_in_hand"
+    assert resolved["result"] == {
+        "exhausted_cards": ["defend#1", "ghostly_armor#1"],
+        "exhausted_count": 2,
+    }
+    assert state.hand == ["strike#1"]
+    assert state.exhaust_pile == ["defend#1", "ghostly_armor#1"]
+
+
+def test_exhaust_all_in_hand_moves_all_cards_and_reports_count() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 10)],
+        effect_queue=[{"type": "exhaust_all_in_hand"}],
+    )
+    state.hand = ["defend#1", "ghostly_armor#1", "strike#1"]
+
+    resolved = resolve_next_effect(state)
+
+    assert resolved["type"] == "exhaust_all_in_hand"
+    assert resolved["result"] == {
+        "exhausted_cards": ["defend#1", "ghostly_armor#1", "strike#1"],
+        "exhausted_count": 3,
+    }
+    assert state.hand == []
+    assert state.exhaust_pile == ["defend#1", "ghostly_armor#1", "strike#1"]
+
+
+def test_on_exhaust_effects_trigger_when_card_is_exhausted() -> None:
+    provider = _CardProvider()
+    _register_test_card(
+        provider,
+        card_id="sentinel",
+        card_type="skill",
+        on_exhaust_effects=[{"type": "gain_energy", "amount": 2}],
+    )
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 10)],
+        effect_queue=[
+            {"type": "exhaust_target_card", "target_card_instance_id": "sentinel#1"}
+        ],
+        energy=3,
+    )
+    state.hand = ["sentinel#1"]
+
+    resolved = resolve_effect_queue(state, registry=provider)
+
+    assert [effect["type"] for effect in resolved] == [
+        "exhaust_target_card",
+        "gain_energy",
+    ]
+    assert resolved[1]["source_instance_id"] == "sentinel#1"
+    assert resolved[1]["target_instance_id"] == "player-1"
+    assert state.hand == []
+    assert state.exhaust_pile == ["sentinel#1"]
+    assert state.energy == 5
+
+
+def test_exhaust_effects_trigger_dark_embrace_and_feel_no_pain() -> None:
+    provider = _CardProvider()
+    _register_test_card(provider, card_id="defend", card_type="skill")
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 10)],
+        effect_queue=[
+            {"type": "exhaust_target_card", "target_card_instance_id": "defend#1"}
+        ],
+    )
+    state.hand = ["defend#1"]
+    state.active_powers.extend(
+        [
+            {"power_id": "dark_embrace", "amount": 1},
+            {"power_id": "feel_no_pain", "amount": 4},
+        ]
+    )
+
+    resolved = resolve_effect_queue(state, registry=provider)
+
+    assert [effect["type"] for effect in resolved] == [
+        "exhaust_target_card",
+        "draw",
+        "block",
+    ]
+    assert resolved[1]["power_id"] == "dark_embrace"
+    assert resolved[1]["target_instance_id"] == "player-1"
+    assert resolved[1]["amount"] == 1
+    assert resolved[2]["power_id"] == "feel_no_pain"
+    assert resolved[2]["target_instance_id"] == "player-1"
+    assert resolved[2]["amount"] == 4
+    assert state.exhaust_pile == ["defend#1"]
+    assert state.player.block == 4
+    assert len(state.hand) == 1
+
+
+def test_exhaust_all_in_hand_preserves_cross_card_on_exhaust_order() -> None:
+    provider = _CardProvider()
+    _register_test_card(
+        provider,
+        card_id="skill_a",
+        card_type="skill",
+        on_exhaust_effects=[{"type": "gain_energy", "amount": 1, "label": "A"}],
+    )
+    _register_test_card(
+        provider,
+        card_id="skill_b",
+        card_type="skill",
+        on_exhaust_effects=[{"type": "gain_energy", "amount": 1, "label": "B"}],
+    )
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 10)],
+        effect_queue=[{"type": "exhaust_all_in_hand"}],
+        energy=3,
+    )
+    state.hand = ["skill_a#1", "skill_b#1"]
+
+    resolved = resolve_effect_queue(state, registry=provider)
+
+    assert [effect["type"] for effect in resolved] == [
+        "exhaust_all_in_hand",
+        "gain_energy",
+        "gain_energy",
+    ]
+    assert [effect["source_instance_id"] for effect in resolved[1:]] == [
+        "skill_a#1",
+        "skill_b#1",
+    ]
+
+
 def test_upgrade_target_card_effect_rewrites_card_instance_id_in_hand() -> None:
     state = make_combat_state(
         enemies=[make_enemy("enemy-1", 10)],
@@ -669,3 +1090,18 @@ def test_upgrade_all_hand_effect_upgrades_every_upgradeable_card_in_hand() -> No
         {"from": "defend#2", "to": "defend_plus#2"},
     ]
     assert state.hand == ["strike_plus#1", "defend_plus#2", "burn#3"]
+
+
+def test_enemy_damage_increments_times_hit_this_combat() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 10)],
+        effect_queue=[
+            damage_effect(
+                source_instance_id="enemy-1", target_instance_id="player-1", amount=5
+            )
+        ],
+    )
+
+    resolve_next_effect(state)
+
+    assert state.times_hit_this_combat == 1

@@ -163,12 +163,197 @@ def test_play_card_rejects_missing_target_for_targeted_effect() -> None:
     assert state.to_dict() == before
 
 
+def test_play_card_blood_for_blood_uses_damage_taken_as_cost_reduction() -> None:
+    state = _combat_state(hand=["blood_for_blood#1"], energy=2)
+    state.times_hit_this_combat = 3
+    provider = _Provider()
+    provider.cards().register(
+        {
+            "id": "blood_for_blood",
+            "name": "Blood for Blood",
+            "cost": 4,
+            "cost_reducer": "times_hit_this_combat",
+            "effects": [{"type": "damage", "amount": 18}],
+        }
+    )
+    provider.enemies().register(
+        {
+            "id": "training_dummy",
+            "name": "Training Dummy",
+            "hp": 10,
+            "move_table": [],
+            "intent_policy": "scripted",
+        }
+    )
+    provider.enemies().register(
+        {
+            "id": "gremlin_nob",
+            "name": "地精头目",
+            "hp": 84,
+            "move_table": [],
+            "intent_policy": "scripted",
+        }
+    )
+
+    result = play_card(state, "blood_for_blood#1", "enemy-1", provider)
+
+    assert result.combat_state.energy == 1
+
+
+def test_play_card_temporary_cost_overrides_damage_taken_cost_reduction() -> None:
+    state = _combat_state(hand=["blood_for_blood#1"], energy=1)
+    state.times_hit_this_combat = 4
+    state.temporary_costs = {"blood_for_blood#1": 1}
+    provider = _Provider()
+    provider.cards().register(
+        {
+            "id": "blood_for_blood",
+            "name": "Blood for Blood",
+            "cost": 4,
+            "cost_reducer": "times_hit_this_combat",
+            "effects": [{"type": "damage", "amount": 18}],
+        }
+    )
+    provider.enemies().register(
+        {
+            "id": "training_dummy",
+            "name": "Training Dummy",
+            "hp": 10,
+            "move_table": [],
+            "intent_policy": "scripted",
+        }
+    )
+
+    result = play_card(state, "blood_for_blood#1", "enemy-1", provider)
+
+    assert result.combat_state.energy == 0
+
+
 def test_play_card_rejects_unknown_card() -> None:
     state = _combat_state(hand=["unknown_card#1"])
     provider = _Provider()
 
     with pytest.raises(KeyError):
         play_card(state, "unknown_card#1", "enemy-1", provider)
+
+
+def test_play_card_second_wind_resolves_through_registry_and_exhausts_only_non_attacks() -> (
+    None
+):
+    state = _combat_state(hand=["second_wind#1", "defend#2", "strike#3"], energy=3)
+    provider = _Provider()
+    provider.cards().register(
+        {
+            "id": "second_wind",
+            "name": "Second Wind",
+            "cost": 1,
+            "card_type": "skill",
+            "effects": [
+                {"type": "exhaust_all_non_attacks_gain_block", "amount_per_card": 5}
+            ],
+        }
+    )
+    provider.cards().register(
+        {
+            "id": "defend",
+            "name": "Defend",
+            "cost": 1,
+            "card_type": "skill",
+            "effects": [{"type": "block", "amount": 5}],
+        }
+    )
+    provider.cards().register(
+        {
+            "id": "strike",
+            "name": "Strike",
+            "cost": 1,
+            "card_type": "attack",
+            "effects": [{"type": "damage", "amount": 6}],
+        }
+    )
+    provider.enemies().register(
+        {
+            "id": "training_dummy",
+            "name": "Training Dummy",
+            "hp": 10,
+            "move_table": [],
+            "intent_policy": "scripted",
+        }
+    )
+
+    result = play_card(state, "second_wind#1", None, provider)
+
+    assert [effect["type"] for effect in result.resolved_effects] == [
+        "exhaust_all_non_attacks_gain_block"
+    ]
+    assert state.hand == ["strike#3"]
+    assert state.exhaust_pile == ["defend#2"]
+    assert state.player.block == 5
+
+
+def test_play_card_self_exhaust_triggers_on_exhaust_effects() -> None:
+    state = _combat_state(hand=["sentinel_skill#1"], energy=3)
+    provider = _Provider()
+    provider.cards().register(
+        {
+            "id": "sentinel_skill",
+            "name": "Sentinel Skill",
+            "cost": 1,
+            "card_type": "skill",
+            "exhausts": True,
+            "effects": [],
+            "on_exhaust_effects": [{"type": "gain_energy", "amount": 2}],
+        }
+    )
+    provider.enemies().register(
+        {
+            "id": "training_dummy",
+            "name": "Training Dummy",
+            "hp": 10,
+            "move_table": [],
+            "intent_policy": "scripted",
+        }
+    )
+
+    result = play_card(state, "sentinel_skill#1", None, provider)
+
+    assert [effect["type"] for effect in result.resolved_effects] == ["gain_energy"]
+    assert state.energy == 4
+    assert state.exhaust_pile == ["sentinel_skill#1"]
+
+
+def test_play_card_self_exhaust_queues_on_exhaust_after_normal_effects() -> None:
+    state = _combat_state(hand=["exhausting_signal#1"], energy=3)
+    provider = _Provider()
+    provider.cards().register(
+        {
+            "id": "exhausting_signal",
+            "name": "Exhausting Signal",
+            "cost": 1,
+            "card_type": "skill",
+            "exhausts": True,
+            "effects": [{"type": "block", "amount": 4}],
+            "on_exhaust_effects": [{"type": "gain_energy", "amount": 2}],
+        }
+    )
+    provider.enemies().register(
+        {
+            "id": "training_dummy",
+            "name": "Training Dummy",
+            "hp": 10,
+            "move_table": [],
+            "intent_policy": "scripted",
+        }
+    )
+
+    result = play_card(state, "exhausting_signal#1", None, provider)
+
+    assert [effect["type"] for effect in result.resolved_effects] == [
+        "block",
+        "gain_energy",
+    ]
+    assert state.player.block == 4
+    assert state.energy == 4
 
 
 def test_play_card_rejects_invalid_card_instance_id_format() -> None:
@@ -638,3 +823,29 @@ def test_play_card_armaments_plus_upgrades_all_remaining_hand_cards() -> None:
     assert state.hand == ["strike_plus#2", "defend_plus#3"]
     assert state.discard_pile == ["armaments_plus#1"]
     assert state.player.block == 5
+
+
+def test_play_card_clash_rejects_non_attack_cards_in_hand() -> None:
+    state = _combat_state(hand=["clash#1", "defend#2"])
+    provider = _Provider()
+    provider.cards().register(
+        {
+            "id": "clash",
+            "name": "Clash",
+            "cost": 0,
+            "play_condition": "all_attacks_in_hand",
+            "effects": [{"type": "damage", "amount": 14}],
+        }
+    )
+    provider.cards().register(
+        {
+            "id": "defend",
+            "name": "Defend",
+            "cost": 1,
+            "card_type": "skill",
+            "effects": [{"type": "block", "amount": 5}],
+        }
+    )
+
+    with pytest.raises(ValueError, match="非攻击牌"):
+        play_card(state, "clash#1", "enemy-1", provider)

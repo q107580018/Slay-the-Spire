@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from slay_the_spire.domain.combat.turn_flow import resolve_player_actions
+from slay_the_spire.domain.effects.effect_resolver import _move_cards_to_exhaust
 from slay_the_spire.domain.effects.effect_types import (
     EFFECT_DAMAGE,
     EFFECT_DAMAGE_ALL_ENEMIES,
@@ -40,6 +41,31 @@ _TARGETED_EFFECT_TYPES = {
     "strength",
 }
 _HAND_TARGETED_EFFECT_TYPES = {EFFECT_EXHAUST_TARGET_CARD, EFFECT_UPGRADE_TARGET_CARD}
+
+
+def resolve_card_cost(
+    card_def: CardDef, combat_state: CombatState, card_instance_id: str
+) -> int:
+    if card_instance_id in combat_state.temporary_costs:
+        return max(0, combat_state.temporary_costs[card_instance_id])
+    if card_def.cost_reducer == "times_hit_this_combat":
+        return max(0, card_def.cost - combat_state.times_hit_this_combat)
+    return card_def.cost
+
+
+def _validate_play_condition(
+    card_def: CardDef,
+    combat_state: CombatState,
+    card_instance_id: str,
+    registry: ContentProviderPort,
+) -> None:
+    if card_def.play_condition != "all_attacks_in_hand":
+        return
+    other_cards = [card for card in combat_state.hand if card != card_instance_id]
+    for other_card in other_cards:
+        other_def = registry.cards().get(card_id_from_instance_id(other_card))
+        if other_def.card_type != "attack":
+            raise ValueError("手牌中存在非攻击牌，无法打出格斗。")
 
 
 def _materialize_card_effects(
@@ -154,9 +180,11 @@ def play_card(
     card_def = registry.cards().get(card_id)
     if not getattr(card_def, "playable", True):
         raise ValueError("这张牌无法打出。")
-    if card_def.cost >= 0 and combat_state.energy < card_def.cost:
+    resolved_cost = resolve_card_cost(card_def, combat_state, card_instance_id)
+    if resolved_cost >= 0 and combat_state.energy < resolved_cost:
         raise ValueError("not enough energy to play card")
-    energy_spent = combat_state.energy if card_def.cost == -1 else card_def.cost
+    _validate_play_condition(card_def, combat_state, card_instance_id, registry)
+    energy_spent = combat_state.energy if resolved_cost == -1 else resolved_cost
 
     materialized_effects = _materialize_card_effects(
         card_def.effects,
@@ -184,17 +212,23 @@ def play_card(
     snapshots_before = capture_entity_snapshots(combat_state, registry)
 
     combat_state.energy -= energy_spent
-    combat_state.hand.remove(card_instance_id)
-    if card_def.card_type != "power":
-        if getattr(card_def, "exhausts", False):
-            combat_state.exhaust_pile.append(card_instance_id)
-        else:
-            combat_state.discard_pile.append(card_instance_id)
+    if card_def.card_type == "power" or not getattr(card_def, "exhausts", False):
+        combat_state.hand.remove(card_instance_id)
+    if card_def.card_type != "power" and not getattr(card_def, "exhausts", False):
+        combat_state.discard_pile.append(card_instance_id)
     combat_state.effect_queue.extend(punishment_effects)
     combat_state.effect_queue.extend(materialized_effects)
+    if card_def.card_type != "power" and getattr(card_def, "exhausts", False):
+        _move_cards_to_exhaust(
+            combat_state,
+            [card_instance_id],
+            registry=registry,
+            queue_position="back",
+        )
     resolved_effects = resolve_player_actions(
         combat_state,
         hook_registrations=hook_registrations,
+        registry=registry,
     )
     append_log_entries(
         combat_state,
