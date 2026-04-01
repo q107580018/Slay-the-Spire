@@ -54,6 +54,16 @@ _POWER_LABELS: dict[str, str] = {
     "battle_trance": "战斗专注",
     "demon_form": "恶魔形态",
     "barricade": "壁垒",
+    "brutality": "残忍",
+    "evolve": "进化",
+    "fire_breathing": "喷火",
+    "dark_embrace": "黑暗拥抱",
+    "rage": "狂怒",
+    "rupture": "撕裂",
+    "feel_no_pain": "麻木",
+    "juggernaut": "主宰",
+    "double_tap": "双击",
+    "spot_weakness": "寻找弱点",
 }
 
 _POTION_TARGET_LABELS: dict[str, str] = {
@@ -216,6 +226,63 @@ def summarize_effect(
         return f"对所有敌人造成 {int(effect.get('amount', 0))} 伤害"
     if effect_type == "damage_all_enemies_x_times":
         return f"X 次对所有敌人各造成 {int(effect.get('amount', 0))} 伤害"
+    if effect_type == "damage_equal_to_block":
+        return "造成等同于当前格挡的伤害"
+    if effect_type == "double_strength":
+        return "使力量翻倍"
+    if effect_type == "put_top_of_deck_from_discard":
+        return "将弃牌堆中的 1 张牌放到牌堆顶"
+    if effect_type == "put_top_of_deck_from_hand":
+        return "将 1 张手牌放到牌堆顶"
+    if effect_type == "copy_card_to_hand":
+        return "复制 1 张手中的攻击牌或能力牌"
+    if effect_type == "select_from_exhaust_to_hand":
+        return "从消耗堆中取回 1 张牌"
+    if effect_type == "add_random_attack_zero_cost_to_hand":
+        return "获得 1 张费用为 0 的随机攻击牌"
+    if effect_type == "damage_lifesteal_all_enemies":
+        amount = int(effect.get("amount", 0))
+        return f"对所有敌人造成 {amount} 伤害，回复等量生命"
+    if effect_type == "spot_weakness_strength":
+        amount = int(effect.get("amount", 0))
+        return f"若敌人意图进行攻击，获得 {amount} 层力量"
+    if effect_type == "damage_on_kill_gain_max_hp":
+        amount = int(effect.get("amount", 0))
+        hp_gain = int(effect.get("hp_gain", 0))
+        return f"造成 {amount} 伤害，击杀则永久增加 {hp_gain} 最大生命"
+    if effect_type == "rampage_damage":
+        amount = int(effect.get("amount", 0))
+        return f"造成 {amount} 伤害（每次使用后永久增加 5 伤害）"
+    if effect_type == "damage_with_strength_multiplier":
+        base = int(effect.get("base", 0))
+        multiplier = int(effect.get("multiplier", 1))
+        return f"造成 {base} + 力量 × {multiplier} 伤害"
+    if effect_type == "damage_per_strike_in_deck":
+        base = int(effect.get("base", 0))
+        return f'每张命名含"击"的牌造成 {base} 伤害'
+    if effect_type == "dropkick_effect":
+        amount = int(effect.get("amount", 0))
+        return f"造成 {amount} 伤害；若敌人处于虚弱状态，获得 1 点能量并抽 1 张牌"
+    if effect_type == "exhaust_all_non_attacks_gain_block":
+        amount_per = int(effect.get("amount_per_card", 0))
+        return f"消耗手中所有非攻击牌，每张获得 {amount_per} 格挡"
+    if effect_type == "exhaust_all_non_attacks_in_hand":
+        return "消耗手中所有非攻击牌"
+    if effect_type == "exhaust_all_in_hand":
+        return "消耗手中所有牌"
+    if effect_type == "play_top_of_deck":
+        return "打出牌堆顶的牌"
+    if effect_type == "add_card_to_draw_pile":
+        count = int(effect.get("count", 1))
+        card_id = effect.get("card_id", "")
+        name = card_label(card_id) if isinstance(card_id, str) else "牌"
+        return f"向牌堆加入 {count} 张{name}"
+    if effect_type == "weak_all_enemies":
+        stacks = int(effect.get("stacks", 0))
+        return f"对所有敌人施加 {stacks} 虚弱"
+    if effect_type == "add_cards_to_hand":
+        count = int(effect.get("count", 1))
+        return f"获得 {count} 张牌到手牌"
     if effect_type == "damage":
         return f"造成 {int(effect.get('amount', 0))} 伤害"
     if effect_type == "block":
@@ -250,6 +317,26 @@ def summarize_effect(
             return f"每回合开始时获得 {amount} 层力量"
         if power_id == "barricade":
             return "你的格挡不会在回合开始时失去"
+        if power_id == "double_tap":
+            return "本回合下一张攻击牌额外触发一次"
+        if power_id == "dark_embrace":
+            return f"每当有牌被消耗时，抽 {amount} 张牌"
+        if power_id == "rage":
+            return f"每次打出攻击牌时获得 {amount} 格挡"
+        if power_id == "rupture":
+            return f"以牌的效果失去生命时，获得 {amount} 层力量"
+        if power_id == "feel_no_pain":
+            return f"每当有牌被消耗时，获得 {amount} 格挡"
+        if power_id == "juggernaut":
+            return f"获得格挡时对随机敌人造成 {amount} 伤害"
+        if power_id == "brutality":
+            return f"每回合开始时失去 {amount} 生命并抽 {amount} 张牌"
+        if power_id == "spot_weakness":
+            return f"若敌人意图进行攻击，获得 {amount} 层力量"
+        if power_id == "evolve":
+            return f"每次抽到状态牌时，抽 {amount} 张牌"
+        if power_id == "fire_breathing":
+            return f"每次抽到状态牌或诅咒牌时，对所有敌人造成 {amount} 伤害"
         return f"获得持续效果 {power_id} {amount}"
     if effect_type == "strength":
         return _signed_status_change(int(effect.get("amount", 0)), "力量")

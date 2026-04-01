@@ -115,13 +115,17 @@ def test_active_power_label_localizes_battle_trance() -> None:
 
 
 def test_summarize_effect_localizes_battle_trance_power_effect() -> None:
-    output = summarize_effect({"type": "add_power", "power_id": "battle_trance", "amount": 1})
+    output = summarize_effect(
+        {"type": "add_power", "power_id": "battle_trance", "amount": 1}
+    )
 
     assert output == "本回合内不能再抽牌"
 
 
 def test_summarize_effect_localizes_barricade_power_effect() -> None:
-    output = summarize_effect({"type": "add_power", "power_id": "barricade", "amount": 1})
+    output = summarize_effect(
+        {"type": "add_power", "power_id": "barricade", "amount": 1}
+    )
 
     assert output == "你的格挡不会在回合开始时失去"
 
@@ -131,7 +135,13 @@ def test_preview_enemy_intent_uses_move_table_without_state() -> None:
         id="slime",
         name="绿史莱姆",
         hp=12,
-        move_table=[{"move": "tackle", "weight": 1, "effects": [{"type": "damage", "amount": 3}]}],
+        move_table=[
+            {
+                "move": "tackle",
+                "weight": 1,
+                "effects": [{"type": "damage", "amount": 3}],
+            }
+        ],
         intent_policy="weighted_random",
     )
 
@@ -197,19 +207,112 @@ def test_render_room_select_target_menu_uses_shared_hp_bar_contract() -> None:
     assert "12/12 12/12" not in output
 
 
+def test_summarize_effect_localizes_damage_equal_to_block() -> None:
+    assert (
+        summarize_effect({"type": "damage_equal_to_block"})
+        == "造成等同于当前格挡的伤害"
+    )
+
+
+def test_summarize_effect_localizes_put_top_of_deck_from_discard() -> None:
+    assert (
+        summarize_effect({"type": "put_top_of_deck_from_discard"})
+        == "将弃牌堆中的 1 张牌放到牌堆顶"
+    )
+
+
+def test_summarize_effect_localizes_double_tap_power() -> None:
+    assert (
+        summarize_effect({"type": "add_power", "power_id": "double_tap", "amount": 1})
+        == "本回合下一张攻击牌额外触发一次"
+    )
+
+
+def test_summarize_effect_localizes_double_strength() -> None:
+    assert summarize_effect({"type": "double_strength"}) == "使力量翻倍"
+
+
+def test_summarize_effect_localizes_spot_weakness_strength() -> None:
+    output = summarize_effect({"type": "spot_weakness_strength", "amount": 3})
+    assert "力量" in output
+    assert "3" in output
+
+
+def test_summarize_effect_localizes_damage_on_kill_gain_max_hp() -> None:
+    output = summarize_effect(
+        {"type": "damage_on_kill_gain_max_hp", "amount": 10, "hp_gain": 3}
+    )
+    assert "伤害" in output
+    assert "最大生命" in output
+
+
+def test_summarize_effect_localizes_dark_embrace_power() -> None:
+    assert (
+        summarize_effect({"type": "add_power", "power_id": "dark_embrace", "amount": 1})
+        == "每当有牌被消耗时，抽 1 张牌"
+    )
+
+
+def test_summarize_effect_localizes_rage_power() -> None:
+    assert (
+        summarize_effect({"type": "add_power", "power_id": "rage", "amount": 3})
+        == "每次打出攻击牌时获得 3 格挡"
+    )
+
+
+def test_summarize_effect_localizes_rupture_power() -> None:
+    assert (
+        summarize_effect({"type": "add_power", "power_id": "rupture", "amount": 1})
+        == "以牌的效果失去生命时，获得 1 层力量"
+    )
+
+
+def test_summarize_effect_localizes_feel_no_pain_power() -> None:
+    assert (
+        summarize_effect({"type": "add_power", "power_id": "feel_no_pain", "amount": 3})
+        == "每当有牌被消耗时，获得 3 格挡"
+    )
+
+
+def test_summarize_effect_localizes_juggernaut_power() -> None:
+    assert (
+        summarize_effect({"type": "add_power", "power_id": "juggernaut", "amount": 5})
+        == "获得格挡时对随机敌人造成 5 伤害"
+    )
+
+
+def test_summarize_effect_localizes_brutality_power() -> None:
+    assert (
+        summarize_effect({"type": "add_power", "power_id": "brutality", "amount": 1})
+        == "每回合开始时失去 1 生命并抽 1 张牌"
+    )
+
+
 def test_render_room_inspect_enemy_detail_uses_shared_hp_bar_contract() -> None:
     session = start_session(seed=1)
     combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
     first_enemy = combat_state.enemies[0]
-    first_enemy_name = StarterContentProvider(session.content_root).enemies().get(first_enemy.enemy_id).name
+    first_enemy_name = (
+        StarterContentProvider(session.content_root)
+        .enemies()
+        .get(first_enemy.enemy_id)
+        .name
+    )
     output = render_room(
         run_state=session.run_state,
         act_state=session.act_state,
         room_state=session.room_state,
         registry=StarterContentProvider(session.content_root),
-        menu_state=MenuState(mode="inspect_enemy_detail", inspect_parent_mode="inspect_enemy_list", inspect_item_id="enemy-1"),
+        menu_state=MenuState(
+            mode="inspect_enemy_detail",
+            inspect_parent_mode="inspect_enemy_list",
+            inspect_item_id="enemy-1",
+        ),
     )
 
     assert "敌人详情" in output
     assert first_enemy_name in output
-    assert f"{first_enemy.hp}/{first_enemy.max_hp} {first_enemy.hp}/{first_enemy.max_hp}" not in output
+    assert (
+        f"{first_enemy.hp}/{first_enemy.max_hp} {first_enemy.hp}/{first_enemy.max_hp}"
+        not in output
+    )
