@@ -87,7 +87,7 @@ def _validate_play_condition(
     for other_card in other_cards:
         other_def = registry.cards().get(card_id_from_instance_id(other_card))
         if other_def.card_type != "attack":
-            raise ValueError("手牌中存在非攻击牌，无法打出格斗。")
+            raise ValueError("手牌中存在非攻击牌，无法打出交锋。")
 
 
 def _consume_player_power(state: CombatState, power_id: str) -> int:

@@ -54,16 +54,16 @@ _POWER_LABELS: dict[str, str] = {
     "battle_trance": "战斗专注",
     "demon_form": "恶魔形态",
     "barricade": "壁垒",
-    "brutality": "残忍",
+    "brutality": "残暴",
     "evolve": "进化",
-    "fire_breathing": "喷火",
-    "dark_embrace": "黑暗拥抱",
+    "fire_breathing": "火焰吐息",
+    "dark_embrace": "黑暗之拥",
     "rage": "狂怒",
     "rupture": "撕裂",
-    "feel_no_pain": "麻木",
-    "juggernaut": "主宰",
-    "double_tap": "双击",
-    "spot_weakness": "寻找弱点",
+    "feel_no_pain": "无惧疼痛",
+    "juggernaut": "势不可当",
+    "double_tap": "双发",
+    "spot_weakness": "观察弱点",
 }
 
 _POTION_TARGET_LABELS: dict[str, str] = {

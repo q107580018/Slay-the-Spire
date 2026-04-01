@@ -525,8 +525,8 @@ def test_end_turn_use_case_logs_start_turn_triggered_active_powers() -> None:
     assert result.combat_state is state
     assert sorted(state.log) == sorted(
         [
-            "残忍触发，抽 1 张牌，并失去 1 点生命。",
-            "喷火触发，对 Training Slime 造成 6 伤害。",
+            "残暴触发，抽 1 张牌，并失去 1 点生命。",
+            "火焰吐息触发，对 Training Slime 造成 6 伤害。",
         ]
     )
 
