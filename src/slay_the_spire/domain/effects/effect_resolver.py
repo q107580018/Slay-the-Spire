@@ -26,8 +26,10 @@ from slay_the_spire.domain.effects.effect_types import (
     EFFECT_GAIN_ENERGY,
     EFFECT_HEAL,
     EFFECT_LOSE_HP,
+    EFFECT_DAMAGE_ON_KILL_GAIN_MAX_HP,
     EFFECT_NOOP,
     EFFECT_PUT_TOP_OF_DECK_FROM_DISCARD,
+    EFFECT_SPOT_WEAKNESS_STRENGTH,
     EFFECT_STRENGTH,
     EFFECT_UPGRADE_ALL_HAND,
     EFFECT_UPGRADE_TARGET_CARD,
@@ -988,6 +990,55 @@ def resolve_next_effect(
 
     if effect_type == EFFECT_NOOP:
         return effect
+
+    if effect_type == EFFECT_SPOT_WEAKNESS_STRENGTH:
+        target_instance_id = effect.get("target_instance_id")
+        enemy = next(
+            (
+                e
+                for e in state.enemies
+                if e.instance_id == target_instance_id and e.hp > 0
+            ),
+            None,
+        )
+        amount = int(effect.get("amount", 3))
+        enemy_intends_damage = False
+        if enemy is not None:
+            current_move = getattr(enemy, "current_move", None)
+            if isinstance(current_move, dict):
+                move_effects = current_move.get("effects", [])
+                enemy_intends_damage = any(
+                    str(me.get("type", "")) == EFFECT_DAMAGE for me in move_effects
+                )
+        if enemy_intends_damage:
+            _apply_status(state.player, status_id="strength", stacks=amount)
+            return {**effect, "result": {"strength_gained": amount}}
+        return {**effect, "result": {"strength_gained": 0}}
+
+    if effect_type == EFFECT_DAMAGE_ON_KILL_GAIN_MAX_HP:
+        target_instance_id = effect.get("target_instance_id")
+        source_instance_id = effect.get("source_instance_id")
+        amount = int(effect.get("amount", 0))
+        hp_gain = int(effect.get("hp_gain", 3))
+        target = _get_target(state, target_instance_id)
+        if _is_dead(target):
+            return noop_effect(reason="dead_target")
+        _blocked, actual_damage = _damage_target(
+            target,
+            _damage_amount(_get_target(state, source_instance_id), target, amount),
+        )
+        killed = target.hp <= 0
+        if killed:
+            state.player.max_hp += hp_gain
+            state.player.hp = min(state.player.hp + hp_gain, state.player.max_hp)
+        return {
+            **effect,
+            "result": {
+                "applied_amount": actual_damage,
+                "target_defeated": killed,
+                "hp_gain": hp_gain if killed else 0,
+            },
+        }
 
     raise ValueError(f"unsupported effect type: {effect_type}")
 

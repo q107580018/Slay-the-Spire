@@ -894,3 +894,104 @@ def test_play_card_headbutt_moves_discard_target_to_top_of_draw_pile() -> None:
 
     assert state.draw_pile[0] == "bash#9"
     assert state.enemies[0].hp == 11
+
+
+def test_play_card_double_tap_replays_next_attack_effects_once() -> None:
+    state = _combat_state(hand=["strike#1"], enemy_hps=[20])
+    state.active_powers = [{"power_id": "double_tap", "amount": 1}]
+    provider = _provider_with_card(
+        card_id="strike", effects=[{"type": "damage", "amount": 6}]
+    )
+
+    result = play_card(state, "strike#1", "enemy-1", provider)
+
+    assert [effect["type"] for effect in result.resolved_effects] == [
+        "damage",
+        "damage",
+    ]
+    assert state.enemies[0].hp == 8
+    assert state.active_powers == []
+
+
+def test_play_card_rage_grants_block_after_attack() -> None:
+    state = _combat_state(hand=["strike#1"])
+    state.active_powers = [{"power_id": "rage", "amount": 3}]
+    provider = _provider_with_card(
+        card_id="strike", effects=[{"type": "damage", "amount": 6}]
+    )
+
+    play_card(state, "strike#1", "enemy-1", provider)
+
+    assert state.player.block == 3
+
+
+def test_play_card_rupture_grants_strength_when_self_damage_via_card_effect() -> None:
+    state = _combat_state(hand=["bloodletting#1"], energy=3)
+    state.active_powers = [{"power_id": "rupture", "amount": 1}]
+    provider = _provider_with_card(
+        card_id="bloodletting",
+        cost=0,
+        effects=[
+            {"type": "gain_energy", "amount": 2},
+            {"type": "lose_hp", "amount": 3},
+        ],
+    )
+
+    play_card(state, "bloodletting#1", None, provider)
+
+    strength_stacks = next(
+        (s.stacks for s in state.player.statuses if s.status_id == "strength"), 0
+    )
+    assert strength_stacks == 1
+
+
+def test_play_card_spot_weakness_grants_strength_when_enemy_intends_attack() -> None:
+    state = _combat_state(hand=["spot_weakness#1"])
+    state.enemies[0].current_move = {
+        "name": "攻击",
+        "effects": [{"type": "damage", "amount": 10}],
+    }
+    provider = _provider_with_card(
+        card_id="spot_weakness",
+        effects=[{"type": "spot_weakness_strength", "amount": 3}],
+    )
+
+    play_card(state, "spot_weakness#1", "enemy-1", provider)
+
+    strength_stacks = next(
+        (s.stacks for s in state.player.statuses if s.status_id == "strength"), 0
+    )
+    assert strength_stacks == 3
+
+
+def test_play_card_spot_weakness_does_not_grant_strength_when_enemy_defends() -> None:
+    state = _combat_state(hand=["spot_weakness#1"])
+    state.enemies[0].current_move = {
+        "name": "防御",
+        "effects": [{"type": "block", "amount": 10}],
+    }
+    provider = _provider_with_card(
+        card_id="spot_weakness",
+        effects=[{"type": "spot_weakness_strength", "amount": 3}],
+    )
+
+    play_card(state, "spot_weakness#1", "enemy-1", provider)
+
+    strength_stacks = next(
+        (s.stacks for s in state.player.statuses if s.status_id == "strength"), 0
+    )
+    assert strength_stacks == 0
+
+
+def test_play_card_feed_kills_enemy_and_increases_max_hp() -> None:
+    state = _combat_state(hand=["feed#1"], enemy_hps=[10])
+    provider = _provider_with_card(
+        card_id="feed",
+        cost=1,
+        effects=[{"type": "damage_on_kill_gain_max_hp", "amount": 10, "hp_gain": 3}],
+    )
+
+    play_card(state, "feed#1", "enemy-1", provider)
+
+    assert state.enemies[0].hp <= 0
+    assert state.player.max_hp == 43

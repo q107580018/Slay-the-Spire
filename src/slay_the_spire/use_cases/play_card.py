@@ -8,8 +8,10 @@ from slay_the_spire.domain.effects.effect_types import (
     EFFECT_DAMAGE,
     EFFECT_DAMAGE_ALL_ENEMIES,
     EFFECT_DAMAGE_ALL_ENEMIES_X_TIMES,
+    EFFECT_DAMAGE_ON_KILL_GAIN_MAX_HP,
     EFFECT_EXHAUST_TARGET_CARD,
     EFFECT_PUT_TOP_OF_DECK_FROM_DISCARD,
+    EFFECT_SPOT_WEAKNESS_STRENGTH,
     EFFECT_UPGRADE_TARGET_CARD,
     EFFECT_UPGRADE_ALL_HAND,
     EFFECT_VULNERABLE,
@@ -41,6 +43,8 @@ _TARGETED_EFFECT_TYPES = {
     EFFECT_DAMAGE,
     EFFECT_VULNERABLE,
     EFFECT_WEAK,
+    EFFECT_SPOT_WEAKNESS_STRENGTH,
+    EFFECT_DAMAGE_ON_KILL_GAIN_MAX_HP,
     "strength",
 }
 _HAND_TARGETED_EFFECT_TYPES = {EFFECT_EXHAUST_TARGET_CARD, EFFECT_UPGRADE_TARGET_CARD}
@@ -83,6 +87,19 @@ def _validate_play_condition(
         other_def = registry.cards().get(card_id_from_instance_id(other_card))
         if other_def.card_type != "attack":
             raise ValueError("手牌中存在非攻击牌，无法打出格斗。")
+
+
+def _consume_player_power(state: CombatState, power_id: str) -> int:
+    for index, power in enumerate(state.active_powers):
+        if power.get("power_id") != power_id:
+            continue
+        amount = int(power.get("amount", 0))
+        if amount <= 1:
+            state.active_powers.pop(index)
+        else:
+            state.active_powers[index] = {**power, "amount": amount - 1}
+        return amount
+    return 0
 
 
 def _materialize_card_effects(
@@ -234,6 +251,51 @@ def play_card(
                     "target_instance_id": enemy.instance_id,
                 }
             )
+
+    # Attack-trigger power hooks: double_tap, rage
+    attack_trigger_extras: list[JsonDict] = []
+    if card_def.card_type == "attack":
+        double_tap_amount = _consume_player_power(combat_state, "double_tap")
+        if double_tap_amount > 0:
+            attack_trigger_extras.extend(materialized_effects[:])
+        rage_amount = _consume_player_power(combat_state, "rage")
+        if rage_amount > 0:
+            attack_trigger_extras.append(
+                {
+                    "type": "block",
+                    "amount": rage_amount,
+                    "source_instance_id": combat_state.player.instance_id,
+                    "target_instance_id": combat_state.player.instance_id,
+                }
+            )
+
+    # Rupture: if any effect causes self-damage (lose_hp targeting player), gain strength
+    rupture_extras: list[JsonDict] = []
+    rupture_amount = next(
+        (
+            int(p.get("amount", 0))
+            for p in combat_state.active_powers
+            if p.get("power_id") == "rupture"
+        ),
+        0,
+    )
+    if rupture_amount > 0:
+        player_id = combat_state.player.instance_id
+        has_self_damage = any(
+            str(e.get("type")) == "lose_hp"
+            and e.get("target_instance_id", player_id) == player_id
+            for e in materialized_effects
+        )
+        if has_self_damage:
+            rupture_extras.append(
+                {
+                    "type": "strength",
+                    "amount": rupture_amount,
+                    "source_instance_id": player_id,
+                    "target_instance_id": player_id,
+                }
+            )
+
     snapshots_before = capture_entity_snapshots(combat_state, registry)
 
     combat_state.energy -= energy_spent
@@ -243,6 +305,8 @@ def play_card(
         combat_state.discard_pile.append(card_instance_id)
     combat_state.effect_queue.extend(punishment_effects)
     combat_state.effect_queue.extend(materialized_effects)
+    combat_state.effect_queue.extend(attack_trigger_extras)
+    combat_state.effect_queue.extend(rupture_extras)
     if card_def.card_type != "power" and getattr(card_def, "exhausts", False):
         _move_cards_to_exhaust(
             combat_state,

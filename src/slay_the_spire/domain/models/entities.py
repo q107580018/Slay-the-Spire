@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Mapping
+from typing import Any, Mapping
 
 from slay_the_spire.domain.models.statuses import StatusState
 from slay_the_spire.shared.types import JsonDict
@@ -106,7 +106,10 @@ class PlayerCombatState:
         if data.get("kind") != "player":
             raise ValueError("player combat state must have kind=player")
         statuses_raw = _require_list(_require_field(data, "statuses"), "statuses")
-        statuses = [StatusState.from_dict(_require_mapping(item, "statuses item")) for item in statuses_raw]
+        statuses = [
+            StatusState.from_dict(_require_mapping(item, "statuses item"))
+            for item in statuses_raw
+        ]
         return cls(
             schema_version=SCHEMA_VERSION,
             instance_id=_require_str(data["instance_id"], "instance_id"),
@@ -127,6 +130,7 @@ class EnemyState:
     block: int
     statuses: list[StatusState] = field(default_factory=list)
     kind: str = field(init=False, default="enemy")
+    current_move: dict[str, Any] | None = field(default=None, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         self.schema_version = _require_schema_version(self.schema_version)
@@ -173,7 +177,10 @@ class EnemyState:
         if data.get("kind") != "enemy":
             raise ValueError("enemy combat state must have kind=enemy")
         statuses_raw = _require_list(_require_field(data, "statuses"), "statuses")
-        statuses = [StatusState.from_dict(_require_mapping(item, "statuses item")) for item in statuses_raw]
+        statuses = [
+            StatusState.from_dict(_require_mapping(item, "statuses item"))
+            for item in statuses_raw
+        ]
         return cls(
             schema_version=SCHEMA_VERSION,
             instance_id=_require_str(data["instance_id"], "instance_id"),
