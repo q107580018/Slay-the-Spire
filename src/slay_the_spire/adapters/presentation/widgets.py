@@ -339,6 +339,8 @@ def summarize_effect(
             return f"每次抽到状态牌时，抽 {amount} 张牌"
         if power_id == "fire_breathing":
             return f"每次抽到状态牌或诅咒牌时，对所有敌人造成 {amount} 伤害"
+        if power_id == "corruption":
+            return "所有技能牌耗能变为0。所有技能牌在被打出时被消耗。"
         return f"获得持续效果 {power_id} {amount}"
     if effect_type == "strength":
         return _signed_status_change(int(effect.get("amount", 0)), "力量")

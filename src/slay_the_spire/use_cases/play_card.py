@@ -38,6 +38,10 @@ from slay_the_spire.use_cases.combat_log import (
     append_log_entries,
     describe_player_action,
 )
+from slay_the_spire.use_cases.card_runtime_rules import (
+    resolve_post_play_destination,
+    resolve_runtime_card_cost,
+)
 
 TargetSelection = str | dict[str, str] | None
 
@@ -70,11 +74,7 @@ def _zone_target_id(target: TargetSelection, zone: str) -> str | None:
 def resolve_card_cost(
     card_def: CardDef, combat_state: CombatState, card_instance_id: str
 ) -> int:
-    if card_instance_id in combat_state.temporary_costs:
-        return max(0, combat_state.temporary_costs[card_instance_id])
-    if card_def.cost_reducer == "times_hit_this_combat":
-        return max(0, card_def.cost - combat_state.times_hit_this_combat)
-    return card_def.cost
+    return resolve_runtime_card_cost(card_def, combat_state, card_instance_id)
 
 
 def _validate_play_condition(
@@ -324,28 +324,30 @@ def play_card(
         if card_instance_id in combat_state._cards_in_limbo:
             combat_state._cards_in_limbo.remove(card_instance_id)
         raise
-    if card_def.card_type != "power":
-        if getattr(card_def, "exhausts", False):
-            if card_instance_id in combat_state._cards_in_limbo:
-                combat_state._cards_in_limbo.remove(card_instance_id)
-            combat_state.exhaust_pile.append(card_instance_id)
-            _enqueue_on_exhaust_effects(
+    destination = resolve_post_play_destination(
+        card_def, combat_state, card_instance_id
+    )
+    if destination == "exhaust":
+        if card_instance_id in combat_state._cards_in_limbo:
+            combat_state._cards_in_limbo.remove(card_instance_id)
+        combat_state.exhaust_pile.append(card_instance_id)
+        _enqueue_on_exhaust_effects(
+            combat_state,
+            card_instance_id=card_instance_id,
+            registry=registry,
+            queue_position="back",
+        )
+        resolved_effects.extend(
+            resolve_player_actions(
                 combat_state,
-                card_instance_id=card_instance_id,
+                hook_registrations=hook_registrations,
                 registry=registry,
-                queue_position="back",
             )
-            resolved_effects.extend(
-                resolve_player_actions(
-                    combat_state,
-                    hook_registrations=hook_registrations,
-                    registry=registry,
-                )
-            )
-        else:
-            if card_instance_id in combat_state._cards_in_limbo:
-                combat_state._cards_in_limbo.remove(card_instance_id)
-            combat_state.discard_pile.append(card_instance_id)
+        )
+    elif destination == "discard":
+        if card_instance_id in combat_state._cards_in_limbo:
+            combat_state._cards_in_limbo.remove(card_instance_id)
+        combat_state.discard_pile.append(card_instance_id)
     elif card_instance_id in combat_state._cards_in_limbo:
         combat_state._cards_in_limbo.remove(card_instance_id)
     append_log_entries(

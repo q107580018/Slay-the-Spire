@@ -1190,3 +1190,54 @@ def test_play_card_corruption_adds_power_and_skills_cost_zero() -> None:
     assert any(p.get("power_id") == "corruption" for p in state.active_powers)
     assert state.exhaust_pile == []
     assert state.discard_pile == []
+
+
+def test_play_card_corruption_allows_zero_cost_skill_play() -> None:
+    state = _combat_state(hand=["defend#1"], energy=0)
+    state.active_powers = [{"power_id": "corruption", "amount": 1}]
+    provider = _provider_with_card(
+        card_id="defend",
+        cost=2,
+        effects=[{"type": "block", "amount": 5}],
+        card_type="skill",
+    )
+
+    result = play_card(state, "defend#1", None, provider)
+
+    assert result.combat_state.energy == 0
+    assert state.exhaust_pile == ["defend#1"]
+    assert state.discard_pile == []
+
+
+def test_play_card_corruption_overrides_temporary_skill_cost() -> None:
+    state = _combat_state(hand=["defend#1"], energy=0)
+    state.active_powers = [{"power_id": "corruption", "amount": 1}]
+    state.temporary_costs = {"defend#1": 2}
+    provider = _provider_with_card(
+        card_id="defend",
+        cost=1,
+        effects=[{"type": "block", "amount": 5}],
+        card_type="skill",
+    )
+
+    result = play_card(state, "defend#1", None, provider)
+
+    assert result.combat_state.energy == 0
+    assert state.exhaust_pile == ["defend#1"]
+
+
+def test_play_card_corruption_does_not_change_attack_cost_or_destination() -> None:
+    state = _combat_state(hand=["strike#1"], energy=1)
+    state.active_powers = [{"power_id": "corruption", "amount": 1}]
+    provider = _provider_with_card(
+        card_id="strike",
+        cost=1,
+        effects=[{"type": "damage", "amount": 6}],
+        card_type="attack",
+    )
+
+    result = play_card(state, "strike#1", "enemy-1", provider)
+
+    assert result.combat_state.energy == 0
+    assert state.exhaust_pile == []
+    assert state.discard_pile == ["strike#1"]

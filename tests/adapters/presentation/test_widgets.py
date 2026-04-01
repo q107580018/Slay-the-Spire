@@ -288,6 +288,13 @@ def test_summarize_effect_localizes_brutality_power() -> None:
     )
 
 
+def test_summarize_effect_localizes_corruption_power() -> None:
+    assert (
+        summarize_effect({"type": "add_power", "power_id": "corruption", "amount": 1})
+        == "所有技能牌耗能变为0。所有技能牌在被打出时被消耗。"
+    )
+
+
 def test_render_room_inspect_enemy_detail_uses_shared_hp_bar_contract() -> None:
     session = start_session(seed=1)
     combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
