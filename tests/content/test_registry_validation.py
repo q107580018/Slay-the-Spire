@@ -583,3 +583,60 @@ def test_provider_exposes_wound_and_dazed_status_cards(content_root: Path) -> No
     assert provider.cards().get("wound").playable is False
     assert provider.cards().get("dazed").card_type == "status"
     assert provider.cards().get("dazed").exhausts is True
+
+
+@pytest.mark.parametrize(
+    ("card_id", "expected_name"),
+    [
+        ("body_slam", "身体重击"),
+        ("clash", "格斗"),
+        ("flex", "示威"),
+        ("havoc", "破坏"),
+        ("heavy_blade", "重刃"),
+        ("iron_wave", "铁浪"),
+        ("perfected_strike", "精准打击"),
+        ("warcry", "战吼"),
+        ("wild_strike", "蛮荒打击"),
+        ("blood_for_blood", "血债血偿"),
+        ("burning_pact", "燃烧契约"),
+        ("carnage", "大屠杀"),
+        ("dark_embrace", "黑暗拥抱"),
+        ("dropkick", "下踢"),
+        ("dual_wield", "双持"),
+        ("evolve", "进化"),
+        ("feel_no_pain", "麻木"),
+        ("fire_breathing", "喷火"),
+        ("infernal_blade", "地狱之刃"),
+        ("intimidate", "恐吓"),
+        ("power_through", "强行突破"),
+        ("rage", "狂怒"),
+        ("rampage", "横冲直撞"),
+        ("reckless_charge", "鲁莽冲锋"),
+        ("rupture", "撕裂"),
+        ("searing_blow", "灼烧重击"),
+        ("second_wind", "东山再起"),
+        ("seeing_red", "勃然大怒"),
+        ("sentinel", "先锋"),
+        ("sever_soul", "割魂"),
+        ("spot_weakness", "寻找弱点"),
+        ("berserk", "狂暴"),
+        ("shockwave", "震荡波"),
+        ("bludgeon", "痛殴"),
+        ("brutality", "残忍"),
+        ("double_tap", "双击"),
+        ("exhume", "出土"),
+        ("feed", "进食"),
+        ("fiend_fire", "恶魔之火"),
+        ("immolate", "烈焰献祭"),
+        ("juggernaut", "主宰"),
+        ("limit_break", "突破极限"),
+        ("reaper", "死神镰刀"),
+        ("corruption", "腐化"),
+    ],
+)
+def test_provider_loads_remaining_ironclad_cards(
+    card_id: str, expected_name: str
+) -> None:
+    root = Path(__file__).resolve().parents[2] / "content"
+    provider = StarterContentProvider(root)
+    assert provider.cards().get(card_id).name == expected_name

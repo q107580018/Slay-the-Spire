@@ -1218,6 +1218,909 @@
       ],
       "card_type": "attack",
       "acquisition_tags": []
+    },
+    {
+      "id": "body_slam",
+      "name": "身体重击",
+      "cost": 1,
+      "rarity": "common",
+      "upgrades_to": "body_slam_plus",
+      "effects": [{"type": "damage_equal_to_block"}],
+      "card_type": "attack",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "body_slam_plus",
+      "name": "身体重击+",
+      "cost": 0,
+      "rarity": "common",
+      "effects": [{"type": "damage_equal_to_block"}],
+      "card_type": "attack",
+      "acquisition_tags": []
+    },
+    {
+      "id": "clash",
+      "name": "格斗",
+      "cost": 0,
+      "rarity": "common",
+      "upgrades_to": "clash_plus",
+      "play_condition": "all_attacks_in_hand",
+      "effects": [{"type": "damage", "amount": 14}],
+      "card_type": "attack",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "clash_plus",
+      "name": "格斗+",
+      "cost": 0,
+      "rarity": "common",
+      "play_condition": "all_attacks_in_hand",
+      "effects": [{"type": "damage", "amount": 18}],
+      "card_type": "attack",
+      "acquisition_tags": []
+    },
+    {
+      "id": "flex",
+      "name": "示威",
+      "cost": 0,
+      "rarity": "common",
+      "upgrades_to": "flex_plus",
+      "effects": [{"type": "strength", "amount": 2}, {"type": "add_power", "power_id": "flex_power", "amount": 2}],
+      "card_type": "skill",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "flex_plus",
+      "name": "示威+",
+      "cost": 0,
+      "rarity": "common",
+      "effects": [{"type": "strength", "amount": 4}, {"type": "add_power", "power_id": "flex_power", "amount": 4}],
+      "card_type": "skill",
+      "acquisition_tags": []
+    },
+    {
+      "id": "havoc",
+      "name": "破坏",
+      "cost": 1,
+      "rarity": "common",
+      "upgrades_to": "havoc_plus",
+      "effects": [{"type": "play_top_of_deck"}],
+      "card_type": "skill",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "havoc_plus",
+      "name": "破坏+",
+      "cost": 0,
+      "rarity": "common",
+      "effects": [{"type": "play_top_of_deck"}],
+      "card_type": "skill",
+      "acquisition_tags": []
+    },
+    {
+      "id": "heavy_blade",
+      "name": "重刃",
+      "cost": 2,
+      "rarity": "common",
+      "upgrades_to": "heavy_blade_plus",
+      "effects": [{"type": "damage_with_strength_multiplier", "base": 14, "multiplier": 3}],
+      "card_type": "attack",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "heavy_blade_plus",
+      "name": "重刃+",
+      "cost": 2,
+      "rarity": "common",
+      "effects": [{"type": "damage_with_strength_multiplier", "base": 14, "multiplier": 5}],
+      "card_type": "attack",
+      "acquisition_tags": []
+    },
+    {
+      "id": "iron_wave",
+      "name": "铁浪",
+      "cost": 1,
+      "rarity": "common",
+      "upgrades_to": "iron_wave_plus",
+      "effects": [{"type": "block", "amount": 5}, {"type": "damage", "amount": 5}],
+      "card_type": "attack",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "iron_wave_plus",
+      "name": "铁浪+",
+      "cost": 1,
+      "rarity": "common",
+      "effects": [{"type": "block", "amount": 7}, {"type": "damage", "amount": 7}],
+      "card_type": "attack",
+      "acquisition_tags": []
+    },
+    {
+      "id": "perfected_strike",
+      "name": "精准打击",
+      "cost": 2,
+      "rarity": "common",
+      "upgrades_to": "perfected_strike_plus",
+      "effects": [{"type": "damage_per_strike_in_deck", "base": 6, "bonus_per_strike": 2}],
+      "card_type": "attack",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "perfected_strike_plus",
+      "name": "精准打击+",
+      "cost": 2,
+      "rarity": "common",
+      "effects": [{"type": "damage_per_strike_in_deck", "base": 6, "bonus_per_strike": 3}],
+      "card_type": "attack",
+      "acquisition_tags": []
+    },
+    {
+      "id": "warcry",
+      "name": "战吼",
+      "cost": 0,
+      "rarity": "common",
+      "upgrades_to": "warcry_plus",
+      "exhausts": true,
+      "effects": [{"type": "draw", "amount": 1}, {"type": "put_top_of_deck_from_hand"}],
+      "card_type": "skill",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "warcry_plus",
+      "name": "战吼+",
+      "cost": 0,
+      "rarity": "common",
+      "exhausts": true,
+      "effects": [{"type": "draw", "amount": 2}, {"type": "put_top_of_deck_from_hand"}],
+      "card_type": "skill",
+      "acquisition_tags": []
+    },
+    {
+      "id": "wild_strike",
+      "name": "蛮荒打击",
+      "cost": 1,
+      "rarity": "common",
+      "upgrades_to": "wild_strike_plus",
+      "effects": [{"type": "damage", "amount": 12}, {"type": "add_card_to_draw_pile", "card_id": "wound", "count": 1}],
+      "card_type": "attack",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "wild_strike_plus",
+      "name": "蛮荒打击+",
+      "cost": 1,
+      "rarity": "common",
+      "effects": [{"type": "damage", "amount": 17}, {"type": "add_card_to_draw_pile", "card_id": "wound", "count": 1}],
+      "card_type": "attack",
+      "acquisition_tags": []
+    },
+    {
+      "id": "blood_for_blood",
+      "name": "血债血偿",
+      "cost": 4,
+      "rarity": "uncommon",
+      "upgrades_to": "blood_for_blood_plus",
+      "cost_reducer": "times_hit_this_combat",
+      "effects": [{"type": "damage", "amount": 18}],
+      "card_type": "attack",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "blood_for_blood_plus",
+      "name": "血债血偿+",
+      "cost": 3,
+      "rarity": "uncommon",
+      "cost_reducer": "times_hit_this_combat",
+      "effects": [{"type": "damage", "amount": 22}],
+      "card_type": "attack",
+      "acquisition_tags": []
+    },
+    {
+      "id": "burning_pact",
+      "name": "燃烧契约",
+      "cost": 1,
+      "rarity": "uncommon",
+      "upgrades_to": "burning_pact_plus",
+      "effects": [{"type": "exhaust_target_card"}, {"type": "draw", "amount": 2}],
+      "card_type": "skill",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "burning_pact_plus",
+      "name": "燃烧契约+",
+      "cost": 1,
+      "rarity": "uncommon",
+      "effects": [{"type": "exhaust_target_card"}, {"type": "draw", "amount": 3}],
+      "card_type": "skill",
+      "acquisition_tags": []
+    },
+    {
+      "id": "carnage",
+      "name": "大屠杀",
+      "cost": 2,
+      "rarity": "uncommon",
+      "upgrades_to": "carnage_plus",
+      "ethereal": true,
+      "effects": [{"type": "damage", "amount": 20}],
+      "card_type": "attack",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "carnage_plus",
+      "name": "大屠杀+",
+      "cost": 2,
+      "rarity": "uncommon",
+      "ethereal": true,
+      "effects": [{"type": "damage", "amount": 28}],
+      "card_type": "attack",
+      "acquisition_tags": []
+    },
+    {
+      "id": "dark_embrace",
+      "name": "黑暗拥抱",
+      "cost": 2,
+      "rarity": "uncommon",
+      "upgrades_to": "dark_embrace_plus",
+      "effects": [{"type": "add_power", "power_id": "dark_embrace", "amount": 1}],
+      "card_type": "power",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "dark_embrace_plus",
+      "name": "黑暗拥抱+",
+      "cost": 1,
+      "rarity": "uncommon",
+      "effects": [{"type": "add_power", "power_id": "dark_embrace", "amount": 1}],
+      "card_type": "power",
+      "acquisition_tags": []
+    },
+    {
+      "id": "dropkick",
+      "name": "下踢",
+      "cost": 1,
+      "rarity": "uncommon",
+      "upgrades_to": "dropkick_plus",
+      "effects": [{"type": "dropkick_effect", "amount": 8}],
+      "card_type": "attack",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "dropkick_plus",
+      "name": "下踢+",
+      "cost": 1,
+      "rarity": "uncommon",
+      "effects": [{"type": "dropkick_effect", "amount": 11}],
+      "card_type": "attack",
+      "acquisition_tags": []
+    },
+    {
+      "id": "dual_wield",
+      "name": "双持",
+      "cost": 1,
+      "rarity": "uncommon",
+      "upgrades_to": "dual_wield_plus",
+      "effects": [{"type": "copy_card_to_hand", "count": 1}],
+      "card_type": "skill",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "dual_wield_plus",
+      "name": "双持+",
+      "cost": 1,
+      "rarity": "uncommon",
+      "effects": [{"type": "copy_card_to_hand", "count": 2}],
+      "card_type": "skill",
+      "acquisition_tags": []
+    },
+    {
+      "id": "evolve",
+      "name": "进化",
+      "cost": 1,
+      "rarity": "uncommon",
+      "upgrades_to": "evolve_plus",
+      "effects": [{"type": "add_power", "power_id": "evolve", "amount": 1}],
+      "card_type": "power",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "evolve_plus",
+      "name": "进化+",
+      "cost": 1,
+      "rarity": "uncommon",
+      "effects": [{"type": "add_power", "power_id": "evolve", "amount": 2}],
+      "card_type": "power",
+      "acquisition_tags": []
+    },
+    {
+      "id": "feel_no_pain",
+      "name": "麻木",
+      "cost": 1,
+      "rarity": "uncommon",
+      "upgrades_to": "feel_no_pain_plus",
+      "effects": [{"type": "add_power", "power_id": "feel_no_pain", "amount": 3}],
+      "card_type": "power",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "feel_no_pain_plus",
+      "name": "麻木+",
+      "cost": 1,
+      "rarity": "uncommon",
+      "effects": [{"type": "add_power", "power_id": "feel_no_pain", "amount": 4}],
+      "card_type": "power",
+      "acquisition_tags": []
+    },
+    {
+      "id": "fire_breathing",
+      "name": "喷火",
+      "cost": 1,
+      "rarity": "uncommon",
+      "upgrades_to": "fire_breathing_plus",
+      "effects": [{"type": "add_power", "power_id": "fire_breathing", "amount": 6}],
+      "card_type": "power",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "fire_breathing_plus",
+      "name": "喷火+",
+      "cost": 1,
+      "rarity": "uncommon",
+      "effects": [{"type": "add_power", "power_id": "fire_breathing", "amount": 10}],
+      "card_type": "power",
+      "acquisition_tags": []
+    },
+    {
+      "id": "infernal_blade",
+      "name": "地狱之刃",
+      "cost": 1,
+      "rarity": "uncommon",
+      "upgrades_to": "infernal_blade_plus",
+      "exhausts": true,
+      "effects": [{"type": "add_random_attack_zero_cost_to_hand"}],
+      "card_type": "skill",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "infernal_blade_plus",
+      "name": "地狱之刃+",
+      "cost": 0,
+      "rarity": "uncommon",
+      "exhausts": true,
+      "effects": [{"type": "add_random_attack_zero_cost_to_hand"}],
+      "card_type": "skill",
+      "acquisition_tags": []
+    },
+    {
+      "id": "intimidate",
+      "name": "恐吓",
+      "cost": 0,
+      "rarity": "uncommon",
+      "upgrades_to": "intimidate_plus",
+      "exhausts": true,
+      "effects": [{"type": "weak_all_enemies", "stacks": 1}],
+      "card_type": "skill",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "intimidate_plus",
+      "name": "恐吓+",
+      "cost": 0,
+      "rarity": "uncommon",
+      "exhausts": true,
+      "effects": [{"type": "weak_all_enemies", "stacks": 2}],
+      "card_type": "skill",
+      "acquisition_tags": []
+    },
+    {
+      "id": "power_through",
+      "name": "强行突破",
+      "cost": 1,
+      "rarity": "uncommon",
+      "upgrades_to": "power_through_plus",
+      "effects": [
+        {"type": "block", "amount": 15},
+        {"type": "add_card_to_draw_pile", "card_id": "wound", "count": 2}
+      ],
+      "card_type": "skill",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "power_through_plus",
+      "name": "强行突破+",
+      "cost": 1,
+      "rarity": "uncommon",
+      "effects": [
+        {"type": "block", "amount": 20},
+        {"type": "add_card_to_draw_pile", "card_id": "wound", "count": 2}
+      ],
+      "card_type": "skill",
+      "acquisition_tags": []
+    },
+    {
+      "id": "rage",
+      "name": "狂怒",
+      "cost": 0,
+      "rarity": "uncommon",
+      "upgrades_to": "rage_plus",
+      "effects": [{"type": "add_power", "power_id": "rage", "amount": 3}],
+      "card_type": "skill",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "rage_plus",
+      "name": "狂怒+",
+      "cost": 0,
+      "rarity": "uncommon",
+      "effects": [{"type": "add_power", "power_id": "rage", "amount": 5}],
+      "card_type": "skill",
+      "acquisition_tags": []
+    },
+    {
+      "id": "rampage",
+      "name": "横冲直撞",
+      "cost": 1,
+      "rarity": "uncommon",
+      "upgrades_to": "rampage_plus",
+      "effects": [{"type": "rampage_damage", "amount": 8}],
+      "card_type": "attack",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "rampage_plus",
+      "name": "横冲直撞+",
+      "cost": 1,
+      "rarity": "uncommon",
+      "effects": [{"type": "rampage_damage", "amount": 8, "increment": 5}],
+      "card_type": "attack",
+      "acquisition_tags": []
+    },
+    {
+      "id": "reckless_charge",
+      "name": "鲁莽冲锋",
+      "cost": 0,
+      "rarity": "uncommon",
+      "upgrades_to": "reckless_charge_plus",
+      "effects": [
+        {"type": "damage", "amount": 7},
+        {"type": "add_card_to_draw_pile", "card_id": "dazed", "count": 1}
+      ],
+      "card_type": "attack",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "reckless_charge_plus",
+      "name": "鲁莽冲锋+",
+      "cost": 0,
+      "rarity": "uncommon",
+      "effects": [
+        {"type": "damage", "amount": 10},
+        {"type": "add_card_to_draw_pile", "card_id": "dazed", "count": 1}
+      ],
+      "card_type": "attack",
+      "acquisition_tags": []
+    },
+    {
+      "id": "rupture",
+      "name": "撕裂",
+      "cost": 1,
+      "rarity": "uncommon",
+      "upgrades_to": "rupture_plus",
+      "effects": [{"type": "add_power", "power_id": "rupture", "amount": 1}],
+      "card_type": "power",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "rupture_plus",
+      "name": "撕裂+",
+      "cost": 0,
+      "rarity": "uncommon",
+      "effects": [{"type": "add_power", "power_id": "rupture", "amount": 1}],
+      "card_type": "power",
+      "acquisition_tags": []
+    },
+    {
+      "id": "searing_blow",
+      "name": "灼烧重击",
+      "cost": 2,
+      "rarity": "uncommon",
+      "upgrades_to": "searing_blow_plus",
+      "effects": [{"type": "damage", "amount": 12}],
+      "card_type": "attack",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "searing_blow_plus",
+      "name": "灼烧重击+",
+      "cost": 2,
+      "rarity": "uncommon",
+      "upgrades_to": "searing_blow_plus2",
+      "effects": [{"type": "damage", "amount": 16}],
+      "card_type": "attack",
+      "acquisition_tags": []
+    },
+    {
+      "id": "searing_blow_plus2",
+      "name": "灼烧重击++",
+      "cost": 2,
+      "rarity": "uncommon",
+      "upgrades_to": "searing_blow_plus3",
+      "effects": [{"type": "damage", "amount": 20}],
+      "card_type": "attack",
+      "acquisition_tags": []
+    },
+    {
+      "id": "searing_blow_plus3",
+      "name": "灼烧重击+++",
+      "cost": 2,
+      "rarity": "uncommon",
+      "effects": [{"type": "damage", "amount": 24}],
+      "card_type": "attack",
+      "acquisition_tags": []
+    },
+    {
+      "id": "second_wind",
+      "name": "东山再起",
+      "cost": 1,
+      "rarity": "uncommon",
+      "upgrades_to": "second_wind_plus",
+      "effects": [{"type": "exhaust_all_non_attacks_gain_block", "amount_per_card": 5}],
+      "card_type": "skill",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "second_wind_plus",
+      "name": "东山再起+",
+      "cost": 1,
+      "rarity": "uncommon",
+      "effects": [{"type": "exhaust_all_non_attacks_gain_block", "amount_per_card": 7}],
+      "card_type": "skill",
+      "acquisition_tags": []
+    },
+    {
+      "id": "seeing_red",
+      "name": "勃然大怒",
+      "cost": 1,
+      "rarity": "uncommon",
+      "upgrades_to": "seeing_red_plus",
+      "exhausts": true,
+      "effects": [{"type": "gain_energy", "amount": 2}],
+      "card_type": "skill",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "seeing_red_plus",
+      "name": "勃然大怒+",
+      "cost": 0,
+      "rarity": "uncommon",
+      "exhausts": true,
+      "effects": [{"type": "gain_energy", "amount": 2}],
+      "card_type": "skill",
+      "acquisition_tags": []
+    },
+    {
+      "id": "sentinel",
+      "name": "先锋",
+      "cost": 1,
+      "rarity": "uncommon",
+      "upgrades_to": "sentinel_plus",
+      "effects": [{"type": "block", "amount": 5}],
+      "on_exhaust_effects": [{"type": "gain_energy", "amount": 2}],
+      "card_type": "skill",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "sentinel_plus",
+      "name": "先锋+",
+      "cost": 1,
+      "rarity": "uncommon",
+      "effects": [{"type": "block", "amount": 8}],
+      "on_exhaust_effects": [{"type": "gain_energy", "amount": 3}],
+      "card_type": "skill",
+      "acquisition_tags": []
+    },
+    {
+      "id": "sever_soul",
+      "name": "割魂",
+      "cost": 2,
+      "rarity": "uncommon",
+      "upgrades_to": "sever_soul_plus",
+      "effects": [{"type": "exhaust_all_non_attacks_in_hand"}, {"type": "damage", "amount": 16}],
+      "card_type": "attack",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "sever_soul_plus",
+      "name": "割魂+",
+      "cost": 2,
+      "rarity": "uncommon",
+      "effects": [{"type": "exhaust_all_non_attacks_in_hand"}, {"type": "damage", "amount": 22}],
+      "card_type": "attack",
+      "acquisition_tags": []
+    },
+    {
+      "id": "spot_weakness",
+      "name": "寻找弱点",
+      "cost": 1,
+      "rarity": "uncommon",
+      "upgrades_to": "spot_weakness_plus",
+      "effects": [{"type": "spot_weakness_strength", "amount": 3}],
+      "card_type": "skill",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "spot_weakness_plus",
+      "name": "寻找弱点+",
+      "cost": 1,
+      "rarity": "uncommon",
+      "effects": [{"type": "spot_weakness_strength", "amount": 4}],
+      "card_type": "skill",
+      "acquisition_tags": []
+    },
+    {
+      "id": "berserk",
+      "name": "狂暴",
+      "cost": 0,
+      "rarity": "uncommon",
+      "upgrades_to": "berserk_plus",
+      "effects": [{"type": "lose_hp", "amount": 2}, {"type": "add_power", "power_id": "berserk", "amount": 1}],
+      "card_type": "power",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "berserk_plus",
+      "name": "狂暴+",
+      "cost": 0,
+      "rarity": "uncommon",
+      "innate": true,
+      "effects": [{"type": "lose_hp", "amount": 2}, {"type": "add_power", "power_id": "berserk", "amount": 1}],
+      "card_type": "power",
+      "acquisition_tags": []
+    },
+    {
+      "id": "shockwave",
+      "name": "震荡波",
+      "cost": 2,
+      "rarity": "uncommon",
+      "upgrades_to": "shockwave_plus",
+      "exhausts": true,
+      "effects": [
+        {"type": "vulnerable_all_enemies", "stacks": 3},
+        {"type": "weak_all_enemies", "stacks": 3}
+      ],
+      "card_type": "skill",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "shockwave_plus",
+      "name": "震荡波+",
+      "cost": 2,
+      "rarity": "uncommon",
+      "exhausts": true,
+      "effects": [
+        {"type": "vulnerable_all_enemies", "stacks": 5},
+        {"type": "weak_all_enemies", "stacks": 5}
+      ],
+      "card_type": "skill",
+      "acquisition_tags": []
+    },
+    {
+      "id": "bludgeon",
+      "name": "痛殴",
+      "cost": 3,
+      "rarity": "rare",
+      "upgrades_to": "bludgeon_plus",
+      "effects": [{"type": "damage", "amount": 32}],
+      "card_type": "attack",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "bludgeon_plus",
+      "name": "痛殴+",
+      "cost": 3,
+      "rarity": "rare",
+      "effects": [{"type": "damage", "amount": 42}],
+      "card_type": "attack",
+      "acquisition_tags": []
+    },
+    {
+      "id": "brutality",
+      "name": "残忍",
+      "cost": 0,
+      "rarity": "rare",
+      "upgrades_to": "brutality_plus",
+      "effects": [{"type": "add_power", "power_id": "brutality", "amount": 1}],
+      "card_type": "power",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "brutality_plus",
+      "name": "残忍+",
+      "cost": 0,
+      "rarity": "rare",
+      "innate": true,
+      "effects": [{"type": "add_power", "power_id": "brutality", "amount": 1}],
+      "card_type": "power",
+      "acquisition_tags": []
+    },
+    {
+      "id": "double_tap",
+      "name": "双击",
+      "cost": 1,
+      "rarity": "rare",
+      "upgrades_to": "double_tap_plus",
+      "effects": [{"type": "add_power", "power_id": "double_tap", "amount": 1}],
+      "card_type": "skill",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "double_tap_plus",
+      "name": "双击+",
+      "cost": 1,
+      "rarity": "rare",
+      "effects": [{"type": "add_power", "power_id": "double_tap", "amount": 2}],
+      "card_type": "skill",
+      "acquisition_tags": []
+    },
+    {
+      "id": "exhume",
+      "name": "出土",
+      "cost": 1,
+      "rarity": "rare",
+      "upgrades_to": "exhume_plus",
+      "exhausts": true,
+      "effects": [{"type": "select_from_exhaust_to_hand"}],
+      "card_type": "skill",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "exhume_plus",
+      "name": "出土+",
+      "cost": 0,
+      "rarity": "rare",
+      "exhausts": true,
+      "effects": [{"type": "select_from_exhaust_to_hand"}],
+      "card_type": "skill",
+      "acquisition_tags": []
+    },
+    {
+      "id": "feed",
+      "name": "进食",
+      "cost": 1,
+      "rarity": "rare",
+      "upgrades_to": "feed_plus",
+      "exhausts": true,
+      "effects": [{"type": "damage_on_kill_gain_max_hp", "amount": 10, "hp_gain": 3}],
+      "card_type": "attack",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "feed_plus",
+      "name": "进食+",
+      "cost": 1,
+      "rarity": "rare",
+      "exhausts": true,
+      "effects": [{"type": "damage_on_kill_gain_max_hp", "amount": 12, "hp_gain": 4}],
+      "card_type": "attack",
+      "acquisition_tags": []
+    },
+    {
+      "id": "fiend_fire",
+      "name": "恶魔之火",
+      "cost": 2,
+      "rarity": "rare",
+      "upgrades_to": "fiend_fire_plus",
+      "exhausts": true,
+      "effects": [{"type": "exhaust_all_in_hand"}, {"type": "damage", "amount": 7}],
+      "card_type": "attack",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "fiend_fire_plus",
+      "name": "恶魔之火+",
+      "cost": 2,
+      "rarity": "rare",
+      "exhausts": true,
+      "effects": [{"type": "exhaust_all_in_hand"}, {"type": "damage", "amount": 10}],
+      "card_type": "attack",
+      "acquisition_tags": []
+    },
+    {
+      "id": "immolate",
+      "name": "烈焰献祭",
+      "cost": 2,
+      "rarity": "rare",
+      "upgrades_to": "immolate_plus",
+      "effects": [{"type": "damage_all_enemies", "amount": 21}, {"type": "add_card_to_discard", "card_id": "burn", "count": 1}],
+      "card_type": "attack",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "immolate_plus",
+      "name": "烈焰献祭+",
+      "cost": 2,
+      "rarity": "rare",
+      "effects": [{"type": "damage_all_enemies", "amount": 28}, {"type": "add_card_to_discard", "card_id": "burn", "count": 1}],
+      "card_type": "attack",
+      "acquisition_tags": []
+    },
+    {
+      "id": "juggernaut",
+      "name": "主宰",
+      "cost": 2,
+      "rarity": "rare",
+      "upgrades_to": "juggernaut_plus",
+      "effects": [{"type": "add_power", "power_id": "juggernaut", "amount": 5}],
+      "card_type": "power",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "juggernaut_plus",
+      "name": "主宰+",
+      "cost": 2,
+      "rarity": "rare",
+      "effects": [{"type": "add_power", "power_id": "juggernaut", "amount": 7}],
+      "card_type": "power",
+      "acquisition_tags": []
+    },
+    {
+      "id": "limit_break",
+      "name": "突破极限",
+      "cost": 1,
+      "rarity": "rare",
+      "upgrades_to": "limit_break_plus",
+      "exhausts": true,
+      "effects": [{"type": "double_strength"}],
+      "card_type": "skill",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "limit_break_plus",
+      "name": "突破极限+",
+      "cost": 1,
+      "rarity": "rare",
+      "effects": [{"type": "double_strength"}],
+      "card_type": "skill",
+      "acquisition_tags": []
+    },
+    {
+      "id": "reaper",
+      "name": "死神镰刀",
+      "cost": 2,
+      "rarity": "rare",
+      "upgrades_to": "reaper_plus",
+      "exhausts": true,
+      "effects": [{"type": "damage_lifesteal_all_enemies", "amount": 4}],
+      "card_type": "attack",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "reaper_plus",
+      "name": "死神镰刀+",
+      "cost": 2,
+      "rarity": "rare",
+      "exhausts": true,
+      "effects": [{"type": "damage_lifesteal_all_enemies", "amount": 5}],
+      "card_type": "attack",
+      "acquisition_tags": []
+    },
+    {
+      "id": "corruption",
+      "name": "腐化",
+      "cost": 3,
+      "rarity": "rare",
+      "upgrades_to": "corruption_plus",
+      "effects": [{"type": "add_power", "power_id": "corruption", "amount": 1}],
+      "card_type": "power",
+      "acquisition_tags": ["combat_reward", "shop"]
+    },
+    {
+      "id": "corruption_plus",
+      "name": "腐化+",
+      "cost": 2,
+      "rarity": "rare",
+      "effects": [{"type": "add_power", "power_id": "corruption", "amount": 1}],
+      "card_type": "power",
+      "acquisition_tags": []
     }
   ]
 }
