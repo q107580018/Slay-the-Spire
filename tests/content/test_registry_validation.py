@@ -573,3 +573,13 @@ def test_act_registry_accepts_map_config_instead_of_static_nodes(
     assert act.map_config.fixed_floor_room_types[9] == "treasure"
     assert act.map_config.post_boss_room_type == "boss_chest"
     assert act.map_config.room_rules["min_floor_for_shop"] == 2
+
+
+@pytest.mark.parametrize("content_root", _content_roots())
+def test_provider_exposes_wound_and_dazed_status_cards(content_root: Path) -> None:
+    provider = StarterContentProvider(content_root)
+
+    assert provider.cards().get("wound").card_type == "status"
+    assert provider.cards().get("wound").playable is False
+    assert provider.cards().get("dazed").card_type == "status"
+    assert provider.cards().get("dazed").exhausts is True

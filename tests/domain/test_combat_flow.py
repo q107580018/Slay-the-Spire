@@ -12,9 +12,11 @@ from slay_the_spire.domain.combat.turn_flow import (
     preview_enemy_move,
     preview_enemy_move_for_display,
     resolve_player_actions,
+    run_enemy_turn,
     start_turn,
 )
-from slay_the_spire.domain.effects.effect_types import damage_effect
+from slay_the_spire.domain.effects.effect_types import damage_effect, noop_effect
+from slay_the_spire.domain.hooks.hook_types import HookRegistration
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
 from slay_the_spire.domain.models.statuses import StatusState
@@ -292,6 +294,55 @@ def test_end_turn_burn_damage_happens_before_ethereal_exhaust() -> None:
     assert "ghostly_armor#1" in state.exhaust_pile
 
 
+def test_end_turn_ethereal_on_exhaust_effects_resolve_before_enemy_turn() -> None:
+    registry = _enemy_registry_without_attacks()
+    registry.cards().register(
+        {
+            "id": "ghostly_armor",
+            "name": "幽魂护甲",
+            "cost": 1,
+            "card_type": "skill",
+            "ethereal": True,
+            "effects": [{"type": "block", "amount": 10}],
+            "on_exhaust_effects": [{"type": "gain_energy", "amount": 2}],
+        }
+    )
+    state = _combat_state()
+    state.energy = 0
+    state.hand = ["ghostly_armor#1"]
+
+    resolved = end_turn(state, registry)
+
+    assert [effect["type"] for effect in resolved] == ["gain_energy"]
+    assert state.exhaust_pile == ["ghostly_armor#1"]
+
+
+def test_end_turn_ethereal_on_exhaust_when_player_dies_stops_before_enemy_turn() -> (
+    None
+):
+    registry = _enemy_registry()
+    registry.cards().register(
+        {
+            "id": "volatile_memory",
+            "name": "易爆记忆",
+            "cost": 1,
+            "card_type": "skill",
+            "ethereal": True,
+            "effects": [],
+            "on_exhaust_effects": [{"type": "lose_hp", "amount": 2}],
+        }
+    )
+    state = _combat_state()
+    state.player.hp = 2
+    state.hand = ["volatile_memory#1"]
+
+    resolved = end_turn(state, registry)
+
+    assert [effect["type"] for effect in resolved] == ["lose_hp"]
+    assert state.player.hp == 0
+    assert state.round_number == 1
+
+
 def test_enemy_attack_triggers_flame_barrier_counter_damage() -> None:
     registry = _enemy_registry()
     state = _combat_state()
@@ -305,6 +356,35 @@ def test_enemy_attack_triggers_flame_barrier_counter_damage() -> None:
     )
 
 
+def test_run_enemy_turn_forwards_registry_for_exhaust_all_non_attacks_in_hand() -> None:
+    registry = _enemy_registry_without_attacks()
+    registry.enemies().register(
+        {
+            "id": "hexer",
+            "name": "Hexer",
+            "hp": 12,
+            "move_table": [
+                {
+                    "move": "hex",
+                    "effects": [{"type": "exhaust_all_non_attacks_in_hand"}],
+                }
+            ],
+            "intent_policy": "scripted",
+        }
+    )
+    state = _combat_state()
+    state.enemies[0].enemy_id = "hexer"
+    state.hand = ["defend#1", "strike#1"]
+
+    resolved = run_enemy_turn(state, registry)
+
+    assert [effect["type"] for effect in resolved] == [
+        "exhaust_all_non_attacks_in_hand"
+    ]
+    assert state.hand == ["strike#1"]
+    assert state.exhaust_pile == ["defend#1"]
+
+
 def test_start_turn_applies_demon_form_strength_gain() -> None:
     state = _combat_state()
     state.active_powers = [{"power_id": "demon_form", "amount": 2}]
@@ -315,6 +395,188 @@ def test_start_turn_applies_demon_form_strength_gain() -> None:
         status.status_id == "strength" and status.stacks == 2
         for status in state.player.statuses
     )
+
+
+def test_start_turn_brutality_loses_hp_and_draws() -> None:
+    state = _combat_state()
+    state.player.hp = 25
+    state.hand = ["strike#1"]
+    state.draw_pile = ["defend#2", "strike#2", "defend#3", "strike#3", "defend#4"]
+    state.active_powers = [{"power_id": "brutality", "amount": 1, "self_damage": 1}]
+
+    start_turn(state)
+
+    assert state.player.hp == 24
+    assert state.hand == [
+        "strike#1",
+        "defend#2",
+        "strike#2",
+        "defend#3",
+        "strike#3",
+        "defend#4",
+    ]
+
+
+def test_end_turn_flex_power_loses_strength_and_removes_power() -> None:
+    registry = _enemy_registry_without_attacks()
+    state = _combat_state()
+    state.hand = []
+    state.draw_pile = []
+    state.discard_pile = []
+    state.player.statuses.append(StatusState(status_id="strength", stacks=2))
+    state.active_powers = [{"power_id": "flex_power", "amount": 2}]
+
+    end_turn(state, registry)
+
+    assert state.player.statuses == []
+    assert state.active_powers == []
+
+
+def test_start_turn_evolve_draws_extra_after_status_card() -> None:
+    registry = _enemy_registry_without_attacks()
+    state = _combat_state()
+    state.hand = []
+    state.draw_pile = [
+        "burn#1",
+        "strike#2",
+        "defend#2",
+        "strike#3",
+        "defend#3",
+        "strike#4",
+    ]
+    state.active_powers = [{"power_id": "evolve", "amount": 1}]
+
+    start_turn(state, registry=registry)
+
+    assert state.hand == [
+        "burn#1",
+        "strike#2",
+        "defend#2",
+        "strike#3",
+        "defend#3",
+        "strike#4",
+    ]
+
+
+def test_start_turn_fire_breathing_damages_enemies_after_status_draw() -> None:
+    registry = _enemy_registry_without_attacks()
+    state = _combat_state()
+    state.hand = []
+    state.draw_pile = ["burn#1", "strike#2", "defend#2", "strike#3", "defend#3"]
+    state.enemies.append(
+        EnemyState(
+            instance_id="enemy-2",
+            enemy_id="training_slime",
+            hp=12,
+            max_hp=12,
+            block=0,
+            statuses=[],
+        )
+    )
+    state._refresh_entity_index()
+    state.active_powers = [{"power_id": "fire_breathing", "amount": 6}]
+
+    start_turn(state, registry=registry)
+
+    assert [enemy.hp for enemy in state.enemies] == [6, 6]
+    assert state.hand == ["burn#1", "strike#2", "defend#2", "strike#3", "defend#3"]
+
+
+def test_run_end_turn_reports_brutality_and_fire_breathing_start_turn_effects() -> None:
+    registry = _enemy_registry_without_attacks()
+    state = _combat_state()
+    state.hand = []
+    state.draw_pile = ["burn#1", "strike#2", "defend#2", "strike#3", "defend#3"]
+    state.active_powers = [
+        {"power_id": "brutality", "amount": 1, "self_damage": 1},
+        {"power_id": "fire_breathing", "amount": 6},
+    ]
+
+    result = run_end_turn(state, registry)
+
+    assert sorted(effect["type"] for effect in result.resolved_effects) == [
+        "damage",
+        "draw",
+        "lose_hp",
+    ]
+    assert state.player.hp == 29
+    assert state.enemies[0].hp == 6
+
+
+def test_end_turn_use_case_logs_start_turn_triggered_active_powers() -> None:
+    registry = _enemy_registry_without_attacks()
+    state = _combat_state()
+    state.hand = []
+    state.draw_pile = [
+        "burn#1",
+        "strike#2",
+        "defend#2",
+        "strike#3",
+        "defend#3",
+        "strike#4",
+    ]
+    state.active_powers = [
+        {"power_id": "brutality", "amount": 1, "self_damage": 1},
+        {"power_id": "fire_breathing", "amount": 6},
+    ]
+
+    result = run_end_turn(state, registry)
+
+    assert result.combat_state is state
+    assert sorted(state.log) == sorted(
+        [
+            "残忍触发，抽 1 张牌，并失去 1 点生命。",
+            "喷火触发，对 Training Slime 造成 6 伤害。",
+        ]
+    )
+
+
+def test_end_turn_start_turn_power_kill_dispatches_defeat_hooks() -> None:
+    registry = _enemy_registry_without_attacks()
+    state = _combat_state()
+    state.hand = []
+    state.draw_pile = ["burn#1", "strike#2", "defend#2", "strike#3", "defend#3"]
+    state.enemies[0].hp = 6
+    state.active_powers = [{"power_id": "fire_breathing", "amount": 6}]
+    registrations = [
+        HookRegistration(
+            hook_name="on_enemy_defeated",
+            category="status",
+            priority=0,
+            source_type="player",
+            source_instance_id="player-1",
+            registration_index=0,
+            effects=[noop_effect(reason="start-turn-defeat-hook")],
+        )
+    ]
+
+    result = run_end_turn(state, registry, hook_registrations=registrations)
+
+    assert any(
+        effect.get("type") == "noop"
+        and effect.get("reason") == "start-turn-defeat-hook"
+        for effect in result.resolved_effects
+    )
+
+
+def test_end_turn_use_case_logs_evolve_draw_trigger() -> None:
+    registry = _enemy_registry_without_attacks()
+    state = _combat_state()
+    state.hand = []
+    state.draw_pile = [
+        "burn#1",
+        "strike#2",
+        "defend#2",
+        "strike#3",
+        "defend#3",
+        "strike#4",
+    ]
+    state.active_powers = [{"power_id": "evolve", "amount": 1}]
+
+    result = run_end_turn(state, registry)
+
+    assert result.combat_state is state
+    assert state.log == ["进化触发，抽 1 张牌。"]
 
 
 def test_end_turn_use_case_returns_structured_result() -> None:
@@ -1288,3 +1550,29 @@ def test_end_turn_stops_before_enemy_turn_when_burn_kills_player() -> None:
     assert [int(effect["amount"]) for effect in resolved] == [2]
     assert state.player.hp == 0
     assert state.round_number == 1
+
+
+def test_drawing_wound_status_card_triggers_evolve_and_fire_breathing() -> None:
+    registry = _enemy_registry_without_attacks()
+    registry.cards().register(
+        {
+            "id": "wound",
+            "name": "伤口",
+            "cost": -1,
+            "card_type": "status",
+            "playable": False,
+            "effects": [],
+        }
+    )
+    state = _combat_state()
+    state.hand = []
+    state.draw_pile = ["wound#1", "strike#9"]
+    state.active_powers = [
+        {"power_id": "evolve", "amount": 1},
+        {"power_id": "fire_breathing", "amount": 6},
+    ]
+
+    start_turn(state, registry=registry)
+
+    assert "strike#9" in state.hand
+    assert state.enemies[0].hp == 6
