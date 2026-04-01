@@ -995,3 +995,50 @@ def test_play_card_feed_kills_enemy_and_increases_max_hp() -> None:
 
     assert state.enemies[0].hp <= 0
     assert state.player.max_hp == 43
+
+
+def test_play_card_headbutt_logs_damage_and_move_to_draw_pile() -> None:
+    state = _combat_state(hand=["headbutt#1"], enemy_hps=[20])
+    state.discard_pile = ["bash#9"]
+    provider = _provider_with_card(
+        card_id="headbutt",
+        effects=[
+            {"type": "damage", "amount": 9},
+            {"type": "put_top_of_deck_from_discard"},
+        ],
+    )
+    provider.cards().register(
+        {
+            "id": "bash",
+            "name": "痛击",
+            "cost": 2,
+            "effects": [{"type": "damage", "amount": 8}],
+        }
+    )
+
+    play_card(state, "headbutt#1", {"enemy": "enemy-1", "discard": "bash#9"}, provider)
+
+    assert any("将 1 张弃牌放回牌堆顶" in entry for entry in state.log)
+
+
+def test_play_card_exhume_logs_exhaust_retrieval() -> None:
+    state = _combat_state(hand=["exhume#1"])
+    state.exhaust_pile = ["strike#9"]
+    provider = _provider_with_card(
+        card_id="exhume",
+        cost=1,
+        effects=[{"type": "select_from_exhaust_to_hand"}],
+        card_type="skill",
+    )
+    provider.cards().register(
+        {
+            "id": "strike",
+            "name": "打击",
+            "cost": 1,
+            "effects": [{"type": "damage", "amount": 6}],
+        }
+    )
+
+    play_card(state, "exhume#1", {"exhaust": "strike#9"}, provider)
+
+    assert any("从消耗堆" in entry for entry in state.log)

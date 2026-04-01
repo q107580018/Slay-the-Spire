@@ -59,7 +59,9 @@ def build_player_action_events(
     entities: Mapping[str, EntitySnapshot],
     registry: ContentProviderPort | None = None,
 ) -> list[CombatEvent]:
-    events = [CombatEvent(event_type="card_played", actor_name="你", card_name=card_name)]
+    events = [
+        CombatEvent(event_type="card_played", actor_name="你", card_name=card_name)
+    ]
     for effect in resolved_effects:
         effect_type = effect.get("type")
         result = _result_mapping(effect)
@@ -132,7 +134,9 @@ def build_player_action_events(
                 CombatEvent(
                     event_type="add_card_to_discard",
                     actor_name="你",
-                    card_name=_card_name(effect.get("card_id"), registry) if registry is not None else str(effect.get("card_id")),
+                    card_name=_card_name(effect.get("card_id"), registry)
+                    if registry is not None
+                    else str(effect.get("card_id")),
                     count=1,
                 )
             )
@@ -170,7 +174,9 @@ def build_player_action_events(
                 CombatEvent(
                     event_type="exhaust_card",
                     actor_name="你",
-                    count=len(result.get("exhausted_cards", [])) if isinstance(result.get("exhausted_cards"), list) else 0,
+                    count=len(result.get("exhausted_cards", []))
+                    if isinstance(result.get("exhausted_cards"), list)
+                    else 0,
                 )
             )
             continue
@@ -190,9 +196,46 @@ def build_player_action_events(
                 CombatEvent(
                     event_type="upgrade_card",
                     actor_name="你",
-                    count=len(upgraded_cards) if isinstance(upgraded_cards, list) else 0,
+                    count=len(upgraded_cards)
+                    if isinstance(upgraded_cards, list)
+                    else 0,
                 )
             )
+        if effect_type == "put_top_of_deck_from_discard":
+            events.append(
+                CombatEvent(
+                    event_type="reorder_draw_pile",
+                    actor_name="你",
+                    count=1,
+                )
+            )
+            continue
+        if effect_type == "select_from_exhaust_to_hand":
+            events.append(
+                CombatEvent(
+                    event_type="exhaust_to_hand",
+                    actor_name="你",
+                    count=1,
+                )
+            )
+            continue
+        if effect_type == "copy_card_to_hand":
+            events.append(
+                CombatEvent(
+                    event_type="copy_to_hand",
+                    actor_name="你",
+                    count=1,
+                )
+            )
+            continue
+        if effect_type == "double_strength":
+            events.append(
+                CombatEvent(
+                    event_type="double_strength",
+                    actor_name="你",
+                )
+            )
+            continue
     return events
 
 
@@ -222,7 +265,9 @@ def build_enemy_turn_events(
         source_id = effect.get("source_instance_id")
         effect_type = effect.get("type")
         result = _result_mapping(effect)
-        source_snapshot = entities.get(source_id) if isinstance(source_id, str) else None
+        source_snapshot = (
+            entities.get(source_id) if isinstance(source_id, str) else None
+        )
         actor_name = _effect_actor_name(
             source_id=source_id,
             source_snapshot=source_snapshot,
@@ -238,7 +283,9 @@ def build_enemy_turn_events(
                 CombatEvent(
                     event_type="damage",
                     actor_name=actor_name,
-                    actor_instance_id=_enemy_actor_instance_id(source_id=source_id, source_snapshot=source_snapshot),
+                    actor_instance_id=_enemy_actor_instance_id(
+                        source_id=source_id, source_snapshot=source_snapshot
+                    ),
                     target_name=target_name,
                     amount=_result_int(result, "applied_amount"),
                     blocked=_result_int(result, "blocked"),
@@ -253,7 +300,9 @@ def build_enemy_turn_events(
                 CombatEvent(
                     event_type="block_gained",
                     actor_name=source_snapshot.name,
-                    actor_instance_id=_enemy_actor_instance_id(source_id=source_id, source_snapshot=source_snapshot),
+                    actor_instance_id=_enemy_actor_instance_id(
+                        source_id=source_id, source_snapshot=source_snapshot
+                    ),
                     amount=_result_int(result, "gained_block"),
                 )
             )
@@ -268,7 +317,9 @@ def build_enemy_turn_events(
                 CombatEvent(
                     event_type="status_applied",
                     actor_name=actor_name,
-                    actor_instance_id=_enemy_actor_instance_id(source_id=source_id, source_snapshot=source_snapshot),
+                    actor_instance_id=_enemy_actor_instance_id(
+                        source_id=source_id, source_snapshot=source_snapshot
+                    ),
                     target_name=target_name,
                     status_id="vulnerable",
                     stacks=_result_int(result, "applied_stacks"),
@@ -285,7 +336,9 @@ def build_enemy_turn_events(
                 CombatEvent(
                     event_type="status_applied",
                     actor_name=actor_name,
-                    actor_instance_id=_enemy_actor_instance_id(source_id=source_id, source_snapshot=source_snapshot),
+                    actor_instance_id=_enemy_actor_instance_id(
+                        source_id=source_id, source_snapshot=source_snapshot
+                    ),
                     target_name=target_name,
                     status_id="weak",
                     stacks=_result_int(result, "applied_stacks"),
@@ -302,14 +355,19 @@ def build_enemy_turn_events(
                 and applied_stacks > 0
                 and (
                     target_instance_id is None
-                    or (isinstance(target_instance_id, str) and target_instance_id == source_id)
+                    or (
+                        isinstance(target_instance_id, str)
+                        and target_instance_id == source_id
+                    )
                 )
             ):
                 events.append(
                     CombatEvent(
                         event_type="gain_strength",
                         actor_name=actor_name,
-                        actor_instance_id=_enemy_actor_instance_id(source_id=source_id, source_snapshot=source_snapshot),
+                        actor_instance_id=_enemy_actor_instance_id(
+                            source_id=source_id, source_snapshot=source_snapshot
+                        ),
                         amount=applied_stacks,
                     )
                 )
@@ -321,7 +379,9 @@ def build_enemy_turn_events(
                 CombatEvent(
                     event_type="status_applied",
                     actor_name=actor_name,
-                    actor_instance_id=_enemy_actor_instance_id(source_id=source_id, source_snapshot=source_snapshot),
+                    actor_instance_id=_enemy_actor_instance_id(
+                        source_id=source_id, source_snapshot=source_snapshot
+                    ),
                     target_name=target_name,
                     status_id="strength",
                     stacks=applied_stacks,
@@ -339,7 +399,9 @@ def build_enemy_turn_events(
                 CombatEvent(
                     event_type="status_applied",
                     actor_name=actor_name,
-                    actor_instance_id=_enemy_actor_instance_id(source_id=source_id, source_snapshot=source_snapshot),
+                    actor_instance_id=_enemy_actor_instance_id(
+                        source_id=source_id, source_snapshot=source_snapshot
+                    ),
                     target_name=target_name,
                     status_id="dexterity",
                     stacks=applied_stacks,
@@ -353,7 +415,9 @@ def build_enemy_turn_events(
                 CombatEvent(
                     event_type="add_card_to_discard",
                     actor_name=source_snapshot.name,
-                    actor_instance_id=_enemy_actor_instance_id(source_id=source_id, source_snapshot=source_snapshot),
+                    actor_instance_id=_enemy_actor_instance_id(
+                        source_id=source_id, source_snapshot=source_snapshot
+                    ),
                     card_name=_card_name(effect.get("card_id"), registry),
                     count=_safe_int(effect.get("count")) or 1,
                 )
@@ -368,7 +432,8 @@ def build_active_power_events(
 ) -> list[CombatEvent]:
     events: list[CombatEvent] = []
     for effect in resolved_effects:
-        if effect.get("trigger") != "end_turn_power":
+        trigger = effect.get("trigger")
+        if trigger not in {"end_turn_power", "start_turn_power", "on_draw"}:
             continue
         power_id = effect.get("power_id")
         if not isinstance(power_id, str):
@@ -413,6 +478,17 @@ def build_active_power_events(
                     )
                 )
             continue
+        if effect_type == "draw":
+            drawn_count = _result_int(result, "drawn_count")
+            if drawn_count > 0:
+                events.append(
+                    CombatEvent(
+                        event_type="active_power_draw",
+                        actor_name=actor_name,
+                        amount=drawn_count,
+                    )
+                )
+            continue
     return events
 
 
@@ -453,7 +529,9 @@ def _card_name(card_id: object, registry: ContentProviderPort) -> str:
         return card_label(card_id)
 
 
-def _target_name(entities: Mapping[str, EntitySnapshot], effect: Mapping[str, object]) -> str | None:
+def _target_name(
+    entities: Mapping[str, EntitySnapshot], effect: Mapping[str, object]
+) -> str | None:
     target_id = effect.get("target_instance_id")
     if not isinstance(target_id, str):
         return None

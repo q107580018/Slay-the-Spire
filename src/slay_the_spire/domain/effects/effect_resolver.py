@@ -9,6 +9,7 @@ from slay_the_spire.domain.effects.effect_types import (
     EFFECT_ADD_CARDS_TO_HAND,
     EFFECT_ADD_POWER,
     EFFECT_BLOCK,
+    EFFECT_COPY_CARD_TO_HAND,
     EFFECT_CREATE_CARD_COPY,
     EFFECT_DAMAGE,
     EFFECT_DAMAGE_EQUAL_TO_BLOCK,
@@ -16,6 +17,7 @@ from slay_the_spire.domain.effects.effect_types import (
     EFFECT_DAMAGE_WITH_STRENGTH_MULTIPLIER,
     EFFECT_DEXTERITY,
     EFFECT_DOUBLE_BLOCK,
+    EFFECT_DOUBLE_STRENGTH,
     EFFECT_DRAW,
     EFFECT_EMIT_HOOK,
     EFFECT_EXHAUST_ALL_IN_HAND,
@@ -29,6 +31,7 @@ from slay_the_spire.domain.effects.effect_types import (
     EFFECT_DAMAGE_ON_KILL_GAIN_MAX_HP,
     EFFECT_NOOP,
     EFFECT_PUT_TOP_OF_DECK_FROM_DISCARD,
+    EFFECT_SELECT_FROM_EXHAUST_TO_HAND,
     EFFECT_SPOT_WEAKNESS_STRENGTH,
     EFFECT_STRENGTH,
     EFFECT_UPGRADE_ALL_HAND,
@@ -1038,6 +1041,37 @@ def resolve_next_effect(
                 "target_defeated": killed,
                 "hp_gain": hp_gain if killed else 0,
             },
+        }
+
+    if effect_type == EFFECT_SELECT_FROM_EXHAUST_TO_HAND:
+        target_card = effect.get("target_card_instance_id")
+        if isinstance(target_card, str) and target_card in state.exhaust_pile:
+            state.exhaust_pile.remove(target_card)
+            state.hand.append(target_card)
+            return {**effect, "result": {"moved": target_card}}
+        return {**effect, "result": {"moved": None}}
+
+    if effect_type == EFFECT_COPY_CARD_TO_HAND:
+        source_card = effect.get("source_card_instance_id")
+        if isinstance(source_card, str):
+            card_id = source_card.split("#")[0]
+            new_instance_id = _next_card_instance_id(state, card_id)
+            state.hand.append(new_instance_id)
+            return {**effect, "result": {"created": new_instance_id}}
+        return {**effect, "result": {"created": None}}
+
+    if effect_type == EFFECT_DOUBLE_STRENGTH:
+        source_instance_id = effect.get("source_instance_id")
+        source = _get_target(state, source_instance_id)
+        if source is None:
+            return noop_effect(reason="missing_source")
+        current = next(
+            (s.stacks for s in source.statuses if s.status_id == "strength"), 0
+        )
+        _apply_status(source, status_id="strength", stacks=current)
+        return {
+            **effect,
+            "result": {"doubled_from": current, "doubled_to": current * 2},
         }
 
     raise ValueError(f"unsupported effect type: {effect_type}")

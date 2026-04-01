@@ -11,6 +11,7 @@ from slay_the_spire.domain.effects.effect_types import (
     EFFECT_DAMAGE_ON_KILL_GAIN_MAX_HP,
     EFFECT_EXHAUST_TARGET_CARD,
     EFFECT_PUT_TOP_OF_DECK_FROM_DISCARD,
+    EFFECT_SELECT_FROM_EXHAUST_TO_HAND,
     EFFECT_SPOT_WEAKNESS_STRENGTH,
     EFFECT_UPGRADE_TARGET_CARD,
     EFFECT_UPGRADE_ALL_HAND,
@@ -185,6 +186,10 @@ def _materialize_card_effects(
             discard_target = _zone_target_id(target_id, "discard")
             if discard_target is not None:
                 effect["target_card_instance_id"] = discard_target
+        elif effect_type == EFFECT_SELECT_FROM_EXHAUST_TO_HAND:
+            exhaust_target = _zone_target_id(target_id, "exhaust")
+            if exhaust_target is not None:
+                effect["target_card_instance_id"] = exhaust_target
         elif effect_type == EFFECT_UPGRADE_ALL_HAND:
             upgrades: dict[str, str] = {}
             for hand_card_instance_id in combat_state.hand:
