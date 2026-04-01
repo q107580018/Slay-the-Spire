@@ -197,12 +197,26 @@ def test_hand_target_card_still_enters_hand_target_menu() -> None:
     )
 
     _running, select_card_session, _message = route_menu_choice("1", session=session)
-    _running, target_session, message = route_menu_choice("1", session=select_card_session)
+    _running, target_session, _message = route_menu_choice("1", session=select_card_session)
 
     assert select_card_session.menu_state.mode == "select_card"
     assert target_session.menu_state.mode == "select_target"
     assert target_session.menu_state.selected_card_instance_id == "armaments#1"
     assert "选择手牌" in message
+
+
+def test_warcry_enters_hand_target_menu_instead_of_enemy_menu() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=_combat_room(hand=["warcry#1", "strike#2"], enemy_count=2),
+    )
+
+    _running, select_card_session, _message = route_menu_choice("1", session=session)
+    _running, target_session, _message = route_menu_choice("1", session=select_card_session)
+
+    assert select_card_session.menu_state.mode == "select_card"
+    assert target_session.menu_state.mode == "select_target"
+    assert target_session.menu_state.selected_card_instance_id == "warcry#1"
 
 
 def test_targeted_card_play_keeps_select_card_menu_open_after_target_choice() -> None:

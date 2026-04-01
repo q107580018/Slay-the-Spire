@@ -217,6 +217,15 @@ def build_player_action_events(
                 )
             )
             continue
+        if effect_type == "put_top_of_deck_from_hand":
+            events.append(
+                CombatEvent(
+                    event_type="reorder_draw_pile",
+                    actor_name="你",
+                    count=1,
+                )
+            )
+            continue
         if effect_type == "select_from_exhaust_to_hand":
             events.append(
                 CombatEvent(

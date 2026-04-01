@@ -921,7 +921,13 @@ def _card_requires_target(card_instance_id: str, session: SessionState) -> bool:
     )
     return any(
         effect.get("type")
-        in {"damage", "vulnerable", "exhaust_target_card", "upgrade_target_card"}
+        in {
+            "damage",
+            "vulnerable",
+            "exhaust_target_card",
+            "upgrade_target_card",
+            "put_top_of_deck_from_hand",
+        }
         for effect in card_def.effects
     )
 
@@ -933,7 +939,8 @@ def _card_requires_hand_target(card_instance_id: str, session: SessionState) -> 
         .get(card_id_from_instance_id(card_instance_id))
     )
     return any(
-        effect.get("type") in {"exhaust_target_card", "upgrade_target_card"}
+        effect.get("type")
+        in {"exhaust_target_card", "upgrade_target_card", "put_top_of_deck_from_hand"}
         for effect in card_def.effects
     )
 
@@ -2238,21 +2245,42 @@ def _route_target_menu(
             next_session, menu_state=_menu_state_for_post_play_session(next_session)
         )
         return _retarget_route_result(result, adjusted_session)
-    target_options = [
-        *(
+    target_options: list[tuple[str, str]] = []
+    header_lines: list[str] = []
+    title = "选择目标"
+    if enemy_targets and not hand_targets:
+        title = "选择敌人"
+        target_options = [
             (f"target_enemy:{index}", target_id)
             for index, target_id in enumerate(enemy_targets, start=1)
-        ),
-        *(
+        ]
+    elif hand_targets and not enemy_targets:
+        title = "选择手牌"
+        target_options = [
             (f"target_hand:{index}", card_id)
             for index, card_id in enumerate(hand_targets, start=1)
-        ),
-    ]
+        ]
+    else:
+        title = "选择目标（敌人或手牌）"
+        if enemy_targets:
+            header_lines.append("敌人目标:")
+            target_options.extend(
+                (f"target_enemy:{index}", target_id)
+                for index, target_id in enumerate(enemy_targets, start=1)
+            )
+        if hand_targets:
+            header_lines.append("手牌目标:")
+            target_options.extend(
+                (f"target_hand:{index}", card_id)
+                for index, card_id in enumerate(hand_targets, start=1)
+            )
     action_id = resolve_menu_action(
         choice,
         build_target_menu(
             target_options=target_options,
             current_card_name=None,
+            title=title,
+            header_lines=header_lines,
         ),
     )
     if action_id == "back":

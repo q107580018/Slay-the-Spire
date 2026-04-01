@@ -944,6 +944,58 @@ def test_play_card_headbutt_moves_discard_target_to_top_of_draw_pile() -> None:
     assert state.enemies[0].hp == 11
 
 
+def test_play_card_warcry_moves_selected_hand_card_to_top_of_draw_pile() -> None:
+    state = _combat_state(hand=["warcry#1", "strike#2"])
+    state.draw_pile = ["defend#3"]
+    provider = _Provider()
+    provider.cards().register(
+        {
+            "id": "warcry",
+            "name": "战吼",
+            "cost": 0,
+            "exhausts": True,
+            "effects": [
+                {"type": "draw", "amount": 1},
+                {"type": "put_top_of_deck_from_hand"},
+            ],
+            "card_type": "skill",
+        }
+    )
+    provider.cards().register(
+        {
+            "id": "strike",
+            "name": "打击",
+            "cost": 1,
+            "effects": [{"type": "damage", "amount": 6}],
+            "card_type": "attack",
+        }
+    )
+    provider.cards().register(
+        {
+            "id": "defend",
+            "name": "防御",
+            "cost": 1,
+            "effects": [{"type": "block", "amount": 5}],
+            "card_type": "skill",
+        }
+    )
+    provider.enemies().register(
+        {
+            "id": "training_dummy",
+            "name": "Training Dummy",
+            "hp": 20,
+            "move_table": [],
+            "intent_policy": "scripted",
+        }
+    )
+
+    play_card(state, "warcry#1", {"hand": "strike#2"}, provider)
+
+    assert state.draw_pile == ["strike#2"]
+    assert state.hand == ["defend#3"]
+    assert state.exhaust_pile == ["warcry#1"]
+
+
 def test_play_card_double_tap_replays_next_attack_effects_once() -> None:
     state = _combat_state(hand=["strike#1"], enemy_hps=[20])
     state.active_powers = [{"power_id": "double_tap", "amount": 1}]

@@ -647,15 +647,17 @@ def _build_target_action_menu(session: SessionState) -> MenuDefinition | None:
     effect_types = {str(effect.get("type")) for effect in card_def.effects}
     requires_enemy_target = bool(effect_types & {"damage", "vulnerable", "weak"})
     requires_hand_target = bool(
-        effect_types & {"exhaust_target_card", "upgrade_target_card"}
+        effect_types
+        & {"exhaust_target_card", "upgrade_target_card", "put_top_of_deck_from_hand"}
     )
 
-    target_options: list[tuple[str, str | Text]] = []
+    enemy_target_options: list[tuple[str, str | Text]] = []
     if requires_enemy_target or not requires_hand_target:
         living_enemies = [enemy for enemy in combat_state.enemies if enemy.hp > 0]
         for index, enemy in enumerate(living_enemies, start=1):
             enemy_name = registry.enemies().get(enemy.enemy_id).name
-            target_options.append((f"target_enemy:{index}", f"敌人 {enemy_name}"))
+            enemy_target_options.append((f"target_enemy:{index}", f"敌人 {enemy_name}"))
+    hand_target_options: list[tuple[str, str | Text]] = []
     if requires_hand_target:
         selectable_cards = [
             card_instance_id
@@ -664,7 +666,7 @@ def _build_target_action_menu(session: SessionState) -> MenuDefinition | None:
         ]
         for index, card_instance_id in enumerate(selectable_cards, start=1):
             card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
-            target_options.append(
+            hand_target_options.append(
                 (
                     f"target_hand:{index}",
                     Text.assemble(
@@ -673,8 +675,29 @@ def _build_target_action_menu(session: SessionState) -> MenuDefinition | None:
                 )
             )
 
+    target_options: list[tuple[str, str | Text]] = []
+    header_lines: list[str | Text] = []
+    title = "选择目标"
+    if enemy_target_options and not hand_target_options:
+        title = "选择敌人"
+        target_options = enemy_target_options
+    elif hand_target_options and not enemy_target_options:
+        title = "选择手牌"
+        target_options = hand_target_options
+    else:
+        title = "选择目标（敌人或手牌）"
+        if enemy_target_options:
+            header_lines.append("敌人目标:")
+            target_options.extend(enemy_target_options)
+        if hand_target_options:
+            header_lines.append("手牌目标:")
+            target_options.extend(hand_target_options)
+
     return build_target_menu(
-        target_options=target_options, current_card_name=current_card_name
+        target_options=target_options,
+        current_card_name=current_card_name,
+        title=title,
+        header_lines=header_lines,
     )
 
 

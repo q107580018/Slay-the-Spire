@@ -442,6 +442,52 @@ def test_current_action_menu_preserves_card_style_for_hand_targets() -> None:
     assert "card.upgraded" in _span_styles(label)
 
 
+def test_current_action_menu_warcry_shows_only_hand_targets() -> None:
+    session = start_session(seed=5)
+    combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
+    combat_state.hand = ["warcry#1", "strike#2"]
+    combat_state.enemies = [
+        EnemyState(
+            instance_id="enemy-1",
+            enemy_id="slime",
+            hp=12,
+            max_hp=12,
+            block=0,
+            statuses=[],
+        ),
+        EnemyState(
+            instance_id="enemy-2",
+            enemy_id="slime",
+            hp=12,
+            max_hp=12,
+            block=0,
+            statuses=[],
+        ),
+    ]
+    session = replace(
+        session,
+        room_state=replace(
+            session.room_state,
+            payload={
+                **session.room_state.payload,
+                "combat_state": combat_state.to_dict(),
+            },
+        ),
+        menu_state=replace(
+            session.menu_state,
+            mode="select_target",
+            selected_card_instance_id="warcry#1",
+        ),
+    )
+
+    menu = _current_action_menu(session)
+
+    assert menu is not None
+    assert menu.title == "选择手牌"
+    assert [option.action_id for option in menu.options] == ["target_hand:1", "back"]
+    assert menu.options[0].label.plain == "手牌 打击（红） (strike#2)"
+
+
 def test_current_action_menu_preserves_current_card_style_in_target_menu() -> None:
     session = start_session(seed=5)
     combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
