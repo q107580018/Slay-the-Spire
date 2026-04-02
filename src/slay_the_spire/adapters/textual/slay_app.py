@@ -68,7 +68,13 @@ from slay_the_spire.adapters.presentation.inspect import (
     format_relic_detail_lines,
     format_reward_detail_lines,
 )
-from slay_the_spire.adapters.presentation.widgets import render_card_name
+from slay_the_spire.adapters.presentation.widgets import (
+    render_card_name,
+    potion_target_label,
+    potion_timing_label,
+    summarize_effect,
+    summarize_relic_effects,
+)
 from slay_the_spire.use_cases.start_run import start_new_run
 
 _ENEMY_TARGET_EFFECT_TYPES = {
@@ -143,6 +149,23 @@ def _extract_titled_panel(renderable: Any, *, title: str) -> tuple[Any, Panel | 
             if stripped_item is not None:
                 kept.append(stripped_item)
         return Group(*kept), extracted_panel
+    if isinstance(renderable, Columns):
+        extracted_panel = None
+        kept: list[Any] = []
+        for item in renderable.renderables:
+            stripped_item, found_panel = _extract_titled_panel(item, title=title)
+            if extracted_panel is None and found_panel is not None:
+                extracted_panel = found_panel
+            if stripped_item is not None:
+                kept.append(stripped_item)
+        if not kept:
+            return None, extracted_panel
+        return Columns(
+            kept,
+            equal=renderable.equal,
+            expand=renderable.expand,
+            padding=renderable.padding,
+        ), extracted_panel
     return renderable, None
 
 
@@ -164,6 +187,7 @@ def _render_to_rich(session: SessionState) -> Any:
         if len(renderables) >= 3:
             renderable = Group(*renderables[:-1])
     renderable, _ = _extract_titled_panel(renderable, title="战斗摘要")
+    renderable, _ = _extract_titled_panel(renderable, title="玩家状态")
     stripped = _strip_full_map_panel(renderable)
     return renderable if stripped is None else stripped
 
@@ -172,6 +196,12 @@ def _combat_summary_renderable(session: SessionState) -> Panel | None:
     renderable = render_session_renderable(session)
     _, summary_panel = _extract_titled_panel(renderable, title="战斗摘要")
     return summary_panel
+
+
+def _player_status_renderable(session: SessionState) -> Panel | None:
+    renderable = render_session_renderable(session)
+    _, player_panel = _extract_titled_panel(renderable, title="玩家状态")
+    return player_panel
 
 
 def _menu_choice_for_action(menu: MenuDefinition, action_id: str) -> str | None:
@@ -355,6 +385,36 @@ def _text_from_lines(lines: list[str | Text]) -> Text:
 
 
 def _combat_pile_preview_text(session: SessionState, pile: str) -> Group | Text | None:
+    if pile == "relics":
+        registry = _content_provider(session)
+        title = Text("遗物预览")
+        if not session.run_state.relics:
+            return _text_from_lines([title, "当前无遗物。"])
+        lines: list[Text] = [title]
+        for index, relic_id in enumerate(session.run_state.relics, start=1):
+            relic_def = registry.relics().get(relic_id)
+            summary = relic_def.summary or relic_def.description
+            if not isinstance(summary, str) or not summary:
+                summary = summarize_relic_effects(relic_def.passive_effects)
+            lines.append(Text.assemble(f"{index}. ", relic_def.name, f" - {summary}"))
+        return Group(*lines)
+    if pile == "potions":
+        registry = _content_provider(session)
+        title = Text("药水预览")
+        if not session.run_state.potions:
+            return _text_from_lines([title, "当前无药水。"])
+        lines: list[Text] = [title]
+        for index, potion_id in enumerate(session.run_state.potions, start=1):
+            potion_def = registry.potions().get(potion_id)
+            lines.append(
+                Text.assemble(
+                    f"{index}. ",
+                    potion_def.name,
+                    f" - {summarize_effect(potion_def.effect)}",
+                    f"（{potion_timing_label(potion_def.timing)} / {potion_target_label(potion_def.target)}）",
+                )
+            )
+        return Group(*lines)
     combat_state = _combat_state_from_session(session)
     if combat_state is None or pile not in _COMBAT_PREVIEW_PILES:
         return None
@@ -899,7 +959,20 @@ class SlayApp(App[None]):
     }
 
     #combat-summary-actions {
-        height: 2;
+        height: 1;
+        background: $surface;
+        padding: 0;
+    }
+
+    #player-status-panel {
+        height: auto;
+        max-height: 9;
+        border: solid grey;
+        overflow: auto;
+    }
+
+    #player-status-actions {
+        height: 1;
         background: $surface;
         padding: 0;
     }
@@ -1020,15 +1093,26 @@ class SlayApp(App[None]):
                             id="combat-summary-action-discard",
                             classes="combat-summary-action",
                         )
-                    with Horizontal(classes="combat-summary-action-row"):
                         yield Static(
                             "",
                             id="combat-summary-action-exhaust",
                             classes="combat-summary-action",
                         )
-                        yield Static("", id="combat-summary-action-empty")
             # 右侧：日志 + 输入
             with Vertical(id="right-panel"):
+                yield Static("", id="player-status-panel")
+                with Vertical(id="player-status-actions"):
+                    with Horizontal(classes="combat-summary-action-row"):
+                        yield Static(
+                            "",
+                            id="player-status-action-relics",
+                            classes="combat-summary-action",
+                        )
+                        yield Static(
+                            "",
+                            id="player-status-action-potions",
+                            classes="combat-summary-action",
+                        )
                 yield RichLog(id="game-log", highlight=True, markup=True, wrap=True)
                 yield Static("", id="action-summary")
                 yield Static("", id="hover-preview")
@@ -1039,8 +1123,10 @@ class SlayApp(App[None]):
     def on_mount(self) -> None:
         self._refresh_map()
         self._refresh_log()
+        self._refresh_player_status()
         self._refresh_combat_summary()
         self._refresh_combat_summary_actions()
+        self._refresh_player_status_actions()
         self._refresh_actions()
         self.query_one("#action-list", OptionList).focus()
 
@@ -1090,6 +1176,16 @@ class SlayApp(App[None]):
         summary.update(panel)
         summary.display = True
 
+    def _refresh_player_status(self) -> None:
+        panel_widget = self.query_one("#player-status-panel", Static)
+        panel = _player_status_renderable(self._session)
+        if panel is None:
+            panel_widget.update(Text(""))
+            panel_widget.display = False
+            return
+        panel_widget.update(panel)
+        panel_widget.display = True
+
     def _refresh_combat_summary_actions(self) -> None:
         actions = self.query_one("#combat-summary-actions", Vertical)
         combat_state = _combat_state_from_session(self._session)
@@ -1104,6 +1200,34 @@ class SlayApp(App[None]):
         )
         self.query_one("#combat-summary-action-exhaust", Static).update(
             f"消耗堆：{len(combat_state.exhaust_pile)} 张"
+        )
+        actions.display = True
+
+    def _refresh_player_status_actions(self) -> None:
+        actions = self.query_one("#player-status-actions", Vertical)
+        combat_state = _combat_state_from_session(self._session)
+        if combat_state is None:
+            actions.display = False
+            return
+        registry = _content_provider(self._session)
+        relic_names = [
+            registry.relics().get(relic_id).name for relic_id in self._session.run_state.relics
+        ]
+        potion_names = [
+            registry.potions().get(potion_id).name
+            for potion_id in self._session.run_state.potions
+        ]
+        relic_label = "无" if not relic_names else "、".join(relic_names[:2])
+        potion_label = "无" if not potion_names else "、".join(potion_names[:2])
+        if len(relic_names) > 2:
+            relic_label += f" 等{len(relic_names)}件"
+        if len(potion_names) > 2:
+            potion_label += f" 等{len(potion_names)}瓶"
+        self.query_one("#player-status-action-relics", Static).update(
+            f"遗物：{relic_label}"
+        )
+        self.query_one("#player-status-action-potions", Static).update(
+            f"药水：{potion_label}"
         )
         actions.display = True
 
@@ -1209,7 +1333,9 @@ class SlayApp(App[None]):
         self._refresh_log()
         self._refresh_map()
         self._refresh_combat_summary()
+        self._refresh_player_status()
         self._refresh_combat_summary_actions()
+        self._refresh_player_status_actions()
         self._refresh_actions()
         self._set_flash(result.status_message or "")
         if not result.running:
@@ -1286,6 +1412,28 @@ class SlayApp(App[None]):
         self, _: events.Enter | events.MouseMove
     ) -> None:
         self._open_combat_preview("exhaust")
+
+    @on(events.Click, "#player-status-action-relics")
+    def handle_combat_summary_relics_click(self, _: events.Click) -> None:
+        self._open_combat_preview("relics")
+
+    @on(events.Enter, "#player-status-action-relics")
+    @on(events.MouseMove, "#player-status-action-relics")
+    def handle_combat_summary_relics_hover(
+        self, _: events.Enter | events.MouseMove
+    ) -> None:
+        self._open_combat_preview("relics")
+
+    @on(events.Click, "#player-status-action-potions")
+    def handle_combat_summary_potions_click(self, _: events.Click) -> None:
+        self._open_combat_preview("potions")
+
+    @on(events.Enter, "#player-status-action-potions")
+    @on(events.MouseMove, "#player-status-action-potions")
+    def handle_combat_summary_potions_hover(
+        self, _: events.Enter | events.MouseMove
+    ) -> None:
+        self._open_combat_preview("potions")
 
     @on(events.Leave, ".combat-summary-action")
     def handle_combat_summary_action_leave(self, _: events.Leave) -> None:

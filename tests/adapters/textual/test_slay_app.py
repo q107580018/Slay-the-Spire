@@ -1184,9 +1184,8 @@ def test_textual_log_renderable_keeps_player_hp_in_player_panel() -> None:
     console.print(_render_to_rich(session))
 
     output = buffer.getvalue()
-    assert "玩家状态" in output
-    assert "生命" in output
-    assert "57/80" in output
+    assert "玩家状态" not in output
+    assert "57/80" not in output
 
 
 def test_flash_msg_stays_empty_after_render_only_play_flow() -> None:
@@ -1263,6 +1262,11 @@ def test_combat_summary_actions_show_discard_and_exhaust_counts() -> None:
     combat_state.exhaust_pile = ["burn#7"]
     session = replace(
         base,
+        run_state=replace(
+            base.run_state,
+            relics=["burning_blood", "black_blood"],
+            potions=["fire_potion"],
+        ),
         room_state=replace(
             base.room_state,
             payload={
@@ -1281,6 +1285,22 @@ def test_combat_summary_actions_show_discard_and_exhaust_counts() -> None:
             assert app.query_one("#combat-summary-action-draw", Static).render().plain == "抽牌堆：3 张"
             assert app.query_one("#combat-summary-action-discard", Static).render().plain == "弃牌堆：2 张"
             assert app.query_one("#combat-summary-action-exhaust", Static).render().plain == "消耗堆：1 张"
+            assert app.query_one("#player-status-action-relics", Static).render().plain == "遗物：燃烧之血、黑色之血"
+            assert app.query_one("#player-status-action-potions", Static).render().plain == "药水：火焰药水"
+
+    asyncio.run(scenario())
+
+
+def test_player_status_panel_is_rendered_as_separate_top_widget() -> None:
+    async def scenario() -> None:
+        app = SlayApp(start_session(seed=5))
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            panel = app.query_one("#player-status-panel", Static)
+            rendered = panel.render()
+            assert panel.display is True
+            assert isinstance(rendered._renderable, Panel)
+            assert rendered._renderable.title == "玩家状态"
 
     asyncio.run(scenario())
 
@@ -1401,6 +1421,50 @@ def test_clicking_combat_summary_action_replaces_preview_without_changing_menu()
             assert "消耗堆预览" in preview_plain
             assert "1. 灼伤" in preview_plain
             assert summary.render().plain == initial_summary
+
+    asyncio.run(scenario())
+
+
+def test_hovering_combat_summary_relics_shows_relic_preview() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        run_state=replace(base.run_state, relics=["burning_blood", "black_blood"]),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            await pilot.hover("#player-status-action-relics")
+            await pilot.pause()
+            preview = app.query_one("#hover-preview", Static)
+            preview_plain = _widget_render_plain(preview)
+            assert "遗物预览" in preview_plain
+            assert "燃烧之血" in preview_plain
+            assert "黑色之血" in preview_plain
+
+    asyncio.run(scenario())
+
+
+def test_hovering_combat_summary_potions_shows_potion_preview() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        run_state=replace(base.run_state, potions=["fire_potion"]),
+    )
+
+    async def scenario() -> None:
+        app = SlayApp(session)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            await pilot.hover("#player-status-action-potions")
+            await pilot.pause()
+            preview = app.query_one("#hover-preview", Static)
+            preview_plain = _widget_render_plain(preview)
+            assert "药水预览" in preview_plain
+            assert "火焰药水" in preview_plain
+            assert "敌人" in preview_plain
 
     asyncio.run(scenario())
 
