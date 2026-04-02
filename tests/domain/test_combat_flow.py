@@ -889,6 +889,20 @@ def test_end_turn_use_case_logs_triggered_active_powers_with_lethal_overkill() -
     ]
 
 
+def test_end_turn_use_case_logs_flame_barrier_counter_damage() -> None:
+    registry = _enemy_registry()
+    state = _combat_state()
+    state.active_powers = [{"power_id": "flame_barrier", "amount": 4}]
+
+    result = run_end_turn(state, registry)
+
+    assert result.combat_state is state
+    assert state.log == [
+        "火焰屏障触发，对 Training Slime 造成 4 伤害。",
+        "Training Slime攻击你 5，实际受到 5。",
+    ]
+
+
 def test_cultist_incantation_applies_strength_to_self() -> None:
     registry = _content_provider()
     state = CombatState(

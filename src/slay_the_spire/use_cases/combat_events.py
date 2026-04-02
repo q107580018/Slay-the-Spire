@@ -465,10 +465,10 @@ def build_active_power_events(
     events: list[CombatEvent] = []
     for effect in resolved_effects:
         trigger = effect.get("trigger")
-        if trigger not in {"end_turn_power", "start_turn_power", "on_draw"}:
-            continue
         power_id = effect.get("power_id")
         if not isinstance(power_id, str):
+            continue
+        if trigger not in {"end_turn_power", "start_turn_power", "on_draw"} and power_id != "flame_barrier":
             continue
         result = _result_mapping(effect)
         effect_type = effect.get("type")
