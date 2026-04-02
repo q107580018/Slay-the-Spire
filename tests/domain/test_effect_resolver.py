@@ -810,6 +810,26 @@ def test_block_effect_triggers_juggernaut_damage() -> None:
     assert state.enemies[1].hp == 20
 
 
+def test_juggernaut_damage_does_not_scale_with_strength() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 20)],
+        effect_queue=[
+            {
+                "type": "block",
+                "source_instance_id": "player-1",
+                "target_instance_id": "player-1",
+                "amount": 5,
+            }
+        ],
+    )
+    state.player.statuses.append(StatusState(status_id="strength", stacks=3))
+    state.active_powers.append({"power_id": "juggernaut", "amount": 7})
+
+    resolve_effect_queue(state)
+
+    assert state.enemies[0].hp == 13
+
+
 def test_double_block_effect_doubles_current_block() -> None:
     state = make_combat_state(
         enemies=[make_enemy("enemy-1", 10)],

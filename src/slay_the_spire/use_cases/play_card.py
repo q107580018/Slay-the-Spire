@@ -10,6 +10,7 @@ from slay_the_spire.domain.effects.effect_types import (
     EFFECT_DAMAGE_ALL_ENEMIES_X_TIMES,
     EFFECT_DAMAGE_EQUAL_TO_BLOCK,
     EFFECT_DAMAGE_PER_STRIKE_IN_DECK,
+    EFFECT_DROPKICK_EFFECT,
     EFFECT_EXHAUST_ALL_IN_HAND_DAMAGE,
     EFFECT_DAMAGE_ON_KILL_GAIN_MAX_HP,
     EFFECT_EXHAUST_TARGET_CARD,
@@ -50,6 +51,17 @@ from slay_the_spire.use_cases.card_runtime_rules import (
 
 TargetSelection = str | dict[str, str] | None
 
+_CARD_DAMAGE_EFFECT_TYPES = {
+    EFFECT_DAMAGE,
+    EFFECT_DAMAGE_EQUAL_TO_BLOCK,
+    EFFECT_DAMAGE_PER_STRIKE_IN_DECK,
+    EFFECT_DROPKICK_EFFECT,
+    EFFECT_RAMPAGE_DAMAGE,
+    EFFECT_DAMAGE_ON_KILL_GAIN_MAX_HP,
+    "damage_with_strength_multiplier",
+    "damage_lifesteal_all_enemies",
+}
+
 _TARGETED_EFFECT_TYPES = {
     EFFECT_DAMAGE,
     EFFECT_DAMAGE_EQUAL_TO_BLOCK,
@@ -60,6 +72,7 @@ _TARGETED_EFFECT_TYPES = {
     EFFECT_SPOT_WEAKNESS_STRENGTH,
     EFFECT_DAMAGE_ON_KILL_GAIN_MAX_HP,
     EFFECT_RAMPAGE_DAMAGE,
+    EFFECT_DROPKICK_EFFECT,
     "strength",
 }
 _HAND_TARGETED_EFFECT_TYPES = {
@@ -120,6 +133,7 @@ def _consume_player_power(state: CombatState, power_id: str) -> int:
 def _materialize_card_effects(
     raw_effects: Sequence[JsonDict],
     *,
+    card_type: str,
     combat_state: CombatState,
     card_instance_id: str,
     registry: ContentProviderPort,
@@ -143,6 +157,7 @@ def _materialize_card_effects(
                         "amount": damage_amount,
                         "source_instance_id": source_instance_id,
                         "target_instance_id": enemy.instance_id,
+                        "uses_strength": card_type == "attack",
                     }
                 )
             continue
@@ -151,14 +166,15 @@ def _materialize_card_effects(
             damage_amount = int(effect.get("amount", 0))
             for _ in range(repeat_count):
                 for enemy in combat_state.enemies:
-                    effects.append(
-                        {
-                            "type": EFFECT_DAMAGE,
-                            "amount": damage_amount,
-                            "source_instance_id": source_instance_id,
-                            "target_instance_id": enemy.instance_id,
-                        }
-                    )
+                        effects.append(
+                            {
+                                "type": EFFECT_DAMAGE,
+                                "amount": damage_amount,
+                                "source_instance_id": source_instance_id,
+                                "target_instance_id": enemy.instance_id,
+                                "uses_strength": card_type == "attack",
+                            }
+                        )
             continue
         if effect_type == EFFECT_VULNERABLE_ALL_ENEMIES:
             stacks = int(effect.get("stacks", 0))
@@ -174,12 +190,17 @@ def _materialize_card_effects(
             continue
         if "source_instance_id" not in effect:
             effect["source_instance_id"] = source_instance_id
+        if effect.get("target_instance_id") == "self":
+            effect["target_instance_id"] = source_instance_id
         if effect_type == EFFECT_RAMPAGE_DAMAGE:
             effect["card_instance_id"] = card_instance_id
         if effect_type in _TARGETED_EFFECT_TYPES:
-            if resolved_enemy_id is None:
+            if "target_instance_id" in effect:
+                pass
+            elif resolved_enemy_id is None:
                 raise ValueError("target is required for targeted cards")
-            effect["target_instance_id"] = resolved_enemy_id
+            else:
+                effect["target_instance_id"] = resolved_enemy_id
         elif effect_type in _HAND_TARGETED_EFFECT_TYPES:
             hand_target = _zone_target_id(target_id, "hand") or (
                 target_id if isinstance(target_id, str) else None
@@ -224,6 +245,8 @@ def _materialize_card_effects(
             and "target_instance_id" not in effect
         ):
             effect["target_instance_id"] = source_instance_id
+        if effect_type in _CARD_DAMAGE_EFFECT_TYPES and "uses_strength" not in effect:
+            effect["uses_strength"] = card_type == "attack"
         effects.append(effect)
     return effects
 
@@ -251,6 +274,7 @@ def play_card(
 
     materialized_effects = _materialize_card_effects(
         card_def.effects,
+        card_type=card_def.card_type,
         combat_state=combat_state,
         card_instance_id=card_instance_id,
         registry=registry,

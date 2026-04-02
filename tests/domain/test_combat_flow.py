@@ -237,6 +237,17 @@ def test_end_turn_applies_combust_to_all_enemies_and_self() -> None:
     assert state.player.hp == 29
 
 
+def test_end_turn_combust_damage_does_not_scale_with_strength() -> None:
+    registry = _enemy_registry_without_attacks()
+    state = _combat_state()
+    state.player.statuses.append(StatusState(status_id="strength", stacks=3))
+    state.active_powers.append({"power_id": "combust", "amount": 5, "self_damage": 1})
+
+    end_turn(state, registry)
+
+    assert state.enemies[0].hp == 7
+
+
 def test_end_turn_exhausts_ethereal_cards_left_in_hand() -> None:
     registry = _enemy_registry()
     registry.cards().register(
@@ -356,6 +367,17 @@ def test_enemy_attack_triggers_flame_barrier_counter_damage() -> None:
     )
 
 
+def test_flame_barrier_counter_damage_does_not_scale_with_strength() -> None:
+    registry = _enemy_registry()
+    state = _combat_state()
+    state.player.statuses.append(StatusState(status_id="strength", stacks=3))
+    state.active_powers = [{"power_id": "flame_barrier", "amount": 4}]
+
+    end_turn(state, registry)
+
+    assert state.enemies[0].hp == 8
+
+
 def test_run_enemy_turn_forwards_registry_for_exhaust_all_non_attacks_in_hand() -> None:
     registry = _enemy_registry_without_attacks()
     registry.enemies().register(
@@ -415,6 +437,16 @@ def test_start_turn_brutality_loses_hp_and_draws() -> None:
         "strike#3",
         "defend#4",
     ]
+
+
+def test_start_turn_berserk_grants_energy() -> None:
+    state = _combat_state()
+    state.energy = 0
+    state.active_powers = [{"power_id": "berserk", "amount": 1}]
+
+    start_turn(state)
+
+    assert state.energy == 4
 
 
 def test_end_turn_flex_power_loses_strength_and_removes_power() -> None:
@@ -480,6 +512,19 @@ def test_start_turn_fire_breathing_damages_enemies_after_status_draw() -> None:
 
     assert [enemy.hp for enemy in state.enemies] == [6, 6]
     assert state.hand == ["burn#1", "strike#2", "defend#2", "strike#3", "defend#3"]
+
+
+def test_start_turn_fire_breathing_damage_does_not_scale_with_strength() -> None:
+    registry = _enemy_registry_without_attacks()
+    state = _combat_state()
+    state.hand = []
+    state.draw_pile = ["burn#1", "strike#2", "defend#2", "strike#3", "defend#3"]
+    state.player.statuses.append(StatusState(status_id="strength", stacks=3))
+    state.active_powers = [{"power_id": "fire_breathing", "amount": 6}]
+
+    start_turn(state, registry=registry)
+
+    assert state.enemies[0].hp == 6
 
 
 def test_run_end_turn_reports_brutality_and_fire_breathing_start_turn_effects() -> None:

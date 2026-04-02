@@ -322,6 +322,22 @@ def test_summarize_effect_localizes_berserk_power() -> None:
     )
 
 
+def test_summarize_effect_localizes_dropkick_effect() -> None:
+    assert (
+        summarize_effect({"type": "dropkick_effect", "amount": 5})
+        == "造成 5 伤害；若敌人处于易伤状态，获得 1 点能量并抽 1 张牌"
+    )
+
+
+def test_summarize_effect_localizes_self_vulnerable() -> None:
+    assert (
+        summarize_effect(
+            {"type": "vulnerable", "stacks": 2, "target_instance_id": "self"}
+        )
+        == "获得 2 层易伤"
+    )
+
+
 def test_summarize_effect_localizes_flex_power() -> None:
     assert (
         summarize_effect({"type": "add_power", "power_id": "flex_power", "amount": 2})

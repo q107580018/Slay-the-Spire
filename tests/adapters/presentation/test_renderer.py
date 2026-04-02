@@ -83,7 +83,7 @@ def _hexaghost_combat_state(*, round_number: int) -> CombatState:
     )
 
 
-def test_combat_root_screen_keeps_full_context_and_hand_panel() -> None:
+def test_combat_root_screen_keeps_full_context_without_hand_panel() -> None:
     session = start_session(seed=5)
     output = render_room(
         run_state=session.run_state,
@@ -95,7 +95,7 @@ def test_combat_root_screen_keeps_full_context_and_hand_panel() -> None:
     )
 
     assert "当前能量" in output
-    assert "手牌（第1回合，能量 3）" in output
+    assert "手牌（第1回合，能量 3）" not in output
     assert "敌人意图" in output
     assert "战斗记录" in output
     assert "3. 查看资料" in output
@@ -121,7 +121,7 @@ def test_select_card_menu_shows_current_round_and_energy_in_menu_title() -> None
     assert "7. 返回上一步" in output
 
 
-def test_render_hand_panel_keeps_unplayable_curse_as_unplayable() -> None:
+def test_select_card_menu_keeps_unplayable_curse_as_unplayable() -> None:
     session = start_session(seed=5)
     combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
     combat_state.hand = ["doubt#1"]
@@ -132,15 +132,15 @@ def test_render_hand_panel_keeps_unplayable_curse_as_unplayable() -> None:
         act_state=session.act_state,
         room_state=room_state,
         registry=_provider(session),
-        menu_state=MenuState(),
+        menu_state=MenuState(mode="select_card"),
         run_phase=session.run_phase,
     )
 
     assert "疑虑" in output
-    assert "(无法打出)" in output
+    assert "无法打出 - 回合结束时若仍在手中，获得 1 层虚弱" in output
 
 
-def test_render_hand_panel_shows_scaled_rampage_damage_for_card_instance() -> None:
+def test_select_card_menu_shows_scaled_rampage_damage_for_card_instance() -> None:
     session = start_session(seed=5)
     combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
     combat_state.hand = ["rampage#1", "rampage_plus#2"]
@@ -155,15 +155,15 @@ def test_render_hand_panel_shows_scaled_rampage_damage_for_card_instance() -> No
         act_state=session.act_state,
         room_state=room_state,
         registry=_provider(session),
-        menu_state=MenuState(),
+        menu_state=MenuState(mode="select_card"),
         run_phase=session.run_phase,
     )
 
-    assert "暴走 (1) - 造成 13 伤害（每次使用后永久增加 5 伤害）" in output
-    assert "暴走+ (1) - 造成 16 伤害（每次使用后永久增加 8 伤害）" in output
+    assert "暴走 费用1 - 造成 13 伤害（每次使用后永久增加 5 伤害）" in output
+    assert "暴走+ 费用1 - 造成 16 伤害（每次使用后永久增加 8 伤害）" in output
 
 
-def test_render_hand_panel_shows_scaled_perfected_strike_damage_for_card_instance() -> None:
+def test_select_card_menu_shows_scaled_perfected_strike_damage_for_card_instance() -> None:
     session = start_session(seed=5)
     combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
     combat_state.hand = ["perfected_strike#1", "strike#2"]
@@ -180,11 +180,11 @@ def test_render_hand_panel_shows_scaled_perfected_strike_damage_for_card_instanc
         act_state=session.act_state,
         room_state=room_state,
         registry=_provider(session),
-        menu_state=MenuState(),
+        menu_state=MenuState(mode="select_card"),
         run_phase=session.run_phase,
     )
 
-    assert "完美打击 (2) - 造成 16 伤害" in output
+    assert "完美打击 费用2 - 造成 16 伤害" in output
     assert "名字中有“打击”的牌" in output
 
 

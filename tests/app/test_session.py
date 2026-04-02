@@ -70,3 +70,26 @@ def test_route_menu_choice_rampage_enters_enemy_target_menu_with_multiple_enemie
     assert running is True
     assert target_session.menu_state.mode == "select_target"
     assert target_session.menu_state.selected_card_instance_id == "rampage#1"
+
+
+def test_route_menu_choice_dropkick_enters_enemy_target_menu() -> None:
+    session = start_session(seed=5)
+    combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
+    combat_state.hand = ["dropkick#1"]
+    session = replace(
+        session,
+        room_state=replace(
+            session.room_state,
+            payload={
+                **session.room_state.payload,
+                "combat_state": combat_state.to_dict(),
+            },
+        ),
+        menu_state=MenuState(mode="select_card"),
+    )
+
+    running, target_session, _message = route_menu_choice("1", session=session)
+
+    assert running is True
+    assert target_session.menu_state.mode == "select_target"
+    assert target_session.menu_state.selected_card_instance_id == "dropkick#1"

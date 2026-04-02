@@ -68,6 +68,7 @@ def build_player_action_events(
         if effect_type in {
             "damage",
             "rampage_damage",
+            "dropkick_effect",
             "damage_equal_to_block",
             "damage_with_strength_multiplier",
             "damage_per_strike_in_deck",
@@ -102,6 +103,26 @@ def build_player_action_events(
                     actual_damage=_result_int(result, "actual_damage"),
                 )
             )
+            continue
+        if effect_type == "dropkick_effect":
+            gained_energy = _result_int(result, "gained_energy")
+            if gained_energy > 0:
+                events.append(
+                    CombatEvent(
+                        event_type="gain_energy",
+                        actor_name="你",
+                        amount=gained_energy,
+                    )
+                )
+            drawn_count = _result_int(result, "drawn_count")
+            if drawn_count > 0:
+                events.append(
+                    CombatEvent(
+                        event_type="draw",
+                        actor_name="你",
+                        amount=drawn_count,
+                    )
+                )
             continue
         if effect_type == "block":
             events.append(

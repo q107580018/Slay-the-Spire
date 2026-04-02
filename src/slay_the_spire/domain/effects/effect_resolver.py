@@ -13,6 +13,7 @@ from slay_the_spire.domain.effects.effect_types import (
     EFFECT_CREATE_CARD_COPY,
     EFFECT_DAMAGE,
     EFFECT_DAMAGE_EQUAL_TO_BLOCK,
+    EFFECT_DROPKICK_EFFECT,
     EFFECT_DAMAGE_LIFESTEAL_ALL_ENEMIES,
     EFFECT_DAMAGE_PER_STRIKE_IN_DECK,
     EFFECT_DAMAGE_WITH_STRENGTH_MULTIPLIER,
@@ -132,6 +133,13 @@ def _damage_amount(
     return max(amount, 0)
 
 
+def _effect_uses_strength(effect: JsonDict) -> bool:
+    raw = effect.get("uses_strength")
+    if isinstance(raw, bool):
+        return raw
+    return True
+
+
 def _heal_target(target: PlayerCombatState | EnemyState, amount: int) -> int:
     healed = min(target.max_hp - target.hp, max(amount, 0))
     target.hp = min(target.max_hp, target.hp + max(amount, 0))
@@ -243,13 +251,17 @@ def _resolve_damage_effect(
                 target_instance_id=source.instance_id,
                 amount=flame_barrier_amount,
             )
+            reflected_damage["uses_strength"] = False
             reflected_damage["power_id"] = "flame_barrier"
             state.effect_queue.insert(0, reflected_damage)
+    resolved_strength_bonus = strength_bonus
+    if not _effect_uses_strength(effect):
+        resolved_strength_bonus = 0
     applied_amount = _damage_amount(
         source,
         target,
         base_amount,
-        strength_bonus=strength_bonus,
+        strength_bonus=resolved_strength_bonus,
     )
     blocked, actual_damage = _damage_target(target, applied_amount)
     if (
@@ -383,11 +395,12 @@ def _draw_trigger_effects(
                 if enemy.hp <= 0:
                     continue
                 queued_effects.append(
-                    damage_effect(
-                        source_instance_id=state.player.instance_id,
-                        target_instance_id=enemy.instance_id,
-                        amount=amount,
-                    )
+                    {
+                        "type": EFFECT_DAMAGE,
+                        "target_instance_id": enemy.instance_id,
+                        "amount": amount,
+                        "uses_strength": False,
+                    }
                 )
                 queued_effects[-1]["power_id"] = power_id
                 queued_effects[-1]["trigger"] = "on_draw"
@@ -557,6 +570,7 @@ def _enqueue_juggernaut_on_gain_block(
             target_instance_id=enemy.instance_id,
             amount=amount,
         )
+        juggernaut_damage["uses_strength"] = False
         juggernaut_damage["power_id"] = "juggernaut"
         juggernaut_damage["trigger"] = "on_gain_block"
         state.effect_queue.insert(0, juggernaut_damage)
@@ -718,6 +732,42 @@ def resolve_next_effect(
         if isinstance(card_instance_id, str):
             state.card_play_data[card_instance_id] = play_count_before + 1
         return resolved
+
+    if effect_type == EFFECT_DROPKICK_EFFECT:
+        target = _get_target(state, effect.get("target_instance_id"))
+        if _is_dead(target):
+            return noop_effect(reason="dead_target")
+        source = _get_target(state, effect.get("source_instance_id"))
+        applied_amount = _damage_amount(
+            source,
+            target,
+            int(effect.get("amount", 0)),
+            strength_bonus=0 if not _effect_uses_strength(effect) else None,
+        )
+        blocked, actual_damage = _damage_target(target, applied_amount)
+        vulnerable_stacks = next(
+            (
+                status.stacks
+                for status in target.statuses
+                if status.status_id == "vulnerable" and status.stacks > 0
+            ),
+            0,
+        )
+        gained_energy = 0
+        drawn_count = 0
+        if vulnerable_stacks > 0:
+            state.energy += 1
+            gained_energy = 1
+            drawn_count, _drawn_cards = _draw_cards(state, amount=1, registry=registry)
+        return _with_result(
+            effect,
+            applied_amount=applied_amount,
+            blocked=blocked,
+            actual_damage=actual_damage,
+            target_defeated=target.hp == 0,
+            gained_energy=gained_energy,
+            drawn_count=drawn_count,
+        )
 
     if effect_type == EFFECT_BLOCK:
         target = _get_target(state, effect.get("target_instance_id"))
@@ -1102,7 +1152,12 @@ def resolve_next_effect(
             return noop_effect(reason="dead_target")
         _blocked, actual_damage = _damage_target(
             target,
-            _damage_amount(_get_target(state, source_instance_id), target, amount),
+            _damage_amount(
+                _get_target(state, source_instance_id),
+                target,
+                amount,
+                strength_bonus=0 if not _effect_uses_strength(effect) else None,
+            ),
         )
         killed = target.hp <= 0
         if killed:
@@ -1156,7 +1211,12 @@ def resolve_next_effect(
         for enemy in state.enemies:
             if enemy.hp <= 0:
                 continue
-            applied_amount = _damage_amount(source, enemy, base_amount)
+            applied_amount = _damage_amount(
+                source,
+                enemy,
+                base_amount,
+                strength_bonus=0 if not _effect_uses_strength(effect) else None,
+            )
             blocked, actual_damage = _damage_target(enemy, applied_amount)
             total_healed += actual_damage
             results.append(

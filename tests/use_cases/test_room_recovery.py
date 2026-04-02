@@ -146,7 +146,7 @@ def test_rest_upgrade_subflow_survives_load_session(tmp_path: Path) -> None:
     restored_session = load_session(save_path=tmp_path / "rest.json", content_root=Path(__file__).resolve().parents[2] / "content")
 
     assert restored_room.stage == "select_upgrade_card"
-    assert restored_room.payload["upgrade_options"] == ["bash#10"]
+    assert restored_room.payload["upgrade_options"] == entered_smith.run_state.deck
     assert restored_session.menu_state.mode == "rest_upgrade_card"
 
 

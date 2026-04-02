@@ -84,6 +84,7 @@ _ENEMY_TARGET_EFFECT_TYPES = {
     "damage",
     "damage_equal_to_block",
     "damage_per_strike_in_deck",
+    "dropkick_effect",
     "vulnerable",
     "weak",
     "spot_weakness_strength",

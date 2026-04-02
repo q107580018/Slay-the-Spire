@@ -108,5 +108,5 @@ def test_render_session_renderable_shows_curse_bonus_reward_and_cost_separately(
     console.print(render_session_renderable(session))
 
     rendered = console.export_text(clear=False)
-    assert "牌组中加入诅咒牌" in rendered
+    assert "牌组中加入一张随机诅咒牌" in rendered
     assert "获得诅咒牌" not in rendered
