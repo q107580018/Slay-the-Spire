@@ -519,6 +519,37 @@ def test_current_action_menu_rampage_shows_only_enemy_targets() -> None:
     ]
 
 
+def test_current_action_menu_dropkick_shows_only_enemy_targets() -> None:
+    session = start_session(seed=5)
+    combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
+    combat_state.hand = ["dropkick#1", "strike#2"]
+    session = replace(
+        session,
+        room_state=replace(
+            session.room_state,
+            payload={
+                **session.room_state.payload,
+                "combat_state": combat_state.to_dict(),
+            },
+        ),
+        menu_state=replace(
+            session.menu_state,
+            mode="select_target",
+            selected_card_instance_id="dropkick#1",
+        ),
+    )
+
+    menu = _current_action_menu(session)
+
+    assert menu is not None
+    assert menu.title == "选择敌人"
+    assert [option.action_id for option in menu.options] == [
+        "target_enemy:1",
+        "target_enemy:2",
+        "back",
+    ]
+
+
 def test_current_action_menu_preserves_current_card_style_in_target_menu() -> None:
     session = start_session(seed=5)
     combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])

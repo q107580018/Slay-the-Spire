@@ -148,6 +148,7 @@ def test_single_act_smoke_simulates_map_shop_rest_and_boss_reward_transition_int
     )
     expected_boss_gold = 99 + (99 // 4 if "golden_idol" in session.run_state.relics else 0)
     gold_before_boss_reward = session.run_state.gold
+    deck_before_boss_reward = list(session.run_state.deck)
 
     _running, session, _message = route_menu_choice("1", session=session)
     _running, session, _message = route_menu_choice("1", session=session)
@@ -173,7 +174,7 @@ def test_single_act_smoke_simulates_map_shop_rest_and_boss_reward_transition_int
     assert "前往下一幕" in boss_chest_message
     assert session.run_state.gold == gold_before_boss_reward + expected_boss_gold
     assert "black_blood" in session.run_state.relics
-    assert "bash_plus#10" in session.run_state.deck
+    assert session.run_state.deck == deck_before_boss_reward
 
     _running, session, _message = route_menu_choice("1", session=session)
 
@@ -184,7 +185,7 @@ def test_single_act_smoke_simulates_map_shop_rest_and_boss_reward_transition_int
     assert session.room_state.room_type == "combat"
     assert session.run_state.gold == gold_before_boss_reward + expected_boss_gold
     assert "black_blood" in session.run_state.relics
-    assert "bash_plus#10" in session.run_state.deck
+    assert session.run_state.deck == deck_before_boss_reward
 
 
 def test_single_act_smoke_boss_room_uses_act1_bosses_and_hexaghost() -> None:

@@ -217,7 +217,9 @@ def _format_target_menu(
         card_def = registry.cards().get(card_id_from_instance_id(selected_card))
         current_card_name = render_card_name(card_def)
         effect_types = {effect.get("type") for effect in card_def.effects}
-        requires_enemy_target = bool(effect_types & {"damage", "vulnerable"})
+        requires_enemy_target = bool(
+            effect_types & {"damage", "dropkick_effect", "vulnerable"}
+        )
         requires_hand_target = bool(effect_types & {"exhaust_target_card", "upgrade_target_card"})
     elif selected_potion_index is not None:
         if selected_potion_index <= 0 or selected_potion_index > len(run_state.potions):
@@ -518,8 +520,7 @@ def render_combat_screen(
             left=render_player_panel(combat_state, registry),
             right=render_enemy_panel(combat_state, registry),
         )
-        hand_panel = render_hand_panel(combat_state, registry)
         battle_log_panel = render_battle_log_panel(combat_state)
-        body_group = [body, hand_panel, battle_log_panel]
+        body_group = [body, battle_log_panel]
     footer = render_menu_panel_for_combat(room_state, run_state, combat_state, registry, menu_state)
     return build_standard_screen(summary=summary, body=Group(*body_group), footer=footer)

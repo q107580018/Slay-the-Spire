@@ -59,14 +59,18 @@ def test_shining_light_accept_enters_upgrade_subflow_and_upgrades_selected_card(
 
     assert session.menu_state.mode == "event_upgrade_card"
     assert session.room_state.stage == "select_event_upgrade_card"
-    assert session.room_state.payload["upgrade_options"] == ["bash#10"]
+    upgrade_options = session.room_state.payload["upgrade_options"]
+    assert upgrade_options == session.run_state.deck
+    selected_card = upgrade_options[0]
+    card_id, instance_suffix = selected_card.split("#", 1)
+    upgraded_card = f"{card_id}_plus#{instance_suffix}"
 
     _running, session, _message = route_menu_choice("1", session=session)
 
     assert session.room_state.is_resolved is True
     assert session.room_state.stage == "completed"
-    assert "bash_plus#10" in session.run_state.deck
-    assert "bash#10" not in session.run_state.deck
+    assert upgraded_card in session.run_state.deck
+    assert selected_card not in session.run_state.deck
 
 
 def test_living_wall_forget_enters_remove_subflow_and_removes_selected_card() -> None:

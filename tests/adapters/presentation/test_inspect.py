@@ -249,6 +249,28 @@ def test_format_card_detail_lines_show_demon_form_power_text() -> None:
     assert "每回合开始时获得 2 层力量" in "\n".join(line.plain for line in lines)
 
 
+def test_format_card_detail_lines_show_berserk_full_rules_text() -> None:
+    session = start_session(seed=5)
+    registry = StarterContentProvider(session.content_root)
+
+    lines = format_card_detail_lines("berserk#1", registry)
+
+    output = "\n".join(line.plain for line in lines)
+    assert "获得 2 层易伤" in output
+    assert "每回合开始时获得 1 点能量" in output
+
+
+def test_format_card_detail_lines_show_dropkick_original_rules_text() -> None:
+    session = start_session(seed=5)
+    registry = StarterContentProvider(session.content_root)
+
+    lines = format_card_detail_lines("dropkick#1", registry)
+
+    output = "\n".join(line.plain for line in lines)
+    assert "造成 5 伤害" in output
+    assert "若敌人处于易伤状态，获得 1 点能量并抽 1 张牌" in output
+
+
 def test_format_card_detail_lines_show_disarm_enemy_strength_loss_text() -> None:
     session = start_session(seed=5)
     registry = StarterContentProvider(session.content_root)

@@ -130,6 +130,8 @@ def use_potion(
         combat_state=combat_state,
         target_id=target_id,
     )
+    if effect_type == "damage":
+        potion_effect["uses_strength"] = False
     combat_state.effect_queue.append(potion_effect)
     resolved_effects = resolve_effect_queue(combat_state, hook_registrations=hook_registrations)
     message = _describe_potion_use(

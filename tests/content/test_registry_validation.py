@@ -213,6 +213,20 @@ def test_provider_exposes_registry_accessors(content_root: Path) -> None:
     assert provider.cards().get("entrench").name == "巩固"
     assert provider.cards().get("barricade").name == "壁垒"
     assert provider.cards().get("demon_form").name == "恶魔形态"
+    assert provider.cards().get("dropkick").effects == [
+        {"type": "dropkick_effect", "amount": 5},
+    ]
+    assert provider.cards().get("dropkick_plus").effects == [
+        {"type": "dropkick_effect", "amount": 8},
+    ]
+    assert provider.cards().get("berserk").effects == [
+        {"type": "vulnerable", "stacks": 2, "target_instance_id": "self"},
+        {"type": "add_power", "power_id": "berserk", "amount": 1},
+    ]
+    assert provider.cards().get("berserk_plus").effects == [
+        {"type": "vulnerable", "stacks": 1, "target_instance_id": "self"},
+        {"type": "add_power", "power_id": "berserk", "amount": 1},
+    ]
     assert provider.cards().get("offering").exhausts is True
     assert provider.cards().get("offering_plus").exhausts is True
     assert provider.cards().get("impervious").rarity == "rare"

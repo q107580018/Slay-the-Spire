@@ -303,7 +303,7 @@ def summarize_effect(
         return f"造成 {base} 伤害。你每有一张名字中有“打击”的牌，伤害+{bonus_per_strike}"
     if effect_type == "dropkick_effect":
         amount = int(effect.get("amount", 0))
-        return f"造成 {amount} 伤害；若敌人处于虚弱状态，获得 1 点能量并抽 1 张牌"
+        return f"造成 {amount} 伤害；若敌人处于易伤状态，获得 1 点能量并抽 1 张牌"
     if effect_type == "exhaust_all_non_attacks_gain_block":
         amount_per = int(effect.get("amount_per_card", 0))
         return f"消耗手中所有非攻击牌，每张获得 {amount_per} 格挡"
@@ -397,7 +397,10 @@ def summarize_effect(
     if effect_type == "dexterity":
         return _signed_status_change(int(effect.get("amount", 0)), "敏捷")
     if effect_type == "vulnerable":
-        return f"施加 {int(effect.get('stacks', 0))} 易伤"
+        stacks = int(effect.get("stacks", 0))
+        if effect.get("target_instance_id") == "self":
+            return f"获得 {stacks} 层易伤"
+        return f"施加 {stacks} 易伤"
     if effect_type == "vulnerable_all_enemies":
         return f"对所有敌人施加 {int(effect.get('stacks', 0))} 易伤"
     if effect_type == "weak":

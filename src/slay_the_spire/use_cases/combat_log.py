@@ -49,6 +49,9 @@ def describe_player_action(*, events: Sequence[CombatEvent]) -> list[str]:
             and event.target_name is not None
             and event.stacks > 0
         ):
+            if event.target_name == "你":
+                self_parts.append(f"获得 {event.stacks} 层易伤")
+                continue
             part = target_parts.setdefault(
                 event.target_name, {"damage": 0, "vulnerable": 0, "weak": 0}
             )
@@ -60,6 +63,9 @@ def describe_player_action(*, events: Sequence[CombatEvent]) -> list[str]:
             and event.target_name is not None
             and event.stacks > 0
         ):
+            if event.target_name == "你":
+                self_parts.append(f"获得 {event.stacks} 层虚弱")
+                continue
             part = target_parts.setdefault(
                 event.target_name, {"damage": 0, "vulnerable": 0, "weak": 0}
             )

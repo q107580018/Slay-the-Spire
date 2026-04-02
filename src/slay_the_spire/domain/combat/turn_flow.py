@@ -360,6 +360,7 @@ def _active_power_end_turn_effects(state: CombatState) -> list[JsonDict]:
                 target_instance_id=enemy.instance_id,
                 amount=amount,
             )
+            effect["uses_strength"] = False
             effect["power_id"] = power_id
             effect["trigger"] = "end_turn_power"
             effects.append(effect)
@@ -387,12 +388,26 @@ def _clear_temporary_power(state: CombatState, power_id: str) -> None:
 
 
 def _apply_start_turn_powers(state: CombatState) -> None:
+    next_active_powers: list[JsonDict] = []
     for power in state.active_powers:
-        if power.get("power_id") != "demon_form":
-            continue
+        power_id = power.get("power_id")
         amount = power.get("amount")
-        if isinstance(amount, int) and amount > 0:
+        if not isinstance(power_id, str):
+            next_active_powers.append(power)
+            continue
+        if not isinstance(amount, int) or amount <= 0:
+            next_active_powers.append(power)
+            continue
+        if power_id == "demon_form":
             _apply_status(state.player, status_id="strength", stacks=amount)
+            next_active_powers.append(power)
+            continue
+        if power_id == "berserk":
+            state.energy += amount
+            next_active_powers.append(power)
+            continue
+        next_active_powers.append(power)
+    state.active_powers = next_active_powers
 
 
 def _apply_brutality(state: CombatState) -> None:
@@ -458,8 +473,8 @@ def start_turn(
         keep_block=_has_player_power(state, "barricade"),
     )
     _clear_temporary_power(state, "flame_barrier")
-    _apply_start_turn_powers(state)
     state.energy = energy_per_turn
+    _apply_start_turn_powers(state)
     _apply_brutality(state)
     _draw_cards(
         state,

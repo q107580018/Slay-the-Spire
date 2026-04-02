@@ -551,6 +551,69 @@ def test_play_card_applies_vulnerable_status_effects() -> None:
     ]
 
 
+def test_play_card_can_apply_vulnerable_to_self_without_target() -> None:
+    state = _combat_state(hand=["berserk#1"])
+    provider = _provider_with_card(
+        card_id="berserk",
+        card_type="power",
+        effects=[
+            {"type": "vulnerable", "stacks": 2, "target_instance_id": "self"},
+            {"type": "add_power", "power_id": "berserk", "amount": 1},
+        ],
+    )
+
+    result = play_card(state, "berserk#1", None, provider)
+
+    assert result.combat_state is state
+    assert [effect["type"] for effect in result.resolved_effects] == [
+        "vulnerable",
+        "add_power",
+    ]
+    assert state.player.hp == 40
+    assert state.player.statuses == [StatusState(status_id="vulnerable", stacks=2)]
+    assert state.active_powers == [{"power_id": "berserk", "amount": 1}]
+    assert state.log == ["你打出 Custom Strike，获得 2 层易伤。"]
+
+
+def test_play_card_dropkick_hits_vulnerable_enemy_and_grants_energy_and_draw() -> None:
+    state = _combat_state(hand=["dropkick#1"], enemy_hps=[20])
+    state.energy = 1
+    state.hand = ["dropkick#1"]
+    state.draw_pile = ["strike#2", "defend#2"]
+    state.enemies[0].statuses.append(StatusState(status_id="vulnerable", stacks=1))
+    provider = _provider_with_card(
+        card_id="dropkick",
+        effects=[{"type": "dropkick_effect", "amount": 5}],
+    )
+
+    result = play_card(state, "dropkick#1", "enemy-1", provider)
+
+    assert result.combat_state is state
+    assert [effect["type"] for effect in result.resolved_effects] == ["dropkick_effect"]
+    assert state.enemies[0].hp == 13
+    assert state.energy == 1
+    assert state.hand == ["strike#2"]
+
+
+def test_play_card_dropkick_only_deals_damage_when_enemy_not_vulnerable() -> None:
+    state = _combat_state(hand=["dropkick#1"], enemy_hps=[20])
+    state.energy = 1
+    state.hand = ["dropkick#1"]
+    state.draw_pile = ["strike#2", "defend#2"]
+    provider = _provider_with_card(
+        card_id="dropkick",
+        effects=[{"type": "dropkick_effect", "amount": 5}],
+    )
+
+    result = play_card(state, "dropkick#1", "enemy-1", provider)
+
+    assert result.combat_state is state
+    assert [effect["type"] for effect in result.resolved_effects] == ["dropkick_effect"]
+    assert state.enemies[0].hp == 15
+    assert state.energy == 0
+    assert state.hand == []
+
+
 def test_play_card_disarm_applies_negative_strength_to_target_enemy() -> None:
     state = _combat_state(hand=["disarm#1"])
     provider = _provider_with_card(

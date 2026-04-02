@@ -1709,7 +1709,7 @@
       "effects": [
         {
           "type": "dropkick_effect",
-          "amount": 8
+          "amount": 5
         }
       ],
       "card_type": "attack",
@@ -1726,7 +1726,7 @@
       "effects": [
         {
           "type": "dropkick_effect",
-          "amount": 11
+          "amount": 8
         }
       ],
       "card_type": "attack",
@@ -2367,8 +2367,9 @@
       "upgrades_to": "berserk_plus",
       "effects": [
         {
-          "type": "lose_hp",
-          "amount": 2
+          "type": "vulnerable",
+          "stacks": 2,
+          "target_instance_id": "self"
         },
         {
           "type": "add_power",
@@ -2390,8 +2391,9 @@
       "innate": true,
       "effects": [
         {
-          "type": "lose_hp",
-          "amount": 2
+          "type": "vulnerable",
+          "stacks": 1,
+          "target_instance_id": "self"
         },
         {
           "type": "add_power",
