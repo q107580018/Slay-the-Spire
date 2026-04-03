@@ -353,6 +353,15 @@ def test_hover_preview_shows_character_summary_in_opening_character_select() -> 
     assert "起始生命：80" in preview.plain
 
 
+def test_hover_preview_shows_load_guidance_in_opening_menu() -> None:
+    session = start_new_game_session(seed=5)
+
+    preview = _hover_preview_renderable(session, "load")
+
+    assert preview is not None
+    assert preview.plain == "控制项：读取当前存档"
+
+
 def test_textual_opening_targeted_neow_flow_enters_active_run() -> None:
     async def scenario() -> None:
         session = start_new_game_session(seed=5, preferred_character_id="ironclad")

@@ -1376,8 +1376,6 @@ def _load_current_session(session: SessionState) -> tuple[bool, SessionState, st
 def _opening_unsupported_action_message(action: str) -> str:
     if action == "save":
         return "开局阶段暂不支持保存。"
-    if action == "load":
-        return "开局阶段暂不支持读档。"
     return "当前开局操作不可用。"
 
 
@@ -1390,7 +1388,7 @@ def _route_opening_character_select_menu(
     action_id = resolve_menu_action(choice, _build_opening_character_menu(session))
     if action_id == "quit":
         return False, replace(session, menu_state=MenuState()), "已退出游戏。"
-    if action_id in {"save", "load"}:
+    if action_id == "save":
         return (
             True,
             session,
@@ -1398,6 +1396,8 @@ def _route_opening_character_select_menu(
                 session, _opening_unsupported_action_message(action_id)
             ),
         )
+    if action_id == "load":
+        return _load_current_session(session)
     if action_id is None or not action_id.startswith("select_character:"):
         return _invalid_menu_choice(session)
     character_id = action_id.split(":", 1)[1]
@@ -1423,7 +1423,7 @@ def _route_opening_neow_offer_menu(
     action_id = resolve_menu_action(choice, _build_opening_neow_menu(session))
     if action_id == "quit":
         return False, replace(session, menu_state=MenuState()), "已退出游戏。"
-    if action_id in {"save", "load"}:
+    if action_id == "save":
         return (
             True,
             session,
@@ -1431,6 +1431,8 @@ def _route_opening_neow_offer_menu(
                 session, _opening_unsupported_action_message(action_id)
             ),
         )
+    if action_id == "load":
+        return _load_current_session(session)
     if action_id is None or not action_id.startswith("choose_neow_offer:"):
         return _invalid_menu_choice(session)
     offer_id = action_id.split(":", 1)[1]

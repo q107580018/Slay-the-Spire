@@ -575,7 +575,7 @@ def _opening_hover_preview_renderable(
     if action_id == "save":
         return Text("控制项：开局阶段暂不支持保存")
     if action_id == "load":
-        return Text("控制项：开局阶段暂不支持读档")
+        return Text("控制项：读取当前存档")
     return None
 
 

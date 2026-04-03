@@ -2,10 +2,20 @@ from __future__ import annotations
 
 from dataclasses import replace
 from random import Random
+from pathlib import Path
 
-from slay_the_spire.app.session import MenuState, build_opening_action_menu, route_menu_choice, start_new_game_session
+from slay_the_spire.app.session import (
+    MenuState,
+    build_opening_action_menu,
+    route_menu_choice,
+    start_new_game_session,
+    start_session,
+)
+from slay_the_spire.adapters.persistence.save_files import JsonFileSaveRepository
+from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
+from slay_the_spire.use_cases.save_game import save_game
 from slay_the_spire.use_cases import opening_flow
 
 
@@ -21,6 +31,18 @@ def _choice_for_action(session, action_id: str) -> str:
     menu = build_opening_action_menu(session)
     assert menu is not None
     return str(next(index for index, option in enumerate(menu.options, start=1) if option.action_id == action_id))
+
+
+def _write_saved_run(save_path: Path) -> None:
+    saved_session = start_session(seed=5, save_path=save_path)
+    combat_state = CombatState.from_dict(saved_session.room_state.payload["combat_state"])
+    save_game(
+        repository=JsonFileSaveRepository(save_path),
+        run_state=saved_session.run_state,
+        act_state=saved_session.act_state,
+        room_state=saved_session.room_state,
+        combat_state=combat_state,
+    )
 
 
 def test_character_select_routes_into_neow_offer_menu() -> None:
@@ -44,15 +66,18 @@ def test_character_select_save_is_blocked_with_explicit_chinese_message() -> Non
     assert "开局阶段暂不支持保存。" in message
 
 
-def test_character_select_load_is_blocked_with_explicit_chinese_message() -> None:
-    session = start_new_game_session(seed=5)
+def test_character_select_load_restores_saved_session(tmp_path: Path) -> None:
+    save_path = tmp_path / "latest.json"
+    _write_saved_run(save_path)
+    session = start_new_game_session(seed=5, save_path=save_path)
 
     running, next_session, message = route_menu_choice(_choice_for_action(session, "load"), session=session)
 
     assert running is True
-    assert next_session.run_phase == "opening"
-    assert next_session.menu_state.mode == "opening_character_select"
-    assert "开局阶段暂不支持读档。" in message
+    assert next_session.run_phase == "active"
+    assert next_session.opening_state is None
+    assert next_session.room_state.room_type == "combat"
+    assert f"已从存档恢复。当前存档: {save_path}" == message
 
 
 def test_opening_neow_selection_starts_first_room_after_targetless_offer() -> None:
@@ -82,15 +107,22 @@ def test_opening_neow_save_is_blocked_with_explicit_chinese_message() -> None:
     assert "开局阶段暂不支持保存。" in message
 
 
-def test_opening_neow_load_is_blocked_with_explicit_chinese_message() -> None:
-    session = start_new_game_session(seed=5, preferred_character_id="ironclad")
+def test_opening_neow_load_restores_saved_session(tmp_path: Path) -> None:
+    save_path = tmp_path / "latest.json"
+    _write_saved_run(save_path)
+    session = start_new_game_session(
+        seed=5,
+        preferred_character_id="ironclad",
+        save_path=save_path,
+    )
 
     running, next_session, message = route_menu_choice(_choice_for_action(session, "load"), session=session)
 
     assert running is True
-    assert next_session.run_phase == "opening"
-    assert next_session.menu_state.mode == "opening_neow_offer"
-    assert "开局阶段暂不支持读档。" in message
+    assert next_session.run_phase == "active"
+    assert next_session.opening_state is None
+    assert next_session.room_state.room_type == "combat"
+    assert f"已从存档恢复。当前存档: {save_path}" == message
 
 
 def test_opening_neow_upgrade_offer_routes_into_target_menu_and_back() -> None:
