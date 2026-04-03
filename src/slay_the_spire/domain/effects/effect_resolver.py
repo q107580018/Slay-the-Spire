@@ -140,6 +140,15 @@ def _effect_uses_strength(effect: JsonDict) -> bool:
     return True
 
 
+def _move_intends_damage(move: object) -> bool:
+    if not isinstance(move, dict):
+        return False
+    move_effects = move.get("effects", [])
+    if not isinstance(move_effects, list):
+        return False
+    return any(str(effect.get("type", "")) == EFFECT_DAMAGE for effect in move_effects)
+
+
 def _heal_target(target: PlayerCombatState | EnemyState, amount: int) -> int:
     healed = min(target.max_hp - target.hp, max(amount, 0))
     target.hp = min(target.max_hp, target.hp + max(amount, 0))
@@ -1131,11 +1140,15 @@ def resolve_next_effect(
         amount = int(effect.get("amount", 3))
         enemy_intends_damage = False
         if enemy is not None:
-            current_move = getattr(enemy, "current_move", None)
-            if isinstance(current_move, dict):
-                move_effects = current_move.get("effects", [])
-                enemy_intends_damage = any(
-                    str(me.get("type", "")) == EFFECT_DAMAGE for me in move_effects
+            enemy_intends_damage = _move_intends_damage(
+                getattr(enemy, "current_move", None)
+            )
+            if not enemy_intends_damage and registry is not None:
+                from slay_the_spire.domain.combat.turn_flow import preview_enemy_move
+
+                enemy_def = registry.enemies().get(enemy.enemy_id)
+                enemy_intends_damage = _move_intends_damage(
+                    preview_enemy_move(state, enemy, enemy_def)
                 )
         if enemy_intends_damage:
             _apply_status(state.player, status_id="strength", stacks=amount)

@@ -1191,6 +1191,39 @@ def test_play_card_spot_weakness_grants_strength_when_enemy_intends_attack() -> 
         (s.stacks for s in state.player.statuses if s.status_id == "strength"), 0
     )
     assert strength_stacks == 3
+    assert state.log == ["你打出 Custom Strike，获得 3 层力量。"]
+
+
+def test_play_card_spot_weakness_grants_strength_from_enemy_move_table() -> None:
+    state = _combat_state(
+        hand=["spot_weakness#1"],
+        enemy_ids=["attacking_dummy"],
+    )
+    provider = _provider_with_card(
+        card_id="spot_weakness",
+        effects=[{"type": "spot_weakness_strength", "amount": 3}],
+    )
+    provider.enemies().register(
+        {
+            "id": "attacking_dummy",
+            "name": "Attacking Dummy",
+            "hp": 10,
+            "move_table": [
+                {
+                    "move": "slam",
+                    "effects": [{"type": "damage", "amount": 10}],
+                }
+            ],
+            "intent_policy": "scripted",
+        }
+    )
+
+    play_card(state, "spot_weakness#1", "enemy-1", provider)
+
+    strength_stacks = next(
+        (s.stacks for s in state.player.statuses if s.status_id == "strength"), 0
+    )
+    assert strength_stacks == 3
 
 
 def test_play_card_spot_weakness_does_not_grant_strength_when_enemy_defends() -> None:

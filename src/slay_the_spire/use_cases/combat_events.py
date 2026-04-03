@@ -151,6 +151,17 @@ def build_player_action_events(
                 )
             )
             continue
+        if effect_type == "spot_weakness_strength":
+            gained_strength = _result_int(result, "strength_gained")
+            if gained_strength > 0:
+                events.append(
+                    CombatEvent(
+                        event_type="gain_strength",
+                        actor_name="你",
+                        amount=gained_strength,
+                    )
+                )
+            continue
         if effect_type == "add_power":
             power_id = effect.get("power_id")
             if power_id == "inflame":
