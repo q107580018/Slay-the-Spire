@@ -123,19 +123,27 @@ def _damage_amount(
     base_amount: int,
     *,
     strength_bonus: int | None = None,
+    use_status_modifiers: bool = True,
 ) -> int:
     amount = max(base_amount, 0)
     amount += _strength_bonus(source) if strength_bonus is None else strength_bonus
     amount = max(amount, 0)
-    if _is_weak(source):
+    if use_status_modifiers and _is_weak(source):
         amount = (amount * 3) // 4
-    if _vulnerable_bonus(target):
+    if use_status_modifiers and _vulnerable_bonus(target):
         amount += amount // 2
     return max(amount, 0)
 
 
 def _effect_uses_strength(effect: JsonDict) -> bool:
     raw = effect.get("uses_strength")
+    if isinstance(raw, bool):
+        return raw
+    return True
+
+
+def _effect_uses_status_modifiers(effect: JsonDict) -> bool:
+    raw = effect.get("uses_status_modifiers")
     if isinstance(raw, bool):
         return raw
     return True
@@ -302,6 +310,7 @@ def _resolve_damage_effect(
         target,
         base_amount,
         strength_bonus=resolved_strength_bonus,
+        use_status_modifiers=_effect_uses_status_modifiers(effect),
     )
     blocked, actual_damage = _damage_target(target, applied_amount)
     if (

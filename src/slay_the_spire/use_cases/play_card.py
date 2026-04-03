@@ -300,6 +300,7 @@ def play_card(
             )
 
     # Attack-trigger power hooks: double_tap, rage
+    active_powers_before = [copy_effect(power) for power in combat_state.active_powers]
     attack_trigger_extras: list[JsonDict] = []
     if card_def.card_type == "attack":
         double_tap_amount = _consume_player_power(combat_state, "double_tap")
@@ -362,8 +363,21 @@ def play_card(
             registry=registry,
         )
     except Exception:
+        combat_state.cards_played_this_turn = max(
+            combat_state.cards_played_this_turn - 1,
+            0,
+        )
+        if card_def.card_type == "attack":
+            combat_state.attacks_played_this_turn = max(
+                combat_state.attacks_played_this_turn - 1,
+                0,
+            )
         if card_instance_id in combat_state._cards_in_limbo:
             combat_state._cards_in_limbo.remove(card_instance_id)
+        if card_instance_id not in combat_state.hand:
+            combat_state.hand.append(card_instance_id)
+        combat_state.energy += energy_spent
+        combat_state.active_powers = active_powers_before
         raise
     destination = resolve_post_play_destination(
         card_def, combat_state, card_instance_id

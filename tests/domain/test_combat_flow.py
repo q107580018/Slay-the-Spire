@@ -691,6 +691,23 @@ def test_stone_calendar_deals_damage_at_end_of_seventh_turn_before_enemy_acts() 
     assert state.player.hp == 30
 
 
+def test_stone_calendar_ignores_player_weak_and_enemy_vulnerable() -> None:
+    registry = _enemy_registry_without_attacks()
+    state = _combat_state_with_relics("stone_calendar", enemy_count=1)
+    state.round_number = 7
+    state.player.statuses.append(StatusState(status_id="weak", stacks=2))
+    state.enemies[0].hp = 60
+    state.enemies[0].statuses.append(StatusState(status_id="vulnerable", stacks=2))
+
+    end_turn(
+        state,
+        registry,
+        hook_registrations=_hook_registrations_for_relics("stone_calendar"),
+    )
+
+    assert state.enemies[0].hp == 8
+
+
 def test_art_of_war_grants_energy_next_turn_after_no_attack_played() -> None:
     registry = _enemy_registry_without_attacks()
     state = _combat_state_with_relics("art_of_war", enemy_count=1)

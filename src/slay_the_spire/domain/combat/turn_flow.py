@@ -598,6 +598,7 @@ def _apply_turn_end_relics(
                 amount=52,
             )
             effect["uses_strength"] = False
+            effect["uses_status_modifiers"] = False
             effect["relic_id"] = "stone_calendar"
             effect["trigger"] = "end_turn_relic"
             state.effect_queue.append(effect)

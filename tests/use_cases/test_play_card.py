@@ -163,6 +163,42 @@ def test_play_card_rejects_missing_target_for_targeted_effect() -> None:
     assert state.to_dict() == before
 
 
+def test_play_card_failure_does_not_increment_turn_counters() -> None:
+    state = _combat_state(hand=["broken_card#1"])
+    provider = _provider_with_card(
+        card_id="broken_card",
+        effects=[{"type": "unsupported_effect"}],
+        card_type="attack",
+    )
+
+    with pytest.raises(ValueError, match="unsupported effect type"):
+        play_card(state, "broken_card#1", "enemy-1", provider)
+
+    assert state.cards_played_this_turn == 0
+    assert state.attacks_played_this_turn == 0
+
+
+def test_play_card_failure_does_not_consume_attack_trigger_powers() -> None:
+    state = _combat_state(hand=["broken_card#1"])
+    state.active_powers = [
+        {"power_id": "double_tap", "amount": 1},
+        {"power_id": "rage", "amount": 3},
+    ]
+    provider = _provider_with_card(
+        card_id="broken_card",
+        effects=[{"type": "unsupported_effect"}],
+        card_type="attack",
+    )
+
+    with pytest.raises(ValueError, match="unsupported effect type"):
+        play_card(state, "broken_card#1", "enemy-1", provider)
+
+    assert state.active_powers == [
+        {"power_id": "double_tap", "amount": 1},
+        {"power_id": "rage", "amount": 3},
+    ]
+
+
 def test_play_card_body_slam_deals_damage_equal_to_player_block() -> None:
     state = _combat_state(hand=["body_slam#1"], enemy_hps=[20])
     state.player.block = 12
@@ -184,7 +220,9 @@ def test_play_card_damage_with_strength_multiplier_uses_selected_target() -> Non
     provider = _provider_with_card(
         card_id="heavy_blade",
         cost=2,
-        effects=[{"type": "damage_with_strength_multiplier", "base": 14, "multiplier": 3}],
+        effects=[
+            {"type": "damage_with_strength_multiplier", "base": 14, "multiplier": 3}
+        ],
         card_type="attack",
     )
 
@@ -814,7 +852,9 @@ def test_play_card_draw_log_uses_refilled_discard_cards() -> None:
     ]
 
 
-def test_play_card_perfected_strike_uses_bonus_per_strike_and_logs_actual_damage() -> None:
+def test_play_card_perfected_strike_uses_bonus_per_strike_and_logs_actual_damage() -> (
+    None
+):
     state = _combat_state(hand=["perfected_strike#1", "strike#2"], enemy_hps=[20])
     state.draw_pile = ["wild_strike#3"]
     state.discard_pile = ["pommel_strike#4"]
@@ -1460,7 +1500,9 @@ def test_play_card_fiend_fire_appends_damage_log_entry() -> None:
 
     play_card(state, "fiend_fire#1", "enemy-1", provider)
 
-    assert state.log == ["你打出 Custom Strike，对 Training Dummy 造成 14 伤害，并消耗 2 张手牌。"]
+    assert state.log == [
+        "你打出 Custom Strike，对 Training Dummy 造成 14 伤害，并消耗 2 张手牌。"
+    ]
 
 
 def test_play_card_corruption_adds_power_and_skills_cost_zero() -> None:
