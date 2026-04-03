@@ -5,6 +5,7 @@ from pathlib import Path
 
 from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.domain.models.run_state import RunState
+from slay_the_spire.domain.rewards import reward_generator as reward_generator_module
 from slay_the_spire.domain.rewards.reward_generator import _rarity_weights
 from slay_the_spire.domain.rewards.reward_generator import (
     generate_boss_rewards,
@@ -78,6 +79,30 @@ def test_apply_reward_allows_repeated_circlet_rewards() -> None:
     assert updated.relics == ["burning_blood", "circlet", "circlet"]
 
 
+def test_apply_reward_replaces_existing_relic_when_replaces_relic_id_matches() -> None:
+    run_state = replace(_run_state(), relics=["ring_of_the_snake"])
+
+    updated = apply_reward(
+        run_state=run_state,
+        reward_id="relic:ring_of_the_serpent",
+        registry=_content_provider(),
+    )
+
+    assert updated.relics == ["ring_of_the_serpent"]
+
+
+def test_apply_reward_keeps_other_relics_when_replacing_starting_relic() -> None:
+    run_state = replace(_run_state(), relics=["burning_blood", "golden_idol"])
+
+    updated = apply_reward(
+        run_state=run_state,
+        reward_id="relic:black_blood",
+        registry=_content_provider(),
+    )
+
+    assert updated.relics == ["golden_idol", "black_blood"]
+
+
 def test_apply_reward_preserves_card_id_with_underscores() -> None:
     updated = apply_reward(
         run_state=_run_state(),
@@ -121,53 +146,73 @@ def test_apply_reward_gold_uses_golden_idol_bonus() -> None:
 
 
 def test_generate_boss_rewards_returns_high_gold_and_three_unique_relics() -> None:
+    run_state = replace(
+        _run_state(),
+        relic_sequences={
+            "boss": ["astrolabe", "black_star", "busted_crown", "coffee_dripper"],
+        },
+        relic_sequence_positions={"boss": 0},
+    )
     rewards = generate_boss_rewards(
         room_id="act1:boss",
         seed=37,
-        run_state=_run_state(),
+        run_state=run_state,
         registry=_content_provider(),
     )
 
     assert rewards["generated_by"] == "boss_reward_generator"
     assert rewards["gold_reward"] == 106
-    assert len(rewards["boss_relic_offers"]) == 3
-    assert len(set(rewards["boss_relic_offers"])) == 3
-    assert set(rewards["boss_relic_offers"]).issubset(
-        {"black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"}
-    )
+    assert rewards["boss_relic_offers"] == ["astrolabe", "black_star", "busted_crown"]
     assert rewards["claimed_gold"] is False
     assert rewards["claimed_relic_id"] is None
+    assert run_state.relic_sequence_positions["boss"] == 3
 
 
 def test_generate_boss_rewards_can_offer_fusion_hammer_across_seeds() -> None:
-    seen_fusion_hammer = False
-    for seed in range(1, 40):
-        rewards = generate_boss_rewards(
-            room_id="act1:boss",
-            seed=seed,
-            run_state=_run_state(),
-            registry=_content_provider(),
-        )
-        if "fusion_hammer" in rewards["boss_relic_offers"]:
-            seen_fusion_hammer = True
-            break
+    run_state = replace(
+        _run_state(),
+        relic_sequences={"boss": ["fusion_hammer", "astrolabe", "black_star"]},
+        relic_sequence_positions={"boss": 0},
+    )
 
-    assert seen_fusion_hammer is True
+    rewards = generate_boss_rewards(
+        room_id="act1:boss",
+        seed=1,
+        run_state=run_state,
+        registry=_content_provider(),
+    )
+
+    assert rewards["boss_relic_offers"] == ["fusion_hammer", "astrolabe", "black_star"]
 
 
 def test_generate_boss_rewards_is_deterministic_for_same_inputs() -> None:
-    run_state = replace(_run_state(), relics=["burning_blood", "ectoplasm"])
+    first_run_state = replace(
+        _run_state(),
+        relics=["burning_blood", "black_star"],
+        relic_sequences={
+            "boss": ["black_star", "coffee_dripper", "ectoplasm", "fusion_hammer"],
+        },
+        relic_sequence_positions={"boss": 0},
+    )
+    second_run_state = replace(
+        _run_state(),
+        relics=["burning_blood", "black_star"],
+        relic_sequences={
+            "boss": ["black_star", "coffee_dripper", "ectoplasm", "fusion_hammer"],
+        },
+        relic_sequence_positions={"boss": 0},
+    )
 
     first = generate_boss_rewards(
         room_id="act1:boss",
         seed=37,
-        run_state=run_state,
+        run_state=first_run_state,
         registry=_content_provider(),
     )
     second = generate_boss_rewards(
         room_id="act1:boss",
         seed=37,
-        run_state=run_state,
+        run_state=second_run_state,
         registry=_content_provider(),
     )
 
@@ -244,12 +289,22 @@ def test_generate_combat_rewards_normal_gold_stays_in_10_to_20_range() -> None:
         assert 10 <= gold_amount <= 20
 
 
-def test_generate_combat_rewards_elite_gold_stays_in_25_to_35_range_and_grants_relic() -> (
-    None
-):
+def test_generate_combat_rewards_elite_gold_stays_in_25_to_35_range_and_grants_relic(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        reward_generator_module,
+        "_roll_standard_relic_rarity",
+        lambda *, seed, room_id: "uncommon",
+    )
+    run_state = replace(
+        _run_state(),
+        relic_sequences={"common": [], "uncommon": ["oddly_smooth_stone"], "rare": []},
+        relic_sequence_positions={"common": 0, "uncommon": 0, "rare": 0},
+    )
     rewards, _next_rare_offset = generate_combat_rewards(
         room_id="act1:elite_reward",
-        run_state=_run_state(),
+        run_state=run_state,
         registry=_content_provider(),
         room_type="elite",
     )
@@ -261,14 +316,30 @@ def test_generate_combat_rewards_elite_gold_stays_in_25_to_35_range_and_grants_r
 
     relic_rewards = [reward for reward in rewards if reward.startswith("relic:")]
     assert len(relic_rewards) == 1
-    assert relic_rewards[0].split(":", 1)[1] in {
-        "blood_vial",
-        "golden_idol",
-        "guarding_totem",
-    }
+    assert relic_rewards[0] == "relic:oddly_smooth_stone"
+    assert run_state.relic_sequence_positions == {"common": 0, "uncommon": 1, "rare": 0}
 
     card_rewards = [reward for reward in rewards if reward.startswith("card_offer:")]
     assert len(card_rewards) == 3
+
+
+def test_generate_combat_rewards_elite_falls_back_to_circlet_when_standard_sequences_are_empty() -> (
+    None
+):
+    rewards, _next_rare_offset = generate_combat_rewards(
+        room_id="act1:elite_reward",
+        run_state=replace(
+            _run_state(),
+            relic_sequences={"common": [], "uncommon": [], "rare": []},
+            relic_sequence_positions={"common": 0, "uncommon": 0, "rare": 0},
+        ),
+        registry=_content_provider(),
+        room_type="elite",
+    )
+
+    relic_rewards = [reward for reward in rewards if reward.startswith("relic:")]
+
+    assert relic_rewards == ["relic:circlet"]
 
 
 def test_generate_combat_rewards_elite_uses_higher_rare_weight_baseline() -> None:
@@ -372,7 +443,14 @@ def test_generate_combat_rewards_excludes_status_and_curse_cards() -> None:
 
 
 def test_generate_boss_rewards_filters_owned_relics() -> None:
-    run_state = replace(_run_state(), relics=["burning_blood", "ectoplasm"])
+    run_state = replace(
+        _run_state(),
+        relics=["burning_blood", "ectoplasm"],
+        relic_sequences={
+            "boss": ["ectoplasm", "astrolabe", "black_star", "busted_crown"],
+        },
+        relic_sequence_positions={"boss": 0},
+    )
 
     rewards = generate_boss_rewards(
         room_id="act1:boss",
@@ -381,7 +459,52 @@ def test_generate_boss_rewards_filters_owned_relics() -> None:
         registry=_content_provider(),
     )
 
-    assert "ectoplasm" not in rewards["boss_relic_offers"]
+    assert rewards["boss_relic_offers"] == ["astrolabe", "black_star", "busted_crown"]
+    assert run_state.relic_sequence_positions["boss"] == 4
+
+
+def test_generate_boss_rewards_falls_back_to_three_circlets_when_boss_sequence_is_exhausted() -> (
+    None
+):
+    run_state = replace(
+        _run_state(),
+        relic_sequences={"boss": []},
+        relic_sequence_positions={"boss": 0},
+    )
+
+    rewards = generate_boss_rewards(
+        room_id="act1:boss",
+        seed=37,
+        run_state=run_state,
+        registry=_content_provider(),
+    )
+
+    assert rewards["boss_relic_offers"] == ["circlet", "circlet", "circlet"]
+    assert run_state.relic_sequence_positions["boss"] == 0
+
+
+def test_generate_boss_rewards_advances_position_by_offered_relic_count() -> None:
+    run_state = replace(
+        _run_state(),
+        relic_sequences={
+            "boss": ["astrolabe", "black_star", "busted_crown", "coffee_dripper"],
+        },
+        relic_sequence_positions={"boss": 1},
+    )
+
+    rewards = generate_boss_rewards(
+        room_id="act1:boss",
+        seed=37,
+        run_state=run_state,
+        registry=_content_provider(),
+    )
+
+    assert rewards["boss_relic_offers"] == [
+        "black_star",
+        "busted_crown",
+        "coffee_dripper",
+    ]
+    assert run_state.relic_sequence_positions["boss"] == 4
 
 
 def test_apply_reward_black_blood_replaces_burning_blood() -> None:

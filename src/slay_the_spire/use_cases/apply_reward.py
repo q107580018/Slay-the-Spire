@@ -23,36 +23,60 @@ def _gold_amount(run_state: RunState, amount: int) -> int:
     return amount + (amount // 4)
 
 
-def apply_reward(*, run_state: RunState, reward_id: str, registry: ContentProviderPort) -> RunState:
+def _apply_relic_acquisition(
+    *, run_state: RunState, relic_id: str, registry: ContentProviderPort
+) -> RunState:
+    relic = registry.relics().get(relic_id)
+    relics = list(run_state.relics)
+
+    if relic_id == "circlet":
+        return replace(run_state, relics=[*relics, relic_id])
+
+    if relic.replaces_relic_id is not None:
+        relics = [owned for owned in relics if owned != relic.replaces_relic_id]
+
+    if relic_id in relics:
+        return replace(run_state, relics=relics)
+    return replace(run_state, relics=[*relics, relic_id])
+
+
+def apply_reward(
+    *, run_state: RunState, reward_id: str, registry: ContentProviderPort
+) -> RunState:
     if reward_id.startswith("gold:"):
         amount = int(reward_id.split(":", 1)[1])
         return replace(run_state, gold=run_state.gold + _gold_amount(run_state, amount))
-    if reward_id == "relic:black_blood":
-        registry.relics().get("black_blood")
-        relics = [relic_id for relic_id in run_state.relics if relic_id != "burning_blood"]
-        if "black_blood" in relics:
-            return replace(run_state, relics=relics)
-        return replace(run_state, relics=[*relics, "black_blood"])
     if reward_id.startswith("relic:"):
         relic_id = reward_id.split(":", 1)[1]
-        registry.relics().get(relic_id)
-        if relic_id == "circlet":
-            return replace(run_state, relics=[*run_state.relics, relic_id])
-        if relic_id in run_state.relics:
-            return run_state
-        return replace(run_state, relics=[*run_state.relics, relic_id])
+        return _apply_relic_acquisition(
+            run_state=run_state,
+            relic_id=relic_id,
+            registry=registry,
+        )
     if reward_id == "card:reward_strike":
         registry.cards().get("strike_plus")
-        return replace(run_state, deck=[*run_state.deck, _next_instance_id(run_state.deck, "strike_plus")])
+        return replace(
+            run_state,
+            deck=[*run_state.deck, _next_instance_id(run_state.deck, "strike_plus")],
+        )
     if reward_id == "card:reward_defend":
         registry.cards().get("defend_plus")
-        return replace(run_state, deck=[*run_state.deck, _next_instance_id(run_state.deck, "defend_plus")])
+        return replace(
+            run_state,
+            deck=[*run_state.deck, _next_instance_id(run_state.deck, "defend_plus")],
+        )
     if reward_id.startswith("card_offer:"):
         card_id = reward_id.split(":", 1)[1]
         registry.cards().get(card_id)
-        return replace(run_state, deck=[*run_state.deck, _next_instance_id(run_state.deck, card_id)])
+        return replace(
+            run_state,
+            deck=[*run_state.deck, _next_instance_id(run_state.deck, card_id)],
+        )
     if reward_id.startswith("card:"):
         card_id = reward_id.split(":", 1)[1]
         registry.cards().get(card_id)
-        return replace(run_state, deck=[*run_state.deck, _next_instance_id(run_state.deck, card_id)])
+        return replace(
+            run_state,
+            deck=[*run_state.deck, _next_instance_id(run_state.deck, card_id)],
+        )
     return run_state

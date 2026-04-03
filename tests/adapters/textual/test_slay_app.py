@@ -187,7 +187,12 @@ def test_hover_preview_shows_neow_relic_offer_detail() -> None:
     session = start_new_game_session(seed=5, preferred_character_id="ironclad")
     provider = StarterContentProvider(session.content_root)
     offer = opening_flow._build_offer(
-        "relic-offer", "free", "relic", provider, Random(0)
+        "relic-offer",
+        "free",
+        "relic",
+        provider,
+        Random(0),
+        session.opening_state.run_blueprint,
     )
     relic_name = provider.relics().get(str(offer.reward_payload["relic_id"])).name
     session = replace(
@@ -199,6 +204,19 @@ def test_hover_preview_shows_neow_relic_offer_detail() -> None:
     assert preview is not None
     assert relic_name in preview.plain
     assert "效果" in preview.plain
+
+
+def test_hover_preview_shows_relic_implementation_status() -> None:
+    session = replace(
+        start_session(seed=5),
+        menu_state=MenuState(mode="inspect_relics"),
+    )
+
+    preview = _hover_preview_renderable(session, "item:1")
+
+    assert preview is not None
+    assert "实现状态" in preview.plain
+    assert "implemented" in preview.plain
 
 
 def test_hover_preview_shows_neow_potion_offer_detail() -> None:
@@ -278,7 +296,12 @@ def test_hover_preview_shows_neow_curse_bonus_reward_details_and_curse_cost() ->
     session = start_new_game_session(seed=5, preferred_character_id="ironclad")
     provider = StarterContentProvider(session.content_root)
     offer = opening_flow._build_offer(
-        "curse-offer", "tradeoff", "curse_bonus", provider, Random(0)
+        "curse-offer",
+        "tradeoff",
+        "curse_bonus",
+        provider,
+        Random(0),
+        session.opening_state.run_blueprint,
     )
     cost_name = provider.cards().get(str(offer.cost_payload["card_id"])).name
     session = replace(
@@ -299,7 +322,9 @@ def test_hover_preview_shows_neow_curse_bonus_reward_details_and_curse_cost() ->
         assert "250" in preview.plain
         assert "金币" in preview.plain
     elif offer.reward_payload["reward_type"] == "relic":
-        localized_name = provider.relics().get(str(offer.reward_payload["relic_id"])).name
+        localized_name = (
+            provider.relics().get(str(offer.reward_payload["relic_id"])).name
+        )
         assert localized_name in preview.plain
         assert "效果" in preview.plain
     else:
@@ -1322,11 +1347,26 @@ def test_combat_summary_actions_show_discard_and_exhaust_counts() -> None:
             await pilot.pause()
             actions = app.query_one("#combat-summary-actions")
             assert actions.display is True
-            assert app.query_one("#combat-summary-action-draw", Static).render().plain == "抽牌堆：3 张"
-            assert app.query_one("#combat-summary-action-discard", Static).render().plain == "弃牌堆：2 张"
-            assert app.query_one("#combat-summary-action-exhaust", Static).render().plain == "消耗堆：1 张"
-            assert app.query_one("#player-status-action-relics", Static).render().plain == "遗物：燃烧之血、黑色之血"
-            assert app.query_one("#player-status-action-potions", Static).render().plain == "药水：火焰药水"
+            assert (
+                app.query_one("#combat-summary-action-draw", Static).render().plain
+                == "抽牌堆：3 张"
+            )
+            assert (
+                app.query_one("#combat-summary-action-discard", Static).render().plain
+                == "弃牌堆：2 张"
+            )
+            assert (
+                app.query_one("#combat-summary-action-exhaust", Static).render().plain
+                == "消耗堆：1 张"
+            )
+            assert (
+                app.query_one("#player-status-action-relics", Static).render().plain
+                == "遗物：燃烧之血、黑色之血"
+            )
+            assert (
+                app.query_one("#player-status-action-potions", Static).render().plain
+                == "药水：火焰药水"
+            )
 
     asyncio.run(scenario())
 
@@ -1380,7 +1420,9 @@ def test_clicking_combat_summary_action_opens_card_pile_preview() -> None:
             assert "1. 痛击" in preview_plain
             assert "2. 打击" in preview_plain
             assert summary.render().plain == initial_summary
-            assert action_list.get_option_at_index(0).prompt.plain == initial_first_prompt
+            assert (
+                action_list.get_option_at_index(0).prompt.plain == initial_first_prompt
+            )
 
     asyncio.run(scenario())
 
@@ -1415,7 +1457,9 @@ def test_hovering_combat_summary_action_opens_card_pile_preview() -> None:
     asyncio.run(scenario())
 
 
-def test_clicking_combat_summary_action_replaces_preview_without_changing_menu() -> None:
+def test_clicking_combat_summary_action_replaces_preview_without_changing_menu() -> (
+    None
+):
     base = start_session(seed=5)
     combat_state = CombatState.from_dict(base.room_state.payload["combat_state"])
     combat_state.draw_pile = ["anger#5"]
@@ -1590,7 +1634,9 @@ def test_combat_pile_preview_uses_real_draw_order_with_frozen_eye() -> None:
     combat_state.draw_pile = ["bash#2", "anger#1"]
     session = replace(
         base,
-        run_state=replace(base.run_state, relics=[*base.run_state.relics, "frozen_eye"]),
+        run_state=replace(
+            base.run_state, relics=[*base.run_state.relics, "frozen_eye"]
+        ),
         room_state=replace(
             base.room_state,
             payload={
@@ -1637,7 +1683,9 @@ def test_current_action_menu_uses_real_draw_order_with_frozen_eye() -> None:
     combat_state.draw_pile = ["bash#2", "anger#1"]
     session = replace(
         base,
-        run_state=replace(base.run_state, relics=[*base.run_state.relics, "frozen_eye"]),
+        run_state=replace(
+            base.run_state, relics=[*base.run_state.relics, "frozen_eye"]
+        ),
         room_state=replace(
             base.room_state,
             payload={
@@ -2194,6 +2242,7 @@ def test_hover_preview_shows_scaled_perfected_strike_damage_in_combat_menu() -> 
     assert "完美打击" in preview.plain
     assert "造成 16 伤害" in preview.plain
     assert "名字中有“打击”的牌" in preview.plain
+
 
 def test_hover_preview_keeps_card_effect_visible_at_default_size() -> None:
     base = start_session(seed=5)

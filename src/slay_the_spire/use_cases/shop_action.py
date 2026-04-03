@@ -5,6 +5,7 @@ from dataclasses import dataclass, replace
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.room_state import RoomState
 from slay_the_spire.domain.models.run_state import RunState
+from slay_the_spire.use_cases.apply_reward import apply_reward
 
 
 @dataclass(slots=True, frozen=True)
@@ -47,11 +48,15 @@ def _mark_offer_sold(items: object, offer_id: str) -> list[object]:
     return updated
 
 
-def _result(run_state: RunState, room_state: RoomState, message: str | None = None) -> ShopActionResult:
+def _result(
+    run_state: RunState, room_state: RoomState, message: str | None = None
+) -> ShopActionResult:
     return ShopActionResult(run_state=run_state, room_state=room_state, message=message)
 
 
-def shop_action(*, run_state: RunState, room_state: RoomState, action_id: str) -> ShopActionResult:
+def shop_action(
+    *, run_state: RunState, room_state: RoomState, action_id: str, registry
+) -> ShopActionResult:
     if room_state.room_type != "shop":
         raise ValueError("shop_action requires a shop room")
 
@@ -144,7 +149,11 @@ def shop_action(*, run_state: RunState, room_state: RoomState, action_id: str) -
             return _result(run_state, room_state, "该商品已购买。")
         price = offer.get("price")
         card_id = offer.get("card_id")
-        if not isinstance(price, int) or not isinstance(card_id, str) or run_state.gold < price:
+        if (
+            not isinstance(price, int)
+            or not isinstance(card_id, str)
+            or run_state.gold < price
+        ):
             return _result(run_state, room_state, "金币不足，无法购买该商品。")
         payload["cards"] = _mark_offer_sold(payload.get("cards"), offer_id)
         updated_run_state = replace(
@@ -173,13 +182,17 @@ def shop_action(*, run_state: RunState, room_state: RoomState, action_id: str) -
             return _result(run_state, room_state, "该商品已购买。")
         price = offer.get("price")
         relic_id = offer.get("relic_id")
-        if not isinstance(price, int) or not isinstance(relic_id, str) or run_state.gold < price:
+        if (
+            not isinstance(price, int)
+            or not isinstance(relic_id, str)
+            or run_state.gold < price
+        ):
             return _result(run_state, room_state, "金币不足，无法购买该商品。")
         payload["relics"] = _mark_offer_sold(payload.get("relics"), offer_id)
-        updated_run_state = replace(
-            run_state,
-            gold=run_state.gold - price,
-            relics=[*run_state.relics, relic_id],
+        updated_run_state = apply_reward(
+            run_state=replace(run_state, gold=run_state.gold - price),
+            reward_id=f"relic:{relic_id}",
+            registry=registry,
         )
         return _result(
             updated_run_state,
@@ -202,7 +215,11 @@ def shop_action(*, run_state: RunState, room_state: RoomState, action_id: str) -
             return _result(run_state, room_state, "该商品已购买。")
         price = offer.get("price")
         potion_id = offer.get("potion_id")
-        if not isinstance(price, int) or not isinstance(potion_id, str) or run_state.gold < price:
+        if (
+            not isinstance(price, int)
+            or not isinstance(potion_id, str)
+            or run_state.gold < price
+        ):
             return _result(run_state, room_state, "金币不足，无法购买该商品。")
         payload["potions"] = _mark_offer_sold(payload.get("potions"), offer_id)
         updated_run_state = replace(

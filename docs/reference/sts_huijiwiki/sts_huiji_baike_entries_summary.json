@@ -1,0 +1,44 @@
+{
+  "generated_at": "2026-04-03T07:47:26.776Z",
+  "source": "https://sts.huijiwiki.com/wiki/Index.php",
+  "scope": "百科大全内除更新历史/更新日志外的条目",
+  "total_entries": 910,
+  "empty_content_entries": [
+    {
+      "title": "敌人图鉴",
+      "url": "https://sts.huijiwiki.com/wiki/%E6%95%8C%E4%BA%BA%E5%9B%BE%E9%89%B4"
+    },
+    {
+      "title": "卡牌总览",
+      "url": "https://sts.huijiwiki.com/wiki/%E5%8D%A1%E7%89%8C%E6%80%BB%E8%A7%88"
+    },
+    {
+      "title": "能力查勘",
+      "url": "https://sts.huijiwiki.com/wiki/%E8%83%BD%E5%8A%9B%E6%9F%A5%E5%8B%98"
+    },
+    {
+      "title": "事件日志",
+      "url": "https://sts.huijiwiki.com/wiki/%E4%BA%8B%E4%BB%B6%E6%97%A5%E5%BF%97"
+    },
+    {
+      "title": "特殊",
+      "url": "https://sts.huijiwiki.com/wiki/%E6%97%A0%E8%89%B2%E7%89%B9%E6%AE%8A%E8%83%BD%E5%8A%9B%E7%89%8C"
+    },
+    {
+      "title": "药水小样",
+      "url": "https://sts.huijiwiki.com/wiki/%E8%8D%AF%E6%B0%B4%E5%B0%8F%E6%A0%B7"
+    },
+    {
+      "title": "遗物收藏",
+      "url": "https://sts.huijiwiki.com/wiki/%E9%81%97%E7%89%A9%E6%94%B6%E8%97%8F"
+    }
+  ],
+  "counts_by_source": {
+    "事件日志": 61,
+    "卡牌总览": 450,
+    "怪物图鉴": 53,
+    "能力查勘": 141,
+    "药水小样": 49,
+    "遗物收藏": 186
+  }
+}

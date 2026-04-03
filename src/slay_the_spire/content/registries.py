@@ -94,6 +94,18 @@ def _require_optional_str_list(value: object, field_name: str) -> list[str]:
     ]
 
 
+def _require_supported_str(
+    value: object,
+    field_name: str,
+    *,
+    allowed_values: frozenset[str],
+) -> str:
+    parsed = _require_str(value, field_name)
+    if parsed not in allowed_values:
+        raise ValueError(f"{field_name} must be a supported value")
+    return parsed
+
+
 @dataclass(slots=True, frozen=True)
 class CardDef:
     id: str
@@ -142,6 +154,12 @@ class RelicDef:
     disabled_actions: list[str] = field(default_factory=list)
     blocks_gold_gain: bool = False
     can_appear_in_shop: bool = True
+    rarity: str = ""
+    pools: list[str] = field(default_factory=list)
+    source_tags: list[str] = field(default_factory=list)
+    owner_character_ids: list[str] = field(default_factory=list)
+    implementation_status: str = ""
+    effect_blueprint: list[JsonDict] = field(default_factory=list)
 
 
 @dataclass(slots=True, frozen=True)
@@ -337,6 +355,13 @@ class EnemyRegistry(_BaseRegistry[EnemyDef]):
 
 
 class RelicRegistry(_BaseRegistry[RelicDef]):
+    _ALLOWED_RARITIES = frozenset(
+        {"starter", "common", "uncommon", "rare", "shop", "boss", "event", "special"}
+    )
+    _ALLOWED_IMPLEMENTATION_STATUSES = frozenset(
+        {"implemented", "partial", "placeholder"}
+    )
+
     def register(self, payload: Mapping[str, object]) -> RelicDef:
         record = self._build(payload)
         if record.id in self._items:
@@ -376,6 +401,36 @@ class RelicRegistry(_BaseRegistry[RelicDef]):
                 "can_appear_in_shop",
                 default=True,
             ),
+            rarity=_require_supported_str(
+                data.get("rarity"),
+                "rarity",
+                allowed_values=self._ALLOWED_RARITIES,
+            ),
+            pools=[
+                _require_str(item, "pools item")
+                for item in _require_list(data.get("pools"), "pools")
+            ],
+            source_tags=[
+                _require_str(item, "source_tags item")
+                for item in _require_list(data.get("source_tags"), "source_tags")
+            ],
+            owner_character_ids=[
+                _require_str(item, "owner_character_ids item")
+                for item in _require_list(
+                    data.get("owner_character_ids"), "owner_character_ids"
+                )
+            ],
+            implementation_status=_require_supported_str(
+                data.get("implementation_status"),
+                "implementation_status",
+                allowed_values=self._ALLOWED_IMPLEMENTATION_STATUSES,
+            ),
+            effect_blueprint=[
+                dict(item)
+                for item in _require_record_list(
+                    data.get("effect_blueprint"), "effect_blueprint"
+                )
+            ],
         )
 
 

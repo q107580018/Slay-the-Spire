@@ -3,7 +3,12 @@ from __future__ import annotations
 from dataclasses import replace
 from pathlib import Path
 
-from slay_the_spire.app.session import MenuState, SessionState, route_menu_choice, start_session
+from slay_the_spire.app.session import (
+    MenuState,
+    SessionState,
+    route_menu_choice,
+    start_session,
+)
 from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.domain.map.map_generator import generate_act_state
 from slay_the_spire.domain.models.room_state import RoomState
@@ -32,7 +37,7 @@ def _force_act1_boss_reward_complete(session: SessionState) -> SessionState:
                     "generated_by": "boss_reward_generator",
                     "gold_reward": 99,
                     "claimed_gold": False,
-                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"],
+                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper"],
                     "claimed_relic_id": None,
                 },
             },
@@ -83,7 +88,7 @@ def test_act2_boss_reward_finishes_run_with_victory() -> None:
                     "generated_by": "boss_reward_generator",
                     "gold_reward": 120,
                     "claimed_gold": False,
-                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"],
+                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper"],
                     "claimed_relic_id": None,
                 },
             },
@@ -107,4 +112,6 @@ def test_act2_boss_reward_finishes_run_with_victory() -> None:
     assert session.run_phase == "victory"
     assert session.run_state.current_act_id == "act2"
     assert session.room_state.payload["boss_rewards"]["claimed_gold"] is True
-    assert session.room_state.payload["boss_rewards"]["claimed_relic_id"] == "black_blood"
+    assert (
+        session.room_state.payload["boss_rewards"]["claimed_relic_id"] == "black_blood"
+    )

@@ -15,6 +15,7 @@ from slay_the_spire.domain.effects.effect_types import (
     copy_effect,
     damage_effect,
 )
+from slay_the_spire.domain.hooks.hook_dispatcher import dispatch_hook
 from slay_the_spire.domain.hooks.hook_types import HookRegistration
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
@@ -474,6 +475,7 @@ def start_turn(
     )
     _clear_temporary_power(state, "flame_barrier")
     state.energy = energy_per_turn
+    dispatch_hook(state, "on_turn_start", hook_registrations)
     _apply_start_turn_powers(state)
     _apply_brutality(state)
     _draw_cards(

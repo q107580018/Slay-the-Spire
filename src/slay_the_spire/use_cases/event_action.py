@@ -6,6 +6,7 @@ from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.room_state import RoomState
 from slay_the_spire.domain.models.run_state import RunState
 from slay_the_spire.ports.content_provider import ContentProviderPort
+from slay_the_spire.use_cases.apply_reward import apply_reward
 
 
 @dataclass(slots=True, frozen=True)
@@ -15,8 +16,12 @@ class EventActionResult:
     message: str | None = None
 
 
-def _result(run_state: RunState, room_state: RoomState, message: str | None = None) -> EventActionResult:
-    return EventActionResult(run_state=run_state, room_state=room_state, message=message)
+def _result(
+    run_state: RunState, room_state: RoomState, message: str | None = None
+) -> EventActionResult:
+    return EventActionResult(
+        run_state=run_state, room_state=room_state, message=message
+    )
 
 
 def _upgrade_options(run_state: RunState, registry: ContentProviderPort) -> list[str]:
@@ -38,13 +43,17 @@ def _next_instance_id(deck: list[str], card_id: str) -> str:
 
 
 def _with_added_card(run_state: RunState, card_id: str) -> RunState:
-    return replace(run_state, deck=[*run_state.deck, _next_instance_id(run_state.deck, card_id)])
+    return replace(
+        run_state, deck=[*run_state.deck, _next_instance_id(run_state.deck, card_id)]
+    )
 
 
-def _with_added_relic(run_state: RunState, relic_id: str) -> RunState:
-    if relic_id in run_state.relics:
-        return run_state
-    return replace(run_state, relics=[*run_state.relics, relic_id])
+def _with_added_relic(
+    run_state: RunState, relic_id: str, registry: ContentProviderPort
+) -> RunState:
+    return apply_reward(
+        run_state=run_state, reward_id=f"relic:{relic_id}", registry=registry
+    )
 
 
 def _event_gold_bonus(run_state: RunState, amount: int) -> int:
@@ -133,7 +142,9 @@ def _start_event_subflow(
     )
 
 
-def _outcome_for_choice(room_state: RoomState, choice_id: str, registry: ContentProviderPort) -> dict[str, object]:
+def _outcome_for_choice(
+    room_state: RoomState, choice_id: str, registry: ContentProviderPort
+) -> dict[str, object]:
     event_id = room_state.payload.get("event_id")
     if not isinstance(event_id, str):
         raise ValueError("event room is missing event_id")
@@ -173,7 +184,10 @@ def _resolve_upgrade_selection(
         return _result(run_state, room_state)
     _old_card_id, suffix = selected_card.split("#", 1)
     upgraded_instance_id = f"{upgraded_card_id}#{suffix}"
-    updated_deck = [upgraded_instance_id if card == selected_card else card for card in run_state.deck]
+    updated_deck = [
+        upgraded_instance_id if card == selected_card else card
+        for card in run_state.deck
+    ]
     room = _complete_event_room(
         room_state,
         payload,
@@ -247,7 +261,11 @@ def event_action(
         return _result(run_state, room_state)
     choice_id = action_id.removeprefix("choice:")
     outcome = _outcome_for_choice(room_state, choice_id, registry)
-    effect = dict(outcome.get("effect", {})) if isinstance(outcome.get("effect"), dict) else {}
+    effect = (
+        dict(outcome.get("effect", {}))
+        if isinstance(outcome.get("effect"), dict)
+        else {}
+    )
     result = str(outcome.get("result", "nothing"))
     result_text = str(outcome.get("result_text", result))
     payload["choice_id"] = choice_id
@@ -258,7 +276,12 @@ def event_action(
         if not options:
             return _result(
                 run_state,
-                _complete_event_room(room_state, payload, result="nothing", result_text="当前没有可升级的卡牌。"),
+                _complete_event_room(
+                    room_state,
+                    payload,
+                    result="nothing",
+                    result_text="当前没有可升级的卡牌。",
+                ),
             )
         return _result(
             run_state,
@@ -278,7 +301,12 @@ def event_action(
         if not candidates:
             return _result(
                 run_state,
-                _complete_event_room(room_state, payload, result="nothing", result_text="当前没有可移除的卡牌。"),
+                _complete_event_room(
+                    room_state,
+                    payload,
+                    result="nothing",
+                    result_text="当前没有可移除的卡牌。",
+                ),
             )
         return _result(
             run_state,
@@ -305,7 +333,9 @@ def event_action(
         )
         return _result(
             updated_run_state,
-            _complete_event_room(room_state, payload, result=result, result_text=result_text),
+            _complete_event_room(
+                room_state, payload, result=result, result_text=result_text
+            ),
         )
     if effect_type == "heal_percent":
         heal_percent = _effect_int(effect, "heal_percent")
@@ -316,7 +346,9 @@ def event_action(
         )
         return _result(
             updated_run_state,
-            _complete_event_room(room_state, payload, result=result, result_text=result_text),
+            _complete_event_room(
+                room_state, payload, result=result, result_text=result_text
+            ),
         )
     if effect_type == "increase_max_hp":
         amount = _effect_int(effect, "amount")
@@ -327,7 +359,9 @@ def event_action(
         )
         return _result(
             updated_run_state,
-            _complete_event_room(room_state, payload, result=result, result_text=result_text),
+            _complete_event_room(
+                room_state, payload, result=result, result_text=result_text
+            ),
         )
     if effect_type == "gain_gold_and_lose_hp":
         gold_amount = _event_gold_bonus(run_state, _effect_int(effect, "gain_gold"))
@@ -338,7 +372,9 @@ def event_action(
         )
         return _result(
             updated_run_state,
-            _complete_event_room(room_state, payload, result=result, result_text=result_text),
+            _complete_event_room(
+                room_state, payload, result=result, result_text=result_text
+            ),
         )
     if effect_type == "gain_gold":
         gold_amount = _event_gold_bonus(run_state, _effect_int(effect, "gain_gold"))
@@ -348,7 +384,9 @@ def event_action(
         )
         return _result(
             updated_run_state,
-            _complete_event_room(room_state, payload, result=result, result_text=result_text),
+            _complete_event_room(
+                room_state, payload, result=result, result_text=result_text
+            ),
         )
     if effect_type == "gain_gold_and_add_curse":
         gold_amount = _event_gold_bonus(run_state, _effect_int(effect, "gain_gold"))
@@ -358,12 +396,16 @@ def event_action(
             updated_run_state = _with_added_card(updated_run_state, curse_id)
         return _result(
             updated_run_state,
-            _complete_event_room(room_state, payload, result=result, result_text=result_text),
+            _complete_event_room(
+                room_state, payload, result=result, result_text=result_text
+            ),
         )
     if effect_type == "gain_relic_and_reduce_max_hp":
         relic_id = str(effect.get("relic_id", ""))
         max_hp_loss = _effect_int(effect, "lose_max_hp")
-        updated_run_state = _with_added_relic(run_state, relic_id) if relic_id else run_state
+        updated_run_state = (
+            _with_added_relic(run_state, relic_id, registry) if relic_id else run_state
+        )
         next_max_hp = max(1, updated_run_state.max_hp - max_hp_loss)
         updated_run_state = replace(
             updated_run_state,
@@ -372,38 +414,52 @@ def event_action(
         )
         return _result(
             updated_run_state,
-            _complete_event_room(room_state, payload, result=result, result_text=result_text),
+            _complete_event_room(
+                room_state, payload, result=result, result_text=result_text
+            ),
         )
     if effect_type == "gain_relic_and_lose_hp":
         relic_id = str(effect.get("relic_id", ""))
         hp_loss = _effect_int(effect, "lose_hp")
-        updated_run_state = _with_added_relic(run_state, relic_id) if relic_id else run_state
+        updated_run_state = (
+            _with_added_relic(run_state, relic_id, registry) if relic_id else run_state
+        )
         updated_run_state = replace(
             updated_run_state,
             current_hp=max(0, updated_run_state.current_hp - hp_loss),
         )
         return _result(
             updated_run_state,
-            _complete_event_room(room_state, payload, result=result, result_text=result_text),
+            _complete_event_room(
+                room_state, payload, result=result, result_text=result_text
+            ),
         )
     if effect_type == "gain_relic_and_add_curse":
         relic_id = str(effect.get("relic_id", ""))
         curse_id = str(effect.get("curse_id", ""))
-        updated_run_state = _with_added_relic(run_state, relic_id) if relic_id else run_state
+        updated_run_state = (
+            _with_added_relic(run_state, relic_id, registry) if relic_id else run_state
+        )
         if curse_id:
             updated_run_state = _with_added_card(updated_run_state, curse_id)
         return _result(
             updated_run_state,
-            _complete_event_room(room_state, payload, result=result, result_text=result_text),
+            _complete_event_room(
+                room_state, payload, result=result, result_text=result_text
+            ),
         )
     if effect_type == "lose_gold":
         gold_loss = _effect_int(effect, "lose_gold")
         updated_run_state = replace(run_state, gold=max(0, run_state.gold - gold_loss))
         return _result(
             updated_run_state,
-            _complete_event_room(room_state, payload, result=result, result_text=result_text),
+            _complete_event_room(
+                room_state, payload, result=result, result_text=result_text
+            ),
         )
     return _result(
         run_state,
-        _complete_event_room(room_state, payload, result=result, result_text=result_text),
+        _complete_event_room(
+            room_state, payload, result=result, result_text=result_text
+        ),
     )

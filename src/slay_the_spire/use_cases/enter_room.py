@@ -16,6 +16,9 @@ from slay_the_spire.shared.rng import rng_for_room, weighted_choice
 
 _SUPPORTED_ROOM_TYPES = {"combat", "elite", "event", "boss", "shop", "rest", "treasure"}
 _TREASURE_FALLBACK_RELIC_ID = "circlet"
+_COMMON_RELIC_RARITY = "common"
+_UNCOMMON_RELIC_RARITY = "uncommon"
+_RARE_RELIC_RARITY = "rare"
 
 
 def _room_type_for_node(act_state: ActState, node_id: str) -> str:
@@ -154,8 +157,8 @@ def _build_combat_state(
         effect_queue=[],
         log=[],
     )
-    state = start_turn(state)
     registrations = build_runtime_hook_registrations(run_state, registry)
+    state = start_turn(state, hook_registrations=registrations, registry=registry)
     dispatch_hook(state, "on_combat_start", registrations)
     resolve_effect_queue(state, hook_registrations=registrations)
     return state, encounter_id
@@ -175,19 +178,53 @@ def _sample_ids(ids: list[str], *, count: int, rng) -> list[str]:
     return working[:count]
 
 
+def _next_relic_from_sequence(*, run_state: RunState, pool_id: str) -> str | None:
+    sequence = run_state.relic_sequences.get(pool_id, [])
+    position = run_state.relic_sequence_positions.get(pool_id, 0)
+    while position < len(sequence):
+        relic_id = sequence[position]
+        position += 1
+        run_state.relic_sequence_positions[pool_id] = position
+        if relic_id not in run_state.relics:
+            return relic_id
+    run_state.relic_sequence_positions[pool_id] = position
+    return None
+
+
+def _peek_relic_from_sequence(*, run_state: RunState, pool_id: str) -> str | None:
+    sequence = run_state.relic_sequences.get(pool_id, [])
+    position = run_state.relic_sequence_positions.get(pool_id, 0)
+    while position < len(sequence):
+        relic_id = sequence[position]
+        if relic_id not in run_state.relics:
+            return relic_id
+        position += 1
+    return None
+
+
+def _roll_treasure_relic_rarity(*, room_id: str, seed: int) -> str:
+    rng = rng_for_room(seed=seed, room_id=room_id, category="treasure_relic_rarity")
+    roll = rng.randint(1, 100)
+    if roll <= 3:
+        return _RARE_RELIC_RARITY
+    if roll <= 40:
+        return _UNCOMMON_RELIC_RARITY
+    return _COMMON_RELIC_RARITY
+
+
 def _build_shop_payload(
     run_state: RunState, *, room_id: str, registry: ContentProviderPort
 ) -> dict[str, object]:
     card_ids = [
         card.id for card in registry.cards().all() if "shop" in card.acquisition_tags
     ]
-    relic_ids = [
-        relic.id for relic in registry.relics().all() if relic.can_appear_in_shop
-    ]
     potion_ids = [potion.id for potion in registry.potions().all()]
     card_rng = _offer_rng(run_state, room_id, "cards")
-    relic_rng = _offer_rng(run_state, room_id, "relics")
     potion_rng = _offer_rng(run_state, room_id, "potions")
+    shop_relic_id = (
+        _next_relic_from_sequence(run_state=run_state, pool_id="shop")
+        or _TREASURE_FALLBACK_RELIC_ID
+    )
 
     card_prices = {"strike": 50, "defend": 50, "bash": 75}
     cards = [
@@ -200,12 +237,7 @@ def _build_shop_payload(
             _sample_ids(card_ids, count=3, rng=card_rng), start=1
         )
     ]
-    relics = [
-        {"offer_id": f"relic-{index}", "relic_id": relic_id, "price": 150}
-        for index, relic_id in enumerate(
-            _sample_ids(relic_ids, count=1, rng=relic_rng), start=1
-        )
-    ]
+    relics = [{"offer_id": "relic-1", "relic_id": shop_relic_id, "price": 150}]
     potions = [
         {"offer_id": f"potion-{index}", "potion_id": potion_id, "price": 60}
         for index, potion_id in enumerate(
@@ -220,70 +252,18 @@ def _build_shop_payload(
     }
 
 
-def _build_event_payload(
-    run_state: RunState,
-    *,
-    room_id: str,
-    event_pool_id: str,
-    registry: ContentProviderPort,
-) -> dict[str, object]:
-    event_entries = [
-        entry
-        for entry in registry.event_pool_entries(event_pool_id)
-        if not (entry.once_per_run and entry.member_id in run_state.seen_event_ids)
-    ]
-    if not event_entries:
-        raise ValueError(f"event pool {event_pool_id} must contain at least one event")
-    rng = _offer_rng(run_state, room_id, "event")
-    event_id = weighted_choice(
-        [(entry.member_id, entry.weight) for entry in event_entries],
-        rng=rng,
-    )
-    if event_id not in run_state.seen_event_ids:
-        run_state.seen_event_ids.append(event_id)
-    return {"event_pool_id": event_pool_id, "event_id": event_id}
-
-
-def _build_treasure_payload(
-    run_state: RunState, *, room_id: str, registry: ContentProviderPort
-) -> dict[str, object]:
-    candidate_ids = _treasure_relic_candidate_ids(
-        run_state=run_state, registry=registry
-    )
-    if not candidate_ids:
-        registry.relics().get(_TREASURE_FALLBACK_RELIC_ID)
-        return {"treasure_relic_id": _TREASURE_FALLBACK_RELIC_ID}
-    rng = _offer_rng(run_state, room_id, "treasure_relic")
-    return {"treasure_relic_id": rng.choice(sorted(candidate_ids))}
-
-
-def _treasure_relic_candidate_ids(
-    *, run_state: RunState, registry: ContentProviderPort
-) -> list[str]:
-    return [
-        relic.id
-        for relic in registry.relics().all()
-        if relic.id != _TREASURE_FALLBACK_RELIC_ID
-        and not relic.can_appear_in_shop
-        and relic.id not in run_state.relics
-    ]
-
-
-def _mark_node_visited(act_state: ActState, node_id: str) -> None:
-    act_state.current_node_id = node_id
-    if node_id not in act_state.visited_node_ids:
-        act_state.visited_node_ids.append(node_id)
-
-
-def enter_room(
-    run_state: RunState,
+def _room_payload_for_entry(
     act_state: ActState,
-    node_id: str,
+    *,
+    current_node: ActNodeState,
+    room_id: str,
+    room_kind: str,
+    run_state: RunState,
     registry: ContentProviderPort,
-) -> RoomState:
-    current_node = act_state.get_node(node_id)
-    room_kind = _room_type_for_node(act_state, current_node.node_id)
-    room_id = f"{act_state.act_id}:{current_node.node_id}"
+) -> dict[str, object]:
+    cached_payload = act_state.room_payloads.get(room_id)
+    if cached_payload is not None:
+        return dict(cached_payload)
 
     payload: dict[str, object] = {
         "act_id": act_state.act_id,
@@ -332,6 +312,72 @@ def enter_room(
         payload.update(
             _build_treasure_payload(run_state, room_id=room_id, registry=registry)
         )
+
+    if room_kind in {"shop", "treasure"}:
+        act_state.room_payloads[room_id] = dict(payload)
+    return payload
+
+
+def _build_event_payload(
+    run_state: RunState,
+    *,
+    room_id: str,
+    event_pool_id: str,
+    registry: ContentProviderPort,
+) -> dict[str, object]:
+    event_entries = [
+        entry
+        for entry in registry.event_pool_entries(event_pool_id)
+        if not (entry.once_per_run and entry.member_id in run_state.seen_event_ids)
+    ]
+    if not event_entries:
+        raise ValueError(f"event pool {event_pool_id} must contain at least one event")
+    rng = _offer_rng(run_state, room_id, "event")
+    event_id = weighted_choice(
+        [(entry.member_id, entry.weight) for entry in event_entries],
+        rng=rng,
+    )
+    if event_id not in run_state.seen_event_ids:
+        run_state.seen_event_ids.append(event_id)
+    return {"event_pool_id": event_pool_id, "event_id": event_id}
+
+
+def _build_treasure_payload(
+    run_state: RunState, *, room_id: str, registry: ContentProviderPort
+) -> dict[str, object]:
+    treasure_relic_id = _next_relic_from_sequence(
+        run_state=run_state,
+        pool_id=_roll_treasure_relic_rarity(room_id=room_id, seed=run_state.seed),
+    )
+    if treasure_relic_id is None:
+        registry.relics().get(_TREASURE_FALLBACK_RELIC_ID)
+        return {"treasure_relic_id": _TREASURE_FALLBACK_RELIC_ID}
+    return {"treasure_relic_id": treasure_relic_id}
+
+
+def _mark_node_visited(act_state: ActState, node_id: str) -> None:
+    act_state.current_node_id = node_id
+    if node_id not in act_state.visited_node_ids:
+        act_state.visited_node_ids.append(node_id)
+
+
+def enter_room(
+    run_state: RunState,
+    act_state: ActState,
+    node_id: str,
+    registry: ContentProviderPort,
+) -> RoomState:
+    current_node = act_state.get_node(node_id)
+    room_kind = _room_type_for_node(act_state, current_node.node_id)
+    room_id = f"{act_state.act_id}:{current_node.node_id}"
+    payload = _room_payload_for_entry(
+        act_state,
+        current_node=current_node,
+        room_id=room_id,
+        room_kind=room_kind,
+        run_state=run_state,
+        registry=registry,
+    )
     room_state = RoomState(
         room_id=room_id,
         room_type=room_kind,

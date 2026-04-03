@@ -20,7 +20,12 @@ def _path_with_shop_rest_and_treasure(act_state) -> list[str]:
         next_path = [*path, node_id]
         room_types = [act_state.get_node(item).room_type for item in next_path]
         if not node.next_node_ids:
-            if "shop" in room_types and "rest" in room_types and "treasure" in room_types and room_types[-1] == "boss":
+            if (
+                "shop" in room_types
+                and "rest" in room_types
+                and "treasure" in room_types
+                and room_types[-1] == "boss"
+            ):
                 found = next_path
             return
         for next_node_id in node.next_node_ids:
@@ -28,12 +33,16 @@ def _path_with_shop_rest_and_treasure(act_state) -> list[str]:
 
     dfs(act_state.current_node_id, [])
     if found is None:
-        raise AssertionError("expected a path containing shop, rest, treasure, and boss")
+        raise AssertionError(
+            "expected a path containing shop, rest, treasure, and boss"
+        )
     return found
 
 
 def _complete_current_room(session: SessionState) -> SessionState:
-    room_state = replace(session.room_state, stage="completed", is_resolved=True, rewards=[])
+    room_state = replace(
+        session.room_state, stage="completed", is_resolved=True, rewards=[]
+    )
     return replace(session, room_state=room_state)
 
 
@@ -54,7 +63,9 @@ def _shop_leave_choice(room_state: RoomState) -> str:
     cards = room_state.payload.get("cards", [])
     relics = room_state.payload.get("relics", [])
     potions = room_state.payload.get("potions", [])
-    offer_count = sum(len(items) for items in (cards, relics, potions) if isinstance(items, list))
+    offer_count = sum(
+        len(items) for items in (cards, relics, potions) if isinstance(items, list)
+    )
     return str(offer_count + 2)
 
 
@@ -77,7 +88,9 @@ def test_main_new_run_dispatches_first_room_to_textual(monkeypatch) -> None:
         recorded["seed"] = session.opening_state.seed
         recorded["selected_character_id"] = session.opening_state.selected_character_id
 
-    monkeypatch.setattr("slay_the_spire.app.cli.run_textual_session", fake_run_textual_session)
+    monkeypatch.setattr(
+        "slay_the_spire.app.cli.run_textual_session", fake_run_textual_session
+    )
 
     exit_code = main(["new", "--seed", "1"])
 
@@ -90,7 +103,9 @@ def test_main_new_run_dispatches_first_room_to_textual(monkeypatch) -> None:
     }
 
 
-def test_single_act_smoke_simulates_map_shop_rest_and_boss_reward_transition_into_act2() -> None:
+def test_single_act_smoke_simulates_map_shop_rest_and_boss_reward_transition_into_act2() -> (
+    None
+):
     session = start_session(seed=1)
     _running, session, _message = route_menu_choice("3", session=session)
     _running, session, _message = route_menu_choice("5", session=session)
@@ -107,11 +122,15 @@ def test_single_act_smoke_simulates_map_shop_rest_and_boss_reward_transition_int
             _running, session, _message = route_menu_choice("1", session=session)
             _running, session, _message = route_menu_choice("5", session=session)
         if session.room_state.room_type == "shop":
-            _running, session, _message = route_menu_choice(_shop_inspect_choice(session.room_state), session=session)
+            _running, session, _message = route_menu_choice(
+                _shop_inspect_choice(session.room_state), session=session
+            )
             _running, session, _message = route_menu_choice("1", session=session)
             _running, session, _message = route_menu_choice("1", session=session)
             _running, session, _message = route_menu_choice("5", session=session)
-            _running, session, _message = route_menu_choice(_shop_leave_choice(session.room_state), session=session)
+            _running, session, _message = route_menu_choice(
+                _shop_leave_choice(session.room_state), session=session
+            )
         elif session.room_state.room_type == "rest":
             _running, session, _message = route_menu_choice("4", session=session)
             session = _inspect_relics_and_return_to_parent(session)
@@ -140,13 +159,15 @@ def test_single_act_smoke_simulates_map_shop_rest_and_boss_reward_transition_int
                     "generated_by": "boss_reward_generator",
                     "gold_reward": 99,
                     "claimed_gold": False,
-                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"],
+                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper"],
                     "claimed_relic_id": None,
                 },
             },
         ),
     )
-    expected_boss_gold = 99 + (99 // 4 if "golden_idol" in session.run_state.relics else 0)
+    expected_boss_gold = 99 + (
+        99 // 4 if "golden_idol" in session.run_state.relics else 0
+    )
     gold_before_boss_reward = session.run_state.gold
     deck_before_boss_reward = list(session.run_state.deck)
 
@@ -204,11 +225,15 @@ def test_single_act_smoke_boss_room_uses_act1_bosses_and_hexaghost() -> None:
             _running, session, _message = route_menu_choice("1", session=session)
             _running, session, _message = route_menu_choice("5", session=session)
         if session.room_state.room_type == "shop":
-            _running, session, _message = route_menu_choice(_shop_inspect_choice(session.room_state), session=session)
+            _running, session, _message = route_menu_choice(
+                _shop_inspect_choice(session.room_state), session=session
+            )
             _running, session, _message = route_menu_choice("1", session=session)
             _running, session, _message = route_menu_choice("1", session=session)
             _running, session, _message = route_menu_choice("5", session=session)
-            _running, session, _message = route_menu_choice(_shop_leave_choice(session.room_state), session=session)
+            _running, session, _message = route_menu_choice(
+                _shop_leave_choice(session.room_state), session=session
+            )
         elif session.room_state.room_type == "rest":
             _running, session, _message = route_menu_choice("4", session=session)
             session = _inspect_relics_and_return_to_parent(session)

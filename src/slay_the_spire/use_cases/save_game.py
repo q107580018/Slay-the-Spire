@@ -10,7 +10,7 @@ from slay_the_spire.domain.models.run_state import RunState
 from slay_the_spire.ports.save_repository import SaveRepositoryPort
 from slay_the_spire.shared.types import JsonDict
 
-SAVE_SCHEMA_VERSION = 2
+SAVE_SCHEMA_VERSION = 3
 
 
 class SavedGameDocument(TypedDict):
@@ -59,7 +59,9 @@ def build_save_document(
 ) -> SavedGameDocument:
     room_state_dict = None if room_state is None else room_state.to_dict()
     room_combat_state_dict = _room_combat_state_dict(room_state)
-    top_level_combat_state_dict = None if combat_state is None else combat_state.to_dict()
+    top_level_combat_state_dict = (
+        None if combat_state is None else combat_state.to_dict()
+    )
     room_state_dict, combat_state_dict = _normalize_combat_sources(
         room_state_dict=room_state_dict,
         room_combat_state_dict=room_combat_state_dict,

@@ -6,7 +6,7 @@ from typing import Mapping
 
 from slay_the_spire.shared.types import JsonDict
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 def _require_int(value: object, field_name: str) -> int:
@@ -34,6 +34,26 @@ def _require_mapping(value: object) -> Mapping[str, object]:
     return value
 
 
+def _require_str_list_mapping(value: object, field_name: str) -> dict[str, list[str]]:
+    mapping = _require_mapping(value)
+    parsed: dict[str, list[str]] = {}
+    for key, item in mapping.items():
+        parsed[_require_str(key, f"{field_name} key")] = _require_str_list(
+            item, f"{field_name}.{key}"
+        )
+    return parsed
+
+
+def _require_int_mapping(value: object, field_name: str) -> dict[str, int]:
+    mapping = _require_mapping(value)
+    parsed: dict[str, int] = {}
+    for key, item in mapping.items():
+        parsed[_require_str(key, f"{field_name} key")] = _require_int(
+            item, f"{field_name}.{key}"
+        )
+    return parsed
+
+
 def _require_schema_version(value: object) -> int:
     if not isinstance(value, int) or isinstance(value, bool):
         raise TypeError("schema_version must be an int")
@@ -55,6 +75,8 @@ class RunState:
     seen_event_ids: list[str] = field(default_factory=list)
     card_removal_count: int = 0
     rare_card_reward_offset: int = -5
+    relic_sequences: dict[str, list[str]] = field(default_factory=dict)
+    relic_sequence_positions: dict[str, int] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         self.seed = _require_int(self.seed, "seed")
@@ -62,8 +84,12 @@ class RunState:
         self.current_hp = _require_int(self.current_hp, "current_hp")
         self.max_hp = _require_int(self.max_hp, "max_hp")
         self.gold = _require_int(self.gold, "gold")
-        self.card_removal_count = _require_int(self.card_removal_count, "card_removal_count")
-        self.rare_card_reward_offset = _require_int(self.rare_card_reward_offset, "rare_card_reward_offset")
+        self.card_removal_count = _require_int(
+            self.card_removal_count, "card_removal_count"
+        )
+        self.rare_card_reward_offset = _require_int(
+            self.rare_card_reward_offset, "rare_card_reward_offset"
+        )
         if self.current_act_id is not None:
             self.current_act_id = _require_str(self.current_act_id, "current_act_id")
             if not self.current_act_id:
@@ -86,6 +112,12 @@ class RunState:
         self.relics = _require_str_list(self.relics, "relics")
         self.potions = _require_str_list(self.potions, "potions")
         self.seen_event_ids = _require_str_list(self.seen_event_ids, "seen_event_ids")
+        self.relic_sequences = _require_str_list_mapping(
+            self.relic_sequences, "relic_sequences"
+        )
+        self.relic_sequence_positions = _require_int_mapping(
+            self.relic_sequence_positions, "relic_sequence_positions"
+        )
 
     @classmethod
     def new(cls, *, character_id: str, seed: int) -> RunState:
@@ -106,6 +138,11 @@ class RunState:
             "seen_event_ids": list(self.seen_event_ids),
             "card_removal_count": self.card_removal_count,
             "rare_card_reward_offset": self.rare_card_reward_offset,
+            "relic_sequences": {
+                pool_id: list(relic_ids)
+                for pool_id, relic_ids in self.relic_sequences.items()
+            },
+            "relic_sequence_positions": dict(self.relic_sequence_positions),
         }
 
     @classmethod
@@ -127,7 +164,19 @@ class RunState:
             deck=_require_str_list(data.get("deck", []), "deck"),
             relics=_require_str_list(data.get("relics", []), "relics"),
             potions=_require_str_list(data.get("potions", []), "potions"),
-            seen_event_ids=_require_str_list(data.get("seen_event_ids", []), "seen_event_ids"),
-            card_removal_count=_require_int(data.get("card_removal_count", 0), "card_removal_count"),
-            rare_card_reward_offset=_require_int(data.get("rare_card_reward_offset", -5), "rare_card_reward_offset"),
+            seen_event_ids=_require_str_list(
+                data.get("seen_event_ids", []), "seen_event_ids"
+            ),
+            card_removal_count=_require_int(
+                data.get("card_removal_count", 0), "card_removal_count"
+            ),
+            rare_card_reward_offset=_require_int(
+                data.get("rare_card_reward_offset", -5), "rare_card_reward_offset"
+            ),
+            relic_sequences=_require_str_list_mapping(
+                data.get("relic_sequences", {}), "relic_sequences"
+            ),
+            relic_sequence_positions=_require_int_mapping(
+                data.get("relic_sequence_positions", {}), "relic_sequence_positions"
+            ),
         )

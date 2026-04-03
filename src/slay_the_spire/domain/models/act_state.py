@@ -77,7 +77,9 @@ class ActNodeState:
             raise ValueError("room_type must not be empty")
         if not isinstance(self.next_node_ids, list):
             raise TypeError("next_node_ids must be a list")
-        self.next_node_ids = [_require_str(item, "next_node_ids item") for item in self.next_node_ids]
+        self.next_node_ids = [
+            _require_str(item, "next_node_ids item") for item in self.next_node_ids
+        ]
         if len(set(self.next_node_ids)) != len(self.next_node_ids):
             raise ValueError("next_node_ids must be unique")
 
@@ -97,14 +99,18 @@ class ActNodeState:
         schema_version = _require_schema_version(data.get("schema_version"))
         if schema_version != SCHEMA_VERSION:
             raise ValueError("unsupported schema_version for ActNodeState")
-        next_node_ids = _require_list(_require_field(data, "next_node_ids"), "next_node_ids")
+        next_node_ids = _require_list(
+            _require_field(data, "next_node_ids"), "next_node_ids"
+        )
         return cls(
             schema_version=SCHEMA_VERSION,
             node_id=_require_str(data["node_id"], "node_id"),
             row=_require_int(_require_field(data, "row"), "row"),
             col=_require_int(_require_field(data, "col"), "col"),
             room_type=_require_str(_require_field(data, "room_type"), "room_type"),
-            next_node_ids=[_require_str(item, "next_node_ids item") for item in next_node_ids],
+            next_node_ids=[
+                _require_str(item, "next_node_ids item") for item in next_node_ids
+            ],
         )
 
 
@@ -119,7 +125,10 @@ class ActState:
     elite_pool_id: str | None = None
     boss_pool_id: str | None = None
     event_pool_id: str | None = None
-    _node_by_id: dict[str, ActNodeState] = field(init=False, repr=False, compare=False, default_factory=dict)
+    room_payloads: dict[str, JsonDict] = field(default_factory=dict)
+    _node_by_id: dict[str, ActNodeState] = field(
+        init=False, repr=False, compare=False, default_factory=dict
+    )
 
     def __post_init__(self) -> None:
         self.schema_version = _require_schema_version(self.schema_version)
@@ -136,10 +145,22 @@ class ActState:
         if not isinstance(self.visited_node_ids, list):
             raise TypeError("visited_node_ids must be a list")
         self.visited_node_ids = list(self.visited_node_ids)
+        if not isinstance(self.room_payloads, Mapping):
+            raise TypeError("room_payloads must be a mapping")
+        self.room_payloads = {
+            _require_str(node_id, "room_payloads key"): dict(
+                _require_mapping(payload, f"room_payloads.{node_id}")
+            )
+            for node_id, payload in self.room_payloads.items()
+        }
         self._refresh_node_index()
         if self.current_node_id not in self._node_by_id:
             raise ValueError("current_node_id must exist in nodes")
-        invalid_visited = [node_id for node_id in self.visited_node_ids if node_id not in self._node_by_id]
+        invalid_visited = [
+            node_id
+            for node_id in self.visited_node_ids
+            if node_id not in self._node_by_id
+        ]
         if invalid_visited:
             raise ValueError("visited_node_ids must exist in nodes")
         dangling_next_node_ids = [
@@ -176,8 +197,7 @@ class ActState:
         for node in self.nodes:
             rows.setdefault(node.row, []).append(node)
         return tuple(
-            tuple(sorted(rows[row], key=lambda node: node.col))
-            for row in sorted(rows)
+            tuple(sorted(rows[row], key=lambda node: node.col)) for row in sorted(rows)
         )
 
     def to_dict(self) -> JsonDict:
@@ -191,6 +211,10 @@ class ActState:
             "elite_pool_id": self.elite_pool_id,
             "boss_pool_id": self.boss_pool_id,
             "event_pool_id": self.event_pool_id,
+            "room_payloads": {
+                node_id: dict(payload)
+                for node_id, payload in self.room_payloads.items()
+            },
         }
 
     @classmethod
@@ -208,10 +232,31 @@ class ActState:
             schema_version=SCHEMA_VERSION,
             act_id=_require_str(data["act_id"], "act_id"),
             current_node_id=_require_str(data["current_node_id"], "current_node_id"),
-            nodes=[ActNodeState.from_dict(_require_mapping(item, "nodes item")) for item in nodes_raw],
-            visited_node_ids=[_require_str(item, "visited_node_ids item") for item in visited_node_ids],
-            enemy_pool_id=None if data.get("enemy_pool_id") is None else _require_str(data["enemy_pool_id"], "enemy_pool_id"),
-            elite_pool_id=None if data.get("elite_pool_id") is None else _require_str(data["elite_pool_id"], "elite_pool_id"),
-            boss_pool_id=None if data.get("boss_pool_id") is None else _require_str(data["boss_pool_id"], "boss_pool_id"),
-            event_pool_id=None if data.get("event_pool_id") is None else _require_str(data["event_pool_id"], "event_pool_id"),
+            nodes=[
+                ActNodeState.from_dict(_require_mapping(item, "nodes item"))
+                for item in nodes_raw
+            ],
+            visited_node_ids=[
+                _require_str(item, "visited_node_ids item") for item in visited_node_ids
+            ],
+            enemy_pool_id=None
+            if data.get("enemy_pool_id") is None
+            else _require_str(data["enemy_pool_id"], "enemy_pool_id"),
+            elite_pool_id=None
+            if data.get("elite_pool_id") is None
+            else _require_str(data["elite_pool_id"], "elite_pool_id"),
+            boss_pool_id=None
+            if data.get("boss_pool_id") is None
+            else _require_str(data["boss_pool_id"], "boss_pool_id"),
+            event_pool_id=None
+            if data.get("event_pool_id") is None
+            else _require_str(data["event_pool_id"], "event_pool_id"),
+            room_payloads={
+                _require_str(node_id, "room_payloads key"): dict(
+                    _require_mapping(payload, f"room_payloads.{node_id}")
+                )
+                for node_id, payload in _require_mapping(
+                    data.get("room_payloads", {}), "room_payloads"
+                ).items()
+            },
         )

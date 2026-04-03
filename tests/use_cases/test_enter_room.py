@@ -6,9 +6,14 @@ import pytest
 
 from slay_the_spire.content.catalog import WeightedPoolEntry
 from slay_the_spire.content.provider import StarterContentProvider
+from slay_the_spire.domain.effects.effect_resolver import resolve_effect_queue
+from slay_the_spire.domain.hooks.hook_dispatcher import dispatch_hook
+from slay_the_spire.domain.hooks.runtime import build_runtime_hook_registrations
 from slay_the_spire.domain.models.act_state import ActNodeState, ActState
 from slay_the_spire.domain.models.combat_state import CombatState
+from slay_the_spire.domain.models.entities import PlayerCombatState
 from slay_the_spire.domain.models.run_state import RunState
+from slay_the_spire.use_cases import enter_room as enter_room_module
 from slay_the_spire.use_cases.enter_room import enter_room
 
 
@@ -65,11 +70,42 @@ class _MisconfiguredEncounterProvider:
         )
 
 
+class _RelicRegistryWithLimitedTreasureCandidates:
+    def __init__(self, delegate, *, candidate_ids: list[str]) -> None:
+        self._delegate = delegate
+        self._candidate_ids = candidate_ids
+
+    def all(self):
+        return [self._delegate.get(relic_id) for relic_id in self._candidate_ids]
+
+    def get(self, relic_id: str):
+        return self._delegate.get(relic_id)
+
+
+class _LimitedTreasureCandidateProvider:
+    def __init__(
+        self, delegate: StarterContentProvider, *, candidate_ids: list[str]
+    ) -> None:
+        self._delegate = delegate
+        self._candidate_ids = candidate_ids
+
+    def __getattr__(self, name: str):
+        return getattr(self._delegate, name)
+
+    def relics(self):
+        return _RelicRegistryWithLimitedTreasureCandidates(
+            self._delegate.relics(),
+            candidate_ids=self._candidate_ids,
+        )
+
+
 def _run_state(
     *,
     seed: int,
     seen_event_ids: list[str] | None = None,
     relics: list[str] | None = None,
+    relic_sequences: dict[str, list[str]] | None = None,
+    relic_sequence_positions: dict[str, int] | None = None,
     current_hp: int = 80,
     max_hp: int = 80,
 ) -> RunState:
@@ -85,6 +121,10 @@ def _run_state(
         potions=[],
         card_removal_count=0,
         seen_event_ids=[] if seen_event_ids is None else seen_event_ids,
+        relic_sequences={} if relic_sequences is None else relic_sequences,
+        relic_sequence_positions=(
+            {} if relic_sequence_positions is None else relic_sequence_positions
+        ),
     )
 
 
@@ -384,6 +424,102 @@ def test_enter_treasure_room_skips_owned_relics_from_candidate_pool() -> None:
     }
 
 
+def test_enter_treasure_room_uses_rolled_rarity_sequence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        enter_room_module,
+        "_roll_treasure_relic_rarity",
+        lambda *, room_id, seed: "uncommon",
+        raising=False,
+    )
+
+    run_state = _run_state(
+        seed=13,
+        relic_sequences={
+            "common": ["anchor"],
+            "uncommon": ["oddly_smooth_stone"],
+            "rare": ["bird_faced_urn"],
+        },
+        relic_sequence_positions={"common": 0, "uncommon": 0, "rare": 0},
+    )
+
+    room_state = enter_room(
+        run_state,
+        _act_state(node_id="r1c0", room_type="treasure"),
+        "r1c0",
+        _content_provider(),
+    )
+
+    assert room_state.payload["treasure_relic_id"] == "oddly_smooth_stone"
+    assert run_state.relic_sequence_positions == {
+        "common": 0,
+        "uncommon": 1,
+        "rare": 0,
+    }
+
+
+def test_enter_treasure_room_does_not_leak_owner_locked_relics(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        enter_room_module,
+        "_roll_treasure_relic_rarity",
+        lambda *, room_id, seed: "rare",
+        raising=False,
+    )
+    provider = _LimitedTreasureCandidateProvider(
+        _content_provider(),
+        candidate_ids=["circlet", "emotion_chip"],
+    )
+
+    room_state = enter_room(
+        _run_state(
+            seed=13,
+            relic_sequences={
+                "common": [],
+                "uncommon": [],
+                "rare": ["bird_faced_urn"],
+            },
+            relic_sequence_positions={"common": 0, "uncommon": 0, "rare": 0},
+        ),
+        _act_state(node_id="r1c0", room_type="treasure"),
+        "r1c0",
+        provider,
+    )
+
+    assert room_state.payload["treasure_relic_id"] == "bird_faced_urn"
+
+
+def test_enter_treasure_room_is_stable_for_unresolved_reentry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        enter_room_module,
+        "_roll_treasure_relic_rarity",
+        lambda *, room_id, seed: "uncommon",
+        raising=False,
+    )
+    run_state = _run_state(
+        seed=13,
+        relic_sequences={
+            "common": ["anchor"],
+            "uncommon": ["oddly_smooth_stone"],
+            "rare": ["bird_faced_urn"],
+        },
+        relic_sequence_positions={"common": 0, "uncommon": 0, "rare": 0},
+    )
+
+    act_state = _act_state(node_id="r1c0", room_type="treasure")
+
+    first_room = enter_room(run_state, act_state, "r1c0", _content_provider())
+    second_room = enter_room(run_state, act_state, "r1c0", _content_provider())
+
+    assert first_room.payload["treasure_relic_id"] == "oddly_smooth_stone"
+    assert second_room.payload["treasure_relic_id"] == "oddly_smooth_stone"
+    assert run_state.relic_sequence_positions == {"common": 0, "uncommon": 1, "rare": 0}
+
+
 def test_enter_treasure_room_falls_back_to_circlet_when_no_relic_candidates_remain() -> (
     None
 ):
@@ -439,19 +575,54 @@ def test_enter_combat_room_applies_guarding_totem_on_combat_start() -> None:
     assert combat_state.player.block == 10
 
 
-def test_treasure_candidate_pool_uses_non_shop_relics_only() -> None:
-    registry = _content_provider()
-    candidate_room = enter_room(
-        _run_state(seed=13, relics=["burning_blood"]),
-        _act_state(node_id="r1c0", room_type="treasure"),
-        "r1c0",
-        registry,
+def test_burning_blood_heals_six_after_combat() -> None:
+    provider = _content_provider()
+    state = CombatState(
+        round_number=1,
+        energy=3,
+        hand=[],
+        draw_pile=[],
+        discard_pile=[],
+        exhaust_pile=[],
+        player=PlayerCombatState(
+            instance_id="player-ironclad", hp=40, max_hp=80, block=0, statuses=[]
+        ),
+        enemies=[],
+        effect_queue=[],
+        log=[],
     )
+    run_state = _run_state(seed=7, relics=["burning_blood"], current_hp=40, max_hp=80)
+    registrations = build_runtime_hook_registrations(run_state, provider)
 
-    treasure_relic_id = candidate_room.payload.get("treasure_relic_id")
-    assert isinstance(treasure_relic_id, str)
-    assert treasure_relic_id != "circlet"
-    assert registry.relics().get(treasure_relic_id).can_appear_in_shop is False
+    dispatch_hook(state, "on_combat_end", registrations)
+    resolve_effect_queue(state, hook_registrations=registrations)
+
+    assert state.player.hp == 46
+
+
+def test_black_blood_heals_twelve_after_combat() -> None:
+    provider = _content_provider()
+    state = CombatState(
+        round_number=1,
+        energy=3,
+        hand=[],
+        draw_pile=[],
+        discard_pile=[],
+        exhaust_pile=[],
+        player=PlayerCombatState(
+            instance_id="player-ironclad", hp=40, max_hp=80, block=0, statuses=[]
+        ),
+        enemies=[],
+        effect_queue=[],
+        log=[],
+    )
+    run_state = _run_state(seed=7, relics=["black_blood"], current_hp=40, max_hp=80)
+    registrations = build_runtime_hook_registrations(run_state, provider)
+
+    dispatch_hook(state, "on_combat_end", registrations)
+    resolve_effect_queue(state, hook_registrations=registrations)
+
+    assert state.player.hp == 52
 
 
 def test_enter_room_places_innate_cards_into_opening_hand_first() -> None:

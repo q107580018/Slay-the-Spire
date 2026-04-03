@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 import json
 from pathlib import Path
 
@@ -16,6 +17,7 @@ from slay_the_spire.domain.models.run_state import RunState
 from slay_the_spire.domain.models.statuses import StatusState
 from slay_the_spire.use_cases.enter_room import enter_room
 from slay_the_spire.use_cases.load_game import load_game
+from slay_the_spire.use_cases.save_game import build_save_document
 from slay_the_spire.use_cases.save_game import SAVE_SCHEMA_VERSION, save_game
 from slay_the_spire.use_cases.start_run import start_new_run
 
@@ -197,7 +199,12 @@ def test_save_load_preserves_act2_progress_and_multi_enemy_room(tmp_path: Path) 
     room_state = enter_room(run_state, act_state, node_id=node_id, registry=provider)
     repository = JsonFileSaveRepository(tmp_path / "act2_multi_enemy.json")
 
-    save_game(repository=repository, run_state=run_state, act_state=act_state, room_state=room_state)
+    save_game(
+        repository=repository,
+        run_state=run_state,
+        act_state=act_state,
+        room_state=room_state,
+    )
 
     restored = load_game(repository=repository)
     combat_state = CombatState.from_dict(restored["room_state"].payload["combat_state"])
@@ -451,7 +458,15 @@ def test_load_game_rejects_mismatched_combat_state_sources(tmp_path: Path) -> No
 def test_load_game_rejects_unknown_schema_version(tmp_path: Path) -> None:
     repository = JsonFileSaveRepository(tmp_path / "save.json")
     (tmp_path / "save.json").write_text(
-        json.dumps({"schema_version": 999, "run_state": None, "act_state": None, "room_state": None, "combat_state": None}),
+        json.dumps(
+            {
+                "schema_version": 999,
+                "run_state": None,
+                "act_state": None,
+                "room_state": None,
+                "combat_state": None,
+            }
+        ),
         encoding="utf-8",
     )
 
@@ -477,6 +492,82 @@ def test_save_game_persists_new_run_state_fields(tmp_path: Path) -> None:
     assert raw_document["run_state"]["relics"] == ["burning_blood"]
     assert raw_document["run_state"]["potions"] == ["fire_potion"]
     assert raw_document["run_state"]["card_removal_count"] == 2
+
+
+def test_build_save_document_persists_relic_sequence_state() -> None:
+    run_state = replace(
+        start_new_run("ironclad", seed=7, registry=_content_provider()),
+        relic_sequence_positions={
+            "common": 2,
+            "uncommon": 1,
+            "rare": 0,
+            "shop": 0,
+            "boss": 0,
+        },
+    )
+
+    document = build_save_document(run_state=run_state, act_state=None, room_state=None)
+
+    assert document["run_state"]["relic_sequences"] == run_state.relic_sequences
+    assert (
+        document["run_state"]["relic_sequence_positions"]
+        == run_state.relic_sequence_positions
+    )
+
+
+def test_save_load_round_trips_relic_sequence_state(tmp_path: Path) -> None:
+    repository = JsonFileSaveRepository(tmp_path / "save.json")
+    run_state = replace(
+        start_new_run("ironclad", seed=7, registry=_content_provider()),
+        relic_sequence_positions={
+            "common": 2,
+            "uncommon": 1,
+            "rare": 0,
+            "shop": 0,
+            "boss": 0,
+        },
+    )
+
+    save_game(
+        repository=repository,
+        run_state=run_state,
+        act_state=None,
+        room_state=None,
+        combat_state=None,
+    )
+
+    restored = load_game(repository=repository)
+
+    assert restored["run_state"] is not None
+    assert restored["run_state"].relic_sequences == run_state.relic_sequences
+    assert (
+        restored["run_state"].relic_sequence_positions
+        == run_state.relic_sequence_positions
+    )
+
+
+def test_save_load_preserves_act_room_payload_cache(tmp_path: Path) -> None:
+    repository = JsonFileSaveRepository(tmp_path / "save.json")
+    run_state = start_new_run("ironclad", seed=7, registry=_content_provider())
+    act_state = generate_act_state("act1", seed=7, registry=_content_provider())
+    node_id = _node_id_for_room_type(act_state, "shop")
+    room_state = enter_room(
+        run_state, act_state, node_id=node_id, registry=_content_provider()
+    )
+
+    save_game(
+        repository=repository,
+        run_state=run_state,
+        act_state=act_state,
+        room_state=room_state,
+        combat_state=None,
+    )
+
+    restored = load_game(repository=repository)
+
+    assert restored["act_state"] is not None
+    assert restored["room_state"] is not None
+    assert restored["act_state"].room_payloads[room_state.room_id] == room_state.payload
 
 
 def test_save_load_preserves_treasure_room_state(tmp_path: Path) -> None:
@@ -549,10 +640,15 @@ def test_save_load_preserves_boss_chest_room_state(tmp_path: Path) -> None:
     assert restored["room_state"].room_type == "boss_chest"
     assert restored["room_state"].is_resolved is True
     assert restored["room_state"].payload["next_act_id"] == "act2"
-    assert restored["room_state"].payload["boss_rewards"]["claimed_relic_id"] == "black_blood"
+    assert (
+        restored["room_state"].payload["boss_rewards"]["claimed_relic_id"]
+        == "black_blood"
+    )
 
 
-def test_load_game_rejects_previous_schema_version_with_clear_error(tmp_path: Path) -> None:
+def test_load_game_rejects_previous_schema_version_with_clear_error(
+    tmp_path: Path,
+) -> None:
     repository = JsonFileSaveRepository(tmp_path / "save.json")
     (tmp_path / "save.json").write_text(
         json.dumps(

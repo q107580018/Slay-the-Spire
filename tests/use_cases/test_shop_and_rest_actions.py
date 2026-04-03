@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import shutil
 from dataclasses import replace
 from pathlib import Path
 
@@ -37,8 +39,12 @@ def _shop_room(*, remove_price: int = 75) -> RoomState:
         stage="waiting_input",
         payload={
             "cards": [{"offer_id": "card-1", "card_id": "strike", "price": 50}],
-            "relics": [{"offer_id": "relic-1", "relic_id": "burning_blood", "price": 150}],
-            "potions": [{"offer_id": "potion-1", "potion_id": "fire_potion", "price": 60}],
+            "relics": [
+                {"offer_id": "relic-1", "relic_id": "burning_blood", "price": 150}
+            ],
+            "potions": [
+                {"offer_id": "potion-1", "potion_id": "fire_potion", "price": 60}
+            ],
             "remove_price": remove_price,
         },
         is_resolved=False,
@@ -58,7 +64,12 @@ def _rest_room() -> RoomState:
 
 
 def test_shop_buy_card_spends_gold_and_adds_deck_instance() -> None:
-    result = shop_action(run_state=_run_state(), room_state=_shop_room(), action_id="buy_card:card-1")
+    result = shop_action(
+        run_state=_run_state(),
+        room_state=_shop_room(),
+        action_id="buy_card:card-1",
+        registry=_content_provider(),
+    )
 
     assert result.run_state.gold == 150
     assert result.run_state.deck[-1] == "strike#4"
@@ -68,7 +79,12 @@ def test_shop_buy_card_spends_gold_and_adds_deck_instance() -> None:
 
 
 def test_shop_buy_potion_spends_gold_and_adds_potion() -> None:
-    result = shop_action(run_state=_run_state(), room_state=_shop_room(), action_id="buy_potion:potion-1")
+    result = shop_action(
+        run_state=_run_state(),
+        room_state=_shop_room(),
+        action_id="buy_potion:potion-1",
+        registry=_content_provider(),
+    )
 
     assert result.run_state.gold == 140
     assert result.run_state.potions == ["fire_potion"]
@@ -76,8 +92,89 @@ def test_shop_buy_potion_spends_gold_and_adds_potion() -> None:
     assert result.message is None
 
 
+def test_shop_buy_relic_routes_through_apply_reward_replacement_rules() -> None:
+    run_state = replace(_run_state(gold=300), relics=["burning_blood"])
+    room_state = RoomState(
+        room_id="act1:shop",
+        room_type="shop",
+        stage="waiting_input",
+        payload={
+            "cards": [],
+            "relics": [
+                {"offer_id": "relic-1", "relic_id": "black_blood", "price": 150}
+            ],
+            "potions": [],
+            "remove_price": 75,
+        },
+        is_resolved=False,
+        rewards=[],
+    )
+
+    result = shop_action(
+        run_state=run_state,
+        room_state=room_state,
+        action_id="buy_relic:relic-1",
+        registry=_content_provider(),
+    )
+
+    assert result.run_state.gold == 150
+    assert result.run_state.relics == ["black_blood"]
+
+
+def test_shop_buy_relic_uses_provided_registry_for_reward_application(
+    tmp_path: Path,
+) -> None:
+    content_root = Path(__file__).resolve().parents[2] / "content"
+    copied_root = tmp_path / "content"
+    shutil.copytree(content_root, copied_root)
+
+    boss_relics_path = copied_root / "relics" / "boss_relics.json"
+    payload = json.loads(boss_relics_path.read_text(encoding="utf-8"))
+    for relic in payload["relics"]:
+        if relic["id"] == "black_blood":
+            relic["replaces_relic_id"] = "golden_idol"
+            break
+    boss_relics_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    provider = StarterContentProvider(copied_root)
+    run_state = replace(_run_state(gold=300), relics=["golden_idol"])
+    room_state = RoomState(
+        room_id="act1:shop",
+        room_type="shop",
+        stage="waiting_input",
+        payload={
+            "cards": [],
+            "relics": [
+                {"offer_id": "relic-1", "relic_id": "black_blood", "price": 150}
+            ],
+            "potions": [],
+            "remove_price": 75,
+        },
+        is_resolved=False,
+        rewards=[],
+    )
+
+    result = shop_action(
+        run_state=run_state,
+        room_state=room_state,
+        action_id="buy_relic:relic-1",
+        registry=provider,
+    )
+
+    assert result.run_state.gold == 150
+    assert result.run_state.relics == ["black_blood"]
+
+
 def test_shop_buy_card_with_insufficient_gold_returns_prompt() -> None:
-    result = shop_action(run_state=_run_state(gold=40), room_state=_shop_room(), action_id="buy_card:card-1")
+    result = shop_action(
+        run_state=_run_state(gold=40),
+        room_state=_shop_room(),
+        action_id="buy_card:card-1",
+        registry=_content_provider(),
+    )
 
     assert result.run_state.to_dict() == _run_state(gold=40).to_dict()
     assert result.room_state.to_dict() == _shop_room().to_dict()
@@ -85,12 +182,18 @@ def test_shop_buy_card_with_insufficient_gold_returns_prompt() -> None:
 
 
 def test_shop_buying_sold_item_returns_prompt() -> None:
-    first_result = shop_action(run_state=_run_state(), room_state=_shop_room(), action_id="buy_card:card-1")
+    first_result = shop_action(
+        run_state=_run_state(),
+        room_state=_shop_room(),
+        action_id="buy_card:card-1",
+        registry=_content_provider(),
+    )
 
     result = shop_action(
         run_state=first_result.run_state,
         room_state=first_result.room_state,
         action_id="buy_card:card-1",
+        registry=_content_provider(),
     )
 
     assert result.run_state.to_dict() == first_result.run_state.to_dict()
@@ -103,12 +206,14 @@ def test_shop_remove_card_uses_run_level_price_progression() -> None:
         run_state=_run_state(gold=300, card_removal_count=2),
         room_state=_shop_room(remove_price=125),
         action_id="remove",
+        registry=_content_provider(),
     )
 
     result = shop_action(
         run_state=entered_remove.run_state,
         room_state=entered_remove.room_state,
         action_id="remove_card:defend#2",
+        registry=_content_provider(),
     )
 
     assert result.run_state.gold == 175
@@ -124,17 +229,20 @@ def test_shop_remove_service_after_use_returns_prompt() -> None:
         run_state=_run_state(gold=300, card_removal_count=2),
         room_state=_shop_room(remove_price=125),
         action_id="remove",
+        registry=_content_provider(),
     )
     resolved_remove = shop_action(
         run_state=used_remove.run_state,
         room_state=used_remove.room_state,
         action_id="remove_card:defend#2",
+        registry=_content_provider(),
     )
 
     result = shop_action(
         run_state=resolved_remove.run_state,
         room_state=resolved_remove.room_state,
         action_id="remove",
+        registry=_content_provider(),
     )
 
     assert result.run_state.to_dict() == resolved_remove.run_state.to_dict()
@@ -147,12 +255,14 @@ def test_shop_cancel_remove_returns_to_root_without_spending_remove_use() -> Non
         run_state=_run_state(),
         room_state=_shop_room(),
         action_id="remove",
+        registry=_content_provider(),
     )
 
     result = shop_action(
         run_state=entered_remove.run_state,
         room_state=entered_remove.room_state,
         action_id="cancel",
+        registry=_content_provider(),
     )
 
     assert result.run_state.to_dict() == _run_state().to_dict()
@@ -175,7 +285,12 @@ def test_rest_heal_restores_thirty_percent_of_max_hp_and_caps() -> None:
         card_removal_count=0,
     )
 
-    result = rest_action(run_state=run_state, room_state=_rest_room(), action_id="rest", registry=_content_provider())
+    result = rest_action(
+        run_state=run_state,
+        room_state=_rest_room(),
+        action_id="rest",
+        registry=_content_provider(),
+    )
 
     assert result.run_state.current_hp == 80
     assert result.room_state.stage == "completed"
@@ -183,9 +298,16 @@ def test_rest_heal_restores_thirty_percent_of_max_hp_and_caps() -> None:
 
 
 def test_rest_is_blocked_by_coffee_dripper() -> None:
-    run_state = replace(_run_state(), current_hp=50, relics=["burning_blood", "coffee_dripper"])
+    run_state = replace(
+        _run_state(), current_hp=50, relics=["burning_blood", "coffee_dripper"]
+    )
 
-    result = rest_action(run_state=run_state, room_state=_rest_room(), action_id="rest", registry=_content_provider())
+    result = rest_action(
+        run_state=run_state,
+        room_state=_rest_room(),
+        action_id="rest",
+        registry=_content_provider(),
+    )
 
     assert result.run_state.current_hp == 50
     assert result.room_state.stage == "waiting_input"
@@ -202,13 +324,22 @@ def test_rest_smith_transitions_to_select_upgrade_card() -> None:
     )
 
     assert result.room_state.stage == "select_upgrade_card"
-    assert result.room_state.payload["upgrade_options"] == ["strike#1", "defend#2", "bash#3"]
+    assert result.room_state.payload["upgrade_options"] == [
+        "strike#1",
+        "defend#2",
+        "bash#3",
+    ]
 
 
 def test_rest_is_blocked_by_fusion_hammer() -> None:
     run_state = replace(_run_state(), relics=["burning_blood", "fusion_hammer"])
 
-    result = rest_action(run_state=run_state, room_state=_rest_room(), action_id="smith", registry=_content_provider())
+    result = rest_action(
+        run_state=run_state,
+        room_state=_rest_room(),
+        action_id="smith",
+        registry=_content_provider(),
+    )
 
     assert result.room_state.stage == "waiting_input"
     assert "upgrade_options" not in result.room_state.payload
@@ -217,7 +348,12 @@ def test_rest_is_blocked_by_fusion_hammer() -> None:
 
 
 def test_rest_leave_marks_room_completed() -> None:
-    result = rest_action(run_state=_run_state(), room_state=_rest_room(), action_id="leave", registry=_content_provider())
+    result = rest_action(
+        run_state=_run_state(),
+        room_state=_rest_room(),
+        action_id="leave",
+        registry=_content_provider(),
+    )
 
     assert result.room_state.stage == "completed"
     assert result.room_state.is_resolved is True
@@ -227,8 +363,12 @@ def test_rest_leave_marks_room_completed() -> None:
 def test_rest_menu_route_surfaces_disabled_action_message() -> None:
     session = replace(
         start_session(seed=5),
-        run_state=replace(start_session(seed=5).run_state, relics=["burning_blood", "coffee_dripper"]),
-        room_state=replace(_rest_room(), room_id="act1:rest", payload={"actions": ["rest", "smith"]}),
+        run_state=replace(
+            start_session(seed=5).run_state, relics=["burning_blood", "coffee_dripper"]
+        ),
+        room_state=replace(
+            _rest_room(), room_id="act1:rest", payload={"actions": ["rest", "smith"]}
+        ),
         menu_state=MenuState(mode="rest_root"),
     )
 
@@ -241,11 +381,18 @@ def test_rest_menu_route_surfaces_disabled_action_message() -> None:
 def test_rest_menu_route_can_leave_when_both_actions_disabled() -> None:
     session = replace(
         start_session(seed=5),
-        run_state=replace(start_session(seed=5).run_state, relics=["burning_blood", "coffee_dripper", "fusion_hammer"]),
+        run_state=replace(
+            start_session(seed=5).run_state,
+            relics=["burning_blood", "coffee_dripper", "fusion_hammer"],
+        ),
         room_state=replace(
             _rest_room(),
             room_id="act1:rest",
-            payload={"actions": ["rest", "smith"], "node_id": "r15c0", "next_node_ids": ["boss"]},
+            payload={
+                "actions": ["rest", "smith"],
+                "node_id": "r15c0",
+                "next_node_ids": ["boss"],
+            },
         ),
         menu_state=MenuState(mode="rest_root"),
     )

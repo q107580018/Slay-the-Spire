@@ -67,7 +67,9 @@ def test_format_card_detail_lines_show_fiend_fire_per_card_damage_text() -> None
 
     lines = format_card_detail_lines("fiend_fire#1", registry)
 
-    assert any("消耗手中所有牌。每张被消耗的牌造成 7 伤害" in line.plain for line in lines)
+    assert any(
+        "消耗手中所有牌。每张被消耗的牌造成 7 伤害" in line.plain for line in lines
+    )
 
 
 def test_format_relic_detail_lines_include_relic_semantics() -> None:
@@ -162,7 +164,9 @@ def test_format_card_upgrade_preview_lines_show_before_and_after_effects() -> No
     assert "施加 3 易伤" in rendered
 
 
-def test_format_card_detail_lines_show_scaled_rampage_damage_from_combat_state() -> None:
+def test_format_card_detail_lines_show_scaled_rampage_damage_from_combat_state() -> (
+    None
+):
     session = start_session(seed=5)
     registry = StarterContentProvider(session.content_root)
     combat_state = CombatState(
@@ -190,7 +194,9 @@ def test_format_card_detail_lines_show_scaled_rampage_damage_from_combat_state()
     assert "造成 13 伤害" in "\n".join(line.plain for line in lines)
 
 
-def test_format_card_detail_lines_show_scaled_perfected_strike_damage_from_combat_state() -> None:
+def test_format_card_detail_lines_show_scaled_perfected_strike_damage_from_combat_state() -> (
+    None
+):
     session = start_session(seed=5)
     registry = StarterContentProvider(session.content_root)
     combat_state = CombatState(
@@ -496,6 +502,21 @@ def test_format_reward_detail_lines_include_reward_id_and_human_readable_labels(
 
     assert any("摘要" in line.plain for line in boss_relic_lines)
     assert any("描述" in line.plain for line in boss_relic_lines)
+
+
+def test_format_reward_detail_lines_include_relic_metadata_labels() -> None:
+    session = start_session(seed=5)
+    registry = StarterContentProvider(session.content_root)
+
+    lines = format_reward_detail_lines("relic:black_blood", registry)
+    rendered = "\n".join(line.plain for line in lines)
+
+    assert "稀有度" in rendered
+    assert "Boss" in rendered
+    assert "所属池" in rendered
+    assert "boss" in rendered
+    assert "实现状态" in rendered
+    assert "implemented" in rendered
 
 
 def test_format_reward_detail_lines_localize_event_rewards() -> None:

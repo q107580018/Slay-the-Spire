@@ -5,7 +5,15 @@ from dataclasses import replace
 
 import pytest
 
-from slay_the_spire.app.session import MenuState, _open_treasure, load_session, render_session, route_command, route_menu_choice, start_session
+from slay_the_spire.app.session import (
+    MenuState,
+    _open_treasure,
+    load_session,
+    render_session,
+    route_command,
+    route_menu_choice,
+    start_session,
+)
 from slay_the_spire.adapters.persistence.save_files import JsonFileSaveRepository
 from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.domain.models.combat_state import CombatState
@@ -44,7 +52,7 @@ def _boss_reward_ready_session(*, act_id: str, next_act_id: str | None) -> Sessi
                     "generated_by": "boss_reward_generator",
                     "gold_reward": 99,
                     "claimed_gold": False,
-                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"],
+                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper"],
                     "claimed_relic_id": None,
                 },
                 **({"next_act_id": next_act_id} if next_act_id is not None else {}),
@@ -68,12 +76,21 @@ def test_event_choice_is_not_reapplied_after_load(tmp_path: Path) -> None:
         is_resolved=False,
         rewards=[],
     )
-    resolved_room = resolve_event_choice(room_state=room_state, choice_id="accept", registry=provider)
+    resolved_room = resolve_event_choice(
+        room_state=room_state, choice_id="accept", registry=provider
+    )
     repository = JsonFileSaveRepository(tmp_path / "event.json")
-    save_game(repository=repository, run_state=run_state, act_state=act_state, room_state=resolved_room)
+    save_game(
+        repository=repository,
+        run_state=run_state,
+        act_state=act_state,
+        room_state=resolved_room,
+    )
 
     restored_room = load_game(repository=repository)["room_state"]
-    retried_room = resolve_event_choice(room_state=restored_room, choice_id="leave", registry=provider)
+    retried_room = resolve_event_choice(
+        room_state=restored_room, choice_id="leave", registry=provider
+    )
 
     assert retried_room.to_dict() == restored_room.to_dict()
     assert retried_room.payload["choice_id"] == "accept"
@@ -100,6 +117,7 @@ def test_shop_remove_subflow_survives_load_session(tmp_path: Path) -> None:
             rewards=[],
         ),
         action_id="remove",
+        registry=provider,
     )
     repository = JsonFileSaveRepository(tmp_path / "shop.json")
     save_game(
@@ -110,7 +128,10 @@ def test_shop_remove_subflow_survives_load_session(tmp_path: Path) -> None:
     )
 
     restored_room = load_game(repository=repository)["room_state"]
-    restored_session = load_session(save_path=tmp_path / "shop.json", content_root=Path(__file__).resolve().parents[2] / "content")
+    restored_session = load_session(
+        save_path=tmp_path / "shop.json",
+        content_root=Path(__file__).resolve().parents[2] / "content",
+    )
 
     assert restored_room.stage == "select_remove_card"
     assert restored_room.payload["remove_candidates"] == entered_remove.run_state.deck
@@ -143,14 +164,19 @@ def test_rest_upgrade_subflow_survives_load_session(tmp_path: Path) -> None:
     )
 
     restored_room = load_game(repository=repository)["room_state"]
-    restored_session = load_session(save_path=tmp_path / "rest.json", content_root=Path(__file__).resolve().parents[2] / "content")
+    restored_session = load_session(
+        save_path=tmp_path / "rest.json",
+        content_root=Path(__file__).resolve().parents[2] / "content",
+    )
 
     assert restored_room.stage == "select_upgrade_card"
     assert restored_room.payload["upgrade_options"] == entered_smith.run_state.deck
     assert restored_session.menu_state.mode == "rest_upgrade_card"
 
 
-def test_open_treasure_via_menu_grants_relic_marks_room_resolved_and_is_not_reapplied_after_load(tmp_path: Path) -> None:
+def test_open_treasure_via_menu_grants_relic_marks_room_resolved_and_is_not_reapplied_after_load(
+    tmp_path: Path,
+) -> None:
     session = replace(
         start_session(seed=41),
         room_state=RoomState(
@@ -185,12 +211,16 @@ def test_open_treasure_via_menu_grants_relic_marks_room_resolved_and_is_not_reap
     assert "金神像" in opened_message
     assert "拿取遗物" in opened_message
 
-    _running, claimed_session, claimed_message = route_menu_choice("1", session=opened_session)
+    _running, claimed_session, claimed_message = route_menu_choice(
+        "1", session=opened_session
+    )
 
     assert claimed_session.run_state.relics == ["burning_blood", "golden_idol"]
     assert claimed_session.room_state.is_resolved is True
     assert claimed_session.room_state.stage == "completed"
-    assert claimed_session.room_state.payload["claimed_treasure_relic_id"] == "golden_idol"
+    assert (
+        claimed_session.room_state.payload["claimed_treasure_relic_id"] == "golden_idol"
+    )
     assert "已获得" in claimed_message
     assert "金神像" in claimed_message
 
@@ -202,16 +232,24 @@ def test_open_treasure_via_menu_grants_relic_marks_room_resolved_and_is_not_reap
         room_state=claimed_session.room_state,
     )
 
-    restored_session = load_session(save_path=tmp_path / "treasure.json", content_root=Path(__file__).resolve().parents[2] / "content")
+    restored_session = load_session(
+        save_path=tmp_path / "treasure.json",
+        content_root=Path(__file__).resolve().parents[2] / "content",
+    )
     before_relics = list(restored_session.run_state.relics)
 
     assert restored_session.room_state.is_resolved is True
-    assert restored_session.room_state.payload["claimed_treasure_relic_id"] == "golden_idol"
+    assert (
+        restored_session.room_state.payload["claimed_treasure_relic_id"]
+        == "golden_idol"
+    )
 
     _running, final_session, _message = route_menu_choice("1", session=restored_session)
 
     assert final_session.run_state.relics == before_relics
-    assert final_session.room_state.payload["claimed_treasure_relic_id"] == "golden_idol"
+    assert (
+        final_session.room_state.payload["claimed_treasure_relic_id"] == "golden_idol"
+    )
 
 
 def test_open_treasure_without_relic_candidate_grants_circlet() -> None:
@@ -237,7 +275,9 @@ def test_open_treasure_without_relic_candidate_grants_circlet() -> None:
     assert opened_session.room_state.is_resolved is False
     assert opened_session.room_state.payload["treasure_opened"] is True
 
-    _running, claimed_session, claimed_message = route_menu_choice("1", session=opened_session)
+    _running, claimed_session, claimed_message = route_menu_choice(
+        "1", session=opened_session
+    )
 
     assert claimed_session.room_state.is_resolved is True
     assert claimed_session.room_state.stage == "completed"
@@ -271,7 +311,9 @@ def test_skip_treasure_via_menu_marks_room_resolved_without_granting_relic() -> 
     assert opened_session.room_state.payload["treasure_opened"] is True
     assert "离开宝箱" in opened_message
 
-    _running, skipped_session, skipped_message = route_menu_choice("2", session=opened_session)
+    _running, skipped_session, skipped_message = route_menu_choice(
+        "2", session=opened_session
+    )
 
     assert skipped_session.run_state.relics == ["burning_blood"]
     assert skipped_session.room_state.is_resolved is True
@@ -285,7 +327,9 @@ def test_skip_treasure_via_menu_marks_room_resolved_without_granting_relic() -> 
 def test_open_treasure_is_idempotent_when_room_is_already_resolved() -> None:
     session = replace(
         start_session(seed=41),
-        run_state=replace(start_session(seed=41).run_state, relics=["burning_blood", "golden_idol"]),
+        run_state=replace(
+            start_session(seed=41).run_state, relics=["burning_blood", "golden_idol"]
+        ),
         room_state=RoomState(
             room_id="act1:treasure",
             room_type="treasure",
@@ -309,10 +353,14 @@ def test_open_treasure_is_idempotent_when_room_is_already_resolved() -> None:
     assert reopened_session.room_state.to_dict() == session.room_state.to_dict()
 
 
-def test_open_treasure_with_existing_claim_marker_converges_room_via_menu_choice() -> None:
+def test_open_treasure_with_existing_claim_marker_converges_room_via_menu_choice() -> (
+    None
+):
     session = replace(
         start_session(seed=41),
-        run_state=replace(start_session(seed=41).run_state, relics=["burning_blood", "golden_idol"]),
+        run_state=replace(
+            start_session(seed=41).run_state, relics=["burning_blood", "golden_idol"]
+        ),
         room_state=RoomState(
             room_id="act1:treasure",
             room_type="treasure",
@@ -335,7 +383,10 @@ def test_open_treasure_with_existing_claim_marker_converges_room_via_menu_choice
     assert reopened_session.run_state.to_dict() == session.run_state.to_dict()
     assert reopened_session.room_state.stage == "completed"
     assert reopened_session.room_state.is_resolved is True
-    assert reopened_session.room_state.payload["claimed_treasure_relic_id"] == "golden_idol"
+    assert (
+        reopened_session.room_state.payload["claimed_treasure_relic_id"]
+        == "golden_idol"
+    )
 
 
 def test_open_treasure_reveals_relic_without_resolving_room() -> None:
@@ -386,10 +437,17 @@ def test_reward_claim_is_not_reapplied_after_load(tmp_path: Path) -> None:
     )
     claimed_room = claim_reward(room_state=room_state, reward_id=generated_rewards[0])
     repository = JsonFileSaveRepository(tmp_path / "reward.json")
-    save_game(repository=repository, run_state=run_state, act_state=act_state, room_state=claimed_room)
+    save_game(
+        repository=repository,
+        run_state=run_state,
+        act_state=act_state,
+        room_state=claimed_room,
+    )
 
     restored_room = load_game(repository=repository)["room_state"]
-    retried_room = claim_reward(room_state=restored_room, reward_id=generated_rewards[1])
+    retried_room = claim_reward(
+        room_state=restored_room, reward_id=generated_rewards[1]
+    )
 
     assert retried_room.to_dict() == restored_room.to_dict()
     assert retried_room.stage == "completed"
@@ -524,7 +582,7 @@ def test_claiming_boss_gold_only_does_not_enter_victory() -> None:
                     "generated_by": "boss_reward_generator",
                     "gold_reward": 99,
                     "claimed_gold": False,
-                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"],
+                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper"],
                     "claimed_relic_id": None,
                 },
             },
@@ -556,7 +614,7 @@ def test_partial_boss_reward_progress_survives_load_session(tmp_path: Path) -> N
                     "generated_by": "boss_reward_generator",
                     "gold_reward": 99,
                     "claimed_gold": False,
-                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"],
+                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper"],
                     "claimed_relic_id": None,
                 },
             },
@@ -566,7 +624,9 @@ def test_partial_boss_reward_progress_survives_load_session(tmp_path: Path) -> N
         menu_state=MenuState(mode="select_boss_reward"),
     )
 
-    _running, claimed_gold_session, _message = route_menu_choice("1", session=initial_session)
+    _running, claimed_gold_session, _message = route_menu_choice(
+        "1", session=initial_session
+    )
     repository = JsonFileSaveRepository(tmp_path / "boss_reward.json")
     save_game(
         repository=repository,
@@ -579,21 +639,33 @@ def test_partial_boss_reward_progress_survives_load_session(tmp_path: Path) -> N
         save_path=tmp_path / "boss_reward.json",
         content_root=Path(__file__).resolve().parents[2] / "content",
     )
-    _running, reward_menu_session, _message = route_menu_choice("1", session=restored_session)
-    _running, relic_menu_session, _message = route_menu_choice("2", session=reward_menu_session)
-    _running, boss_chest_session, boss_chest_message = route_menu_choice("1", session=relic_menu_session)
-    _running, transitioned_session, _message = route_menu_choice("1", session=boss_chest_session)
+    _running, reward_menu_session, _message = route_menu_choice(
+        "1", session=restored_session
+    )
+    _running, relic_menu_session, _message = route_menu_choice(
+        "2", session=reward_menu_session
+    )
+    _running, boss_chest_session, boss_chest_message = route_menu_choice(
+        "1", session=relic_menu_session
+    )
+    _running, transitioned_session, _message = route_menu_choice(
+        "1", session=boss_chest_session
+    )
 
     assert claimed_gold_session.run_phase == "active"
-    assert claimed_gold_session.room_state.payload["boss_rewards"]["claimed_gold"] is True
+    assert (
+        claimed_gold_session.room_state.payload["boss_rewards"]["claimed_gold"] is True
+    )
     assert restored_session.run_state.gold == claimed_gold_session.run_state.gold
     assert restored_session.run_phase == "active"
     assert restored_session.menu_state.mode == "root"
     assert restored_session.room_state.payload["boss_rewards"]["claimed_gold"] is True
-    assert restored_session.room_state.payload["boss_rewards"]["claimed_relic_id"] is None
-    assert set(restored_session.room_state.payload["boss_rewards"]["boss_relic_offers"]).isdisjoint(
-        restored_session.run_state.relics
+    assert (
+        restored_session.room_state.payload["boss_rewards"]["claimed_relic_id"] is None
     )
+    assert set(
+        restored_session.room_state.payload["boss_rewards"]["boss_relic_offers"]
+    ).isdisjoint(restored_session.run_state.relics)
     assert reward_menu_session.menu_state.mode == "select_boss_reward"
     assert relic_menu_session.menu_state.mode == "select_boss_relic"
     assert boss_chest_session.room_state.room_type == "boss_chest"
@@ -626,7 +698,7 @@ def test_completed_boss_reward_state_enters_boss_chest_on_load(tmp_path: Path) -
                     "generated_by": "boss_reward_generator",
                     "gold_reward": 99,
                     "claimed_gold": True,
-                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"],
+                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper"],
                     "claimed_relic_id": "black_blood",
                 },
             },
@@ -680,7 +752,9 @@ def test_non_boss_reward_claim_returns_to_map_selection() -> None:
     assert next_session.run_state.gold == 110
 
 
-def test_reward_claim_flow_after_load_session_keeps_partial_rewards_open(tmp_path: Path) -> None:
+def test_reward_claim_flow_after_load_session_keeps_partial_rewards_open(
+    tmp_path: Path,
+) -> None:
     session = replace(
         start_session(seed=7),
         room_state=RoomState(
@@ -704,9 +778,15 @@ def test_reward_claim_flow_after_load_session_keeps_partial_rewards_open(tmp_pat
         save_path=tmp_path / "reward_detail.json",
         content_root=Path(__file__).resolve().parents[2] / "content",
     )
-    _running, claim_menu_session, claim_menu_message = route_menu_choice("1", session=restored_session)
-    _running, claimed_gold_session, claimed_gold_message = route_menu_choice("1", session=claim_menu_session)
-    _running, claimed_card_session, claimed_card_message = route_menu_choice("1", session=claimed_gold_session)
+    _running, claim_menu_session, claim_menu_message = route_menu_choice(
+        "1", session=restored_session
+    )
+    _running, claimed_gold_session, claimed_gold_message = route_menu_choice(
+        "1", session=claim_menu_session
+    )
+    _running, claimed_card_session, claimed_card_message = route_menu_choice(
+        "1", session=claimed_gold_session
+    )
 
     assert restored_session.menu_state.mode == "root"
     assert restored_session.room_state.rewards == ["gold:11", "card_offer:anger"]
@@ -742,11 +822,21 @@ def test_event_room_inspect_round_trip_keeps_choice_flow() -> None:
     )
 
     _running, inspect_session, inspect_message = route_menu_choice("2", session=session)
-    _running, stats_session, stats_message = route_menu_choice("1", session=inspect_session)
-    _running, inspect_back_session, inspect_back_message = route_menu_choice("1", session=stats_session)
-    _running, root_session, root_message = route_menu_choice("5", session=inspect_back_session)
-    _running, choice_menu_session, _choice_menu_message = route_menu_choice("1", session=root_session)
-    _running, next_session, _message = route_menu_choice("1", session=choice_menu_session)
+    _running, stats_session, stats_message = route_menu_choice(
+        "1", session=inspect_session
+    )
+    _running, inspect_back_session, inspect_back_message = route_menu_choice(
+        "1", session=stats_session
+    )
+    _running, root_session, root_message = route_menu_choice(
+        "5", session=inspect_back_session
+    )
+    _running, choice_menu_session, _choice_menu_message = route_menu_choice(
+        "1", session=root_session
+    )
+    _running, next_session, _message = route_menu_choice(
+        "1", session=choice_menu_session
+    )
 
     assert inspect_session.menu_state.mode == "inspect_root"
     assert "资料总览" in inspect_message
@@ -772,7 +862,7 @@ def test_boss_reward_root_inspect_round_trip_keeps_reward_menu_numbering() -> No
                     "generated_by": "boss_reward_generator",
                     "gold_reward": 99,
                     "claimed_gold": False,
-                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"],
+                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper"],
                     "claimed_relic_id": None,
                 },
             },
@@ -782,11 +872,21 @@ def test_boss_reward_root_inspect_round_trip_keeps_reward_menu_numbering() -> No
     )
 
     _running, inspect_session, inspect_message = route_menu_choice("2", session=session)
-    _running, stats_session, stats_message = route_menu_choice("1", session=inspect_session)
-    _running, inspect_back_session, inspect_back_message = route_menu_choice("1", session=stats_session)
-    _running, reward_root_session, reward_root_message = route_menu_choice("5", session=inspect_back_session)
-    _running, select_reward_session, select_reward_message = route_menu_choice("1", session=reward_root_session)
-    _running, claimed_session, _claimed_message = route_menu_choice("1", session=select_reward_session)
+    _running, stats_session, stats_message = route_menu_choice(
+        "1", session=inspect_session
+    )
+    _running, inspect_back_session, inspect_back_message = route_menu_choice(
+        "1", session=stats_session
+    )
+    _running, reward_root_session, reward_root_message = route_menu_choice(
+        "5", session=inspect_back_session
+    )
+    _running, select_reward_session, select_reward_message = route_menu_choice(
+        "1", session=reward_root_session
+    )
+    _running, claimed_session, _claimed_message = route_menu_choice(
+        "1", session=select_reward_session
+    )
 
     assert inspect_session.menu_state.mode == "inspect_root"
     assert "资料总览" in inspect_message
@@ -815,7 +915,7 @@ def test_claiming_already_claimed_boss_gold_stays_in_menu_with_message() -> None
                     "generated_by": "boss_reward_generator",
                     "gold_reward": 99,
                     "claimed_gold": True,
-                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"],
+                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper"],
                     "claimed_relic_id": None,
                 },
             },
@@ -833,7 +933,9 @@ def test_claiming_already_claimed_boss_gold_stays_in_menu_with_message() -> None
     assert "金币已领取" in message
 
 
-def test_combat_reward_root_inspect_uses_visible_back_choice_before_claim_flow() -> None:
+def test_combat_reward_root_inspect_uses_visible_back_choice_before_claim_flow() -> (
+    None
+):
     session = replace(
         start_session(seed=7),
         room_state=RoomState(
@@ -847,11 +949,21 @@ def test_combat_reward_root_inspect_uses_visible_back_choice_before_claim_flow()
     )
 
     _running, inspect_session, inspect_message = route_menu_choice("3", session=session)
-    _running, stats_session, stats_message = route_menu_choice("1", session=inspect_session)
-    _running, inspect_back_session, inspect_back_message = route_menu_choice("1", session=stats_session)
-    _running, reward_root_session, reward_root_message = route_menu_choice("5", session=inspect_back_session)
-    _running, select_reward_session, select_reward_message = route_menu_choice("1", session=reward_root_session)
-    _running, claimed_session, claimed_message = route_menu_choice("1", session=select_reward_session)
+    _running, stats_session, stats_message = route_menu_choice(
+        "1", session=inspect_session
+    )
+    _running, inspect_back_session, inspect_back_message = route_menu_choice(
+        "1", session=stats_session
+    )
+    _running, reward_root_session, reward_root_message = route_menu_choice(
+        "5", session=inspect_back_session
+    )
+    _running, select_reward_session, select_reward_message = route_menu_choice(
+        "1", session=reward_root_session
+    )
+    _running, claimed_session, claimed_message = route_menu_choice(
+        "1", session=select_reward_session
+    )
 
     assert inspect_session.menu_state.mode == "inspect_root"
     assert inspect_session.menu_state.inspect_parent_mode == "root"
@@ -897,7 +1009,7 @@ def test_reward_room_inspect_back_to_root_uses_current_claim_reward_title() -> N
                     "generated_by": "boss_reward_generator",
                     "gold_reward": 99,
                     "claimed_gold": False,
-                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"],
+                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper"],
                     "claimed_relic_id": None,
                 },
             },
@@ -906,10 +1018,18 @@ def test_reward_room_inspect_back_to_root_uses_current_claim_reward_title() -> N
         ),
     )
 
-    _running, combat_inspect_session, _combat_inspect_message = route_menu_choice("3", session=combat_session)
-    _running, combat_root_session, combat_root_message = route_menu_choice("5", session=combat_inspect_session)
-    _running, boss_inspect_session, _boss_inspect_message = route_menu_choice("2", session=boss_session)
-    _running, boss_root_session, boss_root_message = route_menu_choice("5", session=boss_inspect_session)
+    _running, combat_inspect_session, _combat_inspect_message = route_menu_choice(
+        "3", session=combat_session
+    )
+    _running, combat_root_session, combat_root_message = route_menu_choice(
+        "5", session=combat_inspect_session
+    )
+    _running, boss_inspect_session, _boss_inspect_message = route_menu_choice(
+        "2", session=boss_session
+    )
+    _running, boss_root_session, boss_root_message = route_menu_choice(
+        "5", session=boss_inspect_session
+    )
 
     assert combat_inspect_session.menu_state.mode == "inspect_root"
     assert combat_root_session.menu_state.mode == "root"
@@ -935,11 +1055,21 @@ def test_combat_reward_root_inspect_potions_follow_visible_menu_numbering() -> N
     )
 
     _running, inspect_session, inspect_message = route_menu_choice("3", session=session)
-    _running, potions_session, potions_message = route_menu_choice("4", session=inspect_session)
-    _running, inspect_back_session, inspect_back_message = route_menu_choice("1", session=potions_session)
-    _running, reward_root_session, reward_root_message = route_menu_choice("5", session=inspect_back_session)
-    _running, select_reward_session, select_reward_message = route_menu_choice("1", session=reward_root_session)
-    _running, claimed_session, claimed_message = route_menu_choice("1", session=select_reward_session)
+    _running, potions_session, potions_message = route_menu_choice(
+        "4", session=inspect_session
+    )
+    _running, inspect_back_session, inspect_back_message = route_menu_choice(
+        "1", session=potions_session
+    )
+    _running, reward_root_session, reward_root_message = route_menu_choice(
+        "5", session=inspect_back_session
+    )
+    _running, select_reward_session, select_reward_message = route_menu_choice(
+        "1", session=reward_root_session
+    )
+    _running, claimed_session, claimed_message = route_menu_choice(
+        "1", session=select_reward_session
+    )
 
     assert inspect_session.menu_state.mode == "inspect_root"
     assert inspect_session.menu_state.inspect_parent_mode == "root"
@@ -983,7 +1113,9 @@ def test_claim_all_rewards_clears_non_boss_room_rewards() -> None:
     assert next_session.run_state.deck[-1] == "anger#11"
 
 
-def test_claiming_boss_relic_after_gold_enters_final_boss_chest_before_victory() -> None:
+def test_claiming_boss_relic_after_gold_enters_final_boss_chest_before_victory() -> (
+    None
+):
     session = _boss_reward_ready_session(act_id="act2", next_act_id=None)
 
     _running, session, _message = route_menu_choice("1", session=session)
@@ -994,7 +1126,10 @@ def test_claiming_boss_relic_after_gold_enters_final_boss_chest_before_victory()
     assert next_session.run_state.current_act_id == "act2"
     assert next_session.room_state.room_type == "boss_chest"
     assert next_session.menu_state.mode == "root"
-    assert next_session.room_state.payload["boss_rewards"]["claimed_relic_id"] == "black_blood"
+    assert (
+        next_session.room_state.payload["boss_rewards"]["claimed_relic_id"]
+        == "black_blood"
+    )
     assert "Boss宝箱" in render_message
     assert "完成攀登" in render_message
     assert "black_blood" in next_session.run_state.relics
@@ -1009,8 +1144,12 @@ def test_claiming_final_boss_reward_in_act1_enters_boss_chest_before_act2() -> N
     session = _boss_reward_ready_session(act_id="act1", next_act_id="act2")
 
     _running, gold_session, _message = route_menu_choice("1", session=session)
-    _running, relic_menu_session, _message = route_menu_choice("2", session=gold_session)
-    _running, boss_chest_session, render_message = route_menu_choice("1", session=relic_menu_session)
+    _running, relic_menu_session, _message = route_menu_choice(
+        "2", session=gold_session
+    )
+    _running, boss_chest_session, render_message = route_menu_choice(
+        "1", session=relic_menu_session
+    )
 
     assert boss_chest_session.run_phase == "active"
     assert boss_chest_session.run_state.current_act_id == "act1"
@@ -1021,7 +1160,9 @@ def test_claiming_final_boss_reward_in_act1_enters_boss_chest_before_act2() -> N
     assert "Boss宝箱" in render_message
     assert "前往下一幕" in render_message
 
-    _running, next_session, _message = route_menu_choice("1", session=boss_chest_session)
+    _running, next_session, _message = route_menu_choice(
+        "1", session=boss_chest_session
+    )
 
     assert next_session.run_phase == "active"
     assert next_session.run_state.current_act_id == "act2"
@@ -1067,7 +1208,14 @@ def test_shop_menu_returns_prompt_when_item_is_already_purchased() -> None:
             stage="waiting_input",
             payload={
                 "node_id": "r3c1",
-                "cards": [{"offer_id": "card-1", "card_id": "strike", "price": 50, "sold": True}],
+                "cards": [
+                    {
+                        "offer_id": "card-1",
+                        "card_id": "strike",
+                        "price": 50,
+                        "sold": True,
+                    }
+                ],
                 "relics": [],
                 "potions": [],
                 "remove_price": 75,
@@ -1106,10 +1254,18 @@ def test_shop_room_inspect_round_trip_keeps_shop_flow() -> None:
     )
 
     _running, inspect_session, inspect_message = route_menu_choice("4", session=session)
-    _running, stats_session, stats_message = route_menu_choice("1", session=inspect_session)
-    _running, inspect_back_session, inspect_back_message = route_menu_choice("1", session=stats_session)
-    _running, shop_session, shop_message = route_menu_choice("5", session=inspect_back_session)
-    _running, leave_session, leave_message = route_menu_choice("3", session=shop_session)
+    _running, stats_session, stats_message = route_menu_choice(
+        "1", session=inspect_session
+    )
+    _running, inspect_back_session, inspect_back_message = route_menu_choice(
+        "1", session=stats_session
+    )
+    _running, shop_session, shop_message = route_menu_choice(
+        "5", session=inspect_back_session
+    )
+    _running, leave_session, leave_message = route_menu_choice(
+        "3", session=shop_session
+    )
 
     assert inspect_session.menu_state.mode == "inspect_root"
     assert "资料总览" in inspect_message
@@ -1124,7 +1280,9 @@ def test_shop_room_inspect_round_trip_keeps_shop_flow() -> None:
     assert "前往下一个房间" in leave_message
 
 
-def test_player_defeat_sets_session_game_over_and_blocks_further_actions(tmp_path: Path) -> None:
+def test_player_defeat_sets_session_game_over_and_blocks_further_actions(
+    tmp_path: Path,
+) -> None:
     provider = _content_provider()
     run_state = start_new_run("ironclad", seed=53, registry=provider)
     act_state = generate_act_state("act1", seed=53, registry=provider)
@@ -1170,7 +1328,10 @@ def test_player_defeat_sets_session_game_over_and_blocks_further_actions(tmp_pat
         ),
     )
 
-    restored = load_session(save_path=tmp_path / "defeat.json", content_root=Path(__file__).resolve().parents[2] / "content")
+    restored = load_session(
+        save_path=tmp_path / "defeat.json",
+        content_root=Path(__file__).resolve().parents[2] / "content",
+    )
     _running, same_session, message = route_command("end", session=restored)
 
     assert restored.run_phase == "game_over"
@@ -1183,7 +1344,9 @@ def test_game_over_menu_uses_terminal_phase_choice_mapping(tmp_path: Path) -> No
     session = replace(
         base_session,
         run_state=replace(base_session.run_state, current_hp=0),
-        room_state=replace(base_session.room_state, stage="defeated", is_resolved=False),
+        room_state=replace(
+            base_session.room_state, stage="defeated", is_resolved=False
+        ),
         run_phase="game_over",
         menu_state=MenuState(),
     )
@@ -1200,9 +1363,13 @@ def test_game_over_menu_uses_terminal_phase_choice_mapping(tmp_path: Path) -> No
     assert saved_session.save_path.exists()
     assert f"已保存到 {saved_session.save_path}" == saved_message
 
-    altered_session = replace(session, run_state=replace(session.run_state, current_hp=7))
+    altered_session = replace(
+        session, run_state=replace(session.run_state, current_hp=7)
+    )
 
-    running, loaded_session, loaded_message = route_menu_choice("3", session=altered_session)
+    running, loaded_session, loaded_message = route_menu_choice(
+        "3", session=altered_session
+    )
 
     assert running is True
     assert loaded_session.run_state.current_hp == 0
@@ -1219,7 +1386,9 @@ def test_game_over_menu_uses_terminal_phase_choice_mapping(tmp_path: Path) -> No
 
 def test_burning_blood_heals_after_winning_combat() -> None:
     base_session = start_session(seed=7)
-    combat_state = CombatState.from_dict(base_session.room_state.payload["combat_state"])
+    combat_state = CombatState.from_dict(
+        base_session.room_state.payload["combat_state"]
+    )
     combat_state.player.hp = 50
     combat_state.enemies = [replace(combat_state.enemies[0], hp=6, max_hp=6)]
     session = replace(
@@ -1247,27 +1416,75 @@ def test_burning_blood_heals_after_winning_combat() -> None:
 @pytest.mark.parametrize(
     ("factory", "kwargs", "match"),
     [
-        (resolve_event_choice, {"room_state": RoomState(room_id="r1", room_type="shop", stage="waiting_input", payload={}, is_resolved=False, rewards=[]), "choice_id": "accept", "registry": _content_provider()}, "event"),
+        (
+            resolve_event_choice,
+            {
+                "room_state": RoomState(
+                    room_id="r1",
+                    room_type="shop",
+                    stage="waiting_input",
+                    payload={},
+                    is_resolved=False,
+                    rewards=[],
+                ),
+                "choice_id": "accept",
+                "registry": _content_provider(),
+            },
+            "event",
+        ),
         (
             shop_action,
             {
-                "run_state": start_new_run("ironclad", seed=7, registry=_content_provider()),
-                "room_state": RoomState(room_id="r2", room_type="event", stage="waiting_input", payload={}, is_resolved=False, rewards=[]),
+                "run_state": start_new_run(
+                    "ironclad", seed=7, registry=_content_provider()
+                ),
+                "room_state": RoomState(
+                    room_id="r2",
+                    room_type="event",
+                    stage="waiting_input",
+                    payload={},
+                    is_resolved=False,
+                    rewards=[],
+                ),
                 "action_id": "buy",
+                "registry": _content_provider(),
             },
             "shop",
         ),
         (
             rest_action,
             {
-                "run_state": start_new_run("ironclad", seed=8, registry=_content_provider()),
-                "room_state": RoomState(room_id="r3", room_type="reward", stage="waiting_input", payload={}, is_resolved=False, rewards=[]),
+                "run_state": start_new_run(
+                    "ironclad", seed=8, registry=_content_provider()
+                ),
+                "room_state": RoomState(
+                    room_id="r3",
+                    room_type="reward",
+                    stage="waiting_input",
+                    payload={},
+                    is_resolved=False,
+                    rewards=[],
+                ),
                 "action_id": "rest",
                 "registry": _content_provider(),
             },
             "rest",
         ),
-        (claim_reward, {"room_state": RoomState(room_id="r4", room_type="rest", stage="waiting_input", payload={}, is_resolved=False, rewards=[]), "reward_id": "gold"}, "reward"),
+        (
+            claim_reward,
+            {
+                "room_state": RoomState(
+                    room_id="r4",
+                    room_type="rest",
+                    stage="waiting_input",
+                    payload={},
+                    is_resolved=False,
+                    rewards=[],
+                ),
+                "reward_id": "gold",
+            },
+            "reward",
+        ),
     ],
 )
 def test_room_actions_reject_wrong_room_type(factory, kwargs, match: str) -> None:

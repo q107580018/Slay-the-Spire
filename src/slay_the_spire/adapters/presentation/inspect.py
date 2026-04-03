@@ -42,6 +42,23 @@ from slay_the_spire.domain.models.run_state import RunState
 from slay_the_spire.ports.content_provider import ContentProviderPort
 
 
+_RELIC_RARITY_LABELS = {
+    "starter": "起始",
+    "common": "普通",
+    "uncommon": "非普通",
+    "rare": "稀有",
+    "boss": "Boss",
+    "shop": "商店",
+    "event": "事件",
+    "special": "特殊",
+}
+
+_RELIC_IMPLEMENTATION_STATUS_LABELS = {
+    "implemented": "implemented",
+    "placeholder": "placeholder",
+}
+
+
 def _format_node_id(node_id: object) -> str:
     if str(node_id) == "start":
         return "起点"
@@ -227,6 +244,7 @@ def format_relic_detail_lines(
             summarize_relic_effects(relic_def.passive_effects),
         ),
     ]
+    lines.extend(_format_relic_metadata_lines(relic_def))
     if relic_def.summary is not None:
         lines.append(Text.assemble(("摘要 ", "summary.label"), relic_def.summary))
     if relic_def.description is not None:
@@ -266,6 +284,20 @@ def format_relic_detail_lines(
             )
         )
     return lines
+
+
+def _format_relic_metadata_lines(relic_def) -> list[Text]:
+    rarity = _RELIC_RARITY_LABELS.get(relic_def.rarity, relic_def.rarity or "-")
+    pools = " / ".join(relic_def.pools) if relic_def.pools else "-"
+    implementation_status = _RELIC_IMPLEMENTATION_STATUS_LABELS.get(
+        relic_def.implementation_status,
+        relic_def.implementation_status or "-",
+    )
+    return [
+        Text.assemble(("稀有度 ", "summary.label"), rarity),
+        Text.assemble(("所属池 ", "summary.label"), pools),
+        Text.assemble(("实现状态 ", "summary.label"), implementation_status),
+    ]
 
 
 def format_potion_detail_lines(
@@ -332,6 +364,25 @@ def format_reward_detail_lines(
                 ("效果: ", "summary.label"),
                 summarize_relic_effects(relic_def.passive_effects),
             )
+        )
+        lines.extend(
+            [
+                Text.assemble(
+                    ("稀有度: ", "summary.label"),
+                    _RELIC_RARITY_LABELS.get(relic_def.rarity, relic_def.rarity or "-"),
+                ),
+                Text.assemble(
+                    ("所属池: ", "summary.label"),
+                    " / ".join(relic_def.pools) if relic_def.pools else "-",
+                ),
+                Text.assemble(
+                    ("实现状态: ", "summary.label"),
+                    _RELIC_IMPLEMENTATION_STATUS_LABELS.get(
+                        relic_def.implementation_status,
+                        relic_def.implementation_status or "-",
+                    ),
+                ),
+            ]
         )
         if relic_def.summary is not None:
             lines.append(Text.assemble(("摘要: ", "summary.label"), relic_def.summary))

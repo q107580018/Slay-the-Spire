@@ -2,15 +2,19 @@ from __future__ import annotations
 
 from dataclasses import replace
 from pathlib import Path
+from random import Random
 
 import pytest
 
 from slay_the_spire.app.cli import main
 from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.domain.map.map_generator import generate_act_state
+from slay_the_spire.domain.hooks.runtime import build_runtime_hook_registrations
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.room_state import RoomState
 from slay_the_spire.domain.models.run_state import RunState
+from slay_the_spire.use_cases import opening_flow
+from slay_the_spire.use_cases.end_turn import end_turn
 from slay_the_spire.use_cases.enter_room import enter_room
 from slay_the_spire.use_cases.start_run import start_new_run
 
@@ -105,6 +109,62 @@ def test_start_new_run_populates_gold_deck_relics_and_empty_potions() -> None:
     assert run_state.potions == []
 
 
+def test_start_new_run_initializes_relic_sequences() -> None:
+    provider = _content_provider()
+
+    run_state = start_new_run("ironclad", seed=7, registry=provider)
+
+    assert set(run_state.relic_sequences) == {
+        "common",
+        "uncommon",
+        "rare",
+        "shop",
+        "boss",
+    }
+    assert set(run_state.relic_sequence_positions) == {
+        "common",
+        "uncommon",
+        "rare",
+        "shop",
+        "boss",
+    }
+    assert all(
+        position == 0 for position in run_state.relic_sequence_positions.values()
+    )
+    assert all(
+        isinstance(run_state.relic_sequences[pool], list)
+        for pool in run_state.relic_sequences
+    )
+    assert run_state.relic_sequences["shop"]
+    assert run_state.relic_sequences["boss"]
+
+
+def test_start_new_run_excludes_placeholder_relics_from_reward_sequences() -> None:
+    provider = _content_provider()
+
+    run_state = start_new_run("ironclad", seed=7, registry=provider)
+
+    assert "akabeko" not in run_state.relic_sequences["common"]
+    assert "anchor" not in run_state.relic_sequences["common"]
+    assert "blood_vial" in run_state.relic_sequences["common"]
+    assert "ectoplasm" in run_state.relic_sequences["boss"]
+    assert "astrolabe" not in run_state.relic_sequences["boss"]
+
+
+def test_neow_random_relic_selection_excludes_placeholder_relics() -> None:
+    provider = _content_provider()
+    run_state = start_new_run("ironclad", seed=7, registry=provider)
+    rng = Random(7)
+
+    picked = {
+        opening_flow._choose_relic_id(registry=provider, rng=rng, run_state=run_state)
+        for _ in range(20)
+    }
+
+    assert picked
+    assert picked <= {"blood_vial"}
+
+
 def test_start_new_run_rejects_unknown_character() -> None:
     provider = _content_provider()
 
@@ -127,7 +187,9 @@ def test_enter_room_marks_selected_node_visited_immediately() -> None:
     act_state = generate_act_state("act1", seed=7, registry=provider)
     target_node_id = act_state.reachable_node_ids[0]
 
-    room_state = enter_room(run_state, act_state, node_id=target_node_id, registry=provider)
+    room_state = enter_room(
+        run_state, act_state, node_id=target_node_id, registry=provider
+    )
 
     assert isinstance(room_state, RoomState)
     assert act_state.current_node_id == target_node_id
@@ -166,11 +228,45 @@ def test_enter_room_shop_payload_excludes_curse_cards_and_event_only_relics() ->
     offered_cards = [item["card_id"] for item in room_state.payload["cards"]]
     offered_relics = [item["relic_id"] for item in room_state.payload["relics"]]
 
-    assert all("shop" in provider.cards().get(card_id).acquisition_tags for card_id in offered_cards)
+    assert all(
+        "shop" in provider.cards().get(card_id).acquisition_tags
+        for card_id in offered_cards
+    )
     assert "doubt" not in offered_cards
     assert "injury" not in offered_cards
     assert "burn" not in offered_cards
     assert "golden_idol" not in offered_relics
+
+
+def test_enter_room_shop_payload_uses_shop_pool_sequence() -> None:
+    provider = _content_provider()
+    run_state = start_new_run("ironclad", seed=7, registry=provider)
+    expected_relic_id = run_state.relic_sequences["shop"][0]
+    act_state = generate_act_state("act1", seed=7, registry=provider)
+    node_id = _node_id_for_room_type(act_state, "shop")
+
+    room_state = enter_room(run_state, act_state, node_id=node_id, registry=provider)
+
+    offered_relics = [item["relic_id"] for item in room_state.payload["relics"]]
+
+    assert offered_relics == [expected_relic_id]
+    assert run_state.relic_sequence_positions["shop"] == 1
+    assert all(
+        "shop" in provider.relics().get(relic_id).pools for relic_id in offered_relics
+    )
+
+
+def test_enter_room_shop_payload_is_stable_for_unresolved_reentry() -> None:
+    provider = _content_provider()
+    run_state = start_new_run("ironclad", seed=7, registry=provider)
+    act_state = generate_act_state("act1", seed=7, registry=provider)
+    node_id = _node_id_for_room_type(act_state, "shop")
+
+    first_room = enter_room(run_state, act_state, node_id=node_id, registry=provider)
+    second_room = enter_room(run_state, act_state, node_id=node_id, registry=provider)
+
+    assert first_room.payload["relics"] == second_room.payload["relics"]
+    assert run_state.relic_sequence_positions["shop"] == 1
 
 
 def test_enter_room_builds_playable_combat_state_for_combat_nodes() -> None:
@@ -185,7 +281,9 @@ def test_enter_room_builds_playable_combat_state_for_combat_nodes() -> None:
     assert combat_state.round_number == 1
     assert len(combat_state.hand) == 5
     assert len(combat_state.draw_pile) == 5
-    assert sorted([*combat_state.hand, *combat_state.draw_pile]) == sorted(run_state.deck)
+    assert sorted([*combat_state.hand, *combat_state.draw_pile]) == sorted(
+        run_state.deck
+    )
     assert combat_state.hand != [
         "strike#1",
         "strike#2",
@@ -196,16 +294,24 @@ def test_enter_room_builds_playable_combat_state_for_combat_nodes() -> None:
     assert len(combat_state.enemies) >= 1
 
 
-def test_enter_room_shuffles_opening_hand_deterministically_for_same_room_seed() -> None:
+def test_enter_room_shuffles_opening_hand_deterministically_for_same_room_seed() -> (
+    None
+):
     provider = _content_provider()
     run_state = start_new_run("ironclad", seed=7, registry=provider)
     first_act_state = generate_act_state("act1", seed=7, registry=provider)
     second_act_state = generate_act_state("act1", seed=7, registry=provider)
 
-    first_room_state = enter_room(run_state, first_act_state, node_id="start", registry=provider)
-    second_room_state = enter_room(run_state, second_act_state, node_id="start", registry=provider)
+    first_room_state = enter_room(
+        run_state, first_act_state, node_id="start", registry=provider
+    )
+    second_room_state = enter_room(
+        run_state, second_act_state, node_id="start", registry=provider
+    )
     first_combat_state = CombatState.from_dict(first_room_state.payload["combat_state"])
-    second_combat_state = CombatState.from_dict(second_room_state.payload["combat_state"])
+    second_combat_state = CombatState.from_dict(
+        second_room_state.payload["combat_state"]
+    )
 
     assert first_combat_state.hand == second_combat_state.hand
     assert first_combat_state.draw_pile == second_combat_state.draw_pile
@@ -213,7 +319,9 @@ def test_enter_room_shuffles_opening_hand_deterministically_for_same_room_seed()
 
 def test_enter_room_applies_ectoplasm_energy_on_combat_start() -> None:
     provider = _content_provider()
-    run_state = replace(start_new_run("ironclad", seed=5, registry=provider), relics=["ectoplasm"])
+    run_state = replace(
+        start_new_run("ironclad", seed=5, registry=provider), relics=["ectoplasm"]
+    )
     act_state = generate_act_state("act1", seed=5, registry=provider)
 
     room_state = enter_room(run_state, act_state, node_id="start", registry=provider)
@@ -224,12 +332,48 @@ def test_enter_room_applies_ectoplasm_energy_on_combat_start() -> None:
 
 def test_enter_room_applies_fusion_hammer_energy_on_combat_start() -> None:
     provider = _content_provider()
-    run_state = replace(start_new_run("ironclad", seed=5, registry=provider), relics=["fusion_hammer"])
+    run_state = replace(
+        start_new_run("ironclad", seed=5, registry=provider), relics=["fusion_hammer"]
+    )
     act_state = generate_act_state("act1", seed=5, registry=provider)
 
     room_state = enter_room(run_state, act_state, node_id="start", registry=provider)
     combat_state = CombatState.from_dict(room_state.payload["combat_state"])
 
+    assert combat_state.energy == 4
+
+
+def test_ectoplasm_grants_energy_on_second_turn() -> None:
+    provider = _content_provider()
+    run_state = replace(
+        start_new_run("ironclad", seed=5, registry=provider), relics=["ectoplasm"]
+    )
+    act_state = generate_act_state("act1", seed=5, registry=provider)
+
+    room_state = enter_room(run_state, act_state, node_id="start", registry=provider)
+    combat_state = CombatState.from_dict(room_state.payload["combat_state"])
+    registrations = build_runtime_hook_registrations(run_state, provider)
+
+    end_turn(combat_state, provider, hook_registrations=registrations)
+
+    assert combat_state.round_number == 2
+    assert combat_state.energy == 4
+
+
+def test_fusion_hammer_grants_energy_on_second_turn() -> None:
+    provider = _content_provider()
+    run_state = replace(
+        start_new_run("ironclad", seed=5, registry=provider), relics=["fusion_hammer"]
+    )
+    act_state = generate_act_state("act1", seed=5, registry=provider)
+
+    room_state = enter_room(run_state, act_state, node_id="start", registry=provider)
+    combat_state = CombatState.from_dict(room_state.payload["combat_state"])
+    registrations = build_runtime_hook_registrations(run_state, provider)
+
+    end_turn(combat_state, provider, hook_registrations=registrations)
+
+    assert combat_state.round_number == 2
     assert combat_state.energy == 4
 
 
@@ -275,7 +419,9 @@ def test_enter_room_can_sample_new_basic_enemy_from_pool() -> None:
 
 def test_enter_act2_combat_room_uses_act2_basic_encounters() -> None:
     provider = _content_provider()
-    run_state = replace(start_new_run("ironclad", seed=17, registry=provider), current_act_id="act2")
+    run_state = replace(
+        start_new_run("ironclad", seed=17, registry=provider), current_act_id="act2"
+    )
     act_state = generate_act_state("act2", seed=17, registry=provider)
     node_id = _node_id_for_room_type(act_state, "combat")
 
@@ -293,7 +439,9 @@ def test_enter_act2_combat_room_uses_act2_basic_encounters() -> None:
 
 def test_enter_act2_elite_room_uses_act2_elite_encounters() -> None:
     provider = _content_provider()
-    run_state = replace(start_new_run("ironclad", seed=19, registry=provider), current_act_id="act2")
+    run_state = replace(
+        start_new_run("ironclad", seed=19, registry=provider), current_act_id="act2"
+    )
     act_state = generate_act_state("act2", seed=19, registry=provider)
     node_id = _node_id_for_room_type(act_state, "elite")
 
@@ -308,7 +456,9 @@ def test_enter_act2_elite_room_uses_act2_elite_encounters() -> None:
 
 def test_enter_act2_boss_room_uses_act2_boss_encounters() -> None:
     provider = _content_provider()
-    run_state = replace(start_new_run("ironclad", seed=29, registry=provider), current_act_id="act2")
+    run_state = replace(
+        start_new_run("ironclad", seed=29, registry=provider), current_act_id="act2"
+    )
     act_state = generate_act_state("act2", seed=29, registry=provider)
     node_id = _node_id_for_room_type(act_state, "boss")
 

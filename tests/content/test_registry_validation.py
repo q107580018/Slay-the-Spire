@@ -13,6 +13,7 @@ from slay_the_spire.content.registries import (
     CardRegistry,
     EncounterRegistry,
     EnemyRegistry,
+    RelicRegistry,
 )
 
 
@@ -405,7 +406,7 @@ def test_boss_relic_catalog_exposes_act1_boss_relic_details(content_root: Path) 
     assert coffee_dripper.disabled_actions == ["rest_heal"]
     assert coffee_dripper.blocks_gold_gain is False
     assert fusion_hammer.name == "融合之锤"
-    assert fusion_hammer.summary == "升级后不再能在休息点锻造卡牌"
+    assert fusion_hammer.summary == "每回合开始时获得 1 点能量，休息点不能锻造卡牌"
     assert fusion_hammer.disabled_actions == ["smith"]
     assert fusion_hammer.blocks_gold_gain is False
 
@@ -419,6 +420,440 @@ def test_boss_relics_do_not_appear_in_shop_pool(content_root: Path) -> None:
     assert provider.relics().get("coffee_dripper").can_appear_in_shop is False
     assert provider.relics().get("fusion_hammer").can_appear_in_shop is False
     assert provider.relics().get("circlet").can_appear_in_shop is False
+
+
+@pytest.mark.parametrize(
+    ("missing_field", "expected_error"),
+    [
+        ("rarity", "rarity"),
+        ("pools", "pools"),
+        ("source_tags", "source_tags"),
+        ("owner_character_ids", "owner_character_ids"),
+        ("implementation_status", "implementation_status"),
+        ("effect_blueprint", "effect_blueprint"),
+    ],
+)
+def test_relic_registry_requires_extended_metadata_fields(
+    missing_field: str, expected_error: str
+) -> None:
+    registry = RelicRegistry()
+    payload = {
+        "id": "burning_blood",
+        "name": "燃烧之血",
+        "trigger_hooks": ["on_combat_end"],
+        "passive_effects": [{"type": "heal", "amount": 6}],
+        "rarity": "starter",
+        "pools": ["starter"],
+        "source_tags": ["starting_relic"],
+        "owner_character_ids": ["ironclad"],
+        "implementation_status": "implemented",
+        "effect_blueprint": [],
+    }
+    payload.pop(missing_field)
+
+    with pytest.raises((TypeError, ValueError), match=expected_error):
+        registry.register(payload)
+
+
+def test_relic_registry_rejects_invalid_metadata_enums() -> None:
+    registry = RelicRegistry()
+    base_payload = {
+        "id": "base_relic",
+        "name": "坏遗物",
+        "trigger_hooks": [],
+        "passive_effects": [],
+        "pools": ["special"],
+        "source_tags": ["test"],
+        "owner_character_ids": [],
+        "effect_blueprint": [],
+    }
+
+    with pytest.raises(ValueError, match="rarity"):
+        registry.register(
+            {
+                **base_payload,
+                "id": "bad_rarity",
+                "rarity": "legendary",
+                "implementation_status": "implemented",
+            }
+        )
+
+    with pytest.raises(ValueError, match="implementation_status"):
+        registry.register(
+            {
+                **base_payload,
+                "id": "bad_status",
+                "rarity": "special",
+                "implementation_status": "done",
+            }
+        )
+
+
+@pytest.mark.parametrize("content_root", _content_roots())
+def test_loaded_relic_catalog_exposes_required_metadata(content_root: Path) -> None:
+    provider = StarterContentProvider(content_root)
+    expected_metadata = {
+        "burning_blood": {
+            "rarity": "starter",
+            "pools": ["starter"],
+            "source_tags": ["starting_relic"],
+            "owner_character_ids": ["ironclad"],
+            "implementation_status": "implemented",
+        },
+        "blood_vial": {
+            "rarity": "common",
+            "pools": ["common", "neow"],
+            "source_tags": ["standard_pool"],
+            "owner_character_ids": [],
+            "implementation_status": "implemented",
+        },
+        "golden_idol": {
+            "rarity": "event",
+            "pools": ["event"],
+            "source_tags": ["event_reward"],
+            "owner_character_ids": [],
+            "implementation_status": "implemented",
+        },
+        "guarding_totem": {
+            "rarity": "special",
+            "pools": ["special"],
+            "source_tags": ["special_reward"],
+            "owner_character_ids": [],
+            "implementation_status": "implemented",
+        },
+        "circlet": {
+            "rarity": "special",
+            "pools": ["special"],
+            "source_tags": ["fallback"],
+            "owner_character_ids": [],
+            "implementation_status": "implemented",
+        },
+        "black_blood": {
+            "rarity": "boss",
+            "pools": ["boss"],
+            "source_tags": ["boss_relic"],
+            "owner_character_ids": ["ironclad"],
+            "implementation_status": "implemented",
+        },
+        "ectoplasm": {
+            "rarity": "boss",
+            "pools": ["boss"],
+            "source_tags": ["boss_relic"],
+            "owner_character_ids": [],
+            "implementation_status": "implemented",
+        },
+        "coffee_dripper": {
+            "rarity": "boss",
+            "pools": ["boss"],
+            "source_tags": ["boss_relic"],
+            "owner_character_ids": [],
+            "implementation_status": "implemented",
+        },
+        "fusion_hammer": {
+            "rarity": "boss",
+            "pools": ["boss"],
+            "source_tags": ["boss_relic"],
+            "owner_character_ids": [],
+            "implementation_status": "implemented",
+        },
+        "frozen_eye": {
+            "rarity": "shop",
+            "pools": ["shop"],
+            "source_tags": ["shop"],
+            "owner_character_ids": [],
+            "implementation_status": "implemented",
+        },
+    }
+
+    relics = {relic.id: relic for relic in provider.relics().all()}
+
+    assert set(expected_metadata).issubset(relics)
+
+    for relic_id, expected in expected_metadata.items():
+        relic = relics[relic_id]
+        assert relic.rarity == expected["rarity"]
+        assert relic.pools == expected["pools"]
+        assert relic.source_tags == expected["source_tags"]
+        assert relic.owner_character_ids == expected["owner_character_ids"]
+        assert relic.implementation_status == expected["implementation_status"]
+        assert relic.effect_blueprint == []
+
+
+@pytest.mark.parametrize(
+    (
+        "relic_id",
+        "expected_name",
+        "expected_summary",
+        "expected_description",
+        "expected_rarity",
+        "expected_pools",
+        "expected_source_tags",
+        "expected_owner_ids",
+    ),
+    [
+        (
+            "face_of_cleric",
+            "牧师的脸",
+            "每场战斗后你的最大生命值增加 1",
+            "每场战斗后，你的最大生命值增加 1。",
+            "event",
+            ["event"],
+            ["event_reward"],
+            [],
+        ),
+        (
+            "gremlin_visage",
+            "地精容貌",
+            "每场战斗开始时，你拥有 1 层虚弱",
+            "每场战斗开始时，你拥有 1 层虚弱。",
+            "event",
+            ["event"],
+            ["event_reward"],
+            [],
+        ),
+        (
+            "nloths_gift",
+            "恩洛斯的礼物",
+            "使你在怪物奖励中遇见稀有牌的几率变为 3 倍",
+            "使你在怪物奖励中遇见稀有牌的几率变为 3 倍。",
+            "event",
+            ["event"],
+            ["event_reward"],
+            [],
+        ),
+        (
+            "ssserpent_head",
+            "蛇的头",
+            "每次进入？房间时获得 50 金币",
+            "每次进入？房间时，获得 50 金币。",
+            "event",
+            ["event"],
+            ["event_reward"],
+            [],
+        ),
+        (
+            "warped_tongs",
+            "弯曲铁钳",
+            "在你的每个回合开始时，随机升级一张你的手牌（只影响本场战斗）",
+            "在你的每个回合开始时，随机升级一张你的手牌（只影响本场战斗）。",
+            "event",
+            ["event"],
+            ["event_reward"],
+            [],
+        ),
+        (
+            "cloak_clasp",
+            "斗篷扣",
+            "在你的回合结束时，每有一张手牌获得 1 点格挡",
+            "在你的回合结束时，每有一张手牌获得 1 点格挡。",
+            "rare",
+            ["rare", "neow"],
+            ["standard_pool"],
+            ["watcher"],
+        ),
+        (
+            "damaru",
+            "手摇鼓",
+            "在你的回合开始时，获得 1 层真言",
+            "在你的回合开始时，获得 1 层真言。",
+            "common",
+            ["common", "neow"],
+            ["standard_pool"],
+            ["watcher"],
+        ),
+        (
+            "melange",
+            "美琅脂",
+            "你每次将抽牌堆洗牌时，预见 3",
+            "你每次将抽牌堆洗牌时，预见 3。",
+            "shop",
+            ["shop"],
+            ["shop"],
+            ["watcher"],
+        ),
+        (
+            "thread_and_needle",
+            "针线",
+            "在每场战斗开始时，获得 4 层多层护甲",
+            "在每场战斗开始时，获得 4 层多层护甲。",
+            "rare",
+            ["rare", "neow"],
+            ["standard_pool"],
+            [],
+        ),
+        (
+            "abacus",
+            "算盘",
+            "你每次将抽牌堆洗牌时，获得 6 点格挡",
+            "你每次将抽牌堆洗牌时，获得 6 点格挡。",
+            "shop",
+            ["shop"],
+            ["shop"],
+            [],
+        ),
+        (
+            "gambling_chip",
+            "赌博筹码",
+            "在每场战斗开始时，丢弃任意张牌，然后抽相同数量张牌",
+            "在每场战斗开始时，丢弃任意张牌，然后抽相同数量张牌。",
+            "rare",
+            ["rare", "neow"],
+            ["standard_pool"],
+            [],
+        ),
+        (
+            "shuriken",
+            "手里剑",
+            "你每在同一回合内打出 3 张攻击牌，获得 1 点力量",
+            "你每在同一回合内打出 3 张攻击牌，获得 1 点力量。",
+            "uncommon",
+            ["uncommon", "neow"],
+            ["standard_pool"],
+            [],
+        ),
+        (
+            "runic_capacitor",
+            "符文电容器",
+            "每场战斗开始时，获得 3 个额外充能球栏位",
+            "每场战斗开始时，获得 3 个额外充能球栏位。",
+            "shop",
+            ["shop"],
+            ["shop"],
+            [],
+        ),
+        (
+            "the_courier",
+            "送货员",
+            "商人的卡牌、遗物和药水不再会卖光，并且所有商品打折 20%",
+            "商人的卡牌、遗物和药水不再会卖光，并且所有商品打折 20%。",
+            "uncommon",
+            ["uncommon", "neow"],
+            ["standard_pool"],
+            [],
+        ),
+        (
+            "neows_lament",
+            "涅奥的悲恸",
+            "接下来 3 场战斗中的敌人将只有 1 点生命",
+            "接下来 3 场战斗中的敌人将只有 1 点生命。",
+            "event",
+            ["event"],
+            ["event_reward"],
+            [],
+        ),
+        (
+            "pocketwatch",
+            "怀表",
+            "若你在某个回合打出的牌少于等于 3 张，则在你的下个回合开始时额外抽 3 张牌",
+            "若你在某个回合打出的牌少于等于 3 张，则在你的下个回合开始时额外抽 3 张牌。",
+            "rare",
+            ["rare", "neow"],
+            ["standard_pool"],
+            [],
+        ),
+        (
+            "twisted_funnel",
+            "扭曲漏斗",
+            "在每场战斗开始时，给予所有敌人 4 层中毒",
+            "在每场战斗开始时，给予所有敌人 4 层中毒。",
+            "shop",
+            ["shop"],
+            ["shop"],
+            ["silent"],
+        ),
+        (
+            "ninja_scroll",
+            "忍术卷轴",
+            "每场战斗开始时，手牌中增加 3 张小刀",
+            "每场战斗开始时，手牌中增加 3 张小刀。",
+            "uncommon",
+            ["uncommon", "neow"],
+            ["standard_pool"],
+            ["silent"],
+        ),
+    ],
+)
+@pytest.mark.parametrize("content_root", _content_roots())
+def test_audited_relic_metadata_matches_local_reference(
+    content_root: Path,
+    relic_id: str,
+    expected_name: str,
+    expected_summary: str,
+    expected_description: str,
+    expected_rarity: str,
+    expected_pools: list[str],
+    expected_source_tags: list[str],
+    expected_owner_ids: list[str],
+) -> None:
+    provider = StarterContentProvider(content_root)
+
+    relic = provider.relics().get(relic_id)
+
+    assert relic.name == expected_name
+    assert relic.summary == expected_summary
+    assert relic.description == expected_description
+    assert relic.rarity == expected_rarity
+    assert relic.pools == expected_pools
+    assert relic.source_tags == expected_source_tags
+    assert relic.owner_character_ids == expected_owner_ids
+
+
+@pytest.mark.parametrize("content_root", _content_roots())
+def test_missing_audited_relics_are_present(content_root: Path) -> None:
+    provider = StarterContentProvider(content_root)
+
+    assert provider.relics().get("pocketwatch").name == "怀表"
+    assert provider.relics().get("twisted_funnel").name == "扭曲漏斗"
+    assert provider.relics().get("ninja_scroll").name == "忍术卷轴"
+
+
+@pytest.mark.parametrize("content_root", _content_roots())
+def test_relic_catalog_contains_full_base_game_relic_inventory(
+    content_root: Path,
+) -> None:
+    provider = StarterContentProvider(content_root)
+
+    relic_ids = {relic.id for relic in provider.relics().all()}
+    base_game_relic_ids = relic_ids - {"guarding_totem"}
+
+    assert len(base_game_relic_ids) == 179
+    assert {
+        "akabeko",
+        "anchor",
+        "bag_of_preparation",
+        "oddly_smooth_stone",
+        "bird_faced_urn",
+        "burning_blood",
+        "black_blood",
+        "golden_idol",
+        "circlet",
+        "neows_lament",
+        "prismatic_shard",
+        "violet_lotus",
+        "ring_of_the_serpent",
+        "nilrys_codex",
+        "pocketwatch",
+        "twisted_funnel",
+        "ninja_scroll",
+    }.issubset(base_game_relic_ids)
+    assert "guarding_totem" in relic_ids
+    assert "guarding_totem" not in base_game_relic_ids
+    assert "gremlin_mask" not in base_game_relic_ids
+    assert "gremlin_horned_mask" not in base_game_relic_ids
+    assert provider.relics().get("nilrys_codex").rarity == "event"
+    assert provider.relics().get("nilrys_codex").pools == ["event"]
+
+
+@pytest.mark.parametrize("content_root", _content_roots())
+def test_all_relics_have_localized_summary_and_description(content_root: Path) -> None:
+    provider = StarterContentProvider(content_root)
+
+    for relic in provider.relics().all():
+        assert relic.name
+        assert relic.summary
+        assert relic.description
+        assert relic.pools
+        assert relic.effect_blueprint is not None
 
 
 @pytest.mark.parametrize("content_root", _content_roots())

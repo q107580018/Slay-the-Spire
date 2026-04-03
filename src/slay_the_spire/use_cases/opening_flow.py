@@ -10,14 +10,20 @@ from slay_the_spire.use_cases.apply_reward import apply_reward
 from slay_the_spire.use_cases.start_run import start_new_run
 
 
-def build_opening_state(*, seed: int, preferred_character_id: str | None, registry) -> OpeningState:
+def build_opening_state(
+    *, seed: int, preferred_character_id: str | None, registry
+) -> OpeningState:
     character_ids = [character.id for character in registry.characters().all()]
     run_blueprint = None
     offers: list[NeowOffer] = []
     selected_character_id = preferred_character_id
     if selected_character_id is not None:
-        run_blueprint = start_new_run(selected_character_id, seed=seed, registry=registry)
-        offers = _generate_neow_offers(seed=seed, run_blueprint=run_blueprint, registry=registry)
+        run_blueprint = start_new_run(
+            selected_character_id, seed=seed, registry=registry
+        )
+        offers = _generate_neow_offers(
+            seed=seed, run_blueprint=run_blueprint, registry=registry
+        )
     return OpeningState(
         seed=seed,
         available_character_ids=character_ids,
@@ -36,14 +42,21 @@ def apply_neow_offer(
 ) -> OpeningState:
     if opening_state.resolved_neow_offer_ids:
         raise ValueError("opening neow offer has already been resolved")
-    offer = next(item for item in opening_state.neow_offers if item.offer_id == offer_id)
+    offer = next(
+        item for item in opening_state.neow_offers if item.offer_id == offer_id
+    )
     if offer.offer_id in opening_state.resolved_neow_offer_ids:
         raise ValueError("neow offer has already been resolved")
     if offer.requires_target is not None and target_card_instance_id is None:
         return replace(opening_state, pending_neow_offer_id=offer.offer_id)
     if opening_state.run_blueprint is None:
         return replace(opening_state, pending_neow_offer_id=offer.offer_id)
-    _validate_target_for_offer(opening_state.run_blueprint, offer=offer, target_card_instance_id=target_card_instance_id, registry=registry)
+    _validate_target_for_offer(
+        opening_state.run_blueprint,
+        offer=offer,
+        target_card_instance_id=target_card_instance_id,
+        registry=registry,
+    )
     run_blueprint = _apply_cost(opening_state.run_blueprint, offer=offer)
     run_blueprint = _apply_reward(
         run_blueprint,
@@ -55,20 +68,41 @@ def apply_neow_offer(
         opening_state,
         run_blueprint=run_blueprint,
         pending_neow_offer_id=None,
-        resolved_neow_offer_ids=[*opening_state.resolved_neow_offer_ids, offer.offer_id],
+        resolved_neow_offer_ids=[
+            *opening_state.resolved_neow_offer_ids,
+            offer.offer_id,
+        ],
     )
 
 
-def _generate_neow_offers(*, seed: int, run_blueprint: RunState, registry) -> list[NeowOffer]:
+def _generate_neow_offers(
+    *, seed: int, run_blueprint: RunState, registry
+) -> list[NeowOffer]:
     character_id = run_blueprint.character_id
     rng = rng_for_room(seed=seed, room_id=f"opening:{character_id}", category="neow")
     free_offers = [
-        _build_offer("free-1", "free", "gold", registry, rng),
-        _build_offer("free-2", "free", _pick_free_reward_kind(rng), registry, rng),
+        _build_offer("free-1", "free", "gold", registry, rng, run_blueprint),
+        _build_offer(
+            "free-2", "free", _pick_free_reward_kind(rng), registry, rng, run_blueprint
+        ),
     ]
     tradeoff_offers = [
-        _build_offer("tradeoff-1", "tradeoff", _pick_tradeoff_reward_kind(rng), registry, rng),
-        _build_offer("tradeoff-2", "tradeoff", _pick_tradeoff_reward_kind(rng), registry, rng),
+        _build_offer(
+            "tradeoff-1",
+            "tradeoff",
+            _pick_tradeoff_reward_kind(rng),
+            registry,
+            rng,
+            run_blueprint,
+        ),
+        _build_offer(
+            "tradeoff-2",
+            "tradeoff",
+            _pick_tradeoff_reward_kind(rng),
+            registry,
+            rng,
+            run_blueprint,
+        ),
     ]
     return [*free_offers, *tradeoff_offers]
 
@@ -83,19 +117,34 @@ def _pick_tradeoff_reward_kind(rng: Random) -> str:
     return rng.choice(kinds)
 
 
-def _build_offer(offer_id: str, category: str, reward_kind: str, registry, rng: Random) -> NeowOffer:
+def _build_offer(
+    offer_id: str,
+    category: str,
+    reward_kind: str,
+    registry,
+    rng: Random,
+    run_state: RunState | None = None,
+) -> NeowOffer:
     reward_payload = _build_reward_payload(
         reward_kind=reward_kind,
+        run_state=run_state,
         registry=registry,
         rng=rng,
     )
-    requires_target = reward_kind if reward_kind in {"upgrade_card", "remove_card"} else None
+    requires_target = (
+        reward_kind if reward_kind in {"upgrade_card", "remove_card"} else None
+    )
     cost_kind, cost_payload = _build_cost_payload(
         reward_kind=reward_kind,
         registry=registry,
         rng=rng,
     )
-    summary, detail_lines = _build_description(reward_kind=reward_kind, reward_payload=reward_payload, cost_kind=cost_kind, cost_payload=cost_payload)
+    summary, detail_lines = _build_description(
+        reward_kind=reward_kind,
+        reward_payload=reward_payload,
+        cost_kind=cost_kind,
+        cost_payload=cost_payload,
+    )
     return NeowOffer(
         offer_id=offer_id,
         category=category,
@@ -109,11 +158,15 @@ def _build_offer(offer_id: str, category: str, reward_kind: str, registry, rng: 
     )
 
 
-def _build_reward_payload(*, reward_kind: str, registry, rng: Random) -> dict[str, object]:
+def _build_reward_payload(
+    *, reward_kind: str, run_state: RunState | None, registry, rng: Random
+) -> dict[str, object]:
     if reward_kind == "gold":
         return {"reward_id": "gold:100", "amount": 100}
     if reward_kind == "relic":
-        relic_id = _choose_relic_id(registry=registry, rng=rng)
+        if run_state is None:
+            raise ValueError("run_state is required when choosing a relic reward")
+        relic_id = _choose_relic_id(registry=registry, rng=rng, run_state=run_state)
         return {"reward_id": f"relic:{relic_id}", "relic_id": relic_id}
     if reward_kind == "potion":
         potion_id = _choose_potion_id(registry=registry, rng=rng)
@@ -130,7 +183,9 @@ def _build_reward_payload(*, reward_kind: str, registry, rng: Random) -> dict[st
         if premium_kind == "gold":
             return {"reward_type": "gold", "reward_id": "gold:250", "amount": 250}
         if premium_kind == "relic":
-            relic_id = _choose_relic_id(registry=registry, rng=rng)
+            if run_state is None:
+                raise ValueError("run_state is required when choosing a relic reward")
+            relic_id = _choose_relic_id(registry=registry, rng=rng, run_state=run_state)
             return {
                 "reward_type": "relic",
                 "reward_id": f"relic:{relic_id}",
@@ -145,7 +200,9 @@ def _build_reward_payload(*, reward_kind: str, registry, rng: Random) -> dict[st
     raise ValueError(f"unsupported reward_kind: {reward_kind}")
 
 
-def _build_cost_payload(*, reward_kind: str, registry, rng: Random) -> tuple[str | None, dict[str, object]]:
+def _build_cost_payload(
+    *, reward_kind: str, registry, rng: Random
+) -> tuple[str | None, dict[str, object]]:
     if reward_kind == "upgrade_card":
         return "hp_loss", {"amount": rng.choice([6, 8, 10])}
     if reward_kind == "remove_card":
@@ -209,21 +266,21 @@ def _describe_cost(cost_kind: str, cost_payload: dict[str, object]) -> str:
     return cost_kind
 
 
-def _choose_relic_id(*, registry, rng: Random) -> str:
-    relic_ids = [
+def _choose_relic_id(*, registry, rng: Random, run_state: RunState) -> str:
+    relic_ids = sorted(
         relic.id
         for relic in registry.relics().all()
-        if relic.id not in {"burning_blood", "circlet"}
-        and relic.replaces_relic_id is None
-        and not relic.blocks_gold_gain
-        and not relic.disabled_actions
-    ]
+        if "neow" in relic.pools
+        and relic.implementation_status in {"implemented", "partial"}
+        and (
+            not relic.owner_character_ids
+            or run_state.character_id in relic.owner_character_ids
+        )
+    )
     if not relic_ids:
-        relic_ids = [
-            relic.id
-            for relic in registry.relics().all()
-            if relic.id not in {"burning_blood"} and relic.replaces_relic_id is None
-        ]
+        raise ValueError(
+            f"no Neow relics available for character: {run_state.character_id}"
+        )
     return rng.choice(relic_ids)
 
 
@@ -249,13 +306,18 @@ def _choose_curse_card_id(*, registry, rng: Random) -> str:
 def _apply_cost(run_blueprint: RunState, *, offer: NeowOffer) -> RunState:
     if offer.cost_kind == "hp_loss":
         amount = int(offer.cost_payload["amount"])
-        return replace(run_blueprint, current_hp=max(1, run_blueprint.current_hp - amount))
+        return replace(
+            run_blueprint, current_hp=max(1, run_blueprint.current_hp - amount)
+        )
     if offer.cost_kind == "gold_loss":
         amount = int(offer.cost_payload["amount"])
         return replace(run_blueprint, gold=max(0, run_blueprint.gold - amount))
     if offer.cost_kind == "curse":
         card_id = str(offer.cost_payload["card_id"])
-        return replace(run_blueprint, deck=[*run_blueprint.deck, _next_instance_id(run_blueprint.deck, card_id)])
+        return replace(
+            run_blueprint,
+            deck=[*run_blueprint.deck, _next_instance_id(run_blueprint.deck, card_id)],
+        )
     return run_blueprint
 
 
@@ -269,25 +331,49 @@ def _apply_reward(
     reward_kind = offer.reward_kind
     reward_payload = offer.reward_payload
     if reward_kind == "gold":
-        return apply_reward(run_state=run_blueprint, reward_id=str(reward_payload["reward_id"]), registry=registry)
+        return apply_reward(
+            run_state=run_blueprint,
+            reward_id=str(reward_payload["reward_id"]),
+            registry=registry,
+        )
     if reward_kind == "relic":
-        return apply_reward(run_state=run_blueprint, reward_id=str(reward_payload["reward_id"]), registry=registry)
+        return apply_reward(
+            run_state=run_blueprint,
+            reward_id=str(reward_payload["reward_id"]),
+            registry=registry,
+        )
     if reward_kind == "potion":
         potion_id = str(reward_payload["potion_id"])
         registry.potions().get(potion_id)
         return replace(run_blueprint, potions=[*run_blueprint.potions, potion_id])
     if reward_kind == "rare_card":
-        return apply_reward(run_state=run_blueprint, reward_id=str(reward_payload["reward_id"]), registry=registry)
+        return apply_reward(
+            run_state=run_blueprint,
+            reward_id=str(reward_payload["reward_id"]),
+            registry=registry,
+        )
     if reward_kind == "curse_bonus":
-        return apply_reward(run_state=run_blueprint, reward_id=str(reward_payload["reward_id"]), registry=registry)
+        return apply_reward(
+            run_state=run_blueprint,
+            reward_id=str(reward_payload["reward_id"]),
+            registry=registry,
+        )
     if reward_kind == "upgrade_card":
-        return _apply_upgrade_card(run_blueprint, registry=registry, target_card_instance_id=target_card_instance_id)
+        return _apply_upgrade_card(
+            run_blueprint,
+            registry=registry,
+            target_card_instance_id=target_card_instance_id,
+        )
     if reward_kind == "remove_card":
-        return _apply_remove_card(run_blueprint, target_card_instance_id=target_card_instance_id)
+        return _apply_remove_card(
+            run_blueprint, target_card_instance_id=target_card_instance_id
+        )
     raise ValueError(f"unsupported reward_kind: {reward_kind}")
 
 
-def _apply_upgrade_card(run_blueprint: RunState, *, registry, target_card_instance_id: str | None) -> RunState:
+def _apply_upgrade_card(
+    run_blueprint: RunState, *, registry, target_card_instance_id: str | None
+) -> RunState:
     if target_card_instance_id is None:
         return run_blueprint
     card_id = target_card_instance_id.split("#", 1)[0]
@@ -295,17 +381,29 @@ def _apply_upgrade_card(run_blueprint: RunState, *, registry, target_card_instan
     _old_card_id, suffix = target_card_instance_id.split("#", 1)
     upgraded_instance_id = f"{upgraded_card_id}#{suffix}"
     deck = [
-        upgraded_instance_id if card_instance_id == target_card_instance_id else card_instance_id
+        upgraded_instance_id
+        if card_instance_id == target_card_instance_id
+        else card_instance_id
         for card_instance_id in run_blueprint.deck
     ]
     return replace(run_blueprint, deck=deck)
 
 
-def _apply_remove_card(run_blueprint: RunState, *, target_card_instance_id: str | None) -> RunState:
+def _apply_remove_card(
+    run_blueprint: RunState, *, target_card_instance_id: str | None
+) -> RunState:
     if target_card_instance_id is None:
         return run_blueprint
-    deck = [card_instance_id for card_instance_id in run_blueprint.deck if card_instance_id != target_card_instance_id]
-    return replace(run_blueprint, deck=deck, card_removal_count=run_blueprint.card_removal_count + 1)
+    deck = [
+        card_instance_id
+        for card_instance_id in run_blueprint.deck
+        if card_instance_id != target_card_instance_id
+    ]
+    return replace(
+        run_blueprint,
+        deck=deck,
+        card_removal_count=run_blueprint.card_removal_count + 1,
+    )
 
 
 def _validate_target_for_offer(

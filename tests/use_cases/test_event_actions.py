@@ -44,14 +44,27 @@ def _run_state(*, relics: list[str] | None = None) -> RunState:
         current_hp=80,
         max_hp=80,
         gold=99,
-        deck=["strike#1", "strike#2", "strike#3", "strike#4", "strike#5", "defend#6", "defend#7", "defend#8", "defend#9", "bash#10"],
+        deck=[
+            "strike#1",
+            "strike#2",
+            "strike#3",
+            "strike#4",
+            "strike#5",
+            "defend#6",
+            "defend#7",
+            "defend#8",
+            "defend#9",
+            "bash#10",
+        ],
         relics=["burning_blood", *(relics or [])],
         potions=[],
         card_removal_count=0,
     )
 
 
-def test_shining_light_accept_enters_upgrade_subflow_and_upgrades_selected_card() -> None:
+def test_shining_light_accept_enters_upgrade_subflow_and_upgrades_selected_card() -> (
+    None
+):
     session = _event_session("shining_light")
 
     _running, session, _message = route_menu_choice("1", session=session)
@@ -93,7 +106,9 @@ def test_living_wall_forget_enters_remove_subflow_and_removes_selected_card() ->
 
 def test_the_cleric_heal_spends_gold_and_restores_hp() -> None:
     base_session = _event_session("the_cleric")
-    session = replace(base_session, run_state=replace(base_session.run_state, current_hp=40, gold=99))
+    session = replace(
+        base_session, run_state=replace(base_session.run_state, current_hp=40, gold=99)
+    )
 
     _running, session, _message = route_menu_choice("1", session=session)
     _running, session, _message = route_menu_choice("1", session=session)
@@ -116,7 +131,9 @@ def test_world_of_goop_gather_gold_costs_hp_and_grants_gold() -> None:
 
 def test_big_fish_banana_heals_one_third_max_hp() -> None:
     base_session = _event_session("big_fish")
-    session = replace(base_session, run_state=replace(base_session.run_state, current_hp=30))
+    session = replace(
+        base_session, run_state=replace(base_session.run_state, current_hp=30)
+    )
 
     _running, session, _message = route_menu_choice("1", session=session)
     _running, session, _message = route_menu_choice("1", session=session)
@@ -128,7 +145,10 @@ def test_big_fish_banana_heals_one_third_max_hp() -> None:
 
 def test_big_fish_donut_increases_max_hp_and_current_hp() -> None:
     base_session = _event_session("big_fish")
-    session = replace(base_session, run_state=replace(base_session.run_state, current_hp=40, max_hp=80))
+    session = replace(
+        base_session,
+        run_state=replace(base_session.run_state, current_hp=40, max_hp=80),
+    )
 
     _running, session, _message = route_menu_choice("1", session=session)
     _running, session, _message = route_menu_choice("2", session=session)
@@ -207,3 +227,28 @@ def test_golden_idol_take_escape_adds_injury_curse() -> None:
     assert session.room_state.is_resolved is True
     assert "golden_idol" in session.run_state.relics
     assert "injury#11" in session.run_state.deck
+
+
+def test_event_reward_relic_routes_through_apply_reward_replacement_rules() -> None:
+    room_state = RoomState(
+        room_id="act1:test-event",
+        room_type="event",
+        stage="waiting_input",
+        payload={
+            "event_id": "golden_idol",
+            "node_id": "r1c1",
+            "next_node_ids": ["r2c0"],
+        },
+        is_resolved=False,
+        rewards=[],
+    )
+    run_state = _run_state()
+
+    result = event_action(
+        run_state=run_state,
+        room_state=room_state,
+        action_id="choice:hide",
+        registry=_content_provider(),
+    )
+
+    assert "golden_idol" in result.run_state.relics

@@ -949,7 +949,9 @@ def _card_requires_hand_target(card_instance_id: str, session: SessionState) -> 
         .cards()
         .get(card_id_from_instance_id(card_instance_id))
     )
-    return any(effect.get("type") in _HAND_TARGET_EFFECT_TYPES for effect in card_def.effects)
+    return any(
+        effect.get("type") in _HAND_TARGET_EFFECT_TYPES for effect in card_def.effects
+    )
 
 
 def _card_requires_enemy_target(card_instance_id: str, session: SessionState) -> bool:
@@ -958,7 +960,9 @@ def _card_requires_enemy_target(card_instance_id: str, session: SessionState) ->
         .cards()
         .get(card_id_from_instance_id(card_instance_id))
     )
-    return any(effect.get("type") in _ENEMY_TARGET_EFFECT_TYPES for effect in card_def.effects)
+    return any(
+        effect.get("type") in _ENEMY_TARGET_EFFECT_TYPES for effect in card_def.effects
+    )
 
 
 def _card_requires_discard_target(card_instance_id: str, session: SessionState) -> bool:
@@ -2604,7 +2608,10 @@ def _route_shop_root_menu(
     if action_id == "quit":
         return False, replace(session, menu_state=MenuState()), "已退出游戏。"
     result = shop_action(
-        run_state=session.run_state, room_state=session.room_state, action_id=action_id
+        run_state=session.run_state,
+        room_state=session.room_state,
+        action_id=action_id,
+        registry=_content_provider(session),
     )
     next_session = replace(
         session,
@@ -2633,7 +2640,10 @@ def _route_shop_remove_card_menu(
     if action_id == "quit":
         return False, replace(session, menu_state=MenuState()), "已退出游戏。"
     result = shop_action(
-        run_state=session.run_state, room_state=session.room_state, action_id=action_id
+        run_state=session.run_state,
+        room_state=session.room_state,
+        action_id=action_id,
+        registry=_content_provider(session),
     )
     next_session = replace(
         session,

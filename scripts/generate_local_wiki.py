@@ -75,10 +75,42 @@ DISABLED_ACTION_LABELS = {
     "smith": "锻造",
 }
 
-RELIC_POOL_TITLES = {
-    "starter_relics": "起始 / 事件遗物",
-    "shop_relics": "商店遗物",
-    "boss_relics": "Boss 遗物",
+RELIC_RARITY_ORDER = {
+    "starter": 0,
+    "common": 1,
+    "uncommon": 2,
+    "rare": 3,
+    "shop": 4,
+    "boss": 5,
+    "event": 6,
+    "special": 7,
+}
+
+RELIC_SECTION_TITLES = {
+    "starter": "起始遗物",
+    "common": "普通遗物",
+    "uncommon": "非普通遗物",
+    "rare": "稀有遗物",
+    "shop": "商店遗物",
+    "boss": "Boss 遗物",
+    "event": "事件遗物",
+    "special": "特殊遗物",
+}
+
+RELIC_RARITY_LABELS = {
+    "starter": "起始",
+    "common": "普通",
+    "uncommon": "非普通",
+    "rare": "稀有",
+    "shop": "商店",
+    "boss": "Boss",
+    "event": "事件",
+    "special": "特殊",
+}
+
+RELIC_IMPLEMENTATION_STATUS_LABELS = {
+    "implemented": "implemented",
+    "placeholder": "placeholder",
 }
 
 ENEMY_POOL_SECTIONS = [
@@ -180,14 +212,18 @@ def _card_rules(card: CardDef) -> str:
         rules.append("打出后消耗")
     if card.play_condition:
         rules.append(
-            PLAY_CONDITION_LABELS.get(card.play_condition, f"出牌条件：{card.play_condition}")
+            PLAY_CONDITION_LABELS.get(
+                card.play_condition, f"出牌条件：{card.play_condition}"
+            )
         )
     if card.cost_reducer:
         rules.append(
             COST_REDUCER_LABELS.get(card.cost_reducer, f"费用规则：{card.cost_reducer}")
         )
     for effect in card.on_exhaust_effects:
-        rules.append(f"被消耗时：{summarize_effect(effect, detailed_status_cards=True)}")
+        rules.append(
+            f"被消耗时：{summarize_effect(effect, detailed_status_cards=True)}"
+        )
     return "；".join(rules) if rules else "-"
 
 
@@ -261,6 +297,21 @@ def _relic_rules(relic: RelicDef, provider: StarterContentProvider) -> str:
     return "；".join(rules) if rules else "-"
 
 
+def _relic_pool_labels(relic: RelicDef) -> str:
+    return " / ".join(relic.pools) if relic.pools else "-"
+
+
+def _relic_status_label(relic: RelicDef) -> str:
+    return RELIC_IMPLEMENTATION_STATUS_LABELS.get(
+        relic.implementation_status,
+        relic.implementation_status or "-",
+    )
+
+
+def _relic_rarity_label(relic: RelicDef) -> str:
+    return RELIC_RARITY_LABELS.get(relic.rarity, relic.rarity or "-")
+
+
 def _render_relic_section(
     title: str,
     relics: list[RelicDef],
@@ -270,27 +321,23 @@ def _render_relic_section(
         [
             relic.name,
             relic.id,
+            _relic_rarity_label(relic),
+            _relic_pool_labels(relic),
+            _relic_status_label(relic),
             summarize_relic_effects(relic.passive_effects),
             _relic_rules(relic, provider),
         ]
         for relic in sorted(relics, key=lambda item: item.name)
     ]
-    table = _markdown_table(["名称", "ID", "效果", "补充说明"], rows)
+    table = _markdown_table(
+        ["名称", "ID", "稀有度", "所属池", "实现状态", "效果", "补充说明"], rows
+    )
     return f"## {title}\n\n{table}"
 
 
-def _load_relic_pool_ids(content_root: Path, pool_id: str) -> set[str]:
-    path = content_root / "relics" / f"{pool_id}.json"
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    relics = payload.get("relics", [])
-    return {
-        str(relic.get("id"))
-        for relic in relics
-        if isinstance(relic, dict) and relic.get("id") is not None
-    }
-
-
-def _load_pool_ids(content_root: Path, category: str, pool_id: str, key: str) -> list[str]:
+def _load_pool_ids(
+    content_root: Path, category: str, pool_id: str, key: str
+) -> list[str]:
     path = content_root / category / f"{pool_id}.json"
     payload = json.loads(path.read_text(encoding="utf-8"))
     records = payload.get(key, [])
@@ -326,7 +373,9 @@ def _render_enemy_section(title: str, anchor: str, enemies: list[EnemyDef]) -> s
     return f'<a id="{anchor}"></a>\n## {title}\n\n{table}'
 
 
-def _event_effect_summary(effect: dict[str, object], provider: StarterContentProvider) -> str:
+def _event_effect_summary(
+    effect: dict[str, object], provider: StarterContentProvider
+) -> str:
     effect_type = str(effect.get("type", ""))
     if effect_type == "nothing":
         return "无额外效果"
@@ -372,9 +421,13 @@ def _event_effect_summary(effect: dict[str, object], provider: StarterContentPro
 
 
 def _event_choice_summary(event: EventDef) -> str:
-    return "<br>".join(
-        f"{choice.get('id', '-')}: {choice.get('label', '-')}" for choice in event.choices
-    ) or "-"
+    return (
+        "<br>".join(
+            f"{choice.get('id', '-')}: {choice.get('label', '-')}"
+            for choice in event.choices
+        )
+        or "-"
+    )
 
 
 def _event_outcome_summary(event: EventDef, provider: StarterContentProvider) -> str:
@@ -430,11 +483,22 @@ def build_markdown(content_root: Path) -> str:
     ):
         cards_by_rarity.setdefault(card.rarity or "unknown", []).append(card)
 
-    relic_pool_sections: list[str] = []
-    for pool_id, title in RELIC_POOL_TITLES.items():
-        pool_ids = _load_relic_pool_ids(content_root, pool_id)
-        pool_relics = [relic for relic in all_relics if relic.id in pool_ids]
-        relic_pool_sections.append(_render_relic_section(title, pool_relics, provider))
+    relics_by_rarity: dict[str, list[RelicDef]] = {}
+    for relic in sorted(
+        all_relics,
+        key=lambda item: (
+            RELIC_RARITY_ORDER.get(item.rarity or "", 99),
+            item.name,
+            item.id,
+        ),
+    ):
+        relics_by_rarity.setdefault(relic.rarity or "unknown", []).append(relic)
+
+    relic_sections = [
+        _render_relic_section(title, relics_by_rarity.get(rarity, []), provider)
+        for rarity, title in RELIC_SECTION_TITLES.items()
+        if relics_by_rarity.get(rarity)
+    ]
 
     card_sections = [
         _render_card_section(rarity, cards_by_rarity.get(rarity, []), provider)
@@ -486,7 +550,7 @@ def build_markdown(content_root: Path) -> str:
         "",
         "# 遗物",
         "",
-        *relic_pool_sections,
+        *relic_sections,
         "",
         "# 卡牌",
         "",

@@ -20,6 +20,8 @@
 - 当前 `Neow` 的诅咒 tradeoff 选项会以“加入诅咒牌”作为代价，并发放配套高价值奖励；不会再出现“奖励本身就是诅咒牌”的选项
 - 当前默认交互：Textual TUI，底层复用共享的 `rich` 渲染和 inspect 组件
 - 当前铁甲战士红卡已按原版 1 代完整补齐，包含普通 / 非普通 / 稀有 / 多档升级 `Searing Blow`、动态费用 `Blood for Blood`、条件出牌 `Clash`、消耗联动 `Dark Embrace` / `Feel No Pain`、状态牌联动 `Evolve` / `Fire Breathing`、双目标牌 `Headbutt` 等完整机制
+- 当前原版 1 代遗物目录以 `content/relics/` 为内容真源维护，并持续按本地原版资料校对；运行时效果仍按批次逐步补齐
+- 当前未实现的遗物会通过元数据中的实现状态标记出来，且不会再进入普通掉落、商店、Boss 奖励或 Neow 随机遗物池
 - 当前 `Corruption` 已按原版规则生效：所有技能牌耗能变为 `0`，且在被打出时进入消耗堆；相关逻辑已收口到通用“卡牌运行时规则”层，便于继续扩展其他运行时覆写效果
 - 当前 `Rampage` / `Rampage+` 已支持按同一张卡实例进行战斗内累计伤害；`Rampage+` 的每次增伤为 `+8`
 - 当前 `Fiend Fire` / `Fiend Fire+` 已按原版规则生效：消耗所有其他手牌，并按被消耗的牌数对目标结算每张 `7` / `10` 点伤害
@@ -121,15 +123,28 @@ uv build
 项目提供了一个本地 Markdown wiki，用来汇总当前已实现的卡牌、遗物、敌人与事件：
 
 - 文档路径：`docs/local_wiki/cards_and_relics.md`
+- 遗物部分会按基础分类展示，并附带稀有度、所属池与实现状态元数据
 - 刷新命令：`uv run python scripts/generate_local_wiki.py`
+
+## 原版资料参考
+
+仓库内还保留了一份本地原版资料语料库，供开发时快速检索原版卡牌、遗物、敌人、能力和事件说明：
+
+- 目录路径：`docs/reference/sts_huijiwiki/`
+- `sts_huiji_baike_entries.json`：抓取得到的原始条目集合
+- `sts_huiji_baike_entries_clean.json`：清洗后的条目集合，适合直接检索和比对
+- `sts_huiji_baike_entries_summary.json`：抓取范围、时间和条目统计摘要
+- 这些文件仅作开发参考，不参与运行时内容加载，也不是 `content/` 的替代品
+- 需要查原版资料时，默认先看这里；需要补充或校验时，再去外部 Wiki
 
 ## 开发说明
 
 - 本项目默认使用 `uv` 管理环境、依赖和命令执行。
 - 默认内容目录优先读取仓库根目录 `content/`；只有安装包环境或显式传 `--content-root` 时才读取其他目录。
 - 修改内容 JSON 时只维护 `content/`；`src/slay_the_spire/data/content/` 会在构建 wheel 时临时生成并随构建产物打包，不应手工编辑或提交。
+- `docs/reference/sts_huijiwiki/` 下的 JSON 属于本地参考语料，不是运行输入；不要把它们误当作内容真源或打包资源。
 - 每次改动代码、内容、命令入口、流程、测试基线或发布方式后，都应同步更新 `README.md`；只有协作约束或仓库工作规则变化时才需要更新 `AGENTS.md`。
-- 默认存档路径是 `saves/latest.json`，当前存档 schema 版本是 `2`。
+- 默认存档路径是 `saves/latest.json`，当前存档 schema 版本是 `3`。
 - 当前开发阶段默认不为旧存档或旧菜单状态保兼容，除非需求明确要求。
 
 ## 测试建议
