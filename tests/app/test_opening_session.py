@@ -66,18 +66,22 @@ def test_character_select_save_is_blocked_with_explicit_chinese_message() -> Non
     assert "开局阶段暂不支持保存。" in message
 
 
-def test_character_select_load_restores_saved_session(tmp_path: Path) -> None:
-    save_path = tmp_path / "latest.json"
+def test_character_select_load_restores_saved_session(
+    tmp_path: Path, monkeypatch
+) -> None:
+    save_path = tmp_path / "saves" / "latest.json"
     _write_saved_run(save_path)
-    session = start_new_game_session(seed=5, save_path=save_path)
+    monkeypatch.chdir(tmp_path)
+    session = start_new_game_session(seed=5)
 
-    running, next_session, message = route_menu_choice(_choice_for_action(session, "load"), session=session)
+    running, next_session, message = route_menu_choice(
+        _choice_for_action(session, "load"), session=session
+    )
 
     assert running is True
-    assert next_session.run_phase == "active"
-    assert next_session.opening_state is None
-    assert next_session.room_state.room_type == "combat"
-    assert f"已从存档恢复。当前存档: {save_path}" == message
+    assert next_session.run_phase == "opening"
+    assert next_session.menu_state.mode == "load_select"
+    assert "latest.json" in message
 
 
 def test_opening_neow_selection_starts_first_room_after_targetless_offer() -> None:
@@ -107,22 +111,84 @@ def test_opening_neow_save_is_blocked_with_explicit_chinese_message() -> None:
     assert "开局阶段暂不支持保存。" in message
 
 
-def test_opening_neow_load_restores_saved_session(tmp_path: Path) -> None:
-    save_path = tmp_path / "latest.json"
+def test_opening_neow_load_restores_saved_session(
+    tmp_path: Path, monkeypatch
+) -> None:
+    save_path = tmp_path / "saves" / "latest.json"
     _write_saved_run(save_path)
+    monkeypatch.chdir(tmp_path)
     session = start_new_game_session(
         seed=5,
         preferred_character_id="ironclad",
-        save_path=save_path,
     )
 
-    running, next_session, message = route_menu_choice(_choice_for_action(session, "load"), session=session)
+    running, next_session, message = route_menu_choice(
+        _choice_for_action(session, "load"), session=session
+    )
+
+    assert running is True
+    assert next_session.run_phase == "opening"
+    assert next_session.menu_state.mode == "load_select"
+    assert "latest.json" in message
+
+
+def test_character_select_load_enters_save_list_menu(tmp_path: Path, monkeypatch) -> None:
+    saves_dir = tmp_path / "saves"
+    alpha_path = saves_dir / "alpha.json"
+    omega_path = saves_dir / "omega.json"
+    _write_saved_run(alpha_path)
+    _write_saved_run(omega_path)
+    monkeypatch.chdir(tmp_path)
+    session = start_new_game_session(seed=5)
+
+    running, next_session, message = route_menu_choice(
+        _choice_for_action(session, "load"), session=session
+    )
+
+    assert running is True
+    assert next_session.run_phase == "opening"
+    assert next_session.menu_state.mode == "load_select"
+    assert next_session.menu_state.inspect_parent_mode == "opening_character_select"
+    assert "选择存档" in message
+    assert "alpha.json" in message
+    assert "omega.json" in message
+
+
+def test_character_select_load_without_saves_keeps_current_menu(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    session = start_new_game_session(seed=5)
+
+    running, next_session, message = route_menu_choice(
+        _choice_for_action(session, "load"), session=session
+    )
+
+    assert running is True
+    assert next_session.run_phase == "opening"
+    assert next_session.menu_state.mode == "opening_character_select"
+    assert "当前没有可读取的存档。" in message
+
+
+def test_load_select_can_restore_specific_save_from_opening_menu(
+    tmp_path: Path, monkeypatch
+) -> None:
+    saves_dir = tmp_path / "saves"
+    first_path = saves_dir / "alpha.json"
+    second_path = saves_dir / "omega.json"
+    _write_saved_run(first_path)
+    _write_saved_run(second_path)
+    monkeypatch.chdir(tmp_path)
+    session = start_new_game_session(seed=5)
+
+    _running, list_session, _message = route_menu_choice(
+        _choice_for_action(session, "load"), session=session
+    )
+    running, next_session, message = route_menu_choice("2", session=list_session)
 
     assert running is True
     assert next_session.run_phase == "active"
-    assert next_session.opening_state is None
+    assert next_session.save_path == second_path
     assert next_session.room_state.room_type == "combat"
-    assert f"已从存档恢复。当前存档: {save_path}" == message
+    assert f"已从存档恢复。当前存档: {second_path}" == message
 
 
 def test_opening_neow_upgrade_offer_routes_into_target_menu_and_back() -> None:

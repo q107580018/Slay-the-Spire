@@ -54,6 +54,7 @@ from slay_the_spire.app.menu_definitions import (
 )
 from slay_the_spire.app.session import (
     SessionState,
+    _build_load_select_menu,
     _content_provider,
     build_opening_action_menu,
     render_session_renderable,
@@ -788,6 +789,8 @@ def _current_action_menu(session: SessionState) -> MenuDefinition | None:
 
     if session.run_phase != "active":
         return build_terminal_phase_menu(run_phase=session.run_phase)
+    if menu_mode == "load_select":
+        return _build_load_select_menu(session)
     if menu_mode == "root":
         return build_root_menu(
             room_state=room_state, run_state=session.run_state, registry=registry

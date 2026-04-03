@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from io import StringIO
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Callable
 
+from rich.console import Console
 from rich.console import RenderableType
+from rich.console import Group
 from rich.text import Text
 
 from slay_the_spire.adapters.presentation.opening_renderer import (
@@ -15,7 +18,8 @@ from slay_the_spire.adapters.presentation.renderer import (
     render_room,
     render_room_renderable,
 )
-from slay_the_spire.adapters.presentation.widgets import render_card_name
+from slay_the_spire.adapters.presentation.theme import TERMINAL_THEME
+from slay_the_spire.adapters.presentation.widgets import render_card_name, render_menu
 from slay_the_spire.adapters.persistence.save_files import JsonFileSaveRepository
 from slay_the_spire.app.map_labels import format_next_room_labels
 from slay_the_spire.build_content import packaged_content_root
@@ -30,6 +34,7 @@ from slay_the_spire.app.menu_definitions import (
     build_event_upgrade_menu,
     build_inspect_root_menu,
     build_leaf_menu,
+    build_load_save_menu,
     build_next_room_menu,
     build_potion_target_menu,
     build_select_potion_menu,
@@ -43,6 +48,7 @@ from slay_the_spire.app.menu_definitions import (
     build_shop_root_menu,
     build_target_menu,
     build_terminal_phase_menu,
+    format_menu_entries,
     resolve_menu_action,
 )
 from slay_the_spire.app.opening_state import OpeningState
@@ -181,6 +187,20 @@ class SessionLoopResult:
 _MENU_PROMPT = "请输入编号: "
 
 
+def _render_to_text(renderable: RenderableType) -> str:
+    buffer = StringIO()
+    console = Console(
+        file=buffer,
+        width=100,
+        record=True,
+        force_terminal=False,
+        color_system=None,
+        theme=TERMINAL_THEME,
+    )
+    console.print(renderable)
+    return console.export_text(clear=False).rstrip()
+
+
 def _with_command_history(session: SessionState, command: str) -> SessionState:
     history = list(session.command_history or [])
     history.append(command)
@@ -225,6 +245,33 @@ def _require_active_room_state(session: SessionState) -> RoomState:
 
 def default_save_path() -> Path:
     return Path.cwd() / "saves" / "latest.json"
+
+
+def default_save_dir() -> Path:
+    return Path.cwd() / "saves"
+
+
+def _list_available_save_paths() -> list[Path]:
+    save_dir = default_save_dir()
+    if not save_dir.exists():
+        return []
+    return sorted(
+        [path for path in save_dir.glob("*.json") if path.is_file()],
+        key=lambda path: path.name,
+    )
+
+
+def _build_load_select_menu(session: SessionState):
+    save_paths = _list_available_save_paths()
+    return build_load_save_menu(
+        save_names=[path.name for path in save_paths],
+        current_save_name=session.save_path.name if session.save_path.name else None,
+    )
+
+
+def _render_load_select_screen(session: SessionState) -> RenderableType:
+    menu = _build_load_select_menu(session)
+    return Group(render_menu(format_menu_entries(menu), title="读取存档"))
 
 
 def _combat_state_from_room(room_state: RoomState) -> CombatState | None:
@@ -328,6 +375,8 @@ def build_opening_action_menu(session: SessionState):
         return _build_opening_character_menu(session)
     if session.menu_state.mode == "opening_neow_offer":
         return _build_opening_neow_menu(session)
+    if session.menu_state.mode == "load_select":
+        return _build_load_select_menu(session)
     if session.menu_state.mode == "opening_neow_upgrade_card":
         return _build_opening_target_card_menu(
             session,
@@ -1131,6 +1180,8 @@ def load_session(
 
 
 def render_session(session: SessionState) -> str:
+    if session.menu_state.mode == "load_select":
+        return _render_to_text(_render_load_select_screen(session))
     if session.run_phase == "opening":
         opening_state = session.opening_state
         if opening_state is None:
@@ -1155,6 +1206,8 @@ def render_session(session: SessionState) -> str:
 
 
 def render_session_renderable(session: SessionState) -> RenderableType:
+    if session.menu_state.mode == "load_select":
+        return _render_load_select_screen(session)
     if session.run_phase == "opening":
         opening_state = session.opening_state
         if opening_state is None:
@@ -1379,6 +1432,53 @@ def _load_current_session(session: SessionState) -> tuple[bool, SessionState, st
     return True, restored, f"已从存档恢复。当前存档: {session.save_path}"
 
 
+def _enter_load_select_menu(session: SessionState) -> tuple[bool, SessionState, str]:
+    if not _list_available_save_paths():
+        return True, session, _message_with_render(session, "当前没有可读取的存档。")
+    next_session = replace(
+        session,
+        menu_state=MenuState(
+            mode="load_select", inspect_parent_mode=session.menu_state.mode
+        ),
+    )
+    return True, next_session, render_session(next_session)
+
+
+def _route_load_select_menu(
+    choice: str, session: SessionState
+) -> tuple[bool, SessionState, str]:
+    menu = _build_load_select_menu(session)
+    action_id = resolve_menu_action(choice, menu)
+    previous_mode = session.menu_state.inspect_parent_mode or "root"
+    if action_id == "back":
+        next_session = replace(session, menu_state=MenuState(mode=previous_mode))
+        return True, next_session, render_session(next_session)
+    if action_id is None or not action_id.startswith("load_save:"):
+        return _invalid_menu_choice(session)
+    save_name = action_id.split(":", 1)[1]
+    save_path = default_save_dir() / save_name
+    if not save_path.is_file():
+        if not _list_available_save_paths():
+            fallback_session = replace(session, menu_state=MenuState(mode=previous_mode))
+            return (
+                True,
+                fallback_session,
+                _message_with_render(fallback_session, "当前没有可读取的存档。"),
+            )
+        refreshed_session = replace(
+            session,
+            menu_state=MenuState(mode="load_select", inspect_parent_mode=previous_mode),
+        )
+        return (
+            True,
+            refreshed_session,
+            _message_with_render(refreshed_session, f"存档不存在: {save_name}"),
+        )
+    restored = load_session(save_path=save_path, content_root=session.content_root)
+    restored = replace(restored, command_history=list(session.command_history or []))
+    return True, restored, f"已从存档恢复。当前存档: {save_path}"
+
+
 def _opening_unsupported_action_message(action: str) -> str:
     if action == "save":
         return "开局阶段暂不支持保存。"
@@ -1403,7 +1503,7 @@ def _route_opening_character_select_menu(
             ),
         )
     if action_id == "load":
-        return _load_current_session(session)
+        return _enter_load_select_menu(session)
     if action_id is None or not action_id.startswith("select_character:"):
         return _invalid_menu_choice(session)
     character_id = action_id.split(":", 1)[1]
@@ -1438,7 +1538,7 @@ def _route_opening_neow_offer_menu(
             ),
         )
     if action_id == "load":
-        return _load_current_session(session)
+        return _enter_load_select_menu(session)
     if action_id is None or not action_id.startswith("choose_neow_offer:"):
         return _invalid_menu_choice(session)
     offer_id = action_id.split(":", 1)[1]
@@ -1569,7 +1669,7 @@ def _route_terminal_phase_menu(
     if action_id == "save":
         return _save_current_session(session)
     if action_id == "load":
-        return _load_current_session(session)
+        return _enter_load_select_menu(session)
     if action_id == "quit":
         return False, replace(session, menu_state=MenuState()), "已退出游戏。"
     return _invalid_menu_choice(session)
@@ -1950,7 +2050,7 @@ def _route_root_menu(
     if action_id == "save":
         return _save_current_session(session)
     if action_id == "load":
-        return _load_current_session(session)
+        return _enter_load_select_menu(session)
     if action_id == "quit":
         return False, replace(session, menu_state=MenuState()), "已退出游戏。"
     if action_id == "play_card":
@@ -2606,7 +2706,7 @@ def _route_shop_root_menu(
     if action_id == "save":
         return _save_current_session(session)
     if action_id == "load":
-        return _load_current_session(session)
+        return _enter_load_select_menu(session)
     if action_id == "quit":
         return False, replace(session, menu_state=MenuState()), "已退出游戏。"
     result = shop_action(
@@ -2638,7 +2738,7 @@ def _route_shop_remove_card_menu(
     if action_id == "save":
         return _save_current_session(session)
     if action_id == "load":
-        return _load_current_session(session)
+        return _enter_load_select_menu(session)
     if action_id == "quit":
         return False, replace(session, menu_state=MenuState()), "已退出游戏。"
     result = shop_action(
@@ -2673,7 +2773,7 @@ def _route_rest_root_menu(
     if action_id == "save":
         return _save_current_session(session)
     if action_id == "load":
-        return _load_current_session(session)
+        return _enter_load_select_menu(session)
     if action_id == "quit":
         return False, replace(session, menu_state=MenuState()), "已退出游戏。"
     result = rest_action(
@@ -2705,7 +2805,7 @@ def _route_rest_upgrade_card_menu(
     if action_id == "save":
         return _save_current_session(session)
     if action_id == "load":
-        return _load_current_session(session)
+        return _enter_load_select_menu(session)
     if action_id == "quit":
         return False, replace(session, menu_state=MenuState()), "已退出游戏。"
     result = rest_action(
@@ -2733,6 +2833,8 @@ def _route_menu_choice_legacy(
         return _route_opening_character_select_menu(choice.strip(), next_session)
     if next_session.menu_state.mode == "opening_neow_offer":
         return _route_opening_neow_offer_menu(choice.strip(), next_session)
+    if next_session.menu_state.mode == "load_select":
+        return _route_load_select_menu(choice.strip(), next_session)
     if next_session.menu_state.mode == "opening_neow_upgrade_card":
         return _route_opening_neow_target_menu(
             choice.strip(),

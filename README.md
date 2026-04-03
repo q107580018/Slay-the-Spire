@@ -69,7 +69,7 @@ uv run python -m slay_the_spire.app.cli new --seed 5
 
 - 不传 `--seed` 时会自动生成随机 seed。
 - 不传 `--character` 时会进入 opening 角色选择；传 `--character ironclad` 时会跳过角色页直接进入 `Neow`。
-- opening 阶段仍使用右侧编号菜单，但不会显示真实地图，也不支持 `save/load`。
+- opening 阶段仍使用右侧编号菜单，但不会显示真实地图；仍不支持保存，不过已经支持读取 `saves/` 目录下的存档列表。
 - 旧的 `--ui` 参数已经移除；默认且唯一界面就是 Textual。
 
 ### 3. 读取存档
@@ -90,6 +90,8 @@ uv run python -m slay_the_spire.app.cli load --save-path saves/latest.json
 - `--save-path`
 
 如果不传 `--save-path`，默认会读取 `saves/latest.json`。
+
+游戏内通过“读取存档”菜单时，会自动扫描 `saves/` 目录下的所有 `*.json` 存档，并列出编号供选择；选中后，后续“保存游戏”会继续写回当前载入的那个存档文件。
 
 ### 4. 运行测试
 

@@ -63,6 +63,20 @@ def build_menu(
     )
 
 
+def build_load_save_menu(
+    *,
+    save_names: list[str] | tuple[str, ...],
+    current_save_name: str | None = None,
+) -> MenuDefinition:
+    header_lines: list[str | Text] = []
+    if current_save_name:
+        header_lines.append(f"当前存档: {current_save_name}")
+    header_lines.append("请选择要读取的存档:")
+    options = [(f"load_save:{save_name}", save_name) for save_name in save_names]
+    options.append(("back", "返回上一步"))
+    return build_menu(title="选择存档", options=options, header_lines=header_lines)
+
+
 def format_menu_entries(menu: MenuDefinition) -> list[str | Text]:
     entries: list[str | Text] = [f"{menu.title}:"]
     entries.extend(menu.header_lines)
