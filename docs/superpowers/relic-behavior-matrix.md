@@ -114,7 +114,7 @@ This matrix maps every unresolved relic to its primary trigger domain and code e
 | 72 | nunchaku | 双节棍 | common | placeholder | play_action | play_card | +1 energy every 10 attacks played (cross-combat counter) |
 | 73 | pen_nib | 钢笔尖 | common | placeholder | play_action | play_card | double next attack every 10 attacks played |
 | 74 | kunai | 苦无 | uncommon | placeholder | play_action | play_card | +1 dexterity after 3 attacks per turn |
-| 75 | shuriken | 手里剑 | rare | placeholder | play_action | play_card | +1 strength after 3 attacks per turn |
+| 75 | shuriken | 手里剑 | uncommon | placeholder | play_action | play_card | +1 strength after 3 attacks per turn |
 | 76 | ornamental_fan | 装饰扇 | uncommon | placeholder | play_action | play_card | +4 block after 3 attacks per turn |
 | 77 | ink_bottle | 墨水瓶 | uncommon | placeholder | play_action | play_card | draw 1 every 10 cards played (cross-combat counter) |
 | 78 | letter_opener | 拆信刀 | uncommon | placeholder | play_action | play_card | deal 5 damage to all enemies after 3 skills per turn |
