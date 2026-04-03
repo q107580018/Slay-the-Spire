@@ -581,6 +581,9 @@ def _apply_turn_start_relics(
         state.player.block += 14
     if "captains_wheel" in turn_relic_ids and state.round_number == 3:
         state.player.block += 18
+    if state.card_play_data.get("relic:self_forming_clay:pending", 0) > 0:
+        state.player.block += 3
+        state.card_play_data["relic:self_forming_clay:pending"] = 0
     if "art_of_war" in turn_relic_ids and state.round_number > 1:
         if state.attacks_played_last_turn == 0:
             state.energy += 1

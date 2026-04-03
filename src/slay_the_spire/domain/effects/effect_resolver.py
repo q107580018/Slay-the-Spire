@@ -52,6 +52,7 @@ from slay_the_spire.domain.effects.effect_types import (
 )
 from slay_the_spire.domain.hooks.hook_dispatcher import dispatch_hook
 from slay_the_spire.domain.hooks.hook_types import HookRegistration
+from slay_the_spire.domain.hooks.runtime import registered_relic_ids
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
@@ -75,12 +76,29 @@ def _is_dead(target: PlayerCombatState | EnemyState | None) -> bool:
 
 
 def _damage_target(
-    target: PlayerCombatState | EnemyState, amount: int
+    target: PlayerCombatState | EnemyState,
+    amount: int,
+    *,
+    source: PlayerCombatState | EnemyState | None,
+    relic_ids: set[str],
 ) -> tuple[int, int]:
     remaining = max(amount, 0)
     blocked = min(target.block, remaining)
     target.block -= blocked
     remaining -= blocked
+    if (
+        isinstance(source, EnemyState)
+        and isinstance(target, PlayerCombatState)
+        and 1 < remaining <= 5
+        and "torii" in relic_ids
+    ):
+        remaining = 1
+    if (
+        isinstance(target, PlayerCombatState)
+        and remaining > 0
+        and "tungsten_rod" in relic_ids
+    ):
+        remaining = max(remaining - 1, 0)
     actual_damage = min(target.hp, remaining)
     if remaining > 0:
         target.hp = max(target.hp - remaining, 0)
@@ -179,6 +197,66 @@ def _heal_target(target: PlayerCombatState | EnemyState, amount: int) -> int:
 def _lose_hp_target(target: PlayerCombatState | EnemyState, amount: int) -> int:
     hp_lost = min(target.hp, max(amount, 0))
     target.hp = max(target.hp - max(amount, 0), 0)
+    return hp_lost
+
+
+def _queue_player_hp_loss_relic_effects(
+    state: CombatState,
+    *,
+    hp_lost: int,
+    hook_registrations: Sequence[HookRegistration],
+) -> None:
+    if hp_lost <= 0:
+        return
+    relic_ids = registered_relic_ids(hook_registrations)
+    if "self_forming_clay" in relic_ids:
+        state.card_play_data["relic:self_forming_clay:pending"] = 1
+    queued_effects: list[JsonDict] = []
+    if (
+        "centennial_puzzle" in relic_ids
+        and state.card_play_data.get("relic:centennial_puzzle:triggered", 0) == 0
+    ):
+        state.card_play_data["relic:centennial_puzzle:triggered"] = 1
+        queued_effects.append(
+            {
+                "type": EFFECT_DRAW,
+                "source_instance_id": state.player.instance_id,
+                "target_instance_id": state.player.instance_id,
+                "amount": 3,
+                "relic_id": "centennial_puzzle",
+                "trigger": "on_hp_loss",
+            }
+        )
+    if "runic_cube" in relic_ids:
+        queued_effects.append(
+            {
+                "type": EFFECT_DRAW,
+                "source_instance_id": state.player.instance_id,
+                "target_instance_id": state.player.instance_id,
+                "amount": 1,
+                "relic_id": "runic_cube",
+                "trigger": "on_hp_loss",
+            }
+        )
+    if queued_effects:
+        state.effect_queue[0:0] = queued_effects
+
+
+def _lose_hp_target_with_relics(
+    target: PlayerCombatState | EnemyState,
+    amount: int,
+    *,
+    relic_ids: set[str],
+) -> int:
+    hp_loss = max(amount, 0)
+    if (
+        isinstance(target, PlayerCombatState)
+        and hp_loss > 0
+        and "tungsten_rod" in relic_ids
+    ):
+        hp_loss = max(hp_loss - 1, 0)
+    hp_lost = min(target.hp, hp_loss)
+    target.hp = max(target.hp - hp_loss, 0)
     return hp_lost
 
 
@@ -295,6 +373,7 @@ def _resolve_damage_effect(
     base_amount: int,
     strength_bonus: int | None = None,
     extra_result: JsonDict | None = None,
+    hook_registrations: Sequence[HookRegistration] = (),
 ) -> JsonDict:
     target = _get_target(state, effect.get("target_instance_id"))
     if _is_dead(target):
@@ -323,7 +402,20 @@ def _resolve_damage_effect(
         strength_bonus=resolved_strength_bonus,
         use_status_modifiers=_effect_uses_status_modifiers(effect),
     )
-    blocked, actual_damage = _damage_target(target, applied_amount)
+    relic_ids = registered_relic_ids(hook_registrations)
+    if (
+        isinstance(source, PlayerCombatState)
+        and isinstance(target, EnemyState)
+        and 0 < applied_amount < 5
+        and "the_boot" in relic_ids
+    ):
+        applied_amount = 5
+    blocked, actual_damage = _damage_target(
+        target,
+        applied_amount,
+        source=source,
+        relic_ids=relic_ids,
+    )
     if (
         isinstance(source, EnemyState)
         and isinstance(target, PlayerCombatState)
@@ -342,6 +434,12 @@ def _resolve_damage_effect(
                     stacks=next_stacks,
                 )
             break
+    if isinstance(target, PlayerCombatState):
+        _queue_player_hp_loss_relic_effects(
+            state,
+            hp_lost=actual_damage,
+            hook_registrations=hook_registrations,
+        )
     target_defeated = isinstance(target, EnemyState) and was_alive and target.hp == 0
     if target_defeated:
         state.effect_queue.append(
@@ -937,12 +1035,18 @@ def resolve_next_effect(
             state,
             effect,
             base_amount=int(effect.get("amount", 0)),
+            hook_registrations=hook_registrations,
         )
 
     if effect_type == EFFECT_DAMAGE_EQUAL_TO_BLOCK:
         source = _get_target(state, effect.get("source_instance_id"))
         base_amount = source.block if source is not None else 0
-        return _resolve_damage_effect(state, effect, base_amount=base_amount)
+        return _resolve_damage_effect(
+            state,
+            effect,
+            base_amount=base_amount,
+            hook_registrations=hook_registrations,
+        )
 
     if effect_type == EFFECT_DAMAGE_WITH_STRENGTH_MULTIPLIER:
         source = _get_target(state, effect.get("source_instance_id"))
@@ -952,6 +1056,7 @@ def resolve_next_effect(
             effect,
             base_amount=int(effect.get("base", 0)),
             strength_bonus=_strength_bonus(source) * multiplier,
+            hook_registrations=hook_registrations,
         )
 
     if effect_type == EFFECT_DAMAGE_PER_STRIKE_IN_DECK:
@@ -964,6 +1069,7 @@ def resolve_next_effect(
             effect,
             base_amount=int(effect.get("base", 0)) + bonus_per_strike * strike_count,
             extra_result={"strike_count": strike_count},
+            hook_registrations=hook_registrations,
         )
 
     if effect_type == EFFECT_RAMPAGE_DAMAGE:
@@ -987,6 +1093,7 @@ def resolve_next_effect(
                     else play_count_before
                 ),
             },
+            hook_registrations=hook_registrations,
         )
         if isinstance(card_instance_id, str):
             state.card_play_data[card_instance_id] = play_count_before + 1
@@ -1105,7 +1212,17 @@ def resolve_next_effect(
         target = _get_target(state, effect.get("target_instance_id"))
         if _is_dead(target):
             return noop_effect(reason="dead_target")
-        hp_lost = _lose_hp_target(target, int(effect.get("amount", 0)))
+        hp_lost = _lose_hp_target_with_relics(
+            target,
+            int(effect.get("amount", 0)),
+            relic_ids=registered_relic_ids(hook_registrations),
+        )
+        if isinstance(target, PlayerCombatState):
+            _queue_player_hp_loss_relic_effects(
+                state,
+                hp_lost=hp_lost,
+                hook_registrations=hook_registrations,
+            )
         return _with_result(effect, actual_hp_lost=hp_lost)
 
     if effect_type == EFFECT_DRAW:

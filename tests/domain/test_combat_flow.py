@@ -562,6 +562,129 @@ def test_combat_start_relics_apply_first_turn_energy_statuses_and_shivs() -> Non
     assert len(state.hand) == 8
 
 
+def test_the_boot_raises_small_attack_damage_to_five() -> None:
+    state = _combat_state_with_relics("the_boot", enemy_count=1)
+    state.effect_queue.append(
+        damage_effect(
+            source_instance_id=state.player.instance_id,
+            target_instance_id=state.enemies[0].instance_id,
+            amount=3,
+        )
+    )
+
+    resolved = resolve_player_actions(
+        state,
+        hook_registrations=_hook_registrations_for_relics("the_boot"),
+        registry=_content_provider(),
+    )
+
+    assert state.enemies[0].hp == 7
+    assert resolved[0]["result"]["applied_amount"] == 5
+    assert resolved[0]["result"]["actual_damage"] == 5
+
+
+def test_torii_reduces_small_unblocked_attack_damage_to_one() -> None:
+    registry = _enemy_registry()
+    state = _combat_state_with_relics("torii", enemy_count=1)
+
+    resolved = run_enemy_turn(
+        state,
+        registry,
+        hook_registrations=_hook_registrations_for_relics("torii"),
+    )
+
+    assert state.player.hp == 29
+    assert resolved[0]["result"]["applied_amount"] == 5
+    assert resolved[0]["result"]["actual_damage"] == 1
+
+
+def test_tungsten_rod_reduces_hp_loss_by_one() -> None:
+    state = _combat_state_with_relics("tungsten_rod", enemy_count=1)
+    state.player.hp = 10
+    state.effect_queue.append(
+        {
+            "type": "lose_hp",
+            "source_instance_id": state.player.instance_id,
+            "target_instance_id": state.player.instance_id,
+            "amount": 3,
+        }
+    )
+
+    resolved = resolve_player_actions(
+        state,
+        hook_registrations=_hook_registrations_for_relics("tungsten_rod"),
+        registry=_content_provider(),
+    )
+
+    assert state.player.hp == 8
+    assert resolved[0]["result"]["actual_hp_lost"] == 2
+
+
+def test_centennial_puzzle_draws_three_on_first_hp_loss() -> None:
+    registry = _enemy_registry()
+    state = _combat_state_with_relics("centennial_puzzle", enemy_count=1)
+    state.hand = []
+    state.draw_pile = [f"strike#{index}" for index in range(1, 7)]
+
+    run_enemy_turn(
+        state,
+        registry,
+        hook_registrations=_hook_registrations_for_relics("centennial_puzzle"),
+    )
+
+    assert state.player.hp == 25
+    assert state.hand == ["strike#1", "strike#2", "strike#3"]
+
+
+def test_self_forming_clay_gains_three_block_next_turn_after_hp_loss() -> None:
+    registry = _enemy_registry()
+    state = _combat_state_with_relics("self_forming_clay", enemy_count=1)
+
+    run_enemy_turn(
+        state,
+        registry,
+        hook_registrations=_hook_registrations_for_relics("self_forming_clay"),
+    )
+    state.round_number = 2
+    start_turn(
+        state,
+        registry=_content_provider(),
+        hook_registrations=_hook_registrations_for_relics("self_forming_clay"),
+    )
+
+    assert state.player.hp == 25
+    assert state.player.block == 3
+
+
+def test_runic_cube_draws_one_card_each_time_hp_is_lost() -> None:
+    registry = _enemy_registry()
+    state = _combat_state_with_relics("runic_cube", enemy_count=1)
+    state.hand = []
+    state.draw_pile = [f"strike#{index}" for index in range(1, 7)]
+
+    run_enemy_turn(
+        state,
+        registry,
+        hook_registrations=_hook_registrations_for_relics("runic_cube"),
+    )
+    state.effect_queue.append(
+        {
+            "type": "lose_hp",
+            "source_instance_id": state.player.instance_id,
+            "target_instance_id": state.player.instance_id,
+            "amount": 2,
+        }
+    )
+    resolve_player_actions(
+        state,
+        hook_registrations=_hook_registrations_for_relics("runic_cube"),
+        registry=_content_provider(),
+    )
+
+    assert state.player.hp == 23
+    assert state.hand == ["strike#1", "strike#2"]
+
+
 def test_combat_start_relics_only_apply_once_per_combat() -> None:
     provider = _content_provider()
     registrations = _hook_registrations_for_relics(
