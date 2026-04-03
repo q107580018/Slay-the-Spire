@@ -329,6 +329,24 @@ def test_shop_eligible_cards_are_marked_with_shop_tags(content_root: Path) -> No
 
 
 @pytest.mark.parametrize("content_root", _content_roots())
+def test_searing_blow_upgrade_chain_uses_sts_damage_formula(content_root: Path) -> None:
+    provider = StarterContentProvider(content_root)
+
+    expected_damages = [12, 16, 21, 27, 34, 42, 51, 61, 72, 84, 97, 111, 126]
+    card_id = "searing_blow"
+
+    for index, expected_damage in enumerate(expected_damages):
+        card_def = provider.cards().get(card_id)
+        assert card_def.name == "灼热攻击" + "+" * index
+        assert card_def.effects == [{"type": "damage", "amount": expected_damage}]
+        if index < len(expected_damages) - 1:
+            assert card_def.upgrades_to is not None
+            card_id = card_def.upgrades_to
+        else:
+            assert card_def.upgrades_to is None
+
+
+@pytest.mark.parametrize("content_root", _content_roots())
 def test_registry_loads_act2_definition(content_root: Path) -> None:
     provider = StarterContentProvider(content_root)
     act = provider.acts().get("act2")

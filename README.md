@@ -19,7 +19,7 @@
 - 当前 opening 的 `Neow` 菜单支持悬浮预览更完整的奖励信息：卡牌、遗物、药水会显示与其他 hover preview 一致的详细效果说明
 - 当前 `Neow` 的诅咒 tradeoff 选项会以“加入诅咒牌”作为代价，并发放配套高价值奖励；不会再出现“奖励本身就是诅咒牌”的选项
 - 当前默认交互：Textual TUI，底层复用共享的 `rich` 渲染和 inspect 组件
-- 当前铁甲战士红卡已按原版 1 代完整补齐，包含普通 / 非普通 / 稀有 / 无限升级 `Searing Blow`、动态费用 `Blood for Blood`、条件出牌 `Clash`、消耗联动 `Dark Embrace` / `Feel No Pain`、状态牌联动 `Evolve` / `Fire Breathing`、双目标牌 `Headbutt` 等完整机制
+- 当前铁甲战士红卡已按原版 1 代完整补齐，包含普通 / 非普通 / 稀有 / 多档升级 `Searing Blow`、动态费用 `Blood for Blood`、条件出牌 `Clash`、消耗联动 `Dark Embrace` / `Feel No Pain`、状态牌联动 `Evolve` / `Fire Breathing`、双目标牌 `Headbutt` 等完整机制
 - 当前 `Corruption` 已按原版规则生效：所有技能牌耗能变为 `0`，且在被打出时进入消耗堆；相关逻辑已收口到通用“卡牌运行时规则”层，便于继续扩展其他运行时覆写效果
 - 当前 `Rampage` / `Rampage+` 已支持按同一张卡实例进行战斗内累计伤害；`Rampage+` 的每次增伤为 `+8`
 - 当前 `Fiend Fire` / `Fiend Fire+` 已按原版规则生效：消耗所有其他手牌，并按被消耗的牌数对目标结算每张 `7` / `10` 点伤害

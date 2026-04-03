@@ -2159,7 +2159,7 @@
       "effects": [
         {
           "type": "damage",
-          "amount": 20
+          "amount": 21
         }
       ],
       "card_type": "attack",
@@ -2170,10 +2170,145 @@
       "name": "灼热攻击+++",
       "cost": 2,
       "rarity": "uncommon",
+      "upgrades_to": "searing_blow_plus4",
       "effects": [
         {
           "type": "damage",
-          "amount": 24
+          "amount": 27
+        }
+      ],
+      "card_type": "attack",
+      "acquisition_tags": []
+    },
+    {
+      "id": "searing_blow_plus4",
+      "name": "灼热攻击++++",
+      "cost": 2,
+      "rarity": "uncommon",
+      "upgrades_to": "searing_blow_plus5",
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 34
+        }
+      ],
+      "card_type": "attack",
+      "acquisition_tags": []
+    },
+    {
+      "id": "searing_blow_plus5",
+      "name": "灼热攻击+++++",
+      "cost": 2,
+      "rarity": "uncommon",
+      "upgrades_to": "searing_blow_plus6",
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 42
+        }
+      ],
+      "card_type": "attack",
+      "acquisition_tags": []
+    },
+    {
+      "id": "searing_blow_plus6",
+      "name": "灼热攻击++++++",
+      "cost": 2,
+      "rarity": "uncommon",
+      "upgrades_to": "searing_blow_plus7",
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 51
+        }
+      ],
+      "card_type": "attack",
+      "acquisition_tags": []
+    },
+    {
+      "id": "searing_blow_plus7",
+      "name": "灼热攻击+++++++",
+      "cost": 2,
+      "rarity": "uncommon",
+      "upgrades_to": "searing_blow_plus8",
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 61
+        }
+      ],
+      "card_type": "attack",
+      "acquisition_tags": []
+    },
+    {
+      "id": "searing_blow_plus8",
+      "name": "灼热攻击++++++++",
+      "cost": 2,
+      "rarity": "uncommon",
+      "upgrades_to": "searing_blow_plus9",
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 72
+        }
+      ],
+      "card_type": "attack",
+      "acquisition_tags": []
+    },
+    {
+      "id": "searing_blow_plus9",
+      "name": "灼热攻击+++++++++",
+      "cost": 2,
+      "rarity": "uncommon",
+      "upgrades_to": "searing_blow_plus10",
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 84
+        }
+      ],
+      "card_type": "attack",
+      "acquisition_tags": []
+    },
+    {
+      "id": "searing_blow_plus10",
+      "name": "灼热攻击++++++++++",
+      "cost": 2,
+      "rarity": "uncommon",
+      "upgrades_to": "searing_blow_plus11",
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 97
+        }
+      ],
+      "card_type": "attack",
+      "acquisition_tags": []
+    },
+    {
+      "id": "searing_blow_plus11",
+      "name": "灼热攻击+++++++++++",
+      "cost": 2,
+      "rarity": "uncommon",
+      "upgrades_to": "searing_blow_plus12",
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 111
+        }
+      ],
+      "card_type": "attack",
+      "acquisition_tags": []
+    },
+    {
+      "id": "searing_blow_plus12",
+      "name": "灼热攻击++++++++++++",
+      "cost": 2,
+      "rarity": "uncommon",
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 126
         }
       ],
       "card_type": "attack",
