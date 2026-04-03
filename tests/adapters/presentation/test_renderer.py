@@ -810,11 +810,9 @@ def test_boss_reward_renderer_shows_boss_reward_menu() -> None:
     )
 
     assert "Boss奖励" in output
-    assert "金币奖励：+99" in output
-    assert "金币领取状态：未领取" in output
-    assert "1. 领取金币 +99" in output
-    assert "2. 选择遗物" in output
-    assert "3. 返回上一步" in output
+    assert "可选遗物数：4" in output
+    assert "1. 选择遗物" in output
+    assert "2. 返回上一步" in output
 
 
 def test_boss_reward_renderer_shows_boss_relic_menu() -> None:
@@ -891,10 +889,9 @@ def test_boss_reward_renderer_shows_claimed_status_labels() -> None:
         run_phase=session.run_phase,
     )
 
-    assert "金币领取状态：已领取" in output
     assert "已选遗物：黑色之血" in output
-    assert "1. 已领取金币" in output
-    assert "2. 已选择遗物" in output
+    assert "1. 已选择遗物" in output
+    assert "2. 返回上一步" in output
 
 
 def test_combat_renderer_shows_inspect_slot_after_resolved_combat_without_rewards() -> None:

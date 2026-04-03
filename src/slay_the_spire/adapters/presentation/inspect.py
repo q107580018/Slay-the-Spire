@@ -236,12 +236,17 @@ def format_relic_detail_lines(
     relic_id: str, registry: ContentProviderPort
 ) -> list[Text]:
     relic_def = registry.relics().get(relic_id)
+    effect_summary = summarize_relic_effects(relic_def.passive_effects)
+    if effect_summary == "-":
+        fallback = relic_def.summary or relic_def.description
+        if isinstance(fallback, str) and fallback:
+            effect_summary = fallback
     lines = [
         Text.assemble(("名称 ", "summary.label"), relic_def.name),
         Text.assemble(("遗物 ", "summary.label"), relic_id),
         Text.assemble(
             ("效果 ", "summary.label"),
-            summarize_relic_effects(relic_def.passive_effects),
+            effect_summary,
         ),
     ]
     lines.extend(_format_relic_metadata_lines(relic_def))

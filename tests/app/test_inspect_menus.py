@@ -428,7 +428,7 @@ def test_claiming_partial_rewards_keeps_reward_menu_open_until_empty() -> None:
     assert "奖励:" not in after_card_message
 
 
-def test_claiming_boss_gold_keeps_boss_reward_menu_open_until_relic_is_picked() -> None:
+def test_claiming_boss_reward_enters_boss_chest_root_until_relic_is_picked() -> None:
     session = replace(
         start_session(seed=5),
         room_state=replace(
@@ -436,49 +436,49 @@ def test_claiming_boss_gold_keeps_boss_reward_menu_open_until_relic_is_picked() 
             room_type="boss",
             stage="completed",
             is_resolved=True,
-            rewards=[],
+            rewards=["gold:95"],
             payload={
                 "node_id": "boss",
                 "next_node_ids": [],
                 "boss_rewards": {
                     "generated_by": "boss_reward_generator",
-                    "gold_reward": 95,
-                    "claimed_gold": False,
                     "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper"],
                     "claimed_relic_id": None,
                 },
             },
         ),
-        menu_state=MenuState(mode="select_boss_reward"),
+        menu_state=MenuState(mode="root"),
     )
 
-    _running, next_session, message = route_menu_choice("1", session=session)
+    _running, reward_session, _message = route_menu_choice("1", session=session)
+    _running, next_session, message = route_menu_choice("1", session=reward_session)
 
-    assert next_session.menu_state.mode == "select_boss_reward"
-    assert next_session.room_state.payload["boss_rewards"]["claimed_gold"] is True
+    assert next_session.menu_state.mode == "root"
+    assert next_session.room_state.room_type == "boss_chest"
     assert next_session.room_state.payload["boss_rewards"]["claimed_relic_id"] is None
-    assert "Boss奖励:" in message
+    assert "Boss宝箱" in message
 
 
-def test_claiming_boss_relic_returns_to_boss_reward_menu_when_gold_is_unclaimed() -> None:
+def test_claiming_boss_relic_returns_to_boss_chest_root() -> None:
     session = replace(
         start_session(seed=5),
         room_state=replace(
             start_session(seed=5).room_state,
-            room_type="boss",
+            room_id="act1:boss_chest",
+            room_type="boss_chest",
             stage="completed",
             is_resolved=True,
             rewards=[],
             payload={
-                "node_id": "boss",
+                "act_id": "act1",
+                "node_id": "boss_chest",
                 "next_node_ids": [],
                 "boss_rewards": {
                     "generated_by": "boss_reward_generator",
-                    "gold_reward": 95,
-                    "claimed_gold": False,
                     "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper"],
                     "claimed_relic_id": None,
                 },
+                "next_act_id": "act2",
             },
         ),
         menu_state=MenuState(mode="select_boss_relic"),
@@ -486,10 +486,9 @@ def test_claiming_boss_relic_returns_to_boss_reward_menu_when_gold_is_unclaimed(
 
     _running, next_session, message = route_menu_choice("1", session=session)
 
-    assert next_session.menu_state.mode == "select_boss_reward"
-    assert next_session.room_state.payload["boss_rewards"]["claimed_gold"] is False
+    assert next_session.menu_state.mode == "root"
     assert next_session.room_state.payload["boss_rewards"]["claimed_relic_id"] == "black_blood"
-    assert "Boss奖励:" in message
+    assert "Boss宝箱" in message
 
 
 def test_inspect_leaf_pages_keep_transition_messages_consistent() -> None:

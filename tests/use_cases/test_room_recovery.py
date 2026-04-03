@@ -50,17 +50,15 @@ def _boss_reward_ready_session(*, act_id: str, next_act_id: str | None) -> Sessi
                 "next_node_ids": [],
                 "boss_rewards": {
                     "generated_by": "boss_reward_generator",
-                    "gold_reward": 99,
-                    "claimed_gold": False,
                     "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper"],
                     "claimed_relic_id": None,
                 },
                 **({"next_act_id": next_act_id} if next_act_id is not None else {}),
             },
             is_resolved=True,
-            rewards=[],
+            rewards=["gold:99"],
         ),
-        menu_state=MenuState(mode="select_boss_reward"),
+        menu_state=MenuState(mode="root"),
     )
 
 
@@ -514,7 +512,7 @@ def test_generate_combat_rewards_feeds_reward_room_claim_flow() -> None:
     assert len([reward for reward in rewards if reward.startswith("card_offer:")]) == 3
 
 
-def test_boss_victory_generates_payload_boss_rewards_instead_of_room_rewards() -> None:
+def test_boss_victory_generates_combat_rewards_and_boss_relic_offers() -> None:
     base_session = start_session(seed=37)
     session = replace(
         base_session,
@@ -560,15 +558,26 @@ def test_boss_victory_generates_payload_boss_rewards_instead_of_room_rewards() -
 
     _running, next_session, _message = route_command("play 1", session=session)
     boss_rewards = next_session.room_state.payload["boss_rewards"]
+    gold_rewards = [
+        reward for reward in next_session.room_state.rewards if reward.startswith("gold:")
+    ]
+    card_rewards = [
+        reward
+        for reward in next_session.room_state.rewards
+        if reward.startswith("card_offer:")
+    ]
 
     assert next_session.run_phase == "active"
     assert next_session.room_state.is_resolved is True
-    assert next_session.room_state.rewards == []
+    assert len(gold_rewards) == 1
+    assert 95 <= int(gold_rewards[0].split(":", 1)[1]) <= 105
+    assert len(card_rewards) == 3
     assert boss_rewards["generated_by"] == "boss_reward_generator"
-    assert boss_rewards["gold_reward"] == 106
+    assert "gold_reward" not in boss_rewards
+    assert boss_rewards["claimed_relic_id"] is None
 
 
-def test_claiming_boss_gold_only_does_not_enter_victory() -> None:
+def test_claiming_boss_reward_only_enters_boss_chest_not_victory() -> None:
     session = replace(
         start_session(seed=7),
         room_state=RoomState(
@@ -580,22 +589,21 @@ def test_claiming_boss_gold_only_does_not_enter_victory() -> None:
                 "next_node_ids": [],
                 "boss_rewards": {
                     "generated_by": "boss_reward_generator",
-                    "gold_reward": 99,
-                    "claimed_gold": False,
                     "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper"],
                     "claimed_relic_id": None,
                 },
             },
             is_resolved=True,
-            rewards=[],
+            rewards=["gold:99"],
         ),
-        menu_state=MenuState(mode="select_boss_reward"),
+        menu_state=MenuState(mode="root"),
     )
 
-    _running, next_session, _message = route_menu_choice("1", session=session)
+    _running, reward_session, _message = route_menu_choice("1", session=session)
+    _running, next_session, _message = route_menu_choice("1", session=reward_session)
 
     assert next_session.run_phase == "active"
-    assert next_session.room_state.payload["boss_rewards"]["claimed_gold"] is True
+    assert next_session.room_state.room_type == "boss_chest"
     assert next_session.run_state.gold == 198
 
 
@@ -612,20 +620,21 @@ def test_partial_boss_reward_progress_survives_load_session(tmp_path: Path) -> N
                 "next_node_ids": [],
                 "boss_rewards": {
                     "generated_by": "boss_reward_generator",
-                    "gold_reward": 99,
-                    "claimed_gold": False,
                     "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper"],
                     "claimed_relic_id": None,
                 },
             },
             is_resolved=True,
-            rewards=[],
+            rewards=["gold:99"],
         ),
-        menu_state=MenuState(mode="select_boss_reward"),
+        menu_state=MenuState(mode="root"),
     )
 
-    _running, claimed_gold_session, _message = route_menu_choice(
+    _running, reward_session, _message = route_menu_choice(
         "1", session=initial_session
+    )
+    _running, claimed_gold_session, _message = route_menu_choice(
+        "1", session=reward_session
     )
     repository = JsonFileSaveRepository(tmp_path / "boss_reward.json")
     save_game(
@@ -642,32 +651,23 @@ def test_partial_boss_reward_progress_survives_load_session(tmp_path: Path) -> N
     _running, reward_menu_session, _message = route_menu_choice(
         "1", session=restored_session
     )
-    _running, relic_menu_session, _message = route_menu_choice(
-        "2", session=reward_menu_session
-    )
     _running, boss_chest_session, boss_chest_message = route_menu_choice(
-        "1", session=relic_menu_session
+        "1", session=reward_menu_session
     )
     _running, transitioned_session, _message = route_menu_choice(
         "1", session=boss_chest_session
     )
 
     assert claimed_gold_session.run_phase == "active"
-    assert (
-        claimed_gold_session.room_state.payload["boss_rewards"]["claimed_gold"] is True
-    )
+    assert claimed_gold_session.room_state.room_type == "boss_chest"
     assert restored_session.run_state.gold == claimed_gold_session.run_state.gold
     assert restored_session.run_phase == "active"
     assert restored_session.menu_state.mode == "root"
-    assert restored_session.room_state.payload["boss_rewards"]["claimed_gold"] is True
-    assert (
-        restored_session.room_state.payload["boss_rewards"]["claimed_relic_id"] is None
-    )
+    assert restored_session.room_state.payload["boss_rewards"]["claimed_relic_id"] is None
     assert set(
         restored_session.room_state.payload["boss_rewards"]["boss_relic_offers"]
     ).isdisjoint(restored_session.run_state.relics)
-    assert reward_menu_session.menu_state.mode == "select_boss_reward"
-    assert relic_menu_session.menu_state.mode == "select_boss_relic"
+    assert reward_menu_session.menu_state.mode == "select_boss_relic"
     assert boss_chest_session.room_state.room_type == "boss_chest"
     assert boss_chest_session.room_state.payload["next_act_id"] == "act2"
     assert boss_chest_session.run_phase == "active"
@@ -894,43 +894,41 @@ def test_boss_reward_root_inspect_round_trip_keeps_reward_menu_numbering() -> No
     assert inspect_back_session.menu_state.mode == "inspect_root"
     assert reward_root_session.menu_state.mode == "root"
     assert "领取奖励" in reward_root_message
-    assert select_reward_session.menu_state.mode == "select_boss_reward"
-    assert "Boss奖励" in select_reward_message
+    assert select_reward_session.menu_state.mode == "select_boss_relic"
+    assert "选择Boss遗物" in select_reward_message
     assert claimed_session.run_phase == "active"
-    assert claimed_session.room_state.payload["boss_rewards"]["claimed_gold"] is True
-    assert claimed_session.run_state.gold == 198
+    assert claimed_session.room_state.payload["boss_rewards"]["claimed_relic_id"] == "black_blood"
 
 
-def test_claiming_already_claimed_boss_gold_stays_in_menu_with_message() -> None:
+def test_claiming_boss_relic_from_boss_chest_returns_to_root_with_selection() -> None:
     session = replace(
         start_session(seed=7),
         room_state=RoomState(
-            room_id="act1:boss",
-            room_type="boss",
+            room_id="act1:boss_chest",
+            room_type="boss_chest",
             stage="completed",
             payload={
-                "node_id": "boss",
+                "act_id": "act1",
+                "node_id": "boss_chest",
                 "next_node_ids": [],
                 "boss_rewards": {
                     "generated_by": "boss_reward_generator",
-                    "gold_reward": 99,
-                    "claimed_gold": True,
                     "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper"],
                     "claimed_relic_id": None,
                 },
+                "next_act_id": "act2",
             },
             is_resolved=True,
             rewards=[],
         ),
-        menu_state=MenuState(mode="select_boss_reward"),
+        menu_state=MenuState(mode="select_boss_relic"),
     )
 
     _running, next_session, message = route_menu_choice("1", session=session)
 
-    assert next_session.menu_state.mode == "select_boss_reward"
-    assert next_session.run_state.gold == session.run_state.gold
-    assert next_session.room_state.payload["boss_rewards"]["claimed_gold"] is True
-    assert "金币已领取" in message
+    assert next_session.menu_state.mode == "root"
+    assert next_session.room_state.payload["boss_rewards"]["claimed_relic_id"] == "black_blood"
+    assert "Boss宝箱" in message
 
 
 def test_combat_reward_root_inspect_uses_visible_back_choice_before_claim_flow() -> (
@@ -1119,7 +1117,8 @@ def test_claiming_boss_relic_after_gold_enters_final_boss_chest_before_victory()
     session = _boss_reward_ready_session(act_id="act2", next_act_id=None)
 
     _running, session, _message = route_menu_choice("1", session=session)
-    _running, session, _message = route_menu_choice("2", session=session)
+    _running, session, _message = route_menu_choice("1", session=session)
+    _running, session, _message = route_menu_choice("1", session=session)
     _running, next_session, render_message = route_menu_choice("1", session=session)
 
     assert next_session.run_phase == "active"
@@ -1143,12 +1142,12 @@ def test_claiming_boss_relic_after_gold_enters_final_boss_chest_before_victory()
 def test_claiming_final_boss_reward_in_act1_enters_boss_chest_before_act2() -> None:
     session = _boss_reward_ready_session(act_id="act1", next_act_id="act2")
 
-    _running, gold_session, _message = route_menu_choice("1", session=session)
-    _running, relic_menu_session, _message = route_menu_choice(
-        "2", session=gold_session
+    _running, reward_menu_session, _message = route_menu_choice("1", session=session)
+    _running, boss_chest_root_session, _message = route_menu_choice(
+        "1", session=reward_menu_session
     )
     _running, boss_chest_session, render_message = route_menu_choice(
-        "1", session=relic_menu_session
+        "1", session=boss_chest_root_session
     )
 
     assert boss_chest_session.run_phase == "active"
@@ -1158,10 +1157,13 @@ def test_claiming_final_boss_reward_in_act1_enters_boss_chest_before_act2() -> N
     assert boss_chest_session.room_state.payload["act_id"] == "act1"
     assert boss_chest_session.room_state.payload["next_act_id"] == "act2"
     assert "Boss宝箱" in render_message
-    assert "前往下一幕" in render_message
+    assert "选择Boss遗物" in render_message
 
-    _running, next_session, _message = route_menu_choice(
+    _running, advance_ready_session, _message = route_menu_choice(
         "1", session=boss_chest_session
+    )
+    _running, next_session, _message = route_menu_choice(
+        "1", session=advance_ready_session
     )
 
     assert next_session.run_phase == "active"
@@ -1367,15 +1369,13 @@ def test_game_over_menu_uses_terminal_phase_choice_mapping(tmp_path: Path) -> No
         session, run_state=replace(session.run_state, current_hp=7)
     )
 
-    running, loaded_session, loaded_message = route_menu_choice(
+    running, load_select_session, load_select_message = route_menu_choice(
         "3", session=altered_session
     )
 
     assert running is True
-    assert loaded_session.run_state.current_hp == 0
-    assert loaded_session.run_phase == "game_over"
-    assert loaded_session.room_state.stage == "defeated"
-    assert f"已从存档恢复。当前存档: {saved_session.save_path}" == loaded_message
+    assert load_select_session.menu_state.mode == "load_select"
+    assert "读取存档" in load_select_message
 
     running, exited_session, exited_message = route_menu_choice("4", session=session)
 

@@ -271,7 +271,6 @@ def _choose_relic_id(*, registry, rng: Random, run_state: RunState) -> str:
         relic.id
         for relic in registry.relics().all()
         if "neow" in relic.pools
-        and relic.implementation_status in {"implemented", "partial"}
         and (
             not relic.owner_character_ids
             or run_state.character_id in relic.owner_character_ids

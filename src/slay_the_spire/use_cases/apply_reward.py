@@ -23,6 +23,22 @@ def _gold_amount(run_state: RunState, amount: int) -> int:
     return amount + (amount // 4)
 
 
+def _card_acquisition_gold_bonus(run_state: RunState) -> int:
+    if "ceramic_fish" not in run_state.relics:
+        return 0
+    return _gold_amount(run_state, 9)
+
+
+def _apply_card_reward(run_state: RunState, card_id: str) -> RunState:
+    next_card_id = _next_instance_id(run_state.deck, card_id)
+    bonus_gold = _card_acquisition_gold_bonus(run_state)
+    return replace(
+        run_state,
+        deck=[*run_state.deck, next_card_id],
+        gold=run_state.gold + bonus_gold,
+    )
+
+
 def _apply_relic_acquisition(
     *, run_state: RunState, relic_id: str, registry: ContentProviderPort
 ) -> RunState:
@@ -55,28 +71,16 @@ def apply_reward(
         )
     if reward_id == "card:reward_strike":
         registry.cards().get("strike_plus")
-        return replace(
-            run_state,
-            deck=[*run_state.deck, _next_instance_id(run_state.deck, "strike_plus")],
-        )
+        return _apply_card_reward(run_state, "strike_plus")
     if reward_id == "card:reward_defend":
         registry.cards().get("defend_plus")
-        return replace(
-            run_state,
-            deck=[*run_state.deck, _next_instance_id(run_state.deck, "defend_plus")],
-        )
+        return _apply_card_reward(run_state, "defend_plus")
     if reward_id.startswith("card_offer:"):
         card_id = reward_id.split(":", 1)[1]
         registry.cards().get(card_id)
-        return replace(
-            run_state,
-            deck=[*run_state.deck, _next_instance_id(run_state.deck, card_id)],
-        )
+        return _apply_card_reward(run_state, card_id)
     if reward_id.startswith("card:"):
         card_id = reward_id.split(":", 1)[1]
         registry.cards().get(card_id)
-        return replace(
-            run_state,
-            deck=[*run_state.deck, _next_instance_id(run_state.deck, card_id)],
-        )
+        return _apply_card_reward(run_state, card_id)
     return run_state

@@ -202,10 +202,10 @@ def _boss_rewards(room_state: RoomState) -> dict[str, object] | None:
 
 def _has_pending_boss_rewards(room_state: RoomState) -> bool:
     boss_rewards = _boss_rewards(room_state)
-    if boss_rewards is None or room_state.room_type != "boss" or not room_state.is_resolved:
+    if boss_rewards is None or room_state.room_type not in {"boss", "boss_chest"} or not room_state.is_resolved:
         return False
     claimed_relic_id = boss_rewards.get("claimed_relic_id")
-    return not (boss_rewards.get("claimed_gold") is True and isinstance(claimed_relic_id, str) and bool(claimed_relic_id))
+    return not (isinstance(claimed_relic_id, str) and bool(claimed_relic_id))
 
 
 def _draw_conn(buf: list[str], from_col: int, to_col: int, cell_width: int) -> None:
@@ -725,8 +725,6 @@ def render_reward_panel(room_state: RoomState, registry: ContentProviderPort) ->
 
 def render_boss_reward_panel(room_state: RoomState, registry: ContentProviderPort) -> Panel:
     boss_rewards = _boss_rewards(room_state) or {}
-    gold_reward = boss_rewards.get("gold_reward")
-    claimed_gold = boss_rewards.get("claimed_gold") is True
     claimed_relic_id = boss_rewards.get("claimed_relic_id")
     relic_ids = boss_rewards.get("boss_relic_offers")
     if not isinstance(relic_ids, list):
@@ -735,8 +733,6 @@ def render_boss_reward_panel(room_state: RoomState, registry: ContentProviderPor
     if isinstance(claimed_relic_id, str) and claimed_relic_id:
         selected_relic_name = registry.relics().get(claimed_relic_id).name
     lines = [
-        Text.assemble(("金币奖励：", "summary.label"), f"+{gold_reward}" if isinstance(gold_reward, int) and not isinstance(gold_reward, bool) else "-"),
-        Text.assemble(("金币领取状态：", "summary.label"), "已领取" if claimed_gold else "未领取"),
         Text.assemble(("已选遗物：", "summary.label"), selected_relic_name),
         Text.assemble(("可选遗物数：", "summary.label"), str(len(relic_ids))),
     ]
@@ -750,6 +746,17 @@ def render_boss_reward_panel(room_state: RoomState, registry: ContentProviderPor
 
 
 def render_boss_chest_panel(room_state: RoomState, registry: ContentProviderPort) -> Panel:
+    if _has_pending_boss_rewards(room_state):
+        lines: list[RenderableType] = [Text("首领宝箱已经开启，请从中选择一件首领遗物。")]
+        boss_rewards = _boss_rewards(room_state) or {}
+        relic_ids = boss_rewards.get("boss_relic_offers")
+        if isinstance(relic_ids, list) and relic_ids:
+            lines.append(Text(""))
+            lines.append(Text("可选遗物：", style="summary.label"))
+            for relic_id in relic_ids:
+                if isinstance(relic_id, str):
+                    lines.append(Text(f"- {registry.relics().get(relic_id).name}"))
+        return Panel(Group(*lines), title="Boss宝箱", box=PANEL_BOX, expand=False)
     next_act_id = room_state.payload.get("next_act_id")
     if isinstance(next_act_id, str) and next_act_id:
         next_act_name = registry.acts().get(next_act_id).name

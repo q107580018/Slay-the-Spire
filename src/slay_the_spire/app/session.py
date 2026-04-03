@@ -292,9 +292,6 @@ def _derive_run_phase(
         return "game_over"
     if room_state.stage == "defeated":
         return "game_over"
-    if room_state.room_type == "boss" and _boss_rewards_complete(room_state):
-        if registry.acts().get(act_state.act_id).next_act_id is None:
-            return "victory"
     return "active"
 
 
@@ -483,16 +480,12 @@ def _boss_rewards_complete(room_state: RoomState) -> bool:
     if boss_rewards is None:
         return False
     claimed_relic_id = boss_rewards.get("claimed_relic_id")
-    return (
-        boss_rewards.get("claimed_gold") is True
-        and isinstance(claimed_relic_id, str)
-        and bool(claimed_relic_id)
-    )
+    return isinstance(claimed_relic_id, str) and bool(claimed_relic_id)
 
 
 def _has_pending_boss_rewards(room_state: RoomState) -> bool:
     return (
-        room_state.room_type == "boss"
+        room_state.room_type in {"boss", "boss_chest"}
         and room_state.is_resolved
         and _boss_rewards(room_state) is not None
         and not _boss_rewards_complete(room_state)
@@ -510,7 +503,7 @@ def _claim_session_reward(session: SessionState, reward_id: str) -> SessionState
     next_menu_state = (
         MenuState(mode="select_reward") if updated_room_state.rewards else MenuState()
     )
-    return replace(
+    updated_session = replace(
         session,
         run_state=updated_run_state,
         room_state=updated_room_state,
@@ -519,6 +512,7 @@ def _claim_session_reward(session: SessionState, reward_id: str) -> SessionState
         ),
         menu_state=next_menu_state,
     )
+    return _resolve_boss_reward_completion(updated_session, registry=provider)
 
 
 def _claim_all_session_rewards(session: SessionState) -> SessionState:
@@ -678,49 +672,16 @@ def _skip_treasure(session: SessionState) -> SessionState:
     )
 
 
-def _claim_boss_gold(session: SessionState) -> SessionState:
-    boss_rewards = _boss_rewards(session.room_state)
-    if boss_rewards is None:
-        return replace(session, menu_state=MenuState(mode="select_boss_reward"))
-    if boss_rewards.get("claimed_gold") is True:
-        return replace(session, menu_state=MenuState(mode="select_boss_reward"))
-    gold_reward = boss_rewards.get("gold_reward")
-    if not isinstance(gold_reward, int) or isinstance(gold_reward, bool):
-        return replace(session, menu_state=MenuState(mode="select_boss_reward"))
-    provider = _content_provider(session)
-    updated_run_state = apply_reward(
-        run_state=session.run_state,
-        reward_id=f"gold:{gold_reward}",
-        registry=provider,
-    )
-    updated_boss_rewards = dict(boss_rewards)
-    updated_boss_rewards["claimed_gold"] = True
-    updated_room_state = replace(
-        session.room_state,
-        payload={**session.room_state.payload, "boss_rewards": updated_boss_rewards},
-    )
-    updated_session = replace(
-        session,
-        run_state=updated_run_state,
-        room_state=updated_room_state,
-        run_phase=_derive_run_phase(
-            updated_run_state, session.act_state, updated_room_state, registry=provider
-        ),
-        menu_state=MenuState(mode="select_boss_reward"),
-    )
-    return _resolve_boss_reward_completion(updated_session, registry=provider)
-
-
 def _claim_boss_relic(session: SessionState, relic_id: str) -> SessionState:
     boss_rewards = _boss_rewards(session.room_state)
     if boss_rewards is None:
-        return replace(session, menu_state=MenuState(mode="select_boss_reward"))
+        return replace(session, menu_state=MenuState())
     offers = boss_rewards.get("boss_relic_offers")
     if not isinstance(offers, list) or relic_id not in offers:
         return session
     claimed_relic_id = boss_rewards.get("claimed_relic_id")
     if isinstance(claimed_relic_id, str) and claimed_relic_id:
-        return replace(session, menu_state=MenuState(mode="select_boss_reward"))
+        return replace(session, menu_state=MenuState())
     provider = _content_provider(session)
     updated_run_state = apply_reward(
         run_state=session.run_state,
@@ -740,7 +701,7 @@ def _claim_boss_relic(session: SessionState, relic_id: str) -> SessionState:
         run_phase=_derive_run_phase(
             updated_run_state, session.act_state, updated_room_state, registry=provider
         ),
-        menu_state=MenuState(mode="select_boss_reward"),
+        menu_state=MenuState(),
     )
     return _resolve_boss_reward_completion(updated_session, registry=provider)
 
@@ -756,17 +717,20 @@ def _resolve_boss_reward_completion(
             run_phase="active",
             menu_state=_menu_state_for_room(session.room_state),
         )
-    if not _boss_rewards_complete(session.room_state):
+    if session.room_state.room_type != "boss":
+        return session
+    if session.room_state.rewards:
+        return session
+    boss_rewards = _boss_rewards(session.room_state)
+    if boss_rewards is None:
         return session
     current_act = registry.acts().get(session.act_state.act_id)
     boss_chest_payload = {
         "act_id": session.act_state.act_id,
         "node_id": "boss_chest",
         "next_node_ids": [],
+        "boss_rewards": boss_rewards,
     }
-    boss_rewards = _boss_rewards(session.room_state)
-    if boss_rewards is not None:
-        boss_chest_payload["boss_rewards"] = boss_rewards
     if current_act.next_act_id is not None:
         boss_chest_payload["next_act_id"] = current_act.next_act_id
     next_room_state = RoomState(
@@ -787,6 +751,8 @@ def _resolve_boss_reward_completion(
 
 def _advance_boss_chest(session: SessionState) -> SessionState:
     provider = _content_provider(session)
+    if _has_pending_boss_rewards(session.room_state):
+        return replace(session, menu_state=MenuState(mode="select_boss_relic"))
     next_act_id = session.room_state.payload.get("next_act_id")
     if not isinstance(next_act_id, str) or not next_act_id:
         return replace(session, run_phase="victory", menu_state=MenuState())
@@ -884,18 +850,15 @@ def _session_with_combat_state(
             run_phase="game_over",
         )
     if _combat_is_won(combat_state):
-        reward_run_state = updated_run_state
-        room_rewards: list[str] = []
-        if session.room_state.room_type != "boss":
-            room_rewards, next_rare_offset = generate_combat_rewards(
-                room_id=session.room_state.room_id,
-                run_state=updated_run_state,
-                registry=_content_provider(session),
-                room_type=session.room_state.room_type,
-            )
-            reward_run_state = replace(
-                updated_run_state, rare_card_reward_offset=next_rare_offset
-            )
+        room_rewards, next_rare_offset = generate_combat_rewards(
+            room_id=session.room_state.room_id,
+            run_state=updated_run_state,
+            registry=_content_provider(session),
+            room_type=session.room_state.room_type,
+        )
+        reward_run_state = replace(
+            updated_run_state, rare_card_reward_offset=next_rare_offset
+        )
         room_state = _room_with_combat_state(
             session.room_state,
             combat_state,
@@ -2015,12 +1978,12 @@ def _route_root_menu(
         next_session = replace(session, menu_state=MenuState())
         return True, next_session, render_session(next_session)
     if action_id == "claim_rewards":
-        if _has_pending_boss_rewards(session.room_state):
-            next_session = replace(
-                session, menu_state=MenuState(mode="select_boss_reward")
-            )
-            return True, next_session, render_session(next_session)
         if not session.room_state.rewards:
+            if _has_pending_boss_rewards(session.room_state):
+                next_session = replace(
+                    session, menu_state=MenuState(mode="select_boss_relic")
+                )
+                return True, next_session, render_session(next_session)
             return (
                 True,
                 replace(session, menu_state=MenuState()),
@@ -2645,20 +2608,10 @@ def _route_boss_reward_menu(
     boss_rewards = _boss_rewards(session.room_state)
     if boss_rewards is None:
         return _invalid_menu_choice(session)
-    action_id = resolve_menu_action(choice, build_boss_reward_menu(boss_rewards))
-    if action_id is None:
+    offers = boss_rewards.get("boss_relic_offers")
+    if not isinstance(offers, list):
         return _invalid_menu_choice(session)
-    if action_id == "back":
-        next_session = replace(session, menu_state=MenuState())
-        return True, next_session, render_session(next_session)
-    if action_id == "claimed_boss_gold":
-        return True, session, _message_with_render(session, "Boss金币已领取。")
-    if action_id == "claimed_boss_relic":
-        return True, session, _message_with_render(session, "Boss遗物已选择。")
-    if action_id == "choose_boss_relic":
-        next_session = replace(session, menu_state=MenuState(mode="select_boss_relic"))
-        return True, next_session, render_session(next_session)
-    next_session = _claim_boss_gold(session)
+    next_session = replace(session, menu_state=MenuState(mode="select_boss_relic"))
     return True, next_session, render_session(next_session)
 
 
@@ -2678,7 +2631,7 @@ def _route_boss_relic_menu(
     if action_id is None:
         return _invalid_menu_choice(session)
     if action_id == "back":
-        next_session = replace(session, menu_state=MenuState(mode="select_boss_reward"))
+        next_session = replace(session, menu_state=MenuState())
         return True, next_session, render_session(next_session)
     if not action_id.startswith("claim_boss_relic:"):
         return _invalid_menu_choice(session)

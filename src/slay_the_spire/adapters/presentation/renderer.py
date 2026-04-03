@@ -42,10 +42,10 @@ def _menu_mode(menu_state: Any) -> str:
 
 def _has_pending_boss_rewards(room_state: RoomState) -> bool:
     boss_rewards = room_state.payload.get("boss_rewards")
-    if not isinstance(boss_rewards, dict) or room_state.room_type != "boss" or not room_state.is_resolved:
+    if not isinstance(boss_rewards, dict) or room_state.room_type not in {"boss", "boss_chest"} or not room_state.is_resolved:
         return False
     claimed_relic_id = boss_rewards.get("claimed_relic_id")
-    return not (boss_rewards.get("claimed_gold") is True and isinstance(claimed_relic_id, str) and bool(claimed_relic_id))
+    return not (isinstance(claimed_relic_id, str) and bool(claimed_relic_id))
 
 
 def render_room_renderable(

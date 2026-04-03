@@ -27,7 +27,7 @@ def _force_act1_boss_reward_complete(session: SessionState) -> SessionState:
             room_type="boss",
             stage="completed",
             is_resolved=True,
-            rewards=[],
+            rewards=["gold:99"],
             payload={
                 **session.room_state.payload,
                 "act_id": "act1",
@@ -35,14 +35,12 @@ def _force_act1_boss_reward_complete(session: SessionState) -> SessionState:
                 "next_node_ids": [],
                 "boss_rewards": {
                     "generated_by": "boss_reward_generator",
-                    "gold_reward": 99,
-                    "claimed_gold": False,
                     "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper"],
                     "claimed_relic_id": None,
                 },
             },
         ),
-        menu_state=MenuState(mode="select_boss_reward"),
+        menu_state=MenuState(mode="root"),
     )
 
 
@@ -50,7 +48,8 @@ def test_act1_boss_reward_transitions_into_act2_start_room() -> None:
     session = _force_act1_boss_reward_complete(start_session(seed=5))
 
     _running, session, _message = route_menu_choice("1", session=session)
-    _running, session, _message = route_menu_choice("2", session=session)
+    _running, session, _message = route_menu_choice("1", session=session)
+    _running, session, _message = route_menu_choice("1", session=session)
     _running, session, boss_chest_message = route_menu_choice("2", session=session)
 
     assert session.run_phase == "active"
@@ -86,20 +85,19 @@ def test_act2_boss_reward_finishes_run_with_victory() -> None:
                 "next_node_ids": [],
                 "boss_rewards": {
                     "generated_by": "boss_reward_generator",
-                    "gold_reward": 120,
-                    "claimed_gold": False,
                     "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper"],
                     "claimed_relic_id": None,
                 },
             },
             is_resolved=True,
-            rewards=[],
+            rewards=["gold:120"],
         ),
-        menu_state=MenuState(mode="select_boss_reward"),
+        menu_state=MenuState(mode="root"),
     )
 
     _running, session, _message = route_menu_choice("1", session=session)
-    _running, session, _message = route_menu_choice("2", session=session)
+    _running, session, boss_chest_message = route_menu_choice("1", session=session)
+    _running, session, boss_chest_message = route_menu_choice("1", session=session)
     _running, session, boss_chest_message = route_menu_choice("1", session=session)
 
     assert session.run_phase == "active"
@@ -111,7 +109,6 @@ def test_act2_boss_reward_finishes_run_with_victory() -> None:
 
     assert session.run_phase == "victory"
     assert session.run_state.current_act_id == "act2"
-    assert session.room_state.payload["boss_rewards"]["claimed_gold"] is True
     assert (
         session.room_state.payload["boss_rewards"]["claimed_relic_id"] == "black_blood"
     )

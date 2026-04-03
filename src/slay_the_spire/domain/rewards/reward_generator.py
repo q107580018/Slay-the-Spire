@@ -9,7 +9,10 @@ _UNCOMMON_RARITY = "uncommon"
 _RARE_RARITY = "rare"
 _COMBAT_ROOM_TYPE = "combat"
 _ELITE_ROOM_TYPE = "elite"
-_SUPPORTED_ROOM_TYPES = frozenset({_COMBAT_ROOM_TYPE, _ELITE_ROOM_TYPE})
+_BOSS_ROOM_TYPE = "boss"
+_SUPPORTED_ROOM_TYPES = frozenset(
+    {_COMBAT_ROOM_TYPE, _ELITE_ROOM_TYPE, _BOSS_ROOM_TYPE}
+)
 _FALLBACK_RELIC_ID = "circlet"
 
 
@@ -126,6 +129,8 @@ def _combat_gold_reward(*, room_type: str, seed: int, room_id: str) -> int:
     rng = rng_for_room(seed=seed, room_id=room_id, category="reward:gold")
     if room_type == _ELITE_ROOM_TYPE:
         return rng.randint(25, 35)
+    if room_type == _BOSS_ROOM_TYPE:
+        return rng.randint(95, 105)
     return rng.randint(10, 20)
 
 
@@ -202,8 +207,12 @@ def generate_combat_rewards(
     taken_card_ids: set[str] = set()
     next_rare_offset = run_state.rare_card_reward_offset
     for _ in range(3):
-        rolled_rarity = _roll_rarity(
-            rng=rng, rare_offset=next_rare_offset, room_type=normalized_room_type
+        rolled_rarity = (
+            _RARE_RARITY
+            if normalized_room_type == _BOSS_ROOM_TYPE
+            else _roll_rarity(
+                rng=rng, rare_offset=next_rare_offset, room_type=normalized_room_type
+            )
         )
         card_id, actual_rarity = _sample_card_offer(
             rolled_rarity=rolled_rarity,
@@ -213,7 +222,9 @@ def generate_combat_rewards(
         )
         taken_card_ids.add(card_id)
         rewards.append(f"card_offer:{card_id}")
-        if actual_rarity == _COMMON_RARITY:
+        if normalized_room_type == _BOSS_ROOM_TYPE:
+            next_rare_offset = -5
+        elif actual_rarity == _COMMON_RARITY:
             next_rare_offset = min(next_rare_offset + 1, 40)
         elif actual_rarity == _RARE_RARITY:
             next_rare_offset = -5
@@ -228,7 +239,7 @@ def generate_boss_rewards(
     registry: ContentProviderPort,
 ) -> dict[str, object]:
     _room_hash(room_id)
-    normalized_seed = _require_seed(seed)
+    _require_seed(seed)
     del registry
     boss_pool: list[str] = []
     while len(boss_pool) < 3:
@@ -242,8 +253,6 @@ def generate_boss_rewards(
         boss_pool.append(relic_id)
     return {
         "generated_by": "boss_reward_generator",
-        "gold_reward": 90 + (normalized_seed % 21),
-        "claimed_gold": False,
         "boss_relic_offers": boss_pool,
         "claimed_relic_id": None,
     }

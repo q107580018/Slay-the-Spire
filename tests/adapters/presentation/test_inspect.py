@@ -105,6 +105,20 @@ def test_format_relic_detail_lines_translate_gold_bonus_effect() -> None:
     assert all("event_gold_bonus" not in line.plain for line in lines)
 
 
+def test_format_relic_detail_lines_fall_back_to_summary_when_effects_are_empty() -> (
+    None
+):
+    session = start_session(seed=5)
+    registry = StarterContentProvider(session.content_root)
+
+    lines = format_relic_detail_lines("astrolabe", registry)
+
+    assert any(
+        "效果" in line.plain and "随机变形牌组中的 3 张牌并将其升级" in line.plain
+        for line in lines
+    )
+
+
 def test_format_card_detail_lines_explain_burn_end_turn_penalty() -> None:
     session = start_session(seed=5)
     registry = StarterContentProvider(session.content_root)

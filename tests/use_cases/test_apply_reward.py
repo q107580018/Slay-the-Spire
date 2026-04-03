@@ -123,6 +123,35 @@ def test_apply_reward_accepts_card_offer_reward_ids() -> None:
     assert updated.deck[-1] == "anger#10"
 
 
+def test_apply_reward_card_offer_grants_ceramic_fish_gold_bonus() -> None:
+    run_state = replace(_run_state(), relics=["burning_blood", "ceramic_fish"])
+
+    updated = apply_reward(
+        run_state=run_state,
+        reward_id="card_offer:anger",
+        registry=_content_provider(),
+    )
+
+    assert updated.deck[-1] == "anger#10"
+    assert updated.gold == run_state.gold + 9
+
+
+def test_apply_reward_card_offer_ceramic_fish_bonus_is_blocked_by_ectoplasm() -> None:
+    run_state = replace(
+        _run_state(),
+        relics=["burning_blood", "ceramic_fish", "ectoplasm"],
+    )
+
+    updated = apply_reward(
+        run_state=run_state,
+        reward_id="card_offer:anger",
+        registry=_content_provider(),
+    )
+
+    assert updated.deck[-1] == "anger#10"
+    assert updated.gold == run_state.gold
+
+
 def test_apply_reward_gold_uses_golden_idol_bonus() -> None:
     run_state = _run_state()
     run_state = RunState(
@@ -145,7 +174,7 @@ def test_apply_reward_gold_uses_golden_idol_bonus() -> None:
     assert updated.gold == 224
 
 
-def test_generate_boss_rewards_returns_high_gold_and_three_unique_relics() -> None:
+def test_generate_boss_rewards_returns_three_unique_relics() -> None:
     run_state = replace(
         _run_state(),
         relic_sequences={
@@ -161,9 +190,7 @@ def test_generate_boss_rewards_returns_high_gold_and_three_unique_relics() -> No
     )
 
     assert rewards["generated_by"] == "boss_reward_generator"
-    assert rewards["gold_reward"] == 106
     assert rewards["boss_relic_offers"] == ["astrolabe", "black_star", "busted_crown"]
-    assert rewards["claimed_gold"] is False
     assert rewards["claimed_relic_id"] is None
     assert run_state.relic_sequence_positions["boss"] == 3
 

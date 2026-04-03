@@ -7,7 +7,6 @@ from slay_the_spire.domain.models.run_state import RunState
 from slay_the_spire.ports.content_provider import ContentProviderPort
 
 _RELIC_SEQUENCE_POOL_IDS = ("common", "uncommon", "rare", "shop", "boss")
-_REWARDABLE_RELIC_STATUSES = {"implemented", "partial"}
 
 
 def _build_card_instance_ids(card_ids: list[str]) -> list[str]:
@@ -20,8 +19,6 @@ def _ensure_act_loaded(character, registry: ContentProviderPort, seed: int) -> N
 
 def _is_rewardable_relic(*, relic, character_id: str, pool_id: str) -> bool:
     if pool_id not in relic.pools:
-        return False
-    if relic.implementation_status not in _REWARDABLE_RELIC_STATUSES:
         return False
     return not relic.owner_character_ids or character_id in relic.owner_character_ids
 

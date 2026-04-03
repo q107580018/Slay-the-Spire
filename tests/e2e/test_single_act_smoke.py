@@ -152,13 +152,11 @@ def test_single_act_smoke_simulates_map_shop_rest_and_boss_reward_transition_int
             session.room_state,
             stage="completed",
             is_resolved=True,
-            rewards=[],
+            rewards=["gold:99", "card_offer:anger", "card_offer:inflame", "card_offer:uppercut"],
             payload={
                 **session.room_state.payload,
                 "boss_rewards": {
                     "generated_by": "boss_reward_generator",
-                    "gold_reward": 99,
-                    "claimed_gold": False,
                     "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper"],
                     "claimed_relic_id": None,
                 },
@@ -174,12 +172,21 @@ def test_single_act_smoke_simulates_map_shop_rest_and_boss_reward_transition_int
     _running, session, _message = route_menu_choice("1", session=session)
     _running, session, _message = route_menu_choice("1", session=session)
     assert session.run_phase == "active"
-    assert session.menu_state.mode == "select_boss_reward"
-    assert session.room_state.rewards == []
-    assert session.room_state.payload["boss_rewards"]["claimed_gold"] is True
+    assert session.menu_state.mode == "select_reward"
+    assert session.room_state.rewards == [
+        "card_offer:anger",
+        "card_offer:inflame",
+        "card_offer:uppercut",
+    ]
     assert "boss_rewards" in session.room_state.payload
 
-    _running, session, _message = route_menu_choice("2", session=session)
+    _running, session, _message = route_menu_choice("1", session=session)
+    assert session.run_state.gold == gold_before_boss_reward + expected_boss_gold
+    assert session.room_state.rewards == []
+    assert session.room_state.room_type == "boss_chest"
+    assert session.menu_state.mode == "root"
+
+    _running, session, _message = route_menu_choice("1", session=session)
     assert session.menu_state.mode == "select_boss_relic"
     _running, session, boss_chest_message = route_menu_choice("1", session=session)
 
@@ -193,9 +200,9 @@ def test_single_act_smoke_simulates_map_shop_rest_and_boss_reward_transition_int
     assert session.room_state.payload["next_act_id"] == "act2"
     assert "Boss宝箱" in boss_chest_message
     assert "前往下一幕" in boss_chest_message
-    assert session.run_state.gold == gold_before_boss_reward + expected_boss_gold
     assert "black_blood" in session.run_state.relics
-    assert session.run_state.deck == deck_before_boss_reward
+    assert session.run_state.deck[-1] == "anger#11"
+    assert session.run_state.deck[:-1] == deck_before_boss_reward
 
     _running, session, _message = route_menu_choice("1", session=session)
 
@@ -206,7 +213,8 @@ def test_single_act_smoke_simulates_map_shop_rest_and_boss_reward_transition_int
     assert session.room_state.room_type == "combat"
     assert session.run_state.gold == gold_before_boss_reward + expected_boss_gold
     assert "black_blood" in session.run_state.relics
-    assert session.run_state.deck == deck_before_boss_reward
+    assert session.run_state.deck[-1] == "anger#11"
+    assert session.run_state.deck[:-1] == deck_before_boss_reward
 
 
 def test_single_act_smoke_boss_room_uses_act1_bosses_and_hexaghost() -> None:

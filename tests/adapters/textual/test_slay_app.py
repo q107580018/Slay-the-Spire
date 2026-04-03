@@ -19,6 +19,7 @@ from slay_the_spire.adapters.textual.slay_app import (
     SlayApp,
     _combat_pile_preview_text,
     _current_action_menu,
+    _format_neow_offer_hover_lines,
     _hover_preview_renderable,
     _menu_choice_for_action,
     _render_to_rich,
@@ -52,6 +53,15 @@ def _node_region_text(widget: MapWidget, node_id: str) -> str:
 def _widget_render_plain(widget: Static) -> str:
     rendered = widget.render()
     renderable = getattr(rendered, "_renderable", rendered)
+    buffer = StringIO()
+    console = Console(
+        file=buffer, force_terminal=False, color_system=None, theme=TERMINAL_THEME
+    )
+    console.print(renderable)
+    return buffer.getvalue()
+
+
+def _render_plain(renderable) -> str:
     buffer = StringIO()
     console = Console(
         file=buffer, force_terminal=False, color_system=None, theme=TERMINAL_THEME
@@ -204,6 +214,30 @@ def test_hover_preview_shows_neow_relic_offer_detail() -> None:
     assert preview is not None
     assert relic_name in preview.plain
     assert "效果" in preview.plain
+
+
+def test_neow_relic_hover_lines_fall_back_to_summary_when_effects_are_empty() -> None:
+    session = start_new_game_session(seed=5, preferred_character_id="ironclad")
+    provider = StarterContentProvider(session.content_root)
+    offer = opening_flow._build_offer(
+        "relic-offer",
+        "free",
+        "relic",
+        provider,
+        Random(0),
+        session.opening_state.run_blueprint,
+    )
+    offer = replace(
+        offer,
+        reward_payload={"reward_id": "relic:astrolabe", "relic_id": "astrolabe"},
+        summary="获得遗物",
+    )
+
+    lines = _format_neow_offer_hover_lines(offer, registry=provider)
+    preview = _render_plain(lines)
+
+    assert "效果" in preview
+    assert "随机变形牌组中的 3 张牌并将其升级" in preview
 
 
 def test_hover_preview_shows_relic_implementation_status() -> None:

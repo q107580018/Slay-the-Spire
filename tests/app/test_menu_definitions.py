@@ -658,13 +658,11 @@ def test_build_boss_reward_menu_binds_gold_relic_and_back_actions() -> None:
 
     assert format_menu_lines(menu) == [
         "Boss奖励:",
-        "1. 领取金币 +99",
-        "2. 选择遗物",
-        "3. 返回上一步",
+        "1. 选择遗物",
+        "2. 返回上一步",
     ]
-    assert resolve_menu_action("1", menu) == "claim_boss_gold"
-    assert resolve_menu_action("2", menu) == "choose_boss_relic"
-    assert resolve_menu_action("3", menu) == "back"
+    assert resolve_menu_action("1", menu) == "choose_boss_relic"
+    assert resolve_menu_action("2", menu) == "back"
 
 
 def test_build_boss_reward_menu_marks_claimed_gold_as_completed() -> None:
@@ -685,13 +683,11 @@ def test_build_boss_reward_menu_marks_claimed_gold_as_completed() -> None:
 
     assert format_menu_lines(menu) == [
         "Boss奖励:",
-        "1. 已领取金币",
-        "2. 选择遗物",
-        "3. 返回上一步",
+        "1. 选择遗物",
+        "2. 返回上一步",
     ]
-    assert resolve_menu_action("1", menu) == "claimed_boss_gold"
-    assert resolve_menu_action("2", menu) == "choose_boss_relic"
-    assert resolve_menu_action("3", menu) == "back"
+    assert resolve_menu_action("1", menu) == "choose_boss_relic"
+    assert resolve_menu_action("2", menu) == "back"
 
 
 def test_build_target_menu_supports_explicit_enemy_title() -> None:
@@ -800,12 +796,11 @@ def test_build_boss_reward_menu_marks_claimed_relic_as_completed() -> None:
 
     assert format_menu_lines(menu) == [
         "Boss奖励:",
-        "1. 已领取金币",
-        "2. 已选择遗物",
-        "3. 返回上一步",
+        "1. 已选择遗物",
+        "2. 返回上一步",
     ]
-    assert resolve_menu_action("1", menu) == "claimed_boss_gold"
-    assert resolve_menu_action("2", menu) == "claimed_boss_relic"
+    assert resolve_menu_action("1", menu) == "claimed_boss_relic"
+    assert resolve_menu_action("2", menu) == "back"
 
 
 def test_build_boss_relic_menu_binds_three_relic_choices_and_back() -> None:

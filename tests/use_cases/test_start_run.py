@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import shutil
 from dataclasses import replace
 from pathlib import Path
 from random import Random
@@ -139,30 +141,122 @@ def test_start_new_run_initializes_relic_sequences() -> None:
     assert run_state.relic_sequences["boss"]
 
 
-def test_start_new_run_excludes_placeholder_relics_from_reward_sequences() -> None:
+def test_start_new_run_builds_relic_sequences_from_pool_membership() -> None:
     provider = _content_provider()
 
     run_state = start_new_run("ironclad", seed=7, registry=provider)
 
-    assert "akabeko" not in run_state.relic_sequences["common"]
-    assert "anchor" not in run_state.relic_sequences["common"]
+    assert "akabeko" in run_state.relic_sequences["common"]
+    assert "anchor" in run_state.relic_sequences["common"]
     assert "blood_vial" in run_state.relic_sequences["common"]
+    assert "clockwork_souvenir" in run_state.relic_sequences["shop"]
+    assert "cauldron" in run_state.relic_sequences["shop"]
     assert "ectoplasm" in run_state.relic_sequences["boss"]
-    assert "astrolabe" not in run_state.relic_sequences["boss"]
+    assert "astrolabe" in run_state.relic_sequences["boss"]
 
 
-def test_neow_random_relic_selection_excludes_placeholder_relics() -> None:
-    provider = _content_provider()
+def test_start_new_run_auto_includes_new_relic_entries_by_pool(tmp_path: Path) -> None:
+    content_root = Path(__file__).resolve().parents[2] / "content"
+    copied_root = tmp_path / "content"
+    shutil.copytree(content_root, copied_root)
+
+    common_relics_path = copied_root / "relics" / "common_relics.json"
+    common_payload = json.loads(common_relics_path.read_text(encoding="utf-8"))
+    common_payload["relics"].append(
+        {
+            "id": "test_auto_common_relic",
+            "name": "测试公共遗物",
+            "summary": "测试公共池自动纳入",
+            "description": "只要属于公共池，就应自动进入公共遗物序列。",
+            "rarity": "common",
+            "pools": ["common"],
+            "source_tags": ["test"],
+            "owner_character_ids": [],
+            "implementation_status": "placeholder",
+            "effect_blueprint": [],
+            "trigger_hooks": [],
+            "passive_effects": [],
+            "can_appear_in_shop": False,
+        }
+    )
+    common_relics_path.write_text(
+        json.dumps(common_payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    boss_relics_path = copied_root / "relics" / "boss_relics.json"
+    boss_payload = json.loads(boss_relics_path.read_text(encoding="utf-8"))
+    boss_payload["relics"].append(
+        {
+            "id": "test_auto_boss_relic",
+            "name": "测试首领遗物",
+            "summary": "测试首领池自动纳入",
+            "description": "只要属于首领池，就应自动进入首领遗物序列。",
+            "rarity": "boss",
+            "pools": ["boss"],
+            "source_tags": ["boss_relic"],
+            "owner_character_ids": [],
+            "implementation_status": "placeholder",
+            "effect_blueprint": [],
+            "trigger_hooks": [],
+            "passive_effects": [],
+            "can_appear_in_shop": False,
+        }
+    )
+    boss_relics_path.write_text(
+        json.dumps(boss_payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    provider = StarterContentProvider(copied_root)
+
     run_state = start_new_run("ironclad", seed=7, registry=provider)
-    rng = Random(7)
 
-    picked = {
-        opening_flow._choose_relic_id(registry=provider, rng=rng, run_state=run_state)
-        for _ in range(20)
-    }
+    assert "test_auto_common_relic" in run_state.relic_sequences["common"]
+    assert "test_auto_boss_relic" in run_state.relic_sequences["boss"]
 
-    assert picked
-    assert picked <= {"blood_vial"}
+
+def test_neow_random_relic_selection_uses_neow_pool_membership(tmp_path: Path) -> None:
+    content_root = Path(__file__).resolve().parents[2] / "content"
+    copied_root = tmp_path / "content"
+    shutil.copytree(content_root, copied_root)
+
+    common_relics_path = copied_root / "relics" / "common_relics.json"
+    common_payload = json.loads(common_relics_path.read_text(encoding="utf-8"))
+    common_payload["relics"].append(
+        {
+            "id": "zz_test_auto_neow_relic",
+            "name": "测试 Neow 遗物",
+            "summary": "测试 Neow 池自动纳入",
+            "description": "只要属于 Neow 池，就应自动进入 Neow 遗物随机池。",
+            "rarity": "common",
+            "pools": ["common", "neow"],
+            "source_tags": ["test"],
+            "owner_character_ids": [],
+            "implementation_status": "placeholder",
+            "effect_blueprint": [],
+            "trigger_hooks": [],
+            "passive_effects": [],
+            "can_appear_in_shop": False,
+        }
+    )
+    common_relics_path.write_text(
+        json.dumps(common_payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    provider = StarterContentProvider(copied_root)
+    run_state = start_new_run("ironclad", seed=7, registry=provider)
+
+    class _PickLastRng:
+        def choice(self, values):
+            return values[-1]
+
+    relic_id = opening_flow._choose_relic_id(
+        registry=provider, rng=_PickLastRng(), run_state=run_state
+    )
+
+    assert relic_id == "zz_test_auto_neow_relic"
 
 
 def test_start_new_run_rejects_unknown_character() -> None:
