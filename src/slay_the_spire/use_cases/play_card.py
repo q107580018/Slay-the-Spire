@@ -147,6 +147,26 @@ def _mark_relic_active(state: CombatState, relic_id: str) -> None:
     state.card_play_data[f"relic:{relic_id}:active"] = 1
 
 
+def _pseudo_random_relic_target(
+    combat_state: CombatState, candidates: Sequence[str]
+) -> str | None:
+    if not candidates:
+        return None
+    ordered = sorted(candidates)
+    seed_basis = sum(
+        ord(char)
+        for item in [
+            *combat_state.hand,
+            *combat_state.draw_pile,
+            *combat_state.discard_pile,
+            *combat_state.exhaust_pile,
+            *combat_state._cards_in_limbo,
+        ]
+        for char in item
+    )
+    return ordered[seed_basis % len(ordered)]
+
+
 def _apply_action_triggered_relics(
     combat_state: CombatState,
     *,
@@ -287,11 +307,16 @@ def _apply_action_triggered_relics(
                 }
             )
         if "mummified_hand" in relic_ids:
-            for hand_card_instance_id in combat_state.hand:
-                if hand_card_instance_id == card_instance_id:
-                    continue
-                combat_state.temporary_costs[hand_card_instance_id] = 0
-                break
+            target_card_instance_id = _pseudo_random_relic_target(
+                combat_state,
+                [
+                    hand_card_instance_id
+                    for hand_card_instance_id in combat_state.hand
+                    if hand_card_instance_id != card_instance_id
+                ],
+            )
+            if target_card_instance_id is not None:
+                combat_state.temporary_costs[target_card_instance_id] = 0
 
     if "orange_pellets" in relic_ids:
         _mark_relic_active(combat_state, f"orange_pellets:{card_def.card_type}")
@@ -305,7 +330,7 @@ def _apply_action_triggered_relics(
             combat_state.player.statuses = [
                 status
                 for status in combat_state.player.statuses
-                if status.status_id not in {"vulnerable", "weak", "frail"}
+                if status.status_id not in {"vulnerable", "weak", "frail", "poison"}
             ]
             for card_type in ("attack", "skill", "power"):
                 combat_state.card_play_data[
@@ -496,6 +521,10 @@ def play_card(
 
     # Attack-trigger power hooks: double_tap, rage
     active_powers_before = [copy_effect(power) for power in combat_state.active_powers]
+    hand_before = list(combat_state.hand)
+    card_play_data_before = dict(combat_state.card_play_data)
+    temporary_costs_before = dict(combat_state.temporary_costs)
+    effect_queue_before = [copy_effect(effect) for effect in combat_state.effect_queue]
     attack_trigger_extras: list[JsonDict] = []
     if card_def.card_type == "attack":
         double_tap_amount = _consume_player_power(combat_state, "double_tap")
@@ -576,10 +605,12 @@ def play_card(
             )
         if card_instance_id in combat_state._cards_in_limbo:
             combat_state._cards_in_limbo.remove(card_instance_id)
-        if card_instance_id not in combat_state.hand:
-            combat_state.hand.append(card_instance_id)
+        combat_state.hand = hand_before
         combat_state.energy += energy_spent
         combat_state.active_powers = active_powers_before
+        combat_state.card_play_data = card_play_data_before
+        combat_state.temporary_costs = temporary_costs_before
+        combat_state.effect_queue = effect_queue_before
         raise
     destination = resolve_post_play_destination(
         card_def, combat_state, card_instance_id

@@ -506,6 +506,7 @@ def _queue_on_exhaust_relic_effects(
     state: CombatState,
     *,
     exhausted_card_instance_id: str,
+    registry: object | None,
 ) -> list[JsonDict]:
     queued_effects: list[JsonDict] = []
     if state.card_play_data.get("relic:charons_ashes:active", 0) > 0:
@@ -525,10 +526,13 @@ def _queue_on_exhaust_relic_effects(
                 }
             )
     if state.card_play_data.get("relic:dead_branch:active", 0) > 0:
+        dead_branch_card_id = _dead_branch_card_id(state, registry)
+        if dead_branch_card_id is None:
+            return queued_effects
         queued_effects.append(
             {
                 "type": EFFECT_ADD_CARDS_TO_HAND,
-                "card_id": "shiv",
+                "card_id": dead_branch_card_id,
                 "count": 1,
                 "relic_id": "dead_branch",
                 "trigger": "on_exhaust",
@@ -602,6 +606,7 @@ def _enqueue_on_exhaust_effects(
     queued_effects[0:0] = _queue_on_exhaust_relic_effects(
         state,
         exhausted_card_instance_id=card_instance_id,
+        registry=registry,
     )
     if queue_position == "front":
         state.effect_queue[0:0] = queued_effects
@@ -628,6 +633,7 @@ def _move_cards_to_exhaust(
             _queue_on_exhaust_relic_effects(
                 state,
                 exhausted_card_instance_id=card_instance_id,
+                registry=registry,
             )
         )
         queued_effects.extend(
@@ -674,6 +680,39 @@ def _pseudo_random_hand_selection(
     start_index = seed_basis % len(ordered)
     rotated = ordered[start_index:] + ordered[:start_index]
     return rotated[: min(count, len(rotated))]
+
+
+def _pseudo_random_choice(state: CombatState, candidates: Sequence[str]) -> str | None:
+    selected = _pseudo_random_hand_selection(state, list(candidates), count=1)
+    if not selected:
+        return None
+    return selected[0]
+
+
+def _dead_branch_card_id(state: CombatState, registry: object | None) -> str | None:
+    if registry is None:
+        return None
+    cards = getattr(registry, "cards", None)
+    if not callable(cards):
+        return None
+    present_card_ids = {
+        card_id_from_instance_id(card_instance_id)
+        for card_instance_id in [
+            *state.hand,
+            *state.draw_pile,
+            *state.discard_pile,
+            *state.exhaust_pile,
+            *state._cards_in_limbo,
+        ]
+    }
+    candidates = [
+        card_def.id
+        for card_def in cards().all()
+        if card_def.card_type in {"attack", "skill", "power"}
+        and card_def.playable
+        and card_def.id not in present_card_ids
+    ]
+    return _pseudo_random_choice(state, candidates)
 
 
 def refill_draw_pile_from_discard(state: CombatState) -> bool:

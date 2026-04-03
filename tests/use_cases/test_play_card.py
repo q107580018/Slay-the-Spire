@@ -215,6 +215,64 @@ def test_play_card_failure_does_not_consume_attack_trigger_powers() -> None:
     ]
 
 
+def test_play_card_failure_does_not_pollute_action_relic_runtime_state() -> None:
+    state = _combat_state(hand=["broken_power#1", "bash#2"], energy=1)
+    state.card_play_data = {
+        "relic:ink_bottle": 9,
+        "relic:nunchaku": 9,
+        "relic:pen_nib": 9,
+        "relic:letter_opener": 2,
+        "relic:hovering_kite:discarded": 1,
+    }
+    state.temporary_costs = {"bash#2": 2}
+    provider = _Provider()
+    provider.cards().register(
+        {
+            "id": "broken_power",
+            "name": "Broken Power",
+            "cost": 1,
+            "card_type": "power",
+            "effects": [{"type": "unsupported_effect"}],
+        }
+    )
+    provider.cards().register(
+        {
+            "id": "bash",
+            "name": "Bash",
+            "cost": 2,
+            "effects": [{"type": "damage", "amount": 8}],
+            "card_type": "attack",
+        }
+    )
+    provider.enemies().register(
+        {
+            "id": "training_dummy",
+            "name": "Training Dummy",
+            "hp": 10,
+            "move_table": [],
+            "intent_policy": "scripted",
+        }
+    )
+    _, hook_registrations = _relic_hook_registrations(
+        "ink_bottle",
+        "pen_nib",
+        "orange_pellets",
+        "mummified_hand",
+    )
+    before = state.to_dict()
+
+    with pytest.raises(ValueError, match="unsupported effect type"):
+        play_card(
+            state,
+            "broken_power#1",
+            None,
+            provider,
+            hook_registrations=hook_registrations,
+        )
+
+    assert state.to_dict() == before
+
+
 def test_play_card_body_slam_deals_damage_equal_to_player_block() -> None:
     state = _combat_state(hand=["body_slam#1"], enemy_hps=[20])
     state.player.block = 12
@@ -1865,12 +1923,21 @@ def test_bird_faced_urn_heals_when_power_is_played() -> None:
     assert state.player.hp == 32
 
 
-def test_mummified_hand_sets_another_hand_card_cost_to_zero_after_power() -> None:
-    state = _combat_state(hand=["inflame#1", "strike#2"], energy=2)
+def test_mummified_hand_uses_stable_random_target_selection() -> None:
+    state = _combat_state(hand=["inflame#1", "bash#2", "strike#3"], energy=2)
     provider = _provider_with_card(
         card_id="inflame",
         effects=[{"type": "add_power", "power_id": "inflame", "amount": 2}],
         card_type="power",
+    )
+    provider.cards().register(
+        {
+            "id": "bash",
+            "name": "Bash",
+            "cost": 2,
+            "effects": [{"type": "damage", "amount": 8}],
+            "card_type": "attack",
+        }
     )
     provider.cards().register(
         {
@@ -1885,7 +1952,7 @@ def test_mummified_hand_sets_another_hand_card_cost_to_zero_after_power() -> Non
 
     play_card(state, "inflame#1", None, provider, hook_registrations=hook_registrations)
 
-    assert state.temporary_costs["strike#2"] == 0
+    assert state.temporary_costs == {"strike#3": 0}
 
 
 def test_orange_pellets_clears_player_debuffs_after_attack_skill_and_power() -> None:
@@ -1894,6 +1961,7 @@ def test_orange_pellets_clears_player_debuffs_after_attack_skill_and_power() -> 
         StatusState(status_id="weak", stacks=1),
         StatusState(status_id="vulnerable", stacks=1),
         StatusState(status_id="frail", stacks=1),
+        StatusState(status_id="poison", stacks=2),
     ]
     provider = _provider_with_card(
         card_id="strike", effects=[{"type": "damage", "amount": 4}]
@@ -1953,7 +2021,7 @@ def test_tough_bandages_grants_block_when_player_discards() -> None:
     assert state.player.block == 3
 
 
-def test_dead_branch_adds_card_to_hand_when_card_is_exhausted() -> None:
+def test_dead_branch_adds_stable_random_card_to_hand_when_card_is_exhausted() -> None:
     state = _combat_state(hand=["sentinel_skill#1"], energy=3, enemy_hps=[10])
     provider = _Provider()
     provider.cards().register(
@@ -1976,13 +2044,40 @@ def test_dead_branch_adds_card_to_hand_when_card_is_exhausted() -> None:
             "intent_policy": "scripted",
         }
     )
+    provider.cards().register(
+        {
+            "id": "anger",
+            "name": "Anger",
+            "cost": 0,
+            "effects": [{"type": "damage", "amount": 6}],
+            "card_type": "attack",
+        }
+    )
+    provider.cards().register(
+        {
+            "id": "bash",
+            "name": "Bash",
+            "cost": 2,
+            "effects": [{"type": "damage", "amount": 8}],
+            "card_type": "attack",
+        }
+    )
+    provider.cards().register(
+        {
+            "id": "body_slam",
+            "name": "Body Slam",
+            "cost": 1,
+            "effects": [{"type": "damage_equal_to_block"}],
+            "card_type": "attack",
+        }
+    )
     _, hook_registrations = _relic_hook_registrations("dead_branch")
 
     play_card(
         state, "sentinel_skill#1", None, provider, hook_registrations=hook_registrations
     )
 
-    assert state.hand == ["shiv#1"]
+    assert state.hand == ["bash#1"]
 
 
 def test_unceasing_top_draws_when_hand_becomes_empty() -> None:
