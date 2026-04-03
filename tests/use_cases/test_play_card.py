@@ -1430,6 +1430,39 @@ def test_play_card_fiend_fire_exhausts_hand_and_deals_damage_per_card() -> None:
     assert state.enemies[0].hp == 86
 
 
+def test_play_card_fiend_fire_appends_damage_log_entry() -> None:
+    state = _combat_state(
+        hand=["fiend_fire#1", "strike#2", "defend#3"], energy=3, enemy_hps=[100]
+    )
+    provider = _provider_with_card(
+        card_id="fiend_fire",
+        effects=[{"type": "exhaust_all_in_hand_damage", "amount_per_card": 7}],
+        card_type="attack",
+    )
+    provider.cards().register(
+        {
+            "id": "strike",
+            "name": "打击",
+            "cost": 1,
+            "card_type": "attack",
+            "effects": [{"type": "damage", "amount": 6}],
+        }
+    )
+    provider.cards().register(
+        {
+            "id": "defend",
+            "name": "防御",
+            "cost": 1,
+            "card_type": "skill",
+            "effects": [{"type": "block", "amount": 5}],
+        }
+    )
+
+    play_card(state, "fiend_fire#1", "enemy-1", provider)
+
+    assert state.log == ["你打出 Custom Strike，对 Training Dummy 造成 14 伤害，并消耗 2 张手牌。"]
+
+
 def test_play_card_corruption_adds_power_and_skills_cost_zero() -> None:
     state = _combat_state(hand=["corruption#1"])
     provider = _provider_with_card(

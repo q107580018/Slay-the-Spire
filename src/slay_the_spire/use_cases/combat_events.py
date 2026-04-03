@@ -73,6 +73,7 @@ def build_player_action_events(
             "damage_with_strength_multiplier",
             "damage_per_strike_in_deck",
             "damage_on_kill_gain_max_hp",
+            "exhaust_all_in_hand_damage",
         }:
             target_name = _target_name(entities, effect)
             if target_name is None:
@@ -103,6 +104,16 @@ def build_player_action_events(
                     actual_damage=_result_int(result, "actual_damage"),
                 )
             )
+            if effect_type == "exhaust_all_in_hand_damage":
+                exhausted_count = _result_int(result, "exhausted_count")
+                if exhausted_count > 0:
+                    events.append(
+                        CombatEvent(
+                            event_type="exhaust_card",
+                            actor_name="你",
+                            count=exhausted_count,
+                        )
+                    )
             continue
         if effect_type == "dropkick_effect":
             gained_energy = _result_int(result, "gained_energy")
