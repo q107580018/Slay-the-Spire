@@ -273,6 +273,52 @@ def test_play_card_failure_does_not_pollute_action_relic_runtime_state() -> None
     assert state.to_dict() == before
 
 
+def test_play_card_failure_restores_debuffs_cleared_by_orange_pellets() -> None:
+    state = _combat_state(hand=["broken_power#1"], energy=1)
+    state.card_play_data = {
+        "relic:orange_pellets:attack:active": 1,
+        "relic:orange_pellets:skill:active": 1,
+    }
+    state.player.statuses = [
+        StatusState(status_id="weak", stacks=1),
+        StatusState(status_id="poison", stacks=2),
+    ]
+    provider = _Provider()
+    provider.cards().register(
+        {
+            "id": "broken_power",
+            "name": "Broken Power",
+            "cost": 1,
+            "card_type": "power",
+            "effects": [{"type": "unsupported_effect"}],
+        }
+    )
+    provider.enemies().register(
+        {
+            "id": "training_dummy",
+            "name": "Training Dummy",
+            "hp": 10,
+            "move_table": [],
+            "intent_policy": "scripted",
+        }
+    )
+    _, hook_registrations = _relic_hook_registrations("orange_pellets")
+
+    with pytest.raises(ValueError, match="unsupported effect type"):
+        play_card(
+            state,
+            "broken_power#1",
+            None,
+            provider,
+            hook_registrations=hook_registrations,
+        )
+
+    assert state.player.statuses == [
+        StatusState(status_id="weak", stacks=1),
+        StatusState(status_id="poison", stacks=2),
+    ]
+
+
 def test_play_card_body_slam_deals_damage_equal_to_player_block() -> None:
     state = _combat_state(hand=["body_slam#1"], enemy_hps=[20])
     state.player.block = 12

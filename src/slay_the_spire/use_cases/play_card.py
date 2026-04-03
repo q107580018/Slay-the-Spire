@@ -521,6 +521,7 @@ def play_card(
 
     # Attack-trigger power hooks: double_tap, rage
     active_powers_before = [copy_effect(power) for power in combat_state.active_powers]
+    player_statuses_before = list(combat_state.player.statuses)
     hand_before = list(combat_state.hand)
     card_play_data_before = dict(combat_state.card_play_data)
     temporary_costs_before = dict(combat_state.temporary_costs)
@@ -608,6 +609,7 @@ def play_card(
         combat_state.hand = hand_before
         combat_state.energy += energy_spent
         combat_state.active_powers = active_powers_before
+        combat_state.player.statuses = player_statuses_before
         combat_state.card_play_data = card_play_data_before
         combat_state.temporary_costs = temporary_costs_before
         combat_state.effect_queue = effect_queue_before
