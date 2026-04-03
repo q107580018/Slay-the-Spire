@@ -271,6 +271,28 @@ def test_format_card_detail_lines_show_dropkick_original_rules_text() -> None:
     assert "若敌人处于易伤状态，获得 1 点能量并抽 1 张牌" in output
 
 
+def test_format_card_detail_lines_show_clash_play_condition_text() -> None:
+    session = start_session(seed=5)
+    registry = StarterContentProvider(session.content_root)
+
+    lines = format_card_detail_lines("clash#1", registry)
+
+    output = "\n".join(line.plain for line in lines)
+    assert "造成 14 伤害" in output
+    assert "只有当手牌中的每一张牌都是攻击牌时，才能打出" in output
+
+
+def test_format_card_detail_lines_show_sentinel_on_exhaust_text() -> None:
+    session = start_session(seed=5)
+    registry = StarterContentProvider(session.content_root)
+
+    lines = format_card_detail_lines("sentinel#1", registry)
+
+    output = "\n".join(line.plain for line in lines)
+    assert "获得 5 格挡" in output
+    assert "如果这张牌被消耗，获得 2 点能量" in output
+
+
 def test_format_card_detail_lines_show_disarm_enemy_strength_loss_text() -> None:
     session = start_session(seed=5)
     registry = StarterContentProvider(session.content_root)

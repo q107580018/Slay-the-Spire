@@ -498,12 +498,36 @@ def summarize_card_effects_for_instance(
     return " / ".join(summary for summary in summaries if summary) or "-"
 
 
+def _summarize_on_exhaust_effects(
+    effects: Sequence[Mapping[str, object]],
+) -> str:
+    summary = summarize_card_effects(effects)
+    if summary == "-":
+        return "-"
+    return f"如果这张牌被消耗，{summary}"
+
+
+def _summarize_play_condition(card_def: CardDef) -> str:
+    if card_def.play_condition == "all_attacks_in_hand":
+        return "只有当手牌中的每一张牌都是攻击牌时，才能打出"
+    return "-"
+
+
+def _join_card_rule_parts(*parts: str) -> str:
+    filtered = [part for part in parts if part and part != "-"]
+    return "；".join(filtered) if filtered else "-"
+
+
 def summarize_card_definition(card_def: CardDef) -> str:
     if card_def.id == "disarm":
         return "使敌人失去2点力量。"
     if card_def.id == "disarm_plus":
         return "使敌人失去3点力量。"
-    summary = summarize_card_effects(card_def.effects)
+    summary = _join_card_rule_parts(
+        summarize_card_effects(card_def.effects),
+        _summarize_on_exhaust_effects(card_def.on_exhaust_effects),
+        _summarize_play_condition(card_def),
+    )
     if summary != "-":
         return summary
     special_rule = special_card_rule_text(card_def.id)
@@ -522,10 +546,14 @@ def summarize_card_definition_for_instance(
         return "使敌人失去2点力量。"
     if card_def.id == "disarm_plus":
         return "使敌人失去3点力量。"
-    summary = summarize_card_effects_for_instance(
-        card_def.effects,
-        card_instance_id=card_instance_id,
-        combat_state=combat_state,
+    summary = _join_card_rule_parts(
+        summarize_card_effects_for_instance(
+            card_def.effects,
+            card_instance_id=card_instance_id,
+            combat_state=combat_state,
+        ),
+        _summarize_on_exhaust_effects(card_def.on_exhaust_effects),
+        _summarize_play_condition(card_def),
     )
     if summary != "-":
         return summary
