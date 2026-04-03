@@ -1226,6 +1226,37 @@ def test_play_card_spot_weakness_grants_strength_from_enemy_move_table() -> None
     assert strength_stacks == 3
 
 
+def test_play_card_spot_weakness_grants_strength_for_hexaghost_divider_intent() -> None:
+    state = _combat_state(
+        hand=["spot_weakness#1"],
+        enemy_ids=["hexaghost"],
+        enemy_hps=[250],
+    )
+    provider = _provider_with_card(
+        card_id="spot_weakness",
+        effects=[{"type": "spot_weakness_strength", "amount": 3}],
+    )
+    provider.enemies().register(
+        {
+            "id": "hexaghost",
+            "name": "六火幽魂",
+            "hp": 250,
+            "move_table": [
+                {"move": "divider", "effects": [], "once": True},
+                {"move": "sear", "effects": [{"type": "damage", "amount": 6}]},
+            ],
+            "intent_policy": "scripted",
+        }
+    )
+
+    play_card(state, "spot_weakness#1", "enemy-1", provider)
+
+    strength_stacks = next(
+        (s.stacks for s in state.player.statuses if s.status_id == "strength"), 0
+    )
+    assert strength_stacks == 3
+
+
 def test_play_card_spot_weakness_does_not_grant_strength_when_enemy_defends() -> None:
     state = _combat_state(hand=["spot_weakness#1"])
     state.enemies[0].current_move = {

@@ -143,6 +143,8 @@ def _effect_uses_strength(effect: JsonDict) -> bool:
 def _move_intends_damage(move: object) -> bool:
     if not isinstance(move, dict):
         return False
+    if move.get("move") == "divider":
+        return True
     move_effects = move.get("effects", [])
     if not isinstance(move_effects, list):
         return False
