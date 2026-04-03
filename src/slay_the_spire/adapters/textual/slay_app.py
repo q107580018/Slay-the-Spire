@@ -80,6 +80,9 @@ from slay_the_spire.use_cases.start_run import start_new_run
 _ENEMY_TARGET_EFFECT_TYPES = {
     "damage",
     "damage_equal_to_block",
+    "damage_with_strength_multiplier",
+    "damage_per_strike_in_deck",
+    "exhaust_all_in_hand_damage",
     "dropkick_effect",
     "vulnerable",
     "weak",

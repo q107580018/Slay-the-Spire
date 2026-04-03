@@ -179,6 +179,21 @@ def test_play_card_body_slam_deals_damage_equal_to_player_block() -> None:
     assert state.enemies[0].hp == 8
 
 
+def test_play_card_damage_with_strength_multiplier_uses_selected_target() -> None:
+    state = _combat_state(hand=["heavy_blade#1"], enemy_hps=[30])
+    provider = _provider_with_card(
+        card_id="heavy_blade",
+        cost=2,
+        effects=[{"type": "damage_with_strength_multiplier", "base": 14, "multiplier": 3}],
+        card_type="attack",
+    )
+
+    result = play_card(state, "heavy_blade#1", "enemy-1", provider)
+
+    assert result.combat_state is state
+    assert state.enemies[0].hp == 16
+
+
 def test_play_card_blood_for_blood_uses_damage_taken_as_cost_reduction() -> None:
     state = _combat_state(hand=["blood_for_blood#1"], energy=2)
     state.times_hit_this_combat = 3
