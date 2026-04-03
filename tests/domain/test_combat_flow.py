@@ -563,13 +563,46 @@ def test_combat_start_relics_apply_first_turn_energy_statuses_and_shivs() -> Non
 
 
 def test_the_boot_raises_small_attack_damage_to_five() -> None:
+    registry = _enemy_registry_without_attacks()
+    registry.cards().register(
+        {
+            "id": "light_jab",
+            "name": "轻击",
+            "cost": 1,
+            "card_type": "attack",
+            "effects": [{"type": "damage", "amount": 3}],
+        }
+    )
+    state = _combat_state_with_relics("the_boot", enemy_count=1)
+    state.hand = ["light_jab#1"]
+
+    result = play_card(
+        state,
+        "light_jab#1",
+        "enemy-1",
+        registry,
+        hook_registrations=_hook_registrations_for_relics("the_boot"),
+    )
+    damage_result = next(
+        effect for effect in result.resolved_effects if effect["type"] == "damage"
+    )
+
+    assert state.enemies[0].hp == 7
+    assert damage_result["result"]["applied_amount"] == 5
+    assert damage_result["result"]["actual_damage"] == 5
+
+
+def test_the_boot_does_not_raise_non_attack_relic_damage() -> None:
     state = _combat_state_with_relics("the_boot", enemy_count=1)
     state.effect_queue.append(
-        damage_effect(
-            source_instance_id=state.player.instance_id,
-            target_instance_id=state.enemies[0].instance_id,
-            amount=3,
-        )
+        {
+            "type": "damage",
+            "source_instance_id": state.player.instance_id,
+            "target_instance_id": state.enemies[0].instance_id,
+            "amount": 3,
+            "uses_strength": False,
+            "relic_id": "bronze_scales",
+        }
     )
 
     resolved = resolve_player_actions(
@@ -578,9 +611,9 @@ def test_the_boot_raises_small_attack_damage_to_five() -> None:
         registry=_content_provider(),
     )
 
-    assert state.enemies[0].hp == 7
-    assert resolved[0]["result"]["applied_amount"] == 5
-    assert resolved[0]["result"]["actual_damage"] == 5
+    assert state.enemies[0].hp == 9
+    assert resolved[0]["result"]["applied_amount"] == 3
+    assert resolved[0]["result"]["actual_damage"] == 3
 
 
 def test_torii_reduces_small_unblocked_attack_damage_to_one() -> None:

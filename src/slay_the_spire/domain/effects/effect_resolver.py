@@ -408,6 +408,7 @@ def _resolve_damage_effect(
         and isinstance(target, EnemyState)
         and 0 < applied_amount < 5
         and "the_boot" in relic_ids
+        and effect.get("relic_id") is None
     ):
         applied_amount = 5
     blocked, actual_damage = _damage_target(
