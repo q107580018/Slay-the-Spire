@@ -39,21 +39,62 @@ def _apply_card_reward(run_state: RunState, card_id: str) -> RunState:
     )
 
 
+_ON_ACQUIRE_MAX_HP_BONUS: dict[str, int] = {
+    "strawberry": 7,
+    "pear": 10,
+    "mango": 14,
+    "leeches_waffle": 7,
+}
+
+_ON_ACQUIRE_GOLD_BONUS: dict[str, int] = {
+    "old_coin": 300,
+}
+
+_HEAL_TO_FULL_ON_ACQUIRE: frozenset[str] = frozenset({"leeches_waffle"})
+
+
+def _apply_relic_on_acquire_effects(run_state: RunState, relic_id: str) -> RunState:
+    max_hp = run_state.max_hp
+    current_hp = run_state.current_hp
+    gold = run_state.gold
+
+    hp_bonus = _ON_ACQUIRE_MAX_HP_BONUS.get(relic_id, 0)
+    if hp_bonus:
+        max_hp += hp_bonus
+        current_hp += hp_bonus
+
+    if relic_id in _HEAL_TO_FULL_ON_ACQUIRE:
+        current_hp = max_hp
+
+    gold_bonus = _ON_ACQUIRE_GOLD_BONUS.get(relic_id, 0)
+    if gold_bonus:
+        gold += _gold_amount(run_state, gold_bonus)
+
+    if (
+        max_hp == run_state.max_hp
+        and current_hp == run_state.current_hp
+        and gold == run_state.gold
+    ):
+        return run_state
+
+    return replace(run_state, max_hp=max_hp, current_hp=current_hp, gold=gold)
+
+
 def _apply_relic_acquisition(
     *, run_state: RunState, relic_id: str, registry: ContentProviderPort
-) -> RunState:
+) -> tuple[RunState, bool]:
     relic = registry.relics().get(relic_id)
     relics = list(run_state.relics)
 
     if relic_id == "circlet":
-        return replace(run_state, relics=[*relics, relic_id])
+        return replace(run_state, relics=[*relics, relic_id]), True
 
     if relic.replaces_relic_id is not None:
         relics = [owned for owned in relics if owned != relic.replaces_relic_id]
 
     if relic_id in relics:
-        return replace(run_state, relics=relics)
-    return replace(run_state, relics=[*relics, relic_id])
+        return replace(run_state, relics=relics), False
+    return replace(run_state, relics=[*relics, relic_id]), True
 
 
 def apply_reward(
@@ -64,11 +105,14 @@ def apply_reward(
         return replace(run_state, gold=run_state.gold + _gold_amount(run_state, amount))
     if reward_id.startswith("relic:"):
         relic_id = reward_id.split(":", 1)[1]
-        return _apply_relic_acquisition(
+        updated, acquired = _apply_relic_acquisition(
             run_state=run_state,
             relic_id=relic_id,
             registry=registry,
         )
+        if not acquired:
+            return updated
+        return _apply_relic_on_acquire_effects(updated, relic_id)
     if reward_id == "card:reward_strike":
         registry.cards().get("strike_plus")
         return _apply_card_reward(run_state, "strike_plus")

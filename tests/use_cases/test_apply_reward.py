@@ -545,6 +545,95 @@ def test_apply_reward_black_blood_replaces_burning_blood() -> None:
     assert "black_blood" in updated.relics
 
 
+def test_apply_reward_grants_strawberry_max_hp_bonus() -> None:
+    run_state = replace(_run_state(), current_hp=70)
+    updated = apply_reward(
+        run_state=run_state, reward_id="relic:strawberry", registry=_content_provider()
+    )
+
+    assert updated.max_hp == 87
+    assert updated.current_hp == 77
+    assert "strawberry" in updated.relics
+
+
+def test_apply_reward_grants_pear_max_hp_bonus() -> None:
+    run_state = replace(_run_state(), current_hp=60)
+    updated = apply_reward(
+        run_state=run_state, reward_id="relic:pear", registry=_content_provider()
+    )
+
+    assert updated.max_hp == 90
+    assert updated.current_hp == 70
+    assert "pear" in updated.relics
+
+
+def test_apply_reward_grants_mango_max_hp_bonus() -> None:
+    run_state = replace(_run_state(), current_hp=50)
+    updated = apply_reward(
+        run_state=run_state, reward_id="relic:mango", registry=_content_provider()
+    )
+
+    assert updated.max_hp == 94
+    assert updated.current_hp == 64
+    assert "mango" in updated.relics
+
+
+def test_apply_reward_grants_leeches_waffle_max_hp_and_full_heal() -> None:
+    run_state = replace(_run_state(), current_hp=50)
+    updated = apply_reward(
+        run_state=run_state,
+        reward_id="relic:leeches_waffle",
+        registry=_content_provider(),
+    )
+
+    assert updated.max_hp == 87
+    assert updated.current_hp == 87
+    assert "leeches_waffle" in updated.relics
+
+
+def test_apply_reward_grants_old_coin_gold_bonus() -> None:
+    run_state = _run_state()
+    updated = apply_reward(
+        run_state=run_state, reward_id="relic:old_coin", registry=_content_provider()
+    )
+
+    assert updated.gold == 399
+    assert "old_coin" in updated.relics
+
+
+def test_apply_reward_old_coin_gold_bonus_is_blocked_by_ectoplasm() -> None:
+    run_state = replace(_run_state(), relics=["burning_blood", "ectoplasm"])
+
+    updated = apply_reward(
+        run_state=run_state, reward_id="relic:old_coin", registry=_content_provider()
+    )
+
+    assert updated.gold == run_state.gold
+    assert "old_coin" in updated.relics
+
+
+def test_apply_reward_duplicate_strawberry_reward_is_no_op() -> None:
+    run_state = replace(
+        _run_state(), current_hp=70, relics=["burning_blood", "strawberry"]
+    )
+
+    updated = apply_reward(
+        run_state=run_state, reward_id="relic:strawberry", registry=_content_provider()
+    )
+
+    assert updated == run_state
+
+
+def test_apply_reward_duplicate_old_coin_reward_is_no_op() -> None:
+    run_state = replace(_run_state(), gold=399, relics=["burning_blood", "old_coin"])
+
+    updated = apply_reward(
+        run_state=run_state, reward_id="relic:old_coin", registry=_content_provider()
+    )
+
+    assert updated == run_state
+
+
 def test_apply_reward_adds_generic_relic_and_repeated_claim_is_no_op() -> None:
     updated = apply_reward(
         run_state=_run_state(),
