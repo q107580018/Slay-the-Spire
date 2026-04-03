@@ -158,7 +158,11 @@ def _build_combat_state(
         log=[],
     )
     registrations = build_runtime_hook_registrations(run_state, registry)
-    state = start_turn(state, hook_registrations=registrations, registry=registry)
+    state = start_turn(
+        state,
+        hook_registrations=registrations,
+        registry=registry,
+    )
     dispatch_hook(state, "on_combat_start", registrations)
     resolve_effect_queue(state, hook_registrations=registrations)
     return state, encounter_id

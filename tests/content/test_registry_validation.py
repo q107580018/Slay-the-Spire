@@ -1052,6 +1052,18 @@ def test_provider_exposes_wound_and_dazed_status_cards(content_root: Path) -> No
     assert provider.cards().get("dazed").exhausts is True
 
 
+@pytest.mark.parametrize("content_root", _content_roots())
+def test_provider_exposes_shiv_card(content_root: Path) -> None:
+    provider = StarterContentProvider(content_root)
+
+    shiv = provider.cards().get("shiv")
+
+    assert shiv.name == "小刀"
+    assert shiv.card_type == "attack"
+    assert shiv.cost == 0
+    assert shiv.exhausts is True
+
+
 @pytest.mark.parametrize(
     ("card_id", "expected_name"),
     [

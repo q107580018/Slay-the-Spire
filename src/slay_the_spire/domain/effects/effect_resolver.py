@@ -31,6 +31,7 @@ from slay_the_spire.domain.effects.effect_types import (
     EFFECT_GAIN_ENERGY,
     EFFECT_HEAL,
     EFFECT_LOSE_HP,
+    EFFECT_POISON,
     EFFECT_DAMAGE_ON_KILL_GAIN_MAX_HP,
     EFFECT_NOOP,
     EFFECT_PUT_TOP_OF_DECK_FROM_DISCARD,
@@ -163,6 +164,34 @@ def _lose_hp_target(target: PlayerCombatState | EnemyState, amount: int) -> int:
     return hp_lost
 
 
+def _consume_artifact_if_blocking_debuff(
+    target: PlayerCombatState | EnemyState,
+    *,
+    status_id: str,
+    amount: int,
+) -> bool:
+    debuff_status_ids = {"vulnerable", "weak", "poison"}
+    if status_id in debuff_status_ids and amount <= 0:
+        return False
+    if status_id in {"strength", "dexterity"} and amount >= 0:
+        return False
+    if status_id not in debuff_status_ids | {"strength", "dexterity"}:
+        return False
+    for index, status in enumerate(target.statuses):
+        if status.status_id != "artifact" or status.stacks <= 0:
+            continue
+        remaining_stacks = status.stacks - 1
+        if remaining_stacks <= 0:
+            target.statuses.pop(index)
+        else:
+            target.statuses[index] = StatusState(
+                status_id="artifact",
+                stacks=remaining_stacks,
+            )
+        return True
+    return False
+
+
 def _with_result(effect: JsonDict, **result: JsonValue) -> JsonDict:
     resolved = copy_effect(effect)
     resolved["result"] = result
@@ -281,6 +310,18 @@ def _resolve_damage_effect(
         and actual_damage > 0
     ):
         state.times_hit_this_combat += 1
+        for index, status in enumerate(target.statuses):
+            if status.status_id != "plated_armor" or status.stacks <= 0:
+                continue
+            next_stacks = status.stacks - 1
+            if next_stacks <= 0:
+                target.statuses.pop(index)
+            else:
+                target.statuses[index] = StatusState(
+                    status_id="plated_armor",
+                    stacks=next_stacks,
+                )
+            break
     target_defeated = isinstance(target, EnemyState) and was_alive and target.hp == 0
     if target_defeated:
         state.effect_queue.append(
@@ -812,6 +853,12 @@ def resolve_next_effect(
         if _is_dead(target):
             return noop_effect(reason="dead_target")
         applied_stacks = int(effect.get("amount", 0))
+        if _consume_artifact_if_blocking_debuff(
+            target,
+            status_id="strength",
+            amount=applied_stacks,
+        ):
+            return _with_result(effect, applied_stacks=0, blocked_by_artifact=True)
         _apply_status(
             target,
             status_id="strength",
@@ -827,6 +874,12 @@ def resolve_next_effect(
         if _is_dead(target):
             return noop_effect(reason="dead_target")
         applied_stacks = int(effect.get("amount", 0))
+        if _consume_artifact_if_blocking_debuff(
+            target,
+            status_id="dexterity",
+            amount=applied_stacks,
+        ):
+            return _with_result(effect, applied_stacks=0, blocked_by_artifact=True)
         _apply_status(
             target,
             status_id="dexterity",
@@ -869,6 +922,12 @@ def resolve_next_effect(
         if _is_dead(target):
             return noop_effect(reason="dead_target")
         applied_stacks = max(int(effect.get("stacks", 0)), 0)
+        if _consume_artifact_if_blocking_debuff(
+            target,
+            status_id="vulnerable",
+            amount=applied_stacks,
+        ):
+            return _with_result(effect, applied_stacks=0, blocked_by_artifact=True)
         _apply_status(
             target,
             status_id="vulnerable",
@@ -881,9 +940,33 @@ def resolve_next_effect(
         if _is_dead(target):
             return noop_effect(reason="dead_target")
         applied_stacks = max(int(effect.get("stacks", 0)), 0)
+        if _consume_artifact_if_blocking_debuff(
+            target,
+            status_id="weak",
+            amount=applied_stacks,
+        ):
+            return _with_result(effect, applied_stacks=0, blocked_by_artifact=True)
         _apply_status(
             target,
             status_id="weak",
+            stacks=applied_stacks,
+        )
+        return _with_result(effect, applied_stacks=applied_stacks)
+
+    if effect_type == EFFECT_POISON:
+        target = _get_target(state, effect.get("target_instance_id"))
+        if _is_dead(target):
+            return noop_effect(reason="dead_target")
+        applied_stacks = max(int(effect.get("stacks", 0)), 0)
+        if _consume_artifact_if_blocking_debuff(
+            target,
+            status_id="poison",
+            amount=applied_stacks,
+        ):
+            return _with_result(effect, applied_stacks=0, blocked_by_artifact=True)
+        _apply_status(
+            target,
+            status_id="poison",
             stacks=applied_stacks,
         )
         return _with_result(effect, applied_stacks=applied_stacks)

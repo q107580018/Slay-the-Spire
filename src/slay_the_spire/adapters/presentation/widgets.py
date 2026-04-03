@@ -18,6 +18,8 @@ _STATUS_LABELS: dict[str, tuple[str, str]] = {
     "strength": ("力量", "status.buff"),
     "dexterity": ("敏捷", "status.buff"),
     "artifact": ("人工制品", "status.buff"),
+    "plated_armor": ("多层护甲", "status.buff"),
+    "poison": ("中毒", "status.debuff"),
 }
 
 _SPECIAL_CARD_RULE_TEXT: dict[str, str] = {
@@ -28,6 +30,7 @@ _SPECIAL_CARD_RULE_TEXT: dict[str, str] = {
 _SPECIAL_CARD_LABELS: dict[str, str] = {
     "burn": "灼伤",
     "doubt": "疑虑",
+    "shiv": "小刀",
     "wound": "伤口",
     "dazed": "迷糊",
     "injury": "伤口",
@@ -254,7 +257,9 @@ def summarize_effect(
     if effect_type == "damage_all_enemies":
         return f"对所有敌人造成 {int(effect.get('amount', 0))} 伤害"
     if effect_type == "damage_all_enemies_x_times":
-        return f"按本次消耗的能量值，对所有敌人各造成 {int(effect.get('amount', 0))} 伤害"
+        return (
+            f"按本次消耗的能量值，对所有敌人各造成 {int(effect.get('amount', 0))} 伤害"
+        )
     if effect_type == "damage_equal_to_block":
         return "造成等同于当前格挡的伤害"
     if effect_type == "double_strength":
@@ -300,7 +305,9 @@ def summarize_effect(
                 f"（你每有一张名字中有“打击”的牌，伤害+{bonus_per_strike}；"
                 f"当前共 {strike_count} 张）"
             )
-        return f"造成 {base} 伤害。你每有一张名字中有“打击”的牌，伤害+{bonus_per_strike}"
+        return (
+            f"造成 {base} 伤害。你每有一张名字中有“打击”的牌，伤害+{bonus_per_strike}"
+        )
     if effect_type == "dropkick_effect":
         amount = int(effect.get("amount", 0))
         return f"造成 {amount} 伤害；若敌人处于易伤状态，获得 1 点能量并抽 1 张牌"

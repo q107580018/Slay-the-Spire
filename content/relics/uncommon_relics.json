@@ -429,9 +429,9 @@
       "pools": ["rare", "neow"],
       "source_tags": ["standard_pool"],
       "owner_character_ids": [],
-      "implementation_status": "placeholder",
+      "implementation_status": "implemented",
       "effect_blueprint": [],
-      "trigger_hooks": [],
+      "trigger_hooks": ["on_combat_start"],
       "passive_effects": [],
       "can_appear_in_shop": false
     },
@@ -609,9 +609,9 @@
       "pools": ["uncommon", "neow"],
       "source_tags": ["standard_pool"],
       "owner_character_ids": ["silent"],
-      "implementation_status": "placeholder",
+      "implementation_status": "implemented",
       "effect_blueprint": [],
-      "trigger_hooks": [],
+      "trigger_hooks": ["on_combat_start"],
       "passive_effects": [],
       "can_appear_in_shop": false
     },

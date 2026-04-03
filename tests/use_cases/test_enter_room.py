@@ -575,6 +575,19 @@ def test_enter_combat_room_applies_guarding_totem_on_combat_start() -> None:
     assert combat_state.player.block == 10
 
 
+def test_enter_combat_room_applies_anchor_only_once() -> None:
+    room_state = enter_room(
+        _run_state(seed=7, relics=["burning_blood", "anchor"]),
+        _act_state(node_id="r1c0", room_type="combat"),
+        "r1c0",
+        _content_provider(),
+    )
+
+    combat_state = CombatState.from_dict(room_state.payload["combat_state"])
+
+    assert combat_state.player.block == 10
+
+
 def test_burning_blood_heals_six_after_combat() -> None:
     provider = _content_provider()
     state = CombatState(
