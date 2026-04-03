@@ -552,6 +552,64 @@ def _apply_opening_combat_relics(
     return opening_hand_size
 
 
+def _apply_turn_start_relics(
+    state: CombatState,
+    *,
+    hand_size: int,
+    hook_registrations: Sequence[HookRegistration],
+) -> int:
+    turn_relic_ids = registered_relic_ids(
+        hook_registrations,
+        hook_names=("on_turn_start", "on_opening_combat_turn"),
+    )
+    next_hand_size = hand_size
+
+    if "happy_flower" in turn_relic_ids and state.round_number % 3 == 0:
+        state.energy += 1
+    if "horn_cleat" in turn_relic_ids and state.round_number == 2:
+        state.player.block += 14
+    if "captains_wheel" in turn_relic_ids and state.round_number == 3:
+        state.player.block += 18
+    if "art_of_war" in turn_relic_ids and state.round_number > 1:
+        if state.attacks_played_last_turn == 0:
+            state.energy += 1
+    if "pocketwatch" in turn_relic_ids and state.round_number > 1:
+        if state.cards_played_last_turn <= 3:
+            next_hand_size += 3
+    return next_hand_size
+
+
+def _apply_turn_end_relics(
+    state: CombatState,
+    *,
+    hook_registrations: Sequence[HookRegistration],
+) -> None:
+    turn_relic_ids = registered_relic_ids(
+        hook_registrations,
+        hook_names=("on_turn_end", "on_turn_start", "on_opening_combat_turn"),
+    )
+    if "stone_calendar" in turn_relic_ids and state.round_number == 7:
+        for enemy in state.enemies:
+            if enemy.hp <= 0:
+                continue
+            effect = damage_effect(
+                source_instance_id=state.player.instance_id,
+                target_instance_id=enemy.instance_id,
+                amount=52,
+            )
+            effect["uses_strength"] = False
+            effect["relic_id"] = "stone_calendar"
+            effect["trigger"] = "end_turn_relic"
+            state.effect_queue.append(effect)
+
+
+def _reset_turn_card_counters(state: CombatState) -> None:
+    state.cards_played_last_turn = state.cards_played_this_turn
+    state.attacks_played_last_turn = state.attacks_played_this_turn
+    state.cards_played_this_turn = 0
+    state.attacks_played_this_turn = 0
+
+
 def start_turn(
     state: CombatState,
     *,
@@ -568,6 +626,11 @@ def start_turn(
     _clear_temporary_power(state, "flame_barrier")
     state.energy = energy_per_turn
     hand_size = _apply_opening_combat_relics(
+        state,
+        hand_size=hand_size,
+        hook_registrations=hook_registrations,
+    )
+    hand_size = _apply_turn_start_relics(
         state,
         hand_size=hand_size,
         hook_registrations=hook_registrations,
@@ -660,6 +723,7 @@ def end_turn(
     state.effect_queue.extend(_enemy_status_end_turn_effects(state))
     state.effect_queue.extend(_player_status_end_turn_effects(state))
     state.effect_queue.extend(_active_power_end_turn_effects(state))
+    _apply_turn_end_relics(state, hook_registrations=hook_registrations)
     state.effect_queue.extend(
         _burn_end_turn_effects(hand_at_end_turn, state.player.instance_id)
     )
@@ -700,6 +764,7 @@ def end_turn(
     for enemy in state.enemies:
         _tick_temporary_statuses(enemy)
     state.round_number += 1
+    _reset_turn_card_counters(state)
     start_turn(
         state,
         hand_size=hand_size,

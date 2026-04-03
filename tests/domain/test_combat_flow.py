@@ -23,6 +23,7 @@ from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
 from slay_the_spire.domain.models.run_state import RunState
 from slay_the_spire.domain.models.statuses import StatusState
 from slay_the_spire.use_cases.end_turn import end_turn as run_end_turn
+from slay_the_spire.use_cases.play_card import play_card
 
 
 class _Registry:
@@ -631,6 +632,139 @@ def test_combat_start_relic_debuffs_respect_artifact() -> None:
         StatusState(status_id="vulnerable", stacks=1),
         StatusState(status_id="poison", stacks=4),
     ]
+
+
+def test_happy_flower_grants_energy_on_every_third_turn_start() -> None:
+    state = _combat_state_with_relics("happy_flower", enemy_count=1)
+    state.round_number = 3
+    state.energy = 0
+
+    start_turn(
+        state,
+        registry=_content_provider(),
+        hook_registrations=_hook_registrations_for_relics("happy_flower"),
+    )
+
+    assert state.energy == 4
+
+
+def test_horn_cleat_grants_block_on_second_turn_start() -> None:
+    state = _combat_state_with_relics("horn_cleat", enemy_count=1)
+    state.round_number = 2
+
+    start_turn(
+        state,
+        registry=_content_provider(),
+        hook_registrations=_hook_registrations_for_relics("horn_cleat"),
+    )
+
+    assert state.player.block == 14
+
+
+def test_captains_wheel_grants_block_on_third_turn_start() -> None:
+    state = _combat_state_with_relics("captains_wheel", enemy_count=1)
+    state.round_number = 3
+
+    start_turn(
+        state,
+        registry=_content_provider(),
+        hook_registrations=_hook_registrations_for_relics("captains_wheel"),
+    )
+
+    assert state.player.block == 18
+
+
+def test_stone_calendar_deals_damage_at_end_of_seventh_turn_before_enemy_acts() -> None:
+    registry = _enemy_registry()
+    state = _combat_state_with_relics("stone_calendar", enemy_count=1)
+    state.round_number = 7
+    state.enemies[0].hp = 40
+
+    resolved = end_turn(
+        state,
+        registry,
+        hook_registrations=_hook_registrations_for_relics("stone_calendar"),
+    )
+
+    assert any(effect["type"] == "damage" for effect in resolved)
+    assert state.enemies[0].hp == 0
+    assert state.player.hp == 30
+
+
+def test_art_of_war_grants_energy_next_turn_after_no_attack_played() -> None:
+    registry = _enemy_registry_without_attacks()
+    state = _combat_state_with_relics("art_of_war", enemy_count=1)
+
+    end_turn(
+        state,
+        registry,
+        hook_registrations=_hook_registrations_for_relics("art_of_war"),
+    )
+
+    assert state.round_number == 2
+    assert state.energy == 4
+
+
+def test_art_of_war_does_not_grant_energy_after_attack_played() -> None:
+    registry = _enemy_registry_without_attacks()
+    state = _combat_state_with_relics("art_of_war", enemy_count=1)
+    state.hand = ["strike#1"]
+    state.draw_pile = [f"defend#{index}" for index in range(1, 8)]
+
+    play_card(state, "strike#1", "enemy-1", registry)
+    end_turn(
+        state,
+        registry,
+        hook_registrations=_hook_registrations_for_relics("art_of_war"),
+    )
+
+    assert state.round_number == 2
+    assert state.energy == 3
+
+
+def test_pocketwatch_draws_three_extra_cards_next_turn_after_three_or_fewer_plays() -> (
+    None
+):
+    registry = _enemy_registry_without_attacks()
+    state = _combat_state_with_relics("pocketwatch", enemy_count=1)
+    state.energy = 10
+    state.hand = ["defend#1", "defend#2", "defend#3"]
+    state.draw_pile = [f"strike#{index}" for index in range(1, 12)]
+
+    play_card(state, "defend#1", None, registry)
+    play_card(state, "defend#2", None, registry)
+    play_card(state, "defend#3", None, registry)
+    end_turn(
+        state,
+        registry,
+        hook_registrations=_hook_registrations_for_relics("pocketwatch"),
+    )
+
+    assert state.round_number == 2
+    assert len(state.hand) == 8
+
+
+def test_pocketwatch_does_not_draw_extra_cards_next_turn_after_more_than_three_plays() -> (
+    None
+):
+    registry = _enemy_registry_without_attacks()
+    state = _combat_state_with_relics("pocketwatch", enemy_count=1)
+    state.energy = 10
+    state.hand = ["defend#1", "defend#2", "defend#3", "defend#4"]
+    state.draw_pile = [f"strike#{index}" for index in range(1, 12)]
+
+    play_card(state, "defend#1", None, registry)
+    play_card(state, "defend#2", None, registry)
+    play_card(state, "defend#3", None, registry)
+    play_card(state, "defend#4", None, registry)
+    end_turn(
+        state,
+        registry,
+        hook_registrations=_hook_registrations_for_relics("pocketwatch"),
+    )
+
+    assert state.round_number == 2
+    assert len(state.hand) == 5
 
 
 def test_artifact_blocks_one_incoming_debuff_application() -> None:

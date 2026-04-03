@@ -54,9 +54,9 @@
       "pools": ["common", "neow"],
       "source_tags": ["standard_pool"],
       "owner_character_ids": [],
-      "implementation_status": "placeholder",
+      "implementation_status": "implemented",
       "effect_blueprint": [],
-      "trigger_hooks": [],
+      "trigger_hooks": ["on_turn_start"],
       "passive_effects": [],
       "can_appear_in_shop": false
     },
@@ -179,9 +179,9 @@
       "pools": ["common", "neow"],
       "source_tags": ["standard_pool"],
       "owner_character_ids": [],
-      "implementation_status": "placeholder",
+      "implementation_status": "implemented",
       "effect_blueprint": [],
-      "trigger_hooks": [],
+      "trigger_hooks": ["on_turn_start"],
       "passive_effects": [],
       "can_appear_in_shop": false
     },

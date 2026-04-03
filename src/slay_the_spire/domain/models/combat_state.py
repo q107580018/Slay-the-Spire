@@ -106,6 +106,10 @@ class CombatState:
     active_powers: list[JsonDict] = field(default_factory=list)
     log: list[str] = field(default_factory=list)
     times_hit_this_combat: int = 0
+    cards_played_this_turn: int = 0
+    attacks_played_this_turn: int = 0
+    cards_played_last_turn: int = 0
+    attacks_played_last_turn: int = 0
     card_play_data: dict[str, int] = field(default_factory=dict)
     temporary_costs: dict[str, int] = field(default_factory=dict)
     _entity_by_id: dict[str, PlayerCombatState | EnemyState] = field(
@@ -178,6 +182,26 @@ class CombatState:
         )
         if self.times_hit_this_combat < 0:
             raise ValueError("times_hit_this_combat must be non-negative")
+        self.cards_played_this_turn = _require_int(
+            self.cards_played_this_turn, "cards_played_this_turn"
+        )
+        if self.cards_played_this_turn < 0:
+            raise ValueError("cards_played_this_turn must be non-negative")
+        self.attacks_played_this_turn = _require_int(
+            self.attacks_played_this_turn, "attacks_played_this_turn"
+        )
+        if self.attacks_played_this_turn < 0:
+            raise ValueError("attacks_played_this_turn must be non-negative")
+        self.cards_played_last_turn = _require_int(
+            self.cards_played_last_turn, "cards_played_last_turn"
+        )
+        if self.cards_played_last_turn < 0:
+            raise ValueError("cards_played_last_turn must be non-negative")
+        self.attacks_played_last_turn = _require_int(
+            self.attacks_played_last_turn, "attacks_played_last_turn"
+        )
+        if self.attacks_played_last_turn < 0:
+            raise ValueError("attacks_played_last_turn must be non-negative")
         self.card_play_data = _normalize_str_int_dict(
             self.card_play_data, "card_play_data"
         )
@@ -222,6 +246,10 @@ class CombatState:
             ],
             "log": list(self.log),
             "times_hit_this_combat": self.times_hit_this_combat,
+            "cards_played_this_turn": self.cards_played_this_turn,
+            "attacks_played_this_turn": self.attacks_played_this_turn,
+            "cards_played_last_turn": self.cards_played_last_turn,
+            "attacks_played_last_turn": self.attacks_played_last_turn,
             "card_play_data": dict(self.card_play_data),
             "temporary_costs": dict(self.temporary_costs),
         }
@@ -282,6 +310,20 @@ class CombatState:
             log=[_require_str(item, "log item") for item in log],
             times_hit_this_combat=_require_int(
                 data.get("times_hit_this_combat", 0), "times_hit_this_combat"
+            ),
+            cards_played_this_turn=_require_int(
+                data.get("cards_played_this_turn", 0), "cards_played_this_turn"
+            ),
+            attacks_played_this_turn=_require_int(
+                data.get("attacks_played_this_turn", 0),
+                "attacks_played_this_turn",
+            ),
+            cards_played_last_turn=_require_int(
+                data.get("cards_played_last_turn", 0), "cards_played_last_turn"
+            ),
+            attacks_played_last_turn=_require_int(
+                data.get("attacks_played_last_turn", 0),
+                "attacks_played_last_turn",
             ),
             card_play_data=_normalize_str_int_dict(
                 data.get("card_play_data", {}), "card_play_data"

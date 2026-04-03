@@ -168,15 +168,15 @@ def _materialize_card_effects(
             damage_amount = int(effect.get("amount", 0))
             for _ in range(repeat_count):
                 for enemy in combat_state.enemies:
-                        effects.append(
-                            {
-                                "type": EFFECT_DAMAGE,
-                                "amount": damage_amount,
-                                "source_instance_id": source_instance_id,
-                                "target_instance_id": enemy.instance_id,
-                                "uses_strength": card_type == "attack",
-                            }
-                        )
+                    effects.append(
+                        {
+                            "type": EFFECT_DAMAGE,
+                            "amount": damage_amount,
+                            "source_instance_id": source_instance_id,
+                            "target_instance_id": enemy.instance_id,
+                            "uses_strength": card_type == "attack",
+                        }
+                    )
             continue
         if effect_type == EFFECT_VULNERABLE_ALL_ENEMIES:
             stacks = int(effect.get("stacks", 0))
@@ -348,6 +348,9 @@ def play_card(
     combat_state.energy -= energy_spent
     combat_state.hand.remove(card_instance_id)
     combat_state._cards_in_limbo.append(card_instance_id)
+    combat_state.cards_played_this_turn += 1
+    if card_def.card_type == "attack":
+        combat_state.attacks_played_this_turn += 1
     combat_state.effect_queue.extend(punishment_effects)
     combat_state.effect_queue.extend(materialized_effects)
     combat_state.effect_queue.extend(attack_trigger_extras)
