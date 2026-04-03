@@ -616,6 +616,57 @@ def test_the_boot_does_not_raise_non_attack_relic_damage() -> None:
     assert resolved[0]["result"]["actual_damage"] == 3
 
 
+def test_the_boot_raises_partially_blocked_attack_damage_to_five() -> None:
+    registry = _enemy_registry_without_attacks()
+    registry.cards().register(
+        {
+            "id": "heavy_jab",
+            "name": "重击",
+            "cost": 1,
+            "card_type": "attack",
+            "effects": [{"type": "damage", "amount": 6}],
+        }
+    )
+    state = _combat_state_with_relics("the_boot", enemy_count=1)
+    state.hand = ["heavy_jab#1"]
+    state.enemies[0].block = 3
+
+    result = play_card(
+        state,
+        "heavy_jab#1",
+        "enemy-1",
+        registry,
+        hook_registrations=_hook_registrations_for_relics("the_boot"),
+    )
+    damage_result = next(
+        effect for effect in result.resolved_effects if effect["type"] == "damage"
+    )
+
+    assert state.enemies[0].hp == 7
+    assert state.enemies[0].block == 0
+    assert damage_result["result"]["blocked"] == 3
+    assert damage_result["result"]["actual_damage"] == 5
+
+
+def test_the_boot_does_not_raise_power_damage() -> None:
+    registry = _enemy_registry_without_attacks()
+    state = _combat_state_with_relics("the_boot", enemy_count=1)
+    state.active_powers = [{"power_id": "combust", "amount": 3, "self_damage": 1}]
+
+    resolved = end_turn(
+        state,
+        registry,
+        hook_registrations=_hook_registrations_for_relics("the_boot"),
+    )
+    combust_damage = next(
+        effect for effect in resolved if effect.get("power_id") == "combust"
+    )
+
+    assert state.enemies[0].hp == 9
+    assert combust_damage["result"]["applied_amount"] == 3
+    assert combust_damage["result"]["actual_damage"] == 3
+
+
 def test_torii_reduces_small_unblocked_attack_damage_to_one() -> None:
     registry = _enemy_registry()
     state = _combat_state_with_relics("torii", enemy_count=1)

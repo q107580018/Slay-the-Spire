@@ -81,11 +81,14 @@ def _damage_target(
     *,
     source: PlayerCombatState | EnemyState | None,
     relic_ids: set[str],
+    apply_the_boot: bool = False,
 ) -> tuple[int, int]:
     remaining = max(amount, 0)
     blocked = min(target.block, remaining)
     target.block -= blocked
     remaining -= blocked
+    if apply_the_boot and 0 < remaining < 5:
+        remaining = 5
     if (
         isinstance(source, EnemyState)
         and isinstance(target, PlayerCombatState)
@@ -103,6 +106,13 @@ def _damage_target(
     if remaining > 0:
         target.hp = max(target.hp - remaining, 0)
     return blocked, actual_damage
+
+
+def _the_boot_adjusted_amount(base_amount: int, blocked: int) -> int:
+    unblocked_damage = max(base_amount - blocked, 0)
+    if 0 < unblocked_damage < 5:
+        return blocked + 5
+    return base_amount
 
 
 def _vulnerable_bonus(target: PlayerCombatState | EnemyState) -> int:
@@ -403,20 +413,22 @@ def _resolve_damage_effect(
         use_status_modifiers=_effect_uses_status_modifiers(effect),
     )
     relic_ids = registered_relic_ids(hook_registrations)
-    if (
+    apply_the_boot = (
         isinstance(source, PlayerCombatState)
         and isinstance(target, EnemyState)
-        and 0 < applied_amount < 5
         and "the_boot" in relic_ids
         and effect.get("relic_id") is None
-    ):
-        applied_amount = 5
+        and effect.get("power_id") is None
+    )
     blocked, actual_damage = _damage_target(
         target,
         applied_amount,
         source=source,
         relic_ids=relic_ids,
+        apply_the_boot=apply_the_boot,
     )
+    if apply_the_boot:
+        applied_amount = _the_boot_adjusted_amount(applied_amount, blocked)
     if (
         isinstance(source, EnemyState)
         and isinstance(target, PlayerCombatState)
