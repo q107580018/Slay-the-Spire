@@ -88,125 +88,125 @@ This matrix maps every unresolved relic to its primary trigger domain and code e
 | 46 | ninja_scroll | 忍术卷轴 | uncommon | placeholder | combat_start | hooks/runtime | add 3 Shivs to hand at combat start (Silent) |
 | 47 | enchiridion | 军略宝典 | event | placeholder | combat_start | hooks/runtime | random power card in hand at 0 cost, combat start |
 | 48 | toolbox | 工具箱 | shop | placeholder | combat_start | hooks/runtime | random colorless card in hand at combat start |
-| 49 | happy_flower | 快乐花 | common | placeholder | turn_cycle | turn_flow | +1 energy every 3 turns; counter |
-| 50 | mercury_hourglass | 水银沙漏 | common | placeholder | turn_cycle | turn_flow | deal 3 damage to all enemies at turn start |
-| 51 | orichalcum | 山铜 | common | placeholder | turn_cycle | turn_flow | if 0 block at turn end, gain 6 block |
-| 52 | horn_cleat | 角质护具 | uncommon | placeholder | turn_cycle | turn_flow | gain 14 block at turn 2 start |
-| 53 | captains_wheel | 船长之轮 | rare | placeholder | turn_cycle | turn_flow | gain 18 block at turn 3 start |
-| 54 | stone_calendar | 石制日历 | rare | placeholder | turn_cycle | turn_flow | deal 52 damage to all enemies at turn 7 end |
-| 55 | incense_burner | 香炉 | rare | placeholder | turn_cycle | turn_flow | gain 1 intangible every 6 turns; counter |
-| 56 | brimstone | 硫磺 | shop | placeholder | turn_cycle | turn_flow | +2 strength to player and all enemies at turn start (Ironclad) |
-| 57 | warped_tongs | 弯曲铁钳 | event | placeholder | turn_cycle | turn_flow | randomly upgrade 1 hand card at turn start (combat only) |
-| 58 | art_of_war | 兵法 | common | placeholder | turn_cycle | turn_flow | +1 energy next turn if no attacks played this turn |
-| 59 | pocketwatch | 怀表 | rare | placeholder | turn_cycle | turn_flow | draw 3 extra next turn if ≤3 cards played this turn |
-| 60 | ring_of_the_serpent | 蛇之戒指 | boss | placeholder | turn_cycle | turn_flow | +1 draw per turn; replaces ring_of_the_snake (Silent) |
-| 61 | snecko_eye | 蛇眼 | boss | placeholder | turn_cycle | turn_flow | +2 draw per turn; randomize hand costs each turn |
-| 62 | runic_pyramid | 卢恩金字塔 | boss | placeholder | turn_cycle | turn_flow | no discard at end of turn |
-| 63 | ice_cream | 冰淇淋 | rare | placeholder | turn_cycle | turn_flow | unspent energy carries over between turns |
-| 64 | calipers | 铁卡尺 | rare | placeholder | turn_cycle | turn_flow | retain up to 15 block between turns |
-| 65 | meat_on_the_bone | 带骨肉 | common | placeholder | turn_cycle | turn_flow | heal 12 at combat end if HP <50% |
-| 66 | face_of_cleric | 牧师的脸 | event | placeholder | turn_cycle | turn_flow | +1 max HP after each combat |
-| 67 | akabeko | 赤牛 | common | placeholder | play_action | play_card | first attack each combat deals +8 damage |
-| 68 | nunchaku | 双节棍 | common | placeholder | play_action | play_card | +1 energy every 10 attacks played (cross-combat counter) |
-| 69 | pen_nib | 钢笔尖 | common | placeholder | play_action | play_card | double next attack every 10 attacks played |
-| 70 | kunai | 苦无 | uncommon | placeholder | play_action | play_card | +1 dexterity after 3 attacks per turn |
-| 71 | shuriken | 手里剑 | rare | placeholder | play_action | play_card | +1 strength after 3 attacks per turn |
-| 72 | ornamental_fan | 装饰扇 | uncommon | placeholder | play_action | play_card | +4 block after 3 attacks per turn |
-| 73 | ink_bottle | 墨水瓶 | uncommon | placeholder | play_action | play_card | draw 1 every 10 cards played (cross-combat counter) |
-| 74 | letter_opener | 拆信刀 | uncommon | placeholder | play_action | play_card | deal 5 damage to all enemies after 3 skills per turn |
-| 75 | bird_faced_urn | 鸟面瓮 | rare | placeholder | play_action | play_card | heal 2 each time a power is played |
-| 76 | mummified_hand | 木乃伊之手 | uncommon | placeholder | play_action | play_card | reduce 1 random hand card cost to 0 when power played |
-| 77 | orange_pellets | 橙色药丸 | shop | placeholder | play_action | play_card | remove all debuffs when attack+skill+power all played in turn |
-| 78 | strike_dummy | 打击假人 | uncommon | placeholder | play_action | play_card | Strike cards deal +3 damage |
-| 79 | necronomicon | 死灵之书 | event | placeholder | play_action | play_card | first 2+ cost attack each turn plays twice |
-| 80 | duality | 二元性 | uncommon | placeholder | play_action | play_card | +1 dexterity when attack played (Watcher) |
-| 81 | wrist_blade | 护腕刃 | boss | placeholder | play_action | play_card | 0-cost attacks deal +4 damage (Silent) |
-| 82 | tingsha | 铜钹 | rare | placeholder | play_action | play_card | deal 3 damage to random enemy per card discarded |
-| 83 | tough_bandages | 坚韧绷带 | rare | placeholder | play_action | play_card | gain 3 block per card discarded (Silent) |
-| 84 | hovering_kite | 悬浮风筝 | boss | placeholder | play_action | play_card | +1 energy next turn if discarded this turn (Silent) |
-| 85 | charons_ashes | 卡戎之灰 | rare | placeholder | play_action | play_card | deal 3 damage to all enemies per card exhausted |
-| 86 | dead_branch | 枯枝 | rare | placeholder | play_action | play_card | add 1 random card to hand per card exhausted |
-| 87 | gremlin_horn | 地精号角 | uncommon | placeholder | play_action | play_card | +1 energy +1 draw when enemy dies |
-| 88 | unceasing_top | 不息陀螺 | rare | placeholder | play_action | play_card | draw 1 when hand is empty |
-| 89 | strange_spoon | 奇怪的汤勺 | shop | placeholder | play_action | play_card | 50% chance exhausted card is not exhausted |
-| 90 | blue_candle | 蓝蜡烛 | uncommon | placeholder | play_action | play_card | curses can be played (lose 1 HP, exhaust) |
-| 91 | medical_kit | 医疗包 | shop | placeholder | play_action | play_card | status cards can be played (exhaust) |
-| 92 | abacus | 算盘 | shop | placeholder | play_action | play_card | gain 6 block on shuffle |
-| 93 | sundial | 日晷 | uncommon | placeholder | play_action | play_card | +2 energy every 3 shuffles |
-| 94 | nilrys_codex | 尼利的法典 | event | placeholder | turn_cycle | turn_flow | pick 1 of 3 random cards to shuffle into draw at turn end |
-| 95 | bronze_scales | 青铜鳞片 | common | placeholder | damage_resolution | hooks/runtime | deal 3 thorns damage when attacked |
-| 96 | centennial_puzzle | 百年谜题 | common | placeholder | damage_resolution | hooks/runtime | draw 3 on first HP loss per combat |
-| 97 | the_boot | 靴子 | common | placeholder | damage_resolution | hooks/runtime | attacks deal min 5 damage |
-| 98 | torii | 鸟居 | rare | placeholder | damage_resolution | hooks/runtime | unblocked damage ≤5 becomes 1 |
-| 99 | tungsten_rod | 钨金棒 | rare | placeholder | damage_resolution | hooks/runtime | reduce each HP loss by 1 |
-| 100 | self_forming_clay | 自塑黏土 | uncommon | placeholder | damage_resolution | hooks/runtime | gain 3 block next turn start after losing HP |
-| 101 | hand_drill | 手摇钻 | shop | placeholder | damage_resolution | hooks/runtime | apply 2 vulnerable when breaking enemy block |
-| 102 | runic_cube | 卢恩魔方 | boss | placeholder | damage_resolution | hooks/runtime | draw 1 when losing HP (Ironclad) |
-| 103 | ginger | 姜 | rare | placeholder | damage_resolution | hooks/runtime | immune to weak |
-| 104 | turnip | 芜菁 | rare | placeholder | damage_resolution | hooks/runtime | immune to vulnerable |
-| 105 | paper_frog | 纸蛙 | uncommon | placeholder | damage_resolution | hooks/runtime | vulnerable multiplier 75% instead of 50% |
-| 106 | paper_krane | 纸鹤 | uncommon | placeholder | damage_resolution | hooks/runtime | weak reduces damage by 40% instead of 25% (Silent) |
-| 107 | champion_belt | 冠军腰带 | uncommon | placeholder | damage_resolution | hooks/runtime | apply 1 weak when applying vulnerable (Ironclad) |
-| 108 | snecko_skull | 异蛇头骨 | uncommon | placeholder | damage_resolution | hooks/runtime | +1 poison when applying poison (Silent) |
-| 109 | red_skull | 红头骨 | uncommon | placeholder | damage_resolution | hooks/runtime | +3 strength when HP <50% |
-| 110 | duvu_doll | 杜符娃娃 | rare | placeholder | damage_resolution | hooks/runtime | +1 strength per curse in deck |
-| 111 | lizard_tail | 蜥蜴尾巴 | rare | placeholder | damage_resolution | hooks/runtime | prevent death once, heal to 50% max HP |
-| 112 | odd_mushroom | 奇异蘑菇 | event | placeholder | damage_resolution | hooks/runtime | vulnerable damage increase 25% instead of 50% (on self) |
-| 113 | magic_flower | 魔法花 | rare | placeholder | damage_resolution | hooks/runtime | all healing +50% (Ironclad) |
-| 114 | mark_of_the_bloom | 花开烙印 | event | placeholder | damage_resolution | hooks/runtime | cannot heal |
-| 115 | question_card | 问号卡 | uncommon | placeholder | reward_generation | reward_generator | +1 card in card reward |
-| 116 | prayer_wheel | 法轮 | rare | placeholder | reward_generation | reward_generator | +1 card in normal combat card reward |
-| 117 | white_beast_statue | 白兽雕像 | uncommon | placeholder | reward_generation | reward_generator | combat reward always includes potion |
-| 118 | nloths_gift | 恩洛斯的礼物 | event | placeholder | reward_generation | reward_generator | 3x rare card chance in rewards |
-| 119 | black_star | 黑星 | boss | placeholder | reward_generation | reward_generator | elite drops +1 relic |
-| 120 | membership_card | 会员卡 | shop | placeholder | shop | shop_action | all shop prices 50% off |
-| 121 | the_courier | 送货员 | uncommon | placeholder | shop | shop_action | shop never sells out; 20% discount |
-| 122 | smiling_mask | 微笑面具 | common | placeholder | shop | shop_action | card removal always costs 50 gold |
-| 123 | meal_ticket | 餐券 | common | placeholder | shop | enter_room | heal 15 on shop entry |
-| 124 | maw_bank | 大嘴储蓄罐 | common | placeholder | shop | enter_room | +12 gold per room until shop entry |
-| 125 | dream_catcher | 捕梦网 | common | placeholder | rest_site | rest_action | card reward after resting |
-| 126 | regal_pillow | 豪华枕头 | common | placeholder | rest_site | rest_action | +15 HP when resting |
-| 127 | eternal_feather | 永恒羽毛 | uncommon | placeholder | rest_site | rest_action | +3 HP per 5 cards in deck when resting |
-| 128 | girya | 臂力壶铃 | rare | placeholder | rest_site | rest_action | lift option: +1 strength (max 3 uses) |
-| 129 | peace_pipe | 和平烟斗 | rare | placeholder | rest_site | rest_action | toke option: remove 1 card |
-| 130 | shovel | 铲子 | rare | placeholder | rest_site | rest_action | dig option: gain 1 relic |
-| 131 | juzu_bracelet | 念珠 | common | placeholder | map_flow | enter_room | ? rooms can't be monster events |
-| 132 | tiny_chest | 小宝箱 | common | placeholder | map_flow | enter_room | every 4th ? room grants treasure |
-| 133 | matryoshka | 套娃 | uncommon | placeholder | map_flow | enter_room | next 2 normal chests give +1 relic |
-| 134 | preserved_insect | 标本昆虫 | common | placeholder | map_flow | enter_room | elite enemies −25% HP |
-| 135 | ssserpent_head | 蛇的头 | event | placeholder | map_flow | enter_room | +50 gold on ? room entry |
-| 136 | wing_boots | 羽翼战靴 | rare | placeholder | map_flow | enter_room | ignore pathing 3 times |
-| 137 | bloody_idol | 血神像 | event | placeholder | map_flow | apply_reward | heal 5 on gold gain |
-| 138 | toy_ornithopter | 玩具扑翼机 | common | placeholder | map_flow | apply_reward | heal 5 on potion use |
-| 139 | data_disk | 数据磁盘 | uncommon | placeholder | complex/deferred | apply_reward | +1 focus (Defect); needs focus system |
-| 140 | gold_plated_cables | 镀金线缆 | uncommon | placeholder | complex/deferred | turn_flow | rightmost orb triggers extra (Defect); needs orb system |
-| 141 | symbiotic_virus | 共生病毒 | uncommon | placeholder | complex/deferred | hooks/runtime | channel 1 Dark orb at combat start (Defect); needs orb system |
-| 142 | cracked_core | 破损核心 | starter | placeholder | complex/deferred | hooks/runtime | channel 1 Lightning orb at combat start (Defect); needs orb system |
-| 143 | frozen_core | 冰冻核心 | boss | placeholder | complex/deferred | turn_flow | channel 1 Lightning if no orbs at turn end (Defect); needs orb system |
-| 144 | nuclear_battery | 核电池 | boss | placeholder | complex/deferred | hooks/runtime | channel 1 Plasma orb at combat start (Defect); needs orb system |
-| 145 | runic_capacitor | 符文电容器 | shop | placeholder | complex/deferred | hooks/runtime | +3 orb slots at combat start; needs orb system |
-| 146 | inserter | 插入器 | boss | placeholder | complex/deferred | turn_flow | +1 orb slot every 2 turns (Defect); needs orb system |
-| 147 | emotion_chip | 情绪芯片 | rare | placeholder | complex/deferred | hooks/runtime | trigger leftmost orb on HP loss (Defect); needs orb system |
-| 148 | damaru | 手摇鼓 | common | placeholder | complex/deferred | turn_flow | +1 mantra at turn start (Watcher); needs mantra/stance system |
-| 149 | teardrop_locket | 泪滴吊坠 | uncommon | placeholder | complex/deferred | hooks/runtime | enter Calm at combat start (Watcher); needs stance system |
-| 150 | violet_lotus | 紫莲花 | boss | placeholder | complex/deferred | hooks/runtime | +1 energy on leaving Calm (Watcher); needs stance system |
-| 151 | golden_eye | 金眼 | uncommon | placeholder | complex/deferred | hooks/runtime | scry +2 cards (Watcher); needs scry system |
-| 152 | melange | 美琅脂 | shop | placeholder | complex/deferred | hooks/runtime | scry 3 on shuffle (Watcher); needs scry system |
-| 153 | cloak_clasp | 斗篷扣 | rare | placeholder | turn_cycle | turn_flow | gain 1 block per hand card at turn end (Watcher) |
-| 154 | holy_water | 圣水 | boss | placeholder | complex/deferred | hooks/runtime | add 3 upgraded Miracles at combat start (Watcher); needs Miracle card |
-| 155 | pure_water | 净水 | starter | placeholder | complex/deferred | hooks/runtime | add 3 Miracles at combat start (Watcher); needs Miracle card |
-| 156 | chemical_x | X 化学物 | shop | placeholder | complex/deferred | play_card | X-cost cards treat X as +2; needs X-cost support |
-| 157 | busted_crown | 破碎王冠 | boss | partial | reward_generation | reward_generator | energy +1 already works; card reward −2 not yet |
-| 158 | sacred_bark | 圣树皮 | boss | placeholder | complex/deferred | hooks/runtime | double potion effects; needs potion effect system |
-| 159 | bottled_flame | 瓶装火焰 | uncommon | placeholder | complex/deferred | apply_reward | choose 1 attack → innate; needs card picker UI |
-| 160 | bottled_lightning | 瓶装闪电 | uncommon | placeholder | complex/deferred | apply_reward | choose 1 skill → innate; needs card picker UI |
-| 161 | bottled_tornado | 瓶装旋风 | uncommon | placeholder | complex/deferred | apply_reward | choose 1 power → innate; needs card picker UI |
-| 162 | orrery | 星象仪 | shop | placeholder | complex/deferred | apply_reward | choose 2 of 5 cards on acquire; needs card picker UI |
-| 163 | gambling_chip | 赌博筹码 | rare | placeholder | complex/deferred | hooks/runtime | discard any, redraw equal at combat start; needs discard picker UI |
-| 164 | prismatic_shard | 虹彩碎片 | shop | placeholder | complex/deferred | reward_generator | all-class card/relic pools; needs multi-class pool support |
-| 165 | thread_and_needle | 针线 | rare | placeholder | combat_start | hooks/runtime | gain 4 plated armor at combat start |
-| 166 | twisted_funnel | 扭曲漏斗 | shop | placeholder | combat_start | hooks/runtime | apply 4 poison to all enemies at combat start (Silent) |
-| 167 | the_specimen | 标本 | rare | placeholder | play_action | play_card | transfer poison to random enemy on poisoned kill (Silent) |
+| 49 | thread_and_needle | 针线 | rare | placeholder | combat_start | hooks/runtime | gain 4 plated armor at combat start |
+| 50 | twisted_funnel | 扭曲漏斗 | shop | placeholder | combat_start | hooks/runtime | apply 4 poison to all enemies at combat start (Silent) |
+| 51 | happy_flower | 快乐花 | common | placeholder | turn_cycle | turn_flow | +1 energy every 3 turns; counter |
+| 52 | mercury_hourglass | 水银沙漏 | common | placeholder | turn_cycle | turn_flow | deal 3 damage to all enemies at turn start |
+| 53 | orichalcum | 山铜 | common | placeholder | turn_cycle | turn_flow | if 0 block at turn end, gain 6 block |
+| 54 | horn_cleat | 角质护具 | uncommon | placeholder | turn_cycle | turn_flow | gain 14 block at turn 2 start |
+| 55 | captains_wheel | 船长之轮 | rare | placeholder | turn_cycle | turn_flow | gain 18 block at turn 3 start |
+| 56 | stone_calendar | 石制日历 | rare | placeholder | turn_cycle | turn_flow | deal 52 damage to all enemies at turn 7 end |
+| 57 | incense_burner | 香炉 | rare | placeholder | turn_cycle | turn_flow | gain 1 intangible every 6 turns; counter |
+| 58 | brimstone | 硫磺 | shop | placeholder | turn_cycle | turn_flow | +2 strength to player and all enemies at turn start (Ironclad) |
+| 59 | warped_tongs | 弯曲铁钳 | event | placeholder | turn_cycle | turn_flow | randomly upgrade 1 hand card at turn start (combat only) |
+| 60 | art_of_war | 兵法 | common | placeholder | turn_cycle | turn_flow | +1 energy next turn if no attacks played this turn |
+| 61 | pocketwatch | 怀表 | rare | placeholder | turn_cycle | turn_flow | draw 3 extra next turn if ≤3 cards played this turn |
+| 62 | ring_of_the_serpent | 蛇之戒指 | boss | placeholder | turn_cycle | turn_flow | +1 draw per turn; replaces ring_of_the_snake (Silent) |
+| 63 | snecko_eye | 蛇眼 | boss | placeholder | turn_cycle | turn_flow | +2 draw per turn; randomize hand costs each turn |
+| 64 | runic_pyramid | 卢恩金字塔 | boss | placeholder | turn_cycle | turn_flow | no discard at end of turn |
+| 65 | ice_cream | 冰淇淋 | rare | placeholder | turn_cycle | turn_flow | unspent energy carries over between turns |
+| 66 | calipers | 铁卡尺 | rare | placeholder | turn_cycle | turn_flow | retain up to 15 block between turns |
+| 67 | meat_on_the_bone | 带骨肉 | common | placeholder | turn_cycle | turn_flow | heal 12 at combat end if HP <50% |
+| 68 | face_of_cleric | 牧师的脸 | event | placeholder | turn_cycle | turn_flow | +1 max HP after each combat |
+| 69 | nilrys_codex | 尼利的法典 | event | placeholder | turn_cycle | turn_flow | pick 1 of 3 random cards to shuffle into draw at turn end |
+| 70 | cloak_clasp | 斗篷扣 | rare | placeholder | turn_cycle | turn_flow | gain 1 block per hand card at turn end (Watcher) |
+| 71 | akabeko | 赤牛 | common | placeholder | play_action | play_card | first attack each combat deals +8 damage |
+| 72 | nunchaku | 双节棍 | common | placeholder | play_action | play_card | +1 energy every 10 attacks played (cross-combat counter) |
+| 73 | pen_nib | 钢笔尖 | common | placeholder | play_action | play_card | double next attack every 10 attacks played |
+| 74 | kunai | 苦无 | uncommon | placeholder | play_action | play_card | +1 dexterity after 3 attacks per turn |
+| 75 | shuriken | 手里剑 | rare | placeholder | play_action | play_card | +1 strength after 3 attacks per turn |
+| 76 | ornamental_fan | 装饰扇 | uncommon | placeholder | play_action | play_card | +4 block after 3 attacks per turn |
+| 77 | ink_bottle | 墨水瓶 | uncommon | placeholder | play_action | play_card | draw 1 every 10 cards played (cross-combat counter) |
+| 78 | letter_opener | 拆信刀 | uncommon | placeholder | play_action | play_card | deal 5 damage to all enemies after 3 skills per turn |
+| 79 | bird_faced_urn | 鸟面瓮 | rare | placeholder | play_action | play_card | heal 2 each time a power is played |
+| 80 | mummified_hand | 木乃伊之手 | uncommon | placeholder | play_action | play_card | reduce 1 random hand card cost to 0 when power played |
+| 81 | orange_pellets | 橙色药丸 | shop | placeholder | play_action | play_card | remove all debuffs when attack+skill+power all played in turn |
+| 82 | strike_dummy | 打击假人 | uncommon | placeholder | play_action | play_card | Strike cards deal +3 damage |
+| 83 | necronomicon | 死灵之书 | event | placeholder | play_action | play_card | first 2+ cost attack each turn plays twice |
+| 84 | duality | 二元性 | uncommon | placeholder | play_action | play_card | +1 dexterity when attack played (Watcher) |
+| 85 | wrist_blade | 护腕刃 | boss | placeholder | play_action | play_card | 0-cost attacks deal +4 damage (Silent) |
+| 86 | tingsha | 铜钹 | rare | placeholder | play_action | play_card | deal 3 damage to random enemy per card discarded |
+| 87 | tough_bandages | 坚韧绷带 | rare | placeholder | play_action | play_card | gain 3 block per card discarded (Silent) |
+| 88 | hovering_kite | 悬浮风筝 | boss | placeholder | play_action | play_card | +1 energy next turn if discarded this turn (Silent) |
+| 89 | charons_ashes | 卡戎之灰 | rare | placeholder | play_action | play_card | deal 3 damage to all enemies per card exhausted |
+| 90 | dead_branch | 枯枝 | rare | placeholder | play_action | play_card | add 1 random card to hand per card exhausted |
+| 91 | gremlin_horn | 地精号角 | uncommon | placeholder | play_action | play_card | +1 energy +1 draw when enemy dies |
+| 92 | unceasing_top | 不息陀螺 | rare | placeholder | play_action | play_card | draw 1 when hand is empty |
+| 93 | strange_spoon | 奇怪的汤勺 | shop | placeholder | play_action | play_card | 50% chance exhausted card is not exhausted |
+| 94 | blue_candle | 蓝蜡烛 | uncommon | placeholder | play_action | play_card | curses can be played (lose 1 HP, exhaust) |
+| 95 | medical_kit | 医疗包 | shop | placeholder | play_action | play_card | status cards can be played (exhaust) |
+| 96 | abacus | 算盘 | shop | placeholder | play_action | play_card | gain 6 block on shuffle |
+| 97 | sundial | 日晷 | uncommon | placeholder | play_action | play_card | +2 energy every 3 shuffles |
+| 98 | the_specimen | 标本 | rare | placeholder | play_action | play_card | transfer poison to random enemy on poisoned kill (Silent) |
+| 99 | bronze_scales | 青铜鳞片 | common | placeholder | damage_resolution | hooks/runtime | deal 3 thorns damage when attacked |
+| 100 | centennial_puzzle | 百年谜题 | common | placeholder | damage_resolution | hooks/runtime | draw 3 on first HP loss per combat |
+| 101 | the_boot | 靴子 | common | placeholder | damage_resolution | hooks/runtime | attacks deal min 5 damage |
+| 102 | torii | 鸟居 | rare | placeholder | damage_resolution | hooks/runtime | unblocked damage ≤5 becomes 1 |
+| 103 | tungsten_rod | 钨金棒 | rare | placeholder | damage_resolution | hooks/runtime | reduce each HP loss by 1 |
+| 104 | self_forming_clay | 自塑黏土 | uncommon | placeholder | damage_resolution | hooks/runtime | gain 3 block next turn start after losing HP |
+| 105 | hand_drill | 手摇钻 | shop | placeholder | damage_resolution | hooks/runtime | apply 2 vulnerable when breaking enemy block |
+| 106 | runic_cube | 卢恩魔方 | boss | placeholder | damage_resolution | hooks/runtime | draw 1 when losing HP (Ironclad) |
+| 107 | ginger | 姜 | rare | placeholder | damage_resolution | hooks/runtime | immune to weak |
+| 108 | turnip | 芜菁 | rare | placeholder | damage_resolution | hooks/runtime | immune to vulnerable |
+| 109 | paper_frog | 纸蛙 | uncommon | placeholder | damage_resolution | hooks/runtime | vulnerable multiplier 75% instead of 50% |
+| 110 | paper_krane | 纸鹤 | uncommon | placeholder | damage_resolution | hooks/runtime | weak reduces damage by 40% instead of 25% (Silent) |
+| 111 | champion_belt | 冠军腰带 | uncommon | placeholder | damage_resolution | hooks/runtime | apply 1 weak when applying vulnerable (Ironclad) |
+| 112 | snecko_skull | 异蛇头骨 | uncommon | placeholder | damage_resolution | hooks/runtime | +1 poison when applying poison (Silent) |
+| 113 | red_skull | 红头骨 | uncommon | placeholder | damage_resolution | hooks/runtime | +3 strength when HP <50% |
+| 114 | duvu_doll | 杜符娃娃 | rare | placeholder | damage_resolution | hooks/runtime | +1 strength per curse in deck |
+| 115 | lizard_tail | 蜥蜴尾巴 | rare | placeholder | damage_resolution | hooks/runtime | prevent death once, heal to 50% max HP |
+| 116 | odd_mushroom | 奇异蘑菇 | event | placeholder | damage_resolution | hooks/runtime | vulnerable damage increase 25% instead of 50% (on self) |
+| 117 | magic_flower | 魔法花 | rare | placeholder | damage_resolution | hooks/runtime | all healing +50% (Ironclad) |
+| 118 | mark_of_the_bloom | 花开烙印 | event | placeholder | damage_resolution | hooks/runtime | cannot heal |
+| 119 | question_card | 问号卡 | uncommon | placeholder | reward_generation | reward_generator | +1 card in card reward |
+| 120 | prayer_wheel | 法轮 | rare | placeholder | reward_generation | reward_generator | +1 card in normal combat card reward |
+| 121 | white_beast_statue | 白兽雕像 | uncommon | placeholder | reward_generation | reward_generator | combat reward always includes potion |
+| 122 | nloths_gift | 恩洛斯的礼物 | event | placeholder | reward_generation | reward_generator | 3x rare card chance in rewards |
+| 123 | black_star | 黑星 | boss | placeholder | reward_generation | reward_generator | elite drops +1 relic |
+| 124 | busted_crown | 破碎王冠 | boss | partial | reward_generation | reward_generator | energy +1 already works; card reward −2 not yet |
+| 125 | membership_card | 会员卡 | shop | placeholder | shop | shop_action | all shop prices 50% off |
+| 126 | the_courier | 送货员 | uncommon | placeholder | shop | shop_action | shop never sells out; 20% discount |
+| 127 | smiling_mask | 微笑面具 | common | placeholder | shop | shop_action | card removal always costs 50 gold |
+| 128 | meal_ticket | 餐券 | common | placeholder | shop | enter_room | heal 15 on shop entry |
+| 129 | maw_bank | 大嘴储蓄罐 | common | placeholder | shop | enter_room | +12 gold per room until shop entry |
+| 130 | dream_catcher | 捕梦网 | common | placeholder | rest_site | rest_action | card reward after resting |
+| 131 | regal_pillow | 豪华枕头 | common | placeholder | rest_site | rest_action | +15 HP when resting |
+| 132 | eternal_feather | 永恒羽毛 | uncommon | placeholder | rest_site | rest_action | +3 HP per 5 cards in deck when resting |
+| 133 | girya | 臂力壶铃 | rare | placeholder | rest_site | rest_action | lift option: +1 strength (max 3 uses) |
+| 134 | peace_pipe | 和平烟斗 | rare | placeholder | rest_site | rest_action | toke option: remove 1 card |
+| 135 | shovel | 铲子 | rare | placeholder | rest_site | rest_action | dig option: gain 1 relic |
+| 136 | juzu_bracelet | 念珠 | common | placeholder | map_flow | enter_room | ? rooms can't be monster events |
+| 137 | tiny_chest | 小宝箱 | common | placeholder | map_flow | enter_room | every 4th ? room grants treasure |
+| 138 | matryoshka | 套娃 | uncommon | placeholder | map_flow | enter_room | next 2 normal chests give +1 relic |
+| 139 | preserved_insect | 标本昆虫 | common | placeholder | map_flow | enter_room | elite enemies −25% HP |
+| 140 | ssserpent_head | 蛇的头 | event | placeholder | map_flow | enter_room | +50 gold on ? room entry |
+| 141 | wing_boots | 羽翼战靴 | rare | placeholder | map_flow | enter_room | ignore pathing 3 times |
+| 142 | bloody_idol | 血神像 | event | placeholder | map_flow | apply_reward | heal 5 on gold gain |
+| 143 | toy_ornithopter | 玩具扑翼机 | common | placeholder | map_flow | apply_reward | heal 5 on potion use |
+| 144 | data_disk | 数据磁盘 | uncommon | placeholder | complex/deferred | apply_reward | +1 focus (Defect); needs focus system |
+| 145 | gold_plated_cables | 镀金线缆 | uncommon | placeholder | complex/deferred | turn_flow | rightmost orb triggers extra (Defect); needs orb system |
+| 146 | symbiotic_virus | 共生病毒 | uncommon | placeholder | complex/deferred | hooks/runtime | channel 1 Dark orb at combat start (Defect); needs orb system |
+| 147 | cracked_core | 破损核心 | starter | placeholder | complex/deferred | hooks/runtime | channel 1 Lightning orb at combat start (Defect); needs orb system |
+| 148 | frozen_core | 冰冻核心 | boss | placeholder | complex/deferred | turn_flow | channel 1 Lightning if no orbs at turn end (Defect); needs orb system |
+| 149 | nuclear_battery | 核电池 | boss | placeholder | complex/deferred | hooks/runtime | channel 1 Plasma orb at combat start (Defect); needs orb system |
+| 150 | runic_capacitor | 符文电容器 | shop | placeholder | complex/deferred | hooks/runtime | +3 orb slots at combat start; needs orb system |
+| 151 | inserter | 插入器 | boss | placeholder | complex/deferred | turn_flow | +1 orb slot every 2 turns (Defect); needs orb system |
+| 152 | emotion_chip | 情绪芯片 | rare | placeholder | complex/deferred | hooks/runtime | trigger leftmost orb on HP loss (Defect); needs orb system |
+| 153 | damaru | 手摇鼓 | common | placeholder | complex/deferred | turn_flow | +1 mantra at turn start (Watcher); needs mantra/stance system |
+| 154 | teardrop_locket | 泪滴吊坠 | uncommon | placeholder | complex/deferred | hooks/runtime | enter Calm at combat start (Watcher); needs stance system |
+| 155 | violet_lotus | 紫莲花 | boss | placeholder | complex/deferred | hooks/runtime | +1 energy on leaving Calm (Watcher); needs stance system |
+| 156 | golden_eye | 金眼 | uncommon | placeholder | complex/deferred | hooks/runtime | scry +2 cards (Watcher); needs scry system |
+| 157 | melange | 美琅脂 | shop | placeholder | complex/deferred | hooks/runtime | scry 3 on shuffle (Watcher); needs scry system |
+| 158 | holy_water | 圣水 | boss | placeholder | complex/deferred | hooks/runtime | add 3 upgraded Miracles at combat start (Watcher); needs Miracle card |
+| 159 | pure_water | 净水 | starter | placeholder | complex/deferred | hooks/runtime | add 3 Miracles at combat start (Watcher); needs Miracle card |
+| 160 | chemical_x | X 化学物 | shop | placeholder | complex/deferred | play_card | X-cost cards treat X as +2; needs X-cost support |
+| 161 | sacred_bark | 圣树皮 | boss | placeholder | complex/deferred | hooks/runtime | double potion effects; needs potion effect system |
+| 162 | bottled_flame | 瓶装火焰 | uncommon | placeholder | complex/deferred | apply_reward | choose 1 attack → innate; needs card picker UI |
+| 163 | bottled_lightning | 瓶装闪电 | uncommon | placeholder | complex/deferred | apply_reward | choose 1 skill → innate; needs card picker UI |
+| 164 | bottled_tornado | 瓶装旋风 | uncommon | placeholder | complex/deferred | apply_reward | choose 1 power → innate; needs card picker UI |
+| 165 | orrery | 星象仪 | shop | placeholder | complex/deferred | apply_reward | choose 2 of 5 cards on acquire; needs card picker UI |
+| 166 | gambling_chip | 赌博筹码 | rare | placeholder | complex/deferred | hooks/runtime | discard any, redraw equal at combat start; needs discard picker UI |
+| 167 | prismatic_shard | 虹彩碎片 | shop | placeholder | complex/deferred | reward_generator | all-class card/relic pools; needs multi-class pool support |
 | 168 | cultist_headpiece | 邪教徒头罩 | event | placeholder | flavor_only | — | no effect (flavor) |
 | 169 | spirit_poop | 灵魂便便 | event | placeholder | flavor_only | — | no effect (flavor) |
 | 170 | nloths_hungry_face | 恩洛斯的饥饿脸 | event | placeholder | flavor_only | — | no effect (flavor) |
@@ -220,15 +220,15 @@ This matrix maps every unresolved relic to its primary trigger domain and code e
 | Domain | Count | Batch (per spec) |
 |---|---|---|
 | on_acquire | 24 | Batch 1 |
-| combat_start | 25 | Batch 2 |
-| turn_cycle | 18 | Batch 2 |
+| combat_start | 26 | Batch 2 |
+| turn_cycle | 20 | Batch 2 |
 | play_action | 28 | Batch 3 |
 | damage_resolution | 20 | Batch 4 |
 | reward_generation | 6 | Batch 5 |
 | shop | 5 | Batch 5 |
 | rest_site | 6 | Batch 5 |
 | map_flow | 8 | Batch 5 |
-| complex/deferred | 27 | Batch 6 |
+| complex/deferred | 24 | Batch 6 |
 | flavor_only | 3 | — (no-op, mark implemented) |
 | **Total unresolved** | **170** | |
 
