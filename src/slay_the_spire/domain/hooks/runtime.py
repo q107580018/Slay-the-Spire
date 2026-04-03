@@ -52,6 +52,17 @@ def build_runtime_hook_registrations(
         effects = _materialize_relic_effects(
             relic.passive_effects, target_instance_id=player_instance_id
         )
+        registrations.append(
+            HookRegistration(
+                hook_name="__runtime__",
+                category="relic",
+                priority=0,
+                source_type="relic",
+                source_instance_id=relic_id,
+                registration_index=registration_index,
+                effects=[],
+            )
+        )
         if relic_id in opening_combat_relic_ids:
             registrations.append(
                 HookRegistration(

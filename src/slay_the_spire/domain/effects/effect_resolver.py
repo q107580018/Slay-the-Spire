@@ -11,6 +11,7 @@ from slay_the_spire.domain.effects.effect_types import (
     EFFECT_BLOCK,
     EFFECT_COPY_CARD_TO_HAND,
     EFFECT_CREATE_CARD_COPY,
+    EFFECT_DISCARD_TARGET_CARD,
     EFFECT_DAMAGE,
     EFFECT_DAMAGE_EQUAL_TO_BLOCK,
     EFFECT_DROPKICK_EFFECT,
@@ -133,6 +134,15 @@ def _damage_amount(
     if use_status_modifiers and _vulnerable_bonus(target):
         amount += amount // 2
     return max(amount, 0)
+
+
+def _consume_pen_nib(state: CombatState, effect: JsonDict) -> int:
+    if state.card_play_data.get("relic:pen_nib:active", 0) <= 0:
+        return 1
+    if effect.get("relic_id") in {"letter_opener", "charons_ashes", "tingsha"}:
+        return 1
+    state.card_play_data["relic:pen_nib:active"] = 0
+    return 2
 
 
 def _effect_uses_strength(effect: JsonDict) -> bool:
@@ -305,6 +315,7 @@ def _resolve_damage_effect(
     resolved_strength_bonus = strength_bonus
     if not _effect_uses_strength(effect):
         resolved_strength_bonus = 0
+    base_amount *= _consume_pen_nib(state, effect)
     applied_amount = _damage_amount(
         source,
         target,
@@ -421,6 +432,112 @@ def _queue_on_exhaust_effects(
     return queued_effects
 
 
+def _queue_on_discard_relic_effects(
+    state: CombatState,
+    *,
+    discarded_card_instance_id: str,
+) -> list[JsonDict]:
+    queued_effects: list[JsonDict] = []
+    living_enemies = [enemy for enemy in state.enemies if enemy.hp > 0]
+    target_enemy = living_enemies[0] if living_enemies else None
+    if (
+        state.card_play_data.get("relic:tingsha:active", 0) > 0
+        and target_enemy is not None
+    ):
+        queued_effects.append(
+            {
+                "type": EFFECT_DAMAGE,
+                "source_instance_id": state.player.instance_id,
+                "target_instance_id": target_enemy.instance_id,
+                "amount": 3,
+                "uses_strength": False,
+                "relic_id": "tingsha",
+                "trigger": "on_discard",
+                "discarded_card_instance_id": discarded_card_instance_id,
+            }
+        )
+    if state.card_play_data.get("relic:tough_bandages:active", 0) > 0:
+        queued_effects.append(
+            {
+                "type": EFFECT_BLOCK,
+                "source_instance_id": state.player.instance_id,
+                "target_instance_id": state.player.instance_id,
+                "amount": 3,
+                "relic_id": "tough_bandages",
+                "trigger": "on_discard",
+                "discarded_card_instance_id": discarded_card_instance_id,
+            }
+        )
+    if state.card_play_data.get("relic:hovering_kite:active", 0) > 0:
+        state.card_play_data["relic:hovering_kite:discarded"] = 1
+    return queued_effects
+
+
+def _move_cards_to_discard(
+    state: CombatState,
+    card_instance_ids: Sequence[str],
+    *,
+    queue_position: str = "front",
+) -> list[str]:
+    if queue_position not in {"front", "back"}:
+        raise ValueError("queue_position must be 'front' or 'back'")
+    discarded_cards: list[str] = []
+    queued_effects: list[JsonDict] = []
+    for card_instance_id in card_instance_ids:
+        if not _remove_card_from_zones(state, card_instance_id):
+            continue
+        state.discard_pile.append(card_instance_id)
+        discarded_cards.append(card_instance_id)
+        queued_effects.extend(
+            _queue_on_discard_relic_effects(
+                state,
+                discarded_card_instance_id=card_instance_id,
+            )
+        )
+    if queued_effects:
+        if queue_position == "front":
+            state.effect_queue[0:0] = queued_effects
+        else:
+            state.effect_queue.extend(queued_effects)
+    return discarded_cards
+
+
+def _queue_on_exhaust_relic_effects(
+    state: CombatState,
+    *,
+    exhausted_card_instance_id: str,
+) -> list[JsonDict]:
+    queued_effects: list[JsonDict] = []
+    if state.card_play_data.get("relic:charons_ashes:active", 0) > 0:
+        for enemy in state.enemies:
+            if enemy.hp <= 0:
+                continue
+            queued_effects.append(
+                {
+                    "type": EFFECT_DAMAGE,
+                    "source_instance_id": state.player.instance_id,
+                    "target_instance_id": enemy.instance_id,
+                    "amount": 3,
+                    "uses_strength": False,
+                    "relic_id": "charons_ashes",
+                    "trigger": "on_exhaust",
+                    "exhausted_card_instance_id": exhausted_card_instance_id,
+                }
+            )
+    if state.card_play_data.get("relic:dead_branch:active", 0) > 0:
+        queued_effects.append(
+            {
+                "type": EFFECT_ADD_CARDS_TO_HAND,
+                "card_id": "shiv",
+                "count": 1,
+                "relic_id": "dead_branch",
+                "trigger": "on_exhaust",
+                "exhausted_card_instance_id": exhausted_card_instance_id,
+            }
+        )
+    return queued_effects
+
+
 def _draw_trigger_effects(
     state: CombatState,
     *,
@@ -482,6 +599,10 @@ def _enqueue_on_exhaust_effects(
         card_instance_id=card_instance_id,
         registry=registry,
     )
+    queued_effects[0:0] = _queue_on_exhaust_relic_effects(
+        state,
+        exhausted_card_instance_id=card_instance_id,
+    )
     if queue_position == "front":
         state.effect_queue[0:0] = queued_effects
     else:
@@ -503,6 +624,12 @@ def _move_cards_to_exhaust(
             continue
         state.exhaust_pile.append(card_instance_id)
         exhausted_cards.append(card_instance_id)
+        queued_effects.extend(
+            _queue_on_exhaust_relic_effects(
+                state,
+                exhausted_card_instance_id=card_instance_id,
+            )
+        )
         queued_effects.extend(
             _queue_on_exhaust_effects(
                 state,
@@ -723,6 +850,38 @@ def _maybe_enqueue_combat_end(
                 payload=payload or {},
             )
         )
+
+
+def _queue_on_enemy_defeated_relic_effects(
+    state: CombatState,
+    *,
+    target_instance_id: str | None,
+) -> list[JsonDict]:
+    queued_effects: list[JsonDict] = []
+    if state.card_play_data.get("relic:gremlin_horn:active", 0) > 0:
+        queued_effects.append(
+            {
+                "type": EFFECT_GAIN_ENERGY,
+                "source_instance_id": state.player.instance_id,
+                "target_instance_id": state.player.instance_id,
+                "amount": 1,
+                "relic_id": "gremlin_horn",
+                "trigger": "on_enemy_defeated",
+                "defeated_enemy_instance_id": target_instance_id,
+            }
+        )
+        queued_effects.append(
+            {
+                "type": EFFECT_DRAW,
+                "source_instance_id": state.player.instance_id,
+                "target_instance_id": state.player.instance_id,
+                "amount": 1,
+                "relic_id": "gremlin_horn",
+                "trigger": "on_enemy_defeated",
+                "defeated_enemy_instance_id": target_instance_id,
+            }
+        )
+    return queued_effects
 
 
 def resolve_next_effect(
@@ -1115,6 +1274,15 @@ def resolve_next_effect(
             return noop_effect(reason="missing_target_card")
         return _with_result(effect, exhausted_cards=exhausted_cards)
 
+    if effect_type == EFFECT_DISCARD_TARGET_CARD:
+        card_instance_id = effect.get("target_card_instance_id")
+        if not isinstance(card_instance_id, str):
+            raise TypeError("target_card_instance_id must be a string")
+        discarded_cards = _move_cards_to_discard(state, [card_instance_id])
+        if not discarded_cards:
+            return noop_effect(reason="missing_target_card")
+        return _with_result(effect, discarded_cards=discarded_cards)
+
     if effect_type == EFFECT_UPGRADE_TARGET_CARD:
         target_card_instance_id = effect.get("target_card_instance_id")
         upgraded_card_id = effect.get("upgraded_card_id")
@@ -1196,6 +1364,15 @@ def resolve_next_effect(
             payload=payload if isinstance(payload, dict) else None,
         )
         if hook_name == "on_enemy_defeated":
+            state.effect_queue[0:0] = _queue_on_enemy_defeated_relic_effects(
+                state,
+                target_instance_id=(
+                    payload.get("target_instance_id")
+                    if isinstance(payload, dict)
+                    and isinstance(payload.get("target_instance_id"), str)
+                    else None
+                ),
+            )
             _maybe_enqueue_combat_end(
                 state,
                 payload=payload if isinstance(payload, dict) else None,

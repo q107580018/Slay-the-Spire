@@ -334,6 +334,17 @@ def _move_end_turn_hand_cards(
     state.hand.clear()
 
 
+def _reset_action_relic_flags(state: CombatState) -> None:
+    for key in [
+        "relic:orange_pellets:attack:active",
+        "relic:orange_pellets:skill:active",
+        "relic:orange_pellets:power:active",
+        "relic:hovering_kite:discarded",
+        "relic:pen_nib:active",
+    ]:
+        state.card_play_data.pop(key, None)
+
+
 def _active_power_end_turn_effects(state: CombatState) -> list[JsonDict]:
     effects: list[JsonDict] = []
     for power in state.active_powers:
@@ -576,6 +587,12 @@ def _apply_turn_start_relics(
     if "pocketwatch" in turn_relic_ids and state.round_number > 1:
         if state.cards_played_last_turn <= 3:
             next_hand_size += 3
+    if (
+        "hovering_kite" in registered_relic_ids(hook_registrations)
+        and state.round_number > 1
+    ):
+        if state.card_play_data.get("relic:hovering_kite:discarded", 0) > 0:
+            state.energy += 1
     return next_hand_size
 
 
@@ -609,6 +626,7 @@ def _reset_turn_card_counters(state: CombatState) -> None:
     state.attacks_played_last_turn = state.attacks_played_this_turn
     state.cards_played_this_turn = 0
     state.attacks_played_this_turn = 0
+    _reset_action_relic_flags(state)
 
 
 def start_turn(
