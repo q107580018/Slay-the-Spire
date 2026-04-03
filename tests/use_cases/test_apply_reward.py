@@ -260,6 +260,62 @@ def test_generate_combat_rewards_returns_gold_and_three_unique_card_offers() -> 
     assert isinstance(next_rare_offset, int)
 
 
+def test_question_card_adds_one_more_card_reward_offer() -> None:
+    run_state = replace(_run_state(), relics=["burning_blood", "question_card"])
+
+    rewards, _next_rare_offset = generate_combat_rewards(
+        room_id="act1:question_card_reward",
+        run_state=run_state,
+        registry=_content_provider(),
+    )
+
+    card_rewards = [reward for reward in rewards if reward.startswith("card_offer:")]
+
+    assert len(card_rewards) == 4
+    assert len(set(card_rewards)) == 4
+
+
+def test_white_beast_statue_adds_potion_reward_after_combat() -> None:
+    run_state = replace(_run_state(), relics=["burning_blood", "white_beast_statue"])
+
+    rewards, _next_rare_offset = generate_combat_rewards(
+        room_id="act1:white_beast_reward",
+        run_state=run_state,
+        registry=_content_provider(),
+    )
+
+    potion_rewards = [reward for reward in rewards if reward.startswith("potion:")]
+
+    assert len(potion_rewards) == 1
+    assert potion_rewards[0] != "potion:circlet"
+
+
+def test_prayer_wheel_adds_one_more_card_reward_offer_for_normal_combat() -> None:
+    run_state = replace(_run_state(), relics=["burning_blood", "prayer_wheel"])
+
+    rewards, _next_rare_offset = generate_combat_rewards(
+        room_id="act1:prayer_wheel_reward",
+        run_state=run_state,
+        registry=_content_provider(),
+    )
+
+    assert len([reward for reward in rewards if reward.startswith("card_offer:")]) == 4
+
+
+def test_sozu_blocks_white_beast_statue_potion_reward() -> None:
+    run_state = replace(
+        _run_state(), relics=["burning_blood", "white_beast_statue", "sozu"]
+    )
+
+    rewards, _next_rare_offset = generate_combat_rewards(
+        room_id="act1:sozu_reward",
+        run_state=run_state,
+        registry=_content_provider(),
+    )
+
+    assert not [reward for reward in rewards if reward.startswith("potion:")]
+
+
 def test_generate_combat_rewards_from_a_new_run_does_not_offer_rare_cards_in_normal_combat() -> (
     None
 ):

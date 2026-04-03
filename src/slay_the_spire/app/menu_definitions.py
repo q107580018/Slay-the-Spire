@@ -59,7 +59,9 @@ def build_menu(
     return MenuDefinition(
         title=title,
         header_lines=tuple(header_lines),
-        options=tuple(MenuOption(action_id=action_id, label=label) for action_id, label in options),
+        options=tuple(
+            MenuOption(action_id=action_id, label=label) for action_id, label in options
+        ),
     )
 
 
@@ -80,7 +82,10 @@ def build_load_save_menu(
 def format_menu_entries(menu: MenuDefinition) -> list[str | Text]:
     entries: list[str | Text] = [f"{menu.title}:"]
     entries.extend(menu.header_lines)
-    entries.extend(_numbered_label(index, option.label) for index, option in enumerate(menu.options, start=1))
+    entries.extend(
+        _numbered_label(index, option.label)
+        for index, option in enumerate(menu.options, start=1)
+    )
     return entries
 
 
@@ -107,17 +112,26 @@ def _boss_rewards(room_state: RoomState) -> Mapping[str, object] | None:
 
 def _has_pending_boss_rewards(room_state: RoomState) -> bool:
     boss_rewards = _boss_rewards(room_state)
-    if not room_state.is_resolved or room_state.room_type not in {"boss", "boss_chest"} or boss_rewards is None:
+    if (
+        not room_state.is_resolved
+        or room_state.room_type not in {"boss", "boss_chest"}
+        or boss_rewards is None
+    ):
         return False
     claimed_relic_id = boss_rewards.get("claimed_relic_id")
     return not (isinstance(claimed_relic_id, str) and bool(claimed_relic_id))
 
 
 def _is_treasure_opened(room_state: RoomState) -> bool:
-    return room_state.room_type == "treasure" and room_state.payload.get("treasure_opened") is True
+    return (
+        room_state.room_type == "treasure"
+        and room_state.payload.get("treasure_opened") is True
+    )
 
 
-def _usable_combat_potion_ids(run_state: RunState, registry: ContentProviderPort | None) -> list[str]:
+def _usable_combat_potion_ids(
+    run_state: RunState, registry: ContentProviderPort | None
+) -> list[str]:
     usable_timing_ids = {"in_combat", "any"}
     usable_potions: list[str] = []
     for potion_id in run_state.potions:
@@ -260,7 +274,9 @@ def build_root_menu(
 
 
 def build_inspect_root_menu(*, room_state: RoomState) -> MenuDefinition:
-    reward_room_inspect = room_state.is_resolved and (bool(room_state.rewards) or _has_pending_boss_rewards(room_state))
+    reward_room_inspect = room_state.is_resolved and (
+        bool(room_state.rewards) or _has_pending_boss_rewards(room_state)
+    )
     if room_state.room_type in {"combat", "elite", "boss"} and not reward_room_inspect:
         return build_menu(
             title="资料总览",
@@ -293,9 +309,13 @@ def build_leaf_menu(*, title: str) -> MenuDefinition:
     return build_menu(title=title, options=[("back", "返回上一步")])
 
 
-def build_select_potion_menu(*, run_state: RunState, registry: ContentProviderPort) -> MenuDefinition:
+def build_select_potion_menu(
+    *, run_state: RunState, registry: ContentProviderPort
+) -> MenuDefinition:
     options: list[tuple[str, str | Text]] = []
-    for index, potion_id in enumerate(_usable_combat_potion_ids(run_state, registry), start=1):
+    for index, potion_id in enumerate(
+        _usable_combat_potion_ids(run_state, registry), start=1
+    ):
         potion_def = registry.potions().get(potion_id)
         options.append(
             (
@@ -342,26 +362,47 @@ def build_potion_target_menu(
 
 
 def build_card_detail_menu() -> MenuDefinition:
-    return build_menu(title="卡牌详情", options=[("back_to_list", "返回卡牌列表"), ("back_to_root", "返回资料总览")])
+    return build_menu(
+        title="卡牌详情",
+        options=[("back_to_list", "返回卡牌列表"), ("back_to_root", "返回资料总览")],
+    )
 
 
 def build_enemy_detail_menu() -> MenuDefinition:
-    return build_menu(title="敌人详情", options=[("back_to_list", "返回敌人列表"), ("back_to_root", "返回资料总览")])
+    return build_menu(
+        title="敌人详情",
+        options=[("back_to_list", "返回敌人列表"), ("back_to_root", "返回资料总览")],
+    )
 
 
 def build_relic_detail_menu() -> MenuDefinition:
-    return build_menu(title="遗物详情", options=[("back_to_list", "返回遗物列表"), ("back_to_root", "返回资料总览")])
+    return build_menu(
+        title="遗物详情",
+        options=[("back_to_list", "返回遗物列表"), ("back_to_root", "返回资料总览")],
+    )
 
 
 def _reward_label(reward_id: str, registry: ContentProviderPort) -> str:
     if reward_id.startswith("gold:"):
         return f"金币 +{reward_id.split(':', 1)[1]}"
+    if reward_id.startswith("relic:"):
+        relic_id = reward_id.split(":", 1)[1]
+        return f"遗物 {registry.relics().get(relic_id).name}"
+    if reward_id.startswith("potion:"):
+        potion_id = reward_id.split(":", 1)[1]
+        return f"药水 {registry.potions().get(potion_id).name}"
     if reward_id.startswith("card_offer:"):
         card_id = reward_id.split(":", 1)[1]
         return Text.assemble("卡牌 ", render_card_name(registry.cards().get(card_id)))
     if reward_id.startswith("card:"):
         reward_name = reward_id.split(":", 1)[1]
-        card_id = "strike_plus" if reward_name == "reward_strike" else "defend_plus" if reward_name == "reward_defend" else reward_name
+        card_id = (
+            "strike_plus"
+            if reward_name == "reward_strike"
+            else "defend_plus"
+            if reward_name == "reward_defend"
+            else reward_name
+        )
         return Text.assemble("卡牌 ", render_card_name(registry.cards().get(card_id)))
     if reward_id.startswith("event:"):
         result = reward_id.split(":", 1)[1]
@@ -373,12 +414,19 @@ def _reward_label(reward_id: str, registry: ContentProviderPort) -> str:
     return reward_id
 
 
-def build_reward_menu(*, room_state: RoomState, registry: ContentProviderPort) -> MenuDefinition:
-    has_card_offers = any(reward_id.startswith("card_offer:") for reward_id in room_state.rewards)
+def build_reward_menu(
+    *, room_state: RoomState, registry: ContentProviderPort
+) -> MenuDefinition:
+    has_card_offers = any(
+        reward_id.startswith("card_offer:") for reward_id in room_state.rewards
+    )
     return build_menu(
         title="奖励",
         options=[
-            *[(f"claim_reward:{reward_id}", _reward_label(reward_id, registry)) for reward_id in room_state.rewards],
+            *[
+                (f"claim_reward:{reward_id}", _reward_label(reward_id, registry))
+                for reward_id in room_state.rewards
+            ],
             *((("skip_card_rewards", "跳过卡牌奖励"),) if has_card_offers else ()),
             ("claim_all", "全部领取"),
             ("back", "返回上一步"),
@@ -388,8 +436,16 @@ def build_reward_menu(*, room_state: RoomState, registry: ContentProviderPort) -
 
 def build_boss_reward_menu(boss_rewards: Mapping[str, object]) -> MenuDefinition:
     claimed_relic_id = boss_rewards.get("claimed_relic_id")
-    relic_label = "已选择遗物" if isinstance(claimed_relic_id, str) and claimed_relic_id else "选择遗物"
-    relic_action = "claimed_boss_relic" if isinstance(claimed_relic_id, str) and claimed_relic_id else "choose_boss_relic"
+    relic_label = (
+        "已选择遗物"
+        if isinstance(claimed_relic_id, str) and claimed_relic_id
+        else "选择遗物"
+    )
+    relic_action = (
+        "claimed_boss_relic"
+        if isinstance(claimed_relic_id, str) and claimed_relic_id
+        else "choose_boss_relic"
+    )
     return build_menu(
         title="Boss奖励",
         options=[
@@ -399,11 +455,16 @@ def build_boss_reward_menu(boss_rewards: Mapping[str, object]) -> MenuDefinition
     )
 
 
-def build_boss_relic_menu(relic_ids: list[str], *, registry: ContentProviderPort) -> MenuDefinition:
+def build_boss_relic_menu(
+    relic_ids: list[str], *, registry: ContentProviderPort
+) -> MenuDefinition:
     return build_menu(
         title="选择Boss遗物",
         options=[
-            *[(f"claim_boss_relic:{relic_id}", registry.relics().get(relic_id).name) for relic_id in relic_ids],
+            *[
+                (f"claim_boss_relic:{relic_id}", registry.relics().get(relic_id).name)
+                for relic_id in relic_ids
+            ],
             ("back", "返回上一步"),
         ],
     )
@@ -413,7 +474,10 @@ def build_terminal_phase_menu(*, run_phase: str) -> MenuDefinition:
     return build_menu(
         title="终局",
         options=[
-            ("view_terminal", "查看胜利结果" if run_phase == "victory" else "查看失败结果"),
+            (
+                "view_terminal",
+                "查看胜利结果" if run_phase == "victory" else "查看失败结果",
+            ),
             ("save", "保存游戏"),
             ("load", "读取存档"),
             ("quit", "退出游戏"),
@@ -432,12 +496,18 @@ def build_event_choice_menu(*, options: list[tuple[str, str]]) -> MenuDefinition
     return build_menu(title="事件选项", options=[*options, ("back", "返回上一步")])
 
 
-def build_event_upgrade_menu(*, options: list[tuple[str, str | Text]]) -> MenuDefinition:
-    return build_menu(title="选择要升级的卡牌", options=[*options, ("cancel", "返回上一步")])
+def build_event_upgrade_menu(
+    *, options: list[tuple[str, str | Text]]
+) -> MenuDefinition:
+    return build_menu(
+        title="选择要升级的卡牌", options=[*options, ("cancel", "返回上一步")]
+    )
 
 
 def build_event_remove_menu(*, options: list[tuple[str, str | Text]]) -> MenuDefinition:
-    return build_menu(title="选择要移除的卡牌", options=[*options, ("cancel", "返回上一步")])
+    return build_menu(
+        title="选择要移除的卡牌", options=[*options, ("cancel", "返回上一步")]
+    )
 
 
 def build_shop_root_menu(
@@ -451,28 +521,64 @@ def build_shop_root_menu(
         if not isinstance(offer, dict) or not isinstance(offer.get("offer_id"), str):
             continue
         card_id = offer.get("card_id")
-        card_name = render_card_name(registry.cards().get(card_id)) if isinstance(card_id, str) else Text(str(card_id))
-        status = _shop_offer_status(price=offer.get("price"), sold=offer.get("sold") is True, current_gold=run_state.gold)
+        card_name = (
+            render_card_name(registry.cards().get(card_id))
+            if isinstance(card_id, str)
+            else Text(str(card_id))
+        )
+        status = _shop_offer_status(
+            price=offer.get("price"),
+            sold=offer.get("sold") is True,
+            current_gold=run_state.gold,
+        )
         options.append(
             (
                 f"buy_card:{offer['offer_id']}",
-                Text.assemble("购买卡牌 ", card_name, f" - {offer.get('price')} 金币 [{status}]"),
+                Text.assemble(
+                    "购买卡牌 ", card_name, f" - {offer.get('price')} 金币 [{status}]"
+                ),
             )
         )
     for offer in room_state.payload.get("relics", []):
         if not isinstance(offer, dict) or not isinstance(offer.get("offer_id"), str):
             continue
         relic_id = offer.get("relic_id")
-        relic_name = registry.relics().get(relic_id).name if isinstance(relic_id, str) else str(relic_id)
-        status = _shop_offer_status(price=offer.get("price"), sold=offer.get("sold") is True, current_gold=run_state.gold)
-        options.append((f"buy_relic:{offer['offer_id']}", f"购买遗物 {relic_name} - {offer.get('price')} 金币 [{status}]"))
+        relic_name = (
+            registry.relics().get(relic_id).name
+            if isinstance(relic_id, str)
+            else str(relic_id)
+        )
+        status = _shop_offer_status(
+            price=offer.get("price"),
+            sold=offer.get("sold") is True,
+            current_gold=run_state.gold,
+        )
+        options.append(
+            (
+                f"buy_relic:{offer['offer_id']}",
+                f"购买遗物 {relic_name} - {offer.get('price')} 金币 [{status}]",
+            )
+        )
     for offer in room_state.payload.get("potions", []):
         if not isinstance(offer, dict) or not isinstance(offer.get("offer_id"), str):
             continue
         potion_id = offer.get("potion_id")
-        potion_name = registry.potions().get(potion_id).name if isinstance(potion_id, str) else str(potion_id)
-        status = _shop_offer_status(price=offer.get("price"), sold=offer.get("sold") is True, current_gold=run_state.gold)
-        options.append((f"buy_potion:{offer['offer_id']}", f"购买药水 {potion_name} - {offer.get('price')} 金币 [{status}]"))
+        potion_name = (
+            registry.potions().get(potion_id).name
+            if isinstance(potion_id, str)
+            else str(potion_id)
+        )
+        status = _shop_offer_status(
+            price=offer.get("price"),
+            sold=offer.get("sold") is True,
+            current_gold=run_state.gold,
+        )
+        options.append(
+            (
+                f"buy_potion:{offer['offer_id']}",
+                f"购买药水 {potion_name} - {offer.get('price')} 金币 [{status}]",
+            )
+        )
     remove_price = room_state.payload.get("remove_price", 75)
     remove_status = _remove_service_status(
         remove_used=room_state.payload.get("remove_used") is True,
@@ -489,16 +595,25 @@ def build_shop_root_menu(
             ("quit", "退出游戏"),
         ]
     )
-    return build_menu(title="商店操作", header_lines=[f"当前金币: {run_state.gold}"], options=options)
+    return build_menu(
+        title="商店操作", header_lines=[f"当前金币: {run_state.gold}"], options=options
+    )
 
 
-def build_shop_remove_menu(*, room_state: RoomState, registry: ContentProviderPort) -> MenuDefinition:
+def build_shop_remove_menu(
+    *, room_state: RoomState, registry: ContentProviderPort
+) -> MenuDefinition:
     options: list[tuple[str, str | Text]] = []
     for card_instance_id in room_state.payload.get("remove_candidates", []):
         if not isinstance(card_instance_id, str):
             continue
         card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
-        options.append((f"remove_card:{card_instance_id}", Text.assemble(render_card_name(card_def), f" ({card_instance_id})")))
+        options.append(
+            (
+                f"remove_card:{card_instance_id}",
+                Text.assemble(render_card_name(card_def), f" ({card_instance_id})"),
+            )
+        )
     options.extend(
         [
             ("cancel", "取消"),
@@ -510,12 +625,28 @@ def build_shop_remove_menu(*, room_state: RoomState, registry: ContentProviderPo
     return build_menu(title="选择要移除的卡牌", options=options)
 
 
-def build_rest_root_menu(*, room_state: RoomState, run_state: RunState | None = None) -> MenuDefinition:
+def build_rest_root_menu(
+    *, room_state: RoomState, run_state: RunState | None = None
+) -> MenuDefinition:
     options: list[tuple[str, str]] = []
     for action in room_state.payload.get("actions", []):
         if not isinstance(action, str):
             continue
-        label = "休息" if action == "rest" else "锻造" if action == "smith" else action
+        label = (
+            "休息"
+            if action == "rest"
+            else "锻造"
+            if action == "smith"
+            else "获得卡牌"
+            if action == "dream"
+            else "举重"
+            if action == "lift"
+            else "冥想消耗"
+            if action == "digestion"
+            else "挖掘"
+            if action == "dig"
+            else action
+        )
         if run_state is not None:
             if action == "rest" and "coffee_dripper" in run_state.relics:
                 label = f"{label} [已禁用]"
@@ -534,18 +665,34 @@ def build_rest_root_menu(*, room_state: RoomState, run_state: RunState | None = 
     return build_menu(title="休息点操作", options=options)
 
 
-def build_rest_upgrade_menu(*, room_state: RoomState, registry: ContentProviderPort) -> MenuDefinition:
+def build_rest_upgrade_menu(
+    *, room_state: RoomState, registry: ContentProviderPort
+) -> MenuDefinition:
     options: list[tuple[str, str | Text]] = []
     for card_instance_id in room_state.payload.get("upgrade_options", []):
         if not isinstance(card_instance_id, str):
             continue
         card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
-        options.append((f"upgrade_card:{card_instance_id}", Text.assemble(render_card_name(card_def), f" ({card_instance_id})")))
-    options.extend([("cancel", "取消"), ("save", "保存游戏"), ("load", "读取存档"), ("quit", "退出游戏")])
+        options.append(
+            (
+                f"upgrade_card:{card_instance_id}",
+                Text.assemble(render_card_name(card_def), f" ({card_instance_id})"),
+            )
+        )
+    options.extend(
+        [
+            ("cancel", "取消"),
+            ("save", "保存游戏"),
+            ("load", "读取存档"),
+            ("quit", "退出游戏"),
+        ]
+    )
     return build_menu(title="可升级卡牌", options=options)
 
 
-def build_select_card_menu(*, combat_state: CombatState, registry: ContentProviderPort) -> MenuDefinition:
+def build_select_card_menu(
+    *, combat_state: CombatState, registry: ContentProviderPort
+) -> MenuDefinition:
     options: list[tuple[str, str | Text]] = []
     for index, card_instance_id in enumerate(combat_state.hand, start=1):
         card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
@@ -562,10 +709,20 @@ def build_select_card_menu(*, combat_state: CombatState, registry: ContentProvid
             card_instance_id=card_instance_id,
             combat_state=combat_state,
         )
-        options.append((f"play_card:{index}", Text.assemble(render_card_name(card_def), f" {cost_label} - {effect_summary}")))
+        options.append(
+            (
+                f"play_card:{index}",
+                Text.assemble(
+                    render_card_name(card_def), f" {cost_label} - {effect_summary}"
+                ),
+            )
+        )
     options.append(("end_turn", "结束回合"))
     options.append(("back", "返回上一步"))
-    return build_menu(title=f"手牌（第{combat_state.round_number}回合，当前能量 {combat_state.energy}）", options=options)
+    return build_menu(
+        title=f"手牌（第{combat_state.round_number}回合，当前能量 {combat_state.energy}）",
+        options=options,
+    )
 
 
 def build_target_menu(
@@ -581,7 +738,11 @@ def build_target_menu(
             resolved_header_lines.append(Text.assemble("当前卡牌: ", current_card_name))
         else:
             resolved_header_lines.append(f"当前卡牌: {current_card_name}")
-    return build_menu(title=title, header_lines=resolved_header_lines, options=[*target_options, ("back", "返回上一步")])
+    return build_menu(
+        title=title,
+        header_lines=resolved_header_lines,
+        options=[*target_options, ("back", "返回上一步")],
+    )
 
 
 def _shop_offer_status(*, price: object, sold: bool, current_gold: int) -> str:
@@ -592,7 +753,9 @@ def _shop_offer_status(*, price: object, sold: bool, current_gold: int) -> str:
     return "可购买"
 
 
-def _remove_service_status(*, remove_used: bool, remove_price: Any, current_gold: int) -> str:
+def _remove_service_status(
+    *, remove_used: bool, remove_price: Any, current_gold: int
+) -> str:
     if remove_used:
         return "已使用"
     if not isinstance(remove_price, int) or current_gold < remove_price:

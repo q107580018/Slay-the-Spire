@@ -16,7 +16,9 @@ class RestActionResult:
     message: str | None = None
 
 
-def _result(run_state: RunState, room_state: RoomState, message: str | None = None) -> RestActionResult:
+def _result(
+    run_state: RunState, room_state: RoomState, message: str | None = None
+) -> RestActionResult:
     return RestActionResult(run_state=run_state, room_state=room_state, message=message)
 
 
@@ -27,6 +29,21 @@ def _upgrade_options(run_state: RunState, registry: ContentProviderPort) -> list
         if card_def.upgrades_to is not None:
             options.append(card_instance_id)
     return options
+
+
+def _remove_one_card(run_state: RunState) -> RunState:
+    if not run_state.deck:
+        return run_state
+    return replace(run_state, deck=list(run_state.deck[1:]))
+
+
+def _rest_heal_amount(run_state: RunState) -> int:
+    heal_amount = ceil(run_state.max_hp * 0.3)
+    if "regal_pillow" in run_state.relics:
+        heal_amount += 15
+    if "eternal_feather" in run_state.relics:
+        heal_amount += (len(run_state.deck) // 5) * 3
+    return heal_amount
 
 
 def rest_action(
@@ -67,7 +84,10 @@ def rest_action(
             return _result(run_state, room_state)
         _old_card_id, suffix = selected_card.split("#", 1)
         upgraded_instance_id = f"{upgraded_card_id}#{suffix}"
-        updated_deck = [upgraded_instance_id if card == selected_card else card for card in run_state.deck]
+        updated_deck = [
+            upgraded_instance_id if card == selected_card else card
+            for card in run_state.deck
+        ]
         payload.pop("upgrade_options", None)
         return _result(
             replace(run_state, deck=updated_deck),
@@ -85,10 +105,14 @@ def rest_action(
     if action_id == "rest":
         if "coffee_dripper" in run_state.relics:
             return _result(run_state, room_state, "该动作被遗物效果禁用。")
-        heal_amount = ceil(run_state.max_hp * 0.3)
+        heal_amount = _rest_heal_amount(run_state)
         healed_hp = min(run_state.max_hp, run_state.current_hp + heal_amount)
+        updated_run_state = replace(run_state, current_hp=healed_hp)
+        rewards = list(room_state.rewards)
+        if "dream_catcher" in run_state.relics:
+            rewards.append("card_offer:anger")
         return _result(
-            replace(run_state, current_hp=healed_hp),
+            updated_run_state,
             RoomState(
                 schema_version=room_state.schema_version,
                 room_id=room_state.room_id,
@@ -96,7 +120,7 @@ def rest_action(
                 stage="completed",
                 payload=payload,
                 is_resolved=True,
-                rewards=list(room_state.rewards),
+                rewards=rewards,
             ),
         )
     if action_id == "leave":
@@ -129,6 +153,52 @@ def rest_action(
                 payload=payload,
                 is_resolved=False,
                 rewards=list(room_state.rewards),
+            ),
+        )
+    if action_id == "lift":
+        current_lifts = payload.get("girya_lifts", 0)
+        if not isinstance(current_lifts, int):
+            current_lifts = 0
+        if current_lifts >= 3:
+            return _result(run_state, room_state, "该动作已达到次数上限。")
+        payload["girya_lifts"] = current_lifts + 1
+        return _result(
+            run_state,
+            RoomState(
+                schema_version=room_state.schema_version,
+                room_id=room_state.room_id,
+                room_type=room_state.room_type,
+                stage="completed",
+                payload=payload,
+                is_resolved=True,
+                rewards=list(room_state.rewards),
+            ),
+        )
+    if action_id == "digestion":
+        return _result(
+            _remove_one_card(run_state),
+            RoomState(
+                schema_version=room_state.schema_version,
+                room_id=room_state.room_id,
+                room_type=room_state.room_type,
+                stage="completed",
+                payload=payload,
+                is_resolved=True,
+                rewards=list(room_state.rewards),
+            ),
+        )
+    if action_id == "dig":
+        rewards = [*room_state.rewards, "relic:circlet"]
+        return _result(
+            run_state,
+            RoomState(
+                schema_version=room_state.schema_version,
+                room_id=room_state.room_id,
+                room_type=room_state.room_type,
+                stage="completed",
+                payload=payload,
+                is_resolved=True,
+                rewards=rewards,
             ),
         )
     return _result(run_state, room_state)

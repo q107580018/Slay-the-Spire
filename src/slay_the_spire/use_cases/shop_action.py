@@ -48,6 +48,20 @@ def _mark_offer_sold(items: object, offer_id: str) -> list[object]:
     return updated
 
 
+def _refresh_unsold_offer(items: object, offer_id: str) -> list[object]:
+    if not isinstance(items, list):
+        return []
+    updated: list[object] = []
+    for item in items:
+        if isinstance(item, dict) and item.get("offer_id") == offer_id:
+            refreshed_item = dict(item)
+            refreshed_item.pop("sold", None)
+            updated.append(refreshed_item)
+            continue
+        updated.append(item)
+    return updated
+
+
 def _result(
     run_state: RunState, room_state: RoomState, message: str | None = None
 ) -> ShopActionResult:
@@ -156,6 +170,8 @@ def shop_action(
         ):
             return _result(run_state, room_state, "金币不足，无法购买该商品。")
         payload["cards"] = _mark_offer_sold(payload.get("cards"), offer_id)
+        if "the_courier" in run_state.relics:
+            payload["cards"] = _refresh_unsold_offer(payload.get("cards"), offer_id)
         updated_run_state = replace(
             run_state,
             gold=run_state.gold - price,
@@ -189,6 +205,8 @@ def shop_action(
         ):
             return _result(run_state, room_state, "金币不足，无法购买该商品。")
         payload["relics"] = _mark_offer_sold(payload.get("relics"), offer_id)
+        if "the_courier" in run_state.relics:
+            payload["relics"] = _refresh_unsold_offer(payload.get("relics"), offer_id)
         updated_run_state = apply_reward(
             run_state=replace(run_state, gold=run_state.gold - price),
             reward_id=f"relic:{relic_id}",
@@ -222,6 +240,8 @@ def shop_action(
         ):
             return _result(run_state, room_state, "金币不足，无法购买该商品。")
         payload["potions"] = _mark_offer_sold(payload.get("potions"), offer_id)
+        if "the_courier" in run_state.relics:
+            payload["potions"] = _refresh_unsold_offer(payload.get("potions"), offer_id)
         updated_run_state = replace(
             run_state,
             gold=run_state.gold - price,

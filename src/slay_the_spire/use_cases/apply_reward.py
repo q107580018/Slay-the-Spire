@@ -123,6 +123,10 @@ def apply_reward(
         card_id = reward_id.split(":", 1)[1]
         registry.cards().get(card_id)
         return _apply_card_reward(run_state, card_id)
+    if reward_id.startswith("potion:"):
+        potion_id = reward_id.split(":", 1)[1]
+        registry.potions().get(potion_id)
+        return replace(run_state, potions=[*run_state.potions, potion_id])
     if reward_id.startswith("card:"):
         card_id = reward_id.split(":", 1)[1]
         registry.cards().get(card_id)

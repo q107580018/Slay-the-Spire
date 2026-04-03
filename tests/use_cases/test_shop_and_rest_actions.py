@@ -6,9 +6,11 @@ from dataclasses import replace
 from pathlib import Path
 
 from slay_the_spire.app.session import MenuState, route_menu_choice, start_session
+from slay_the_spire.domain.models.act_state import ActNodeState, ActState
 from slay_the_spire.domain.models.room_state import RoomState
 from slay_the_spire.domain.models.run_state import RunState
 from slay_the_spire.content.provider import StarterContentProvider
+from slay_the_spire.use_cases.enter_room import enter_room
 from slay_the_spire.use_cases.rest_action import rest_action
 from slay_the_spire.use_cases.shop_action import shop_action
 
@@ -63,6 +65,34 @@ def _rest_room() -> RoomState:
     )
 
 
+def _single_room_act_state(*, node_id: str, room_type: str) -> ActState:
+    return ActState(
+        act_id="act1",
+        current_node_id="start",
+        nodes=[
+            ActNodeState(
+                node_id="start",
+                row=0,
+                col=0,
+                room_type="combat",
+                next_node_ids=[node_id],
+            ),
+            ActNodeState(
+                node_id=node_id,
+                row=1,
+                col=0,
+                room_type=room_type,
+                next_node_ids=[],
+            ),
+        ],
+        visited_node_ids=[],
+        enemy_pool_id="act1_basic",
+        elite_pool_id="act1_elites",
+        boss_pool_id="act1_bosses",
+        event_pool_id="act1_events",
+    )
+
+
 def test_shop_buy_card_spends_gold_and_adds_deck_instance() -> None:
     result = shop_action(
         run_state=_run_state(),
@@ -90,6 +120,182 @@ def test_shop_buy_potion_spends_gold_and_adds_potion() -> None:
     assert result.run_state.potions == ["fire_potion"]
     assert result.room_state.payload["potions"][0]["sold"] is True
     assert result.message is None
+
+
+def test_membership_card_halves_shop_prices() -> None:
+    room_state = enter_room(
+        replace(_run_state(), relics=["burning_blood", "membership_card"]),
+        _single_room_act_state(node_id="shop-1", room_type="shop"),
+        "shop-1",
+        _content_provider(),
+    )
+
+    assert room_state.payload["cards"]
+    assert room_state.payload["relics"]
+    assert room_state.payload["potions"]
+    assert all(offer["price"] % 5 == 0 for offer in room_state.payload["cards"])
+    assert room_state.payload["relics"][0]["price"] == 75
+    assert all(offer["price"] == 30 for offer in room_state.payload["potions"])
+    assert room_state.payload["remove_price"] == 38
+
+
+def test_smiling_mask_sets_card_remove_price_to_fifty() -> None:
+    run_state = replace(_run_state(gold=200), relics=["burning_blood", "smiling_mask"])
+    room_state = _shop_room(remove_price=50)
+
+    entered_remove = shop_action(
+        run_state=run_state,
+        room_state=room_state,
+        action_id="remove",
+        registry=_content_provider(),
+    )
+    result = shop_action(
+        run_state=entered_remove.run_state,
+        room_state=entered_remove.room_state,
+        action_id="remove_card:defend#2",
+        registry=_content_provider(),
+    )
+
+    assert entered_remove.room_state.payload["remove_price"] == 50
+    assert result.run_state.gold == 150
+
+
+def test_meal_ticket_grants_five_healing_when_entering_shop() -> None:
+    run_state = replace(
+        _run_state(),
+        current_hp=40,
+        max_hp=80,
+        relics=["burning_blood", "meal_ticket"],
+    )
+
+    enter_room(
+        run_state,
+        _single_room_act_state(node_id="shop-1", room_type="shop"),
+        "shop-1",
+        _content_provider(),
+    )
+
+    assert run_state.current_hp == 55
+
+
+def test_the_courier_keeps_shop_card_offer_available_after_purchase() -> None:
+    room_state = RoomState(
+        room_id="act1:shop",
+        room_type="shop",
+        stage="waiting_input",
+        payload={
+            "cards": [{"offer_id": "card-1", "card_id": "strike", "price": 40}],
+            "relics": [],
+            "potions": [],
+            "remove_price": 60,
+        },
+        is_resolved=False,
+        rewards=[],
+    )
+
+    result = shop_action(
+        run_state=replace(_run_state(), relics=["burning_blood", "the_courier"]),
+        room_state=room_state,
+        action_id="buy_card:card-1",
+        registry=_content_provider(),
+    )
+
+    assert result.room_state.payload["cards"][0].get("sold") is not True
+
+
+def test_maw_bank_adds_twelve_gold_when_entering_non_shop_room() -> None:
+    run_state = replace(_run_state(gold=100), relics=["burning_blood", "maw_bank"])
+
+    enter_room(
+        run_state,
+        _single_room_act_state(node_id="rest-1", room_type="rest"),
+        "rest-1",
+        _content_provider(),
+    )
+
+    assert run_state.gold == 112
+
+
+def test_maw_bank_stops_adding_gold_after_entering_shop() -> None:
+    run_state = replace(_run_state(gold=100), relics=["burning_blood", "maw_bank"])
+
+    enter_room(
+        run_state,
+        _single_room_act_state(node_id="shop-1", room_type="shop"),
+        "shop-1",
+        _content_provider(),
+    )
+    enter_room(
+        run_state,
+        _single_room_act_state(node_id="rest-1", room_type="rest"),
+        "rest-1",
+        _content_provider(),
+    )
+
+    assert run_state.gold == 100
+
+
+def test_dream_catcher_rest_adds_card_reward() -> None:
+    result = rest_action(
+        run_state=replace(_run_state(), relics=["burning_blood", "dream_catcher"]),
+        room_state=_rest_room(),
+        action_id="rest",
+        registry=_content_provider(),
+    )
+
+    assert result.room_state.rewards == ["card_offer:anger"]
+
+
+def test_eternal_feather_adds_three_healing_per_five_cards() -> None:
+    run_state = replace(
+        _run_state(),
+        current_hp=30,
+        max_hp=80,
+        deck=[f"strike#{index}" for index in range(1, 11)],
+        relics=["burning_blood", "eternal_feather"],
+    )
+
+    result = rest_action(
+        run_state=run_state,
+        room_state=_rest_room(),
+        action_id="rest",
+        registry=_content_provider(),
+    )
+
+    assert result.run_state.current_hp == 60
+
+
+def test_girya_adds_lift_action_to_rest_site() -> None:
+    room_state = enter_room(
+        replace(_run_state(), relics=["burning_blood", "girya"]),
+        _single_room_act_state(node_id="rest-1", room_type="rest"),
+        "rest-1",
+        _content_provider(),
+    )
+
+    assert "lift" in room_state.payload["actions"]
+
+
+def test_peace_pipe_adds_remove_action_to_rest_site() -> None:
+    room_state = enter_room(
+        replace(_run_state(), relics=["burning_blood", "peace_pipe"]),
+        _single_room_act_state(node_id="rest-1", room_type="rest"),
+        "rest-1",
+        _content_provider(),
+    )
+
+    assert "digestion" in room_state.payload["actions"]
+
+
+def test_shovel_adds_dig_action_to_rest_site() -> None:
+    room_state = enter_room(
+        replace(_run_state(), relics=["burning_blood", "shovel"]),
+        _single_room_act_state(node_id="rest-1", room_type="rest"),
+        "rest-1",
+        _content_provider(),
+    )
+
+    assert "dig" in room_state.payload["actions"]
 
 
 def test_shop_buy_relic_routes_through_apply_reward_replacement_rules() -> None:
@@ -313,6 +519,24 @@ def test_rest_is_blocked_by_coffee_dripper() -> None:
     assert result.room_state.stage == "waiting_input"
     assert result.room_state.is_resolved is False
     assert result.message == "该动作被遗物效果禁用。"
+
+
+def test_regal_pillow_adds_extra_rest_healing() -> None:
+    run_state = replace(
+        _run_state(),
+        current_hp=30,
+        max_hp=80,
+        relics=["burning_blood", "regal_pillow"],
+    )
+
+    result = rest_action(
+        run_state=run_state,
+        room_state=_rest_room(),
+        action_id="rest",
+        registry=_content_provider(),
+    )
+
+    assert result.run_state.current_hp == 69
 
 
 def test_rest_smith_transitions_to_select_upgrade_card() -> None:

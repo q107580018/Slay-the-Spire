@@ -177,6 +177,29 @@ def _elite_relic_reward(
     return f"relic:{relic_id or _FALLBACK_RELIC_ID}"
 
 
+def _card_offer_count(*, run_state: RunState, room_type: str) -> int:
+    count = 3
+    if "question_card" in run_state.relics:
+        count += 1
+    if room_type == _COMBAT_ROOM_TYPE and "prayer_wheel" in run_state.relics:
+        count += 1
+    if "busted_crown" in run_state.relics:
+        count -= 2
+    return max(1, count)
+
+
+def _potion_reward(
+    *, run_state: RunState, registry: ContentProviderPort, room_id: str
+) -> str | None:
+    if "sozu" in run_state.relics or "white_beast_statue" not in run_state.relics:
+        return None
+    potion_ids = [potion.id for potion in registry.potions().all()]
+    if not potion_ids:
+        return None
+    rng = rng_for_room(seed=run_state.seed, room_id=room_id, category="reward:potion")
+    return f"potion:{rng.choice(potion_ids)}"
+
+
 def generate_combat_rewards(
     *,
     room_id: str,
@@ -204,9 +227,20 @@ def generate_combat_rewards(
         )
         if elite_relic_reward is not None:
             rewards.append(elite_relic_reward)
+        if "black_star" in run_state.relics:
+            extra_elite_relic_reward = _elite_relic_reward(
+                run_state=run_state,
+                registry=registry,
+                seed=normalized_seed,
+                room_id=f"{room_id}:black_star",
+            )
+            if extra_elite_relic_reward is not None:
+                rewards.append(extra_elite_relic_reward)
     taken_card_ids: set[str] = set()
     next_rare_offset = run_state.rare_card_reward_offset
-    for _ in range(3):
+    for _ in range(
+        _card_offer_count(run_state=run_state, room_type=normalized_room_type)
+    ):
         rolled_rarity = (
             _RARE_RARITY
             if normalized_room_type == _BOSS_ROOM_TYPE
@@ -228,6 +262,14 @@ def generate_combat_rewards(
             next_rare_offset = min(next_rare_offset + 1, 40)
         elif actual_rarity == _RARE_RARITY:
             next_rare_offset = -5
+    if normalized_room_type != _BOSS_ROOM_TYPE:
+        potion_reward = _potion_reward(
+            run_state=run_state,
+            registry=registry,
+            room_id=room_id,
+        )
+        if potion_reward is not None:
+            rewards.append(potion_reward)
     return rewards, next_rare_offset
 
 
