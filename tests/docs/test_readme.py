@@ -8,6 +8,11 @@ def test_readme_mentions_batch_five_relic_coverage_without_claiming_full_complet
         encoding="utf-8"
     )
 
+    assert "question_card" in readme
+    assert "prayer_wheel" in readme
+    assert "busted_crown" in readme
+    assert "white_beast_statue" in readme
+    assert "sozu" in readme
     assert "the_courier" in readme
     assert "matryoshka" in readme
     assert "wing_boots" in readme
