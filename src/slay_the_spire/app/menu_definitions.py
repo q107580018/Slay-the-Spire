@@ -568,10 +568,11 @@ def build_shop_root_menu(
             if isinstance(potion_id, str)
             else str(potion_id)
         )
-        status = _shop_offer_status(
+        status = _shop_potion_status(
             price=offer.get("price"),
             sold=offer.get("sold") is True,
             current_gold=run_state.gold,
+            has_sozu="sozu" in run_state.relics,
         )
         options.append(
             (
@@ -748,6 +749,18 @@ def build_target_menu(
 def _shop_offer_status(*, price: object, sold: bool, current_gold: int) -> str:
     if sold:
         return "已购买"
+    if not isinstance(price, int) or current_gold < price:
+        return "金币不足"
+    return "可购买"
+
+
+def _shop_potion_status(
+    *, price: object, sold: bool, current_gold: int, has_sozu: bool
+) -> str:
+    if sold:
+        return "已购买"
+    if has_sozu:
+        return "已禁用"
     if not isinstance(price, int) or current_gold < price:
         return "金币不足"
     return "可购买"

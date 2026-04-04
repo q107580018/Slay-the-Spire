@@ -728,6 +728,18 @@ def _shop_offer_status(*, price: object, sold: bool, current_gold: int) -> str:
     return "可购买"
 
 
+def _shop_potion_status(
+    *, price: object, sold: bool, current_gold: int, has_sozu: bool
+) -> str:
+    if sold:
+        return "已购买"
+    if has_sozu:
+        return "已禁用"
+    if not isinstance(price, int) or current_gold < price:
+        return "金币不足"
+    return "可购买"
+
+
 def _remove_service_status(
     *, remove_used: bool, remove_price: object, current_gold: int
 ) -> str:
@@ -997,10 +1009,11 @@ def render_shop_panel(
                 if isinstance(potion_id, str)
                 else potion_id
             )
-            status = _shop_offer_status(
+            status = _shop_potion_status(
                 price=offer.get("price"),
                 sold=offer.get("sold") is True,
                 current_gold=run_state.gold,
+                has_sozu="sozu" in run_state.relics,
             )
             lines.append(
                 Text(f"- {potion_name} / {offer.get('price')} 金币 [{status}]")

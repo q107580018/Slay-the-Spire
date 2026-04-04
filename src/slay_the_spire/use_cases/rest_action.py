@@ -69,6 +69,21 @@ def _rest_heal_amount(run_state: RunState) -> int:
     return heal_amount
 
 
+def _action_allowed(room_state: RoomState, action_id: str) -> bool:
+    actions = room_state.payload.get("actions")
+    return isinstance(actions, list) and action_id in actions
+
+
+def _has_required_rest_relic(run_state: RunState, action_id: str) -> bool:
+    required_relic_by_action = {
+        "lift": "girya",
+        "digestion": "peace_pipe",
+        "dig": "shovel",
+    }
+    required_relic = required_relic_by_action.get(action_id)
+    return required_relic is not None and required_relic in run_state.relics
+
+
 def rest_action(
     *,
     run_state: RunState,
@@ -220,6 +235,10 @@ def rest_action(
             ),
         )
     if action_id == "lift":
+        if not _action_allowed(room_state, action_id) or not _has_required_rest_relic(
+            run_state, action_id
+        ):
+            return _result(run_state, room_state)
         current_lifts = run_state.relic_sequence_positions.get("girya_lifts", 0)
         if current_lifts >= 3:
             return _result(run_state, room_state, "该动作已达到次数上限。")
@@ -238,6 +257,10 @@ def rest_action(
             ),
         )
     if action_id == "digestion":
+        if not _action_allowed(room_state, action_id) or not _has_required_rest_relic(
+            run_state, action_id
+        ):
+            return _result(run_state, room_state)
         if not run_state.deck:
             return _result(run_state, room_state)
         payload["remove_candidates"] = list(run_state.deck)
@@ -254,6 +277,10 @@ def rest_action(
             ),
         )
     if action_id == "dig":
+        if not _action_allowed(room_state, action_id) or not _has_required_rest_relic(
+            run_state, action_id
+        ):
+            return _result(run_state, room_state)
         rewards = [*room_state.rewards, _next_rest_relic_reward(run_state)]
         return _result(
             run_state,

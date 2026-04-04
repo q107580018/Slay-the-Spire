@@ -410,7 +410,9 @@ def test_dream_catcher_rest_adds_three_card_reward_choices() -> None:
 def test_peace_pipe_enters_select_remove_card_stage() -> None:
     result = rest_action(
         run_state=replace(_run_state(), relics=["burning_blood", "peace_pipe"]),
-        room_state=_rest_room(),
+        room_state=replace(
+            _rest_room(), payload={"actions": ["rest", "smith", "digestion"]}
+        ),
         action_id="digestion",
         registry=_content_provider(),
     )
@@ -425,10 +427,78 @@ def test_peace_pipe_enters_select_remove_card_stage() -> None:
     ]
 
 
+def test_girya_lift_requires_girya_relic() -> None:
+    run_state = _run_state()
+    room_state = replace(_rest_room(), payload={"actions": ["rest", "smith", "lift"]})
+
+    result = rest_action(
+        run_state=run_state,
+        room_state=room_state,
+        action_id="lift",
+        registry=_content_provider(),
+    )
+
+    assert result.run_state.to_dict() == run_state.to_dict()
+    assert result.room_state.to_dict() == room_state.to_dict()
+    assert result.message is None
+
+
+def test_peace_pipe_digestion_requires_peace_pipe_relic() -> None:
+    run_state = _run_state()
+    room_state = replace(
+        _rest_room(), payload={"actions": ["rest", "smith", "digestion"]}
+    )
+
+    result = rest_action(
+        run_state=run_state,
+        room_state=room_state,
+        action_id="digestion",
+        registry=_content_provider(),
+    )
+
+    assert result.run_state.to_dict() == run_state.to_dict()
+    assert result.room_state.to_dict() == room_state.to_dict()
+    assert result.message is None
+
+
+def test_shovel_dig_requires_shovel_relic() -> None:
+    run_state = _run_state()
+    room_state = replace(_rest_room(), payload={"actions": ["rest", "smith", "dig"]})
+
+    result = rest_action(
+        run_state=run_state,
+        room_state=room_state,
+        action_id="dig",
+        registry=_content_provider(),
+    )
+
+    assert result.run_state.to_dict() == run_state.to_dict()
+    assert result.room_state.to_dict() == room_state.to_dict()
+    assert result.message is None
+
+
+def test_rest_action_rejects_relic_action_missing_from_room_whitelist() -> None:
+    run_state = replace(_run_state(), relics=["burning_blood", "shovel"])
+    room_state = _rest_room()
+
+    result = rest_action(
+        run_state=run_state,
+        room_state=room_state,
+        action_id="dig",
+        registry=_content_provider(),
+    )
+
+    assert result.run_state.to_dict() == run_state.to_dict()
+    assert result.room_state.to_dict() == room_state.to_dict()
+    assert result.message is None
+
+
 def test_peace_pipe_remove_card_removes_selected_card() -> None:
     entered_remove = rest_action(
         run_state=replace(_run_state(), relics=["burning_blood", "peace_pipe"]),
-        room_state=_rest_room(),
+        room_state=replace(
+            _rest_room(), payload={"actions": ["rest", "smith", "digestion"]}
+        ),
         action_id="digestion",
         registry=_content_provider(),
     )
@@ -457,7 +527,7 @@ def test_shovel_dig_adds_generated_relic_reward() -> None:
             },
             relic_sequence_positions={"common": 0, "uncommon": 0, "rare": 0},
         ),
-        room_state=_rest_room(),
+        room_state=replace(_rest_room(), payload={"actions": ["rest", "smith", "dig"]}),
         action_id="dig",
         registry=_content_provider(),
     )
@@ -474,7 +544,9 @@ def test_girya_lift_persists_across_rest_sites_and_applies_strength_in_combat() 
 
     lift_result = rest_action(
         run_state=lifted_run_state,
-        room_state=_rest_room(),
+        room_state=replace(
+            _rest_room(), payload={"actions": ["rest", "smith", "lift"]}
+        ),
         action_id="lift",
         registry=_content_provider(),
     )

@@ -1229,6 +1229,43 @@ def test_shop_renderer_shows_current_gold_and_affordance_statuses() -> None:
     assert "6. 查看资料" in output
 
 
+def test_shop_renderer_marks_potions_disabled_with_sozu() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        run_state=replace(base.run_state, relics=["burning_blood", "sozu"]),
+    )
+    room_state = RoomState(
+        room_id="act1:shop",
+        room_type="shop",
+        stage="waiting_input",
+        payload={
+            "node_id": "r3c1",
+            "cards": [],
+            "relics": [],
+            "potions": [
+                {"offer_id": "potion-1", "potion_id": "fire_potion", "price": 60}
+            ],
+            "remove_price": 75,
+            "next_node_ids": ["r4c0"],
+        },
+        is_resolved=False,
+        rewards=[],
+    )
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=room_state,
+        registry=_provider(session),
+        menu_state=MenuState(mode="shop_root"),
+        run_phase="active",
+    )
+
+    assert "火焰药水 / 60 金币 [已禁用]" in output
+    assert "1. 购买药水 火焰药水 - 60 金币 [已禁用]" in output
+
+
 def test_shop_remove_renderer_uses_localized_card_labels() -> None:
     session = start_session(seed=5)
     room_state = RoomState(
