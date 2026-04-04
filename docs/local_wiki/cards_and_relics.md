@@ -4,8 +4,8 @@
 
 ## 概览
 
-- 卡牌总数：168
-- 遗物总数：177
+- 卡牌总数：169
+- 遗物总数：180
 - 敌人总数：30
 - 事件总数：11
 - 卡牌覆盖：当前实现的 Ironclad 卡池、诅咒牌、状态牌
@@ -41,39 +41,40 @@
 
 | 名称 | ID | 稀有度 | 所属池 | 实现状态 | 效果 | 补充说明 |
 | --- | --- | --- | --- | --- | --- | --- |
-| 光滑石 | oddly_smooth_stone | 普通 | common / neow | placeholder | - | 摘要：获得 1 点敏捷；描述：获得 1 点敏捷。 |
-| 兵法 | art_of_war | 普通 | common / neow | placeholder | - | 摘要：本回合未打出攻击牌时，下回合开始获得 1 点能量；描述：如果你在本回合没有打出攻击牌，则下回合开始时获得 1 点能量。 |
-| 准备背包 | bag_of_preparation | 普通 | common / neow | placeholder | - | 摘要：每场战斗开始时额外抽 2 张牌；描述：每场战斗开始时，额外抽 2 张牌。 |
-| 双节棍 | nunchaku | 普通 | common / neow | placeholder | - | 摘要：每打出 10 张攻击牌获得 1 点能量；描述：每当你打出 10 张攻击牌时，获得 1 点能量。 |
+| 光滑石 | oddly_smooth_stone | 普通 | common / neow | implemented | - | 摘要：获得 1 点敏捷；描述：获得 1 点敏捷。 |
+| 兵法 | art_of_war | 普通 | common / neow | implemented | - | 摘要：本回合未打出攻击牌时，下回合开始获得 1 点能量；描述：如果你在本回合没有打出攻击牌，则下回合开始时获得 1 点能量。；触发时机：on_turn_start |
+| 准备背包 | bag_of_preparation | 普通 | common / neow | implemented | - | 摘要：每场战斗开始时额外抽 2 张牌；描述：每场战斗开始时，额外抽 2 张牌。；触发时机：战斗开始时 |
+| 双节棍 | nunchaku | 普通 | common / neow | implemented | - | 摘要：每打出 10 张攻击牌获得 1 点能量；描述：每当你打出 10 张攻击牌时，获得 1 点能量。 |
 | 古茶具 | ancient_tea_set | 普通 | common / neow | placeholder | - | 摘要：进入休息点后下一场战斗开始时获得 2 点能量；描述：每次进入休息点后，下一场战斗开始时获得 2 点能量。 |
-| 大嘴储蓄罐 | maw_bank | 普通 | common / neow | placeholder | - | 摘要：每经过一个房间获得 12 金币，直到你进入商店；描述：每经过一个房间获得 12 金币，直到你进入商店为止。 |
-| 小宝箱 | tiny_chest | 普通 | common / neow | placeholder | - | 摘要：每经过 4 个问号房获得 1 个宝箱房；描述：每经过 4 个问号房，你会额外获得 1 个宝箱房。 |
+| 大嘴储蓄罐 | maw_bank | 普通 | common / neow | implemented | - | 摘要：每经过一个房间获得 12 金币，直到你进入商店；描述：每经过一个房间获得 12 金币，直到你进入商店为止。 |
+| 小宝箱 | tiny_chest | 普通 | common / neow | implemented | - | 摘要：每经过 4 个问号房获得 1 个宝箱房；描述：每经过 4 个问号房，你会额外获得 1 个宝箱房。 |
 | 山铜 | orichalcum | 普通 | common / neow | placeholder | - | 摘要：若回合结束时没有格挡，则获得 6 点格挡；描述：若你在回合结束时没有格挡，则获得 6 点格挡。 |
 | 带骨肉 | meat_on_the_bone | 普通 | common / neow | placeholder | - | 摘要：战斗结束时若生命低于一半，回复 12 点生命；描述：战斗结束时，若你的生命低于一半，则回复 12 点生命。 |
-| 弹珠袋 | bag_of_marbles | 普通 | common / neow | placeholder | - | 摘要：每场战斗开始时使所有敌人获得 1 层易伤；描述：每场战斗开始时，使所有敌人获得 1 层易伤。 |
+| 弹珠袋 | bag_of_marbles | 普通 | common / neow | implemented | - | 摘要：每场战斗开始时使所有敌人获得 1 层易伤；描述：每场战斗开始时，使所有敌人获得 1 层易伤。；触发时机：战斗开始时 |
 | 御守 | omamori | 普通 | common / neow | placeholder | - | 摘要：接下来获得的 2 张诅咒牌无效；描述：接下来你将获得的 2 张诅咒牌会被无效化。 |
-| 微笑面具 | smiling_mask | 普通 | common / neow | placeholder | - | 摘要：移除卡牌的价格固定为 50 金币；描述：商店中移除卡牌的价格固定为 50 金币。 |
-| 快乐花 | happy_flower | 普通 | common / neow | placeholder | - | 摘要：每经过 3 个回合获得 1 点能量；描述：每经过 3 个回合，获得 1 点能量。 |
-| 念珠 | juzu_bracelet | 普通 | common / neow | placeholder | - | 摘要：普通宝箱房不再出现怪物事件；描述：普通宝箱房不再出现怪物事件。 |
-| 战漆 | war_paint | 普通 | common / neow | placeholder | - | 摘要：随机升级牌组中的 2 张技能牌；描述：随机升级牌组中的 2 张技能牌。 |
-| 捕梦网 | dream_catcher | 普通 | common / neow | placeholder | - | 摘要：在休息点休息后可以选择 1 张卡牌加入牌组；描述：每当你在休息点选择休息后，可以从 3 张卡牌中选择 1 张加入牌组。 |
-| 标本昆虫 | preserved_insect | 普通 | common / neow | placeholder | - | 摘要：精英敌人生命降低 25%；描述：精英敌人的生命值降低 25%。 |
+| 微笑面具 | smiling_mask | 普通 | common / neow | implemented | - | 摘要：移除卡牌的价格固定为 50 金币；描述：商店中移除卡牌的价格固定为 50 金币。 |
+| 快乐花 | happy_flower | 普通 | common / neow | implemented | - | 摘要：每经过 3 个回合获得 1 点能量；描述：每经过 3 个回合，获得 1 点能量。；触发时机：on_turn_start |
+| 念珠 | juzu_bracelet | 普通 | common / neow | implemented | - | 摘要：普通宝箱房不再出现怪物事件；描述：普通宝箱房不再出现怪物事件。 |
+| 战漆 | war_paint | 普通 | common / neow | implemented | - | 摘要：随机升级牌组中的 2 张技能牌；描述：随机升级牌组中的 2 张技能牌。 |
+| 手摇鼓 | damaru | 普通 | common / neow | placeholder | - | 摘要：在你的回合开始时，获得 1 层真言；描述：在你的回合开始时，获得 1 层真言。 |
+| 捕梦网 | dream_catcher | 普通 | common / neow | implemented | - | 摘要：在休息点休息后可以选择 1 张卡牌加入牌组；描述：每当你在休息点选择休息后，可以从 3 张卡牌中选择 1 张加入牌组。 |
+| 标本昆虫 | preserved_insect | 普通 | common / neow | implemented | - | 摘要：精英敌人生命降低 25%；描述：精英敌人的生命值降低 25%。 |
 | 水银沙漏 | mercury_hourglass | 普通 | common / neow | placeholder | - | 摘要：每回合开始时对所有敌人造成 3 点伤害；描述：每回合开始时，对所有敌人造成 3 点伤害。 |
-| 灯笼 | lantern | 普通 | common / neow | placeholder | - | 摘要：每场战斗的第一回合开始时获得 1 点能量；描述：每场战斗的第一回合开始时，获得 1 点能量。 |
+| 灯笼 | lantern | 普通 | common / neow | implemented | - | 摘要：每场战斗的第一回合开始时获得 1 点能量；描述：每场战斗的第一回合开始时，获得 1 点能量。；触发时机：on_turn_start |
 | 玩具扑翼机 | toy_ornithopter | 普通 | common / neow | placeholder | - | 摘要：每当你使用药水时回复 5 点生命；描述：每当你使用药水时，回复 5 点生命。 |
-| 百年谜题 | centennial_puzzle | 普通 | common / neow | placeholder | - | 摘要：每场战斗中第一次失去生命时抽 3 张牌；描述：每场战斗中，第一次失去生命时抽 3 张牌。 |
-| 磨刀石 | whetstone | 普通 | common / neow | placeholder | - | 摘要：随机升级牌组中的 2 张攻击牌；描述：随机升级牌组中的 2 张攻击牌。 |
-| 船锚 | anchor | 普通 | common / neow | placeholder | - | 摘要：每场战斗开始时获得 10 点格挡；描述：每场战斗开始时，获得 10 点格挡。 |
-| 草莓 | strawberry | 普通 | common / neow | placeholder | - | 摘要：最大生命值提高 7；描述：你的最大生命值提高 7。 |
+| 百年谜题 | centennial_puzzle | 普通 | common / neow | implemented | - | 摘要：每场战斗中第一次失去生命时抽 3 张牌；描述：每场战斗中，第一次失去生命时抽 3 张牌。 |
+| 磨刀石 | whetstone | 普通 | common / neow | implemented | - | 摘要：随机升级牌组中的 2 张攻击牌；描述：随机升级牌组中的 2 张攻击牌。 |
+| 船锚 | anchor | 普通 | common / neow | implemented | - | 摘要：每场战斗开始时获得 10 点格挡；描述：每场战斗开始时，获得 10 点格挡。 |
+| 草莓 | strawberry | 普通 | common / neow | implemented | - | 摘要：最大生命值提高 7；描述：你的最大生命值提高 7。 |
 | 药带 | potion_belt | 普通 | common / neow | placeholder | - | 摘要：药水栏位上限增加 2；描述：你的药水栏位上限增加 2。 |
-| 豪华枕头 | regal_pillow | 普通 | common / neow | placeholder | - | 摘要：在休息点休息时额外回复 15 点生命；描述：在休息点休息时，额外回复 15 点生命。 |
+| 豪华枕头 | regal_pillow | 普通 | common / neow | implemented | - | 摘要：在休息点休息时额外回复 15 点生命；描述：在休息点休息时，额外回复 15 点生命。 |
 | 赤牛 | akabeko | 普通 | common / neow | placeholder | - | 摘要：每场战斗中你的第一次攻击额外造成 8 点伤害；描述：每场战斗中，你打出的第一次攻击额外造成 8 点伤害。 |
-| 金刚杵 | vajra | 普通 | common / neow | placeholder | - | 摘要：获得 1 点力量；描述：获得 1 点力量。 |
-| 钢笔尖 | pen_nib | 普通 | common / neow | placeholder | - | 摘要：每打出 10 张攻击牌，你的下一张攻击造成双倍伤害；描述：每当你打出 10 张攻击牌时，你的下一张攻击造成双倍伤害。 |
-| 陶瓷鱼 | ceramic_fish | 普通 | common / neow | placeholder | - | 摘要：每当你将一张牌加入牌组时获得 9 金币；描述：每当你将一张牌加入牌组时，获得 9 金币。 |
+| 金刚杵 | vajra | 普通 | common / neow | implemented | - | 摘要：获得 1 点力量；描述：获得 1 点力量。 |
+| 钢笔尖 | pen_nib | 普通 | common / neow | implemented | - | 摘要：每打出 10 张攻击牌，你的下一张攻击造成双倍伤害；描述：每当你打出 10 张攻击牌时，你的下一张攻击造成双倍伤害。 |
+| 陶瓷鱼 | ceramic_fish | 普通 | common / neow | implemented | - | 摘要：每当你将一张牌加入牌组时获得 9 金币；描述：每当你将一张牌加入牌组时，获得 9 金币。 |
 | 青铜鳞片 | bronze_scales | 普通 | common / neow | placeholder | - | 摘要：每次受到攻击时对攻击者造成 3 点伤害；描述：每次受到攻击伤害时，对攻击者造成 3 点伤害。 |
-| 靴子 | the_boot | 普通 | common / neow | placeholder | - | 摘要：若攻击本应造成 5 点以下伤害，则改为造成 5 点；描述：若你的攻击本应造成 5 点以下伤害，则改为造成 5 点伤害。 |
-| 餐券 | meal_ticket | 普通 | common / neow | placeholder | - | 摘要：进入商店时回复 15 点生命；描述：每当你进入商店时，回复 15 点生命。 |
+| 靴子 | the_boot | 普通 | common / neow | implemented | - | 摘要：若攻击本应造成 5 点以下伤害，则改为造成 5 点；描述：若你的攻击本应造成 5 点以下伤害，则改为造成 5 点伤害。 |
+| 餐券 | meal_ticket | 普通 | common / neow | implemented | - | 摘要：进入商店时回复 15 点生命；描述：每当你进入商店时，回复 15 点生命。 |
 | 鲜血药瓶 | blood_vial | 普通 | common / neow | implemented | 回复 2 点生命 | 摘要：每场战斗开始时回复 2 点生命；描述：每场战斗开始时回复 2 点生命。；触发时机：战斗开始时 |
 ## 非普通遗物
 
@@ -83,98 +84,100 @@
 | 共生病毒 | symbiotic_virus | 非普通 | uncommon / neow | placeholder | - | 摘要：每场战斗开始时生成 1 个黑暗充能球；描述：每场战斗开始时，生成 1 个黑暗充能球。 |
 | 冠军腰带 | champion_belt | 非普通 | uncommon / neow | placeholder | - | 摘要：每当你施加易伤时，目标额外获得 1 层虚弱；描述：每当你对敌人施加易伤时，该敌人额外获得 1 层虚弱。 |
 | 冰冻蛋 | frozen_egg_2 | 非普通 | uncommon / neow | placeholder | - | 摘要：之后获得的能力牌都会被升级；描述：之后获得的能力牌都会自动升级。 |
-| 地精号角 | gremlin_horn | 非普通 | uncommon / neow | placeholder | - | 摘要：敌人死亡时获得 1 点能量并抽 1 张牌；描述：每当一个敌人死亡时，获得 1 点能量并抽 1 张牌。 |
-| 墨水瓶 | ink_bottle | 非普通 | uncommon / neow | placeholder | - | 摘要：每打出 10 张牌抽 1 张牌；描述：每当你打出 10 张牌时，抽 1 张牌。 |
-| 套娃 | matryoshka | 非普通 | uncommon / neow | placeholder | - | 摘要：接下来打开的 2 个普通宝箱都会额外给出 1 个遗物；描述：接下来打开的 2 个普通宝箱都会额外给出 1 个遗物。 |
+| 地精号角 | gremlin_horn | 非普通 | uncommon / neow | implemented | - | 摘要：敌人死亡时获得 1 点能量并抽 1 张牌；描述：每当一个敌人死亡时，获得 1 点能量并抽 1 张牌。 |
+| 墨水瓶 | ink_bottle | 非普通 | uncommon / neow | implemented | - | 摘要：每打出 10 张牌抽 1 张牌；描述：每当你打出 10 张牌时，抽 1 张牌。 |
+| 套娃 | matryoshka | 非普通 | uncommon / neow | implemented | - | 摘要：接下来打开的 2 个普通宝箱都会额外给出 1 个遗物；描述：接下来打开的 2 个普通宝箱都会额外给出 1 个遗物。 |
 | 异蛇头骨 | snecko_skull | 非普通 | uncommon / neow | placeholder | - | 摘要：你施加的中毒额外增加 1 层；描述：每当你对敌人施加中毒时，额外增加 1 层。 |
+| 忍术卷轴 | ninja_scroll | 非普通 | uncommon / neow | implemented | - | 摘要：每场战斗开始时，手牌中增加 3 张小刀；描述：每场战斗开始时，手牌中增加 3 张小刀。；触发时机：战斗开始时 |
+| 手里剑 | shuriken | 非普通 | uncommon / neow | implemented | - | 摘要：你每在同一回合内打出 3 张攻击牌，获得 1 点力量；描述：你每在同一回合内打出 3 张攻击牌，获得 1 点力量。 |
 | 打击假人 | strike_dummy | 非普通 | uncommon / neow | placeholder | - | 摘要：名字中带有打击的牌额外造成 3 点伤害；描述：名字中带有打击的牌额外造成 3 点伤害。 |
-| 拆信刀 | letter_opener | 非普通 | uncommon / neow | placeholder | - | 摘要：每回合打出 3 张技能牌后对所有敌人造成 5 点伤害；描述：每回合打出 3 张技能牌后，对所有敌人造成 5 点伤害。 |
+| 拆信刀 | letter_opener | 非普通 | uncommon / neow | implemented | - | 摘要：每回合打出 3 张技能牌后对所有敌人造成 5 点伤害；描述：每回合打出 3 张技能牌后，对所有敌人造成 5 点伤害。 |
 | 数据磁盘 | data_disk | 非普通 | uncommon / neow | placeholder | - | 摘要：获得 1 点集中；描述：获得 1 点集中。 |
-| 斗篷扣 | cloak_clasp | 非普通 | uncommon / neow | placeholder | - | 摘要：回合结束时每有 1 个敌人便获得 1 点格挡；描述：在你的回合结束时，每有 1 个存活敌人便获得 1 点格挡。 |
 | 日晷 | sundial | 非普通 | uncommon / neow | placeholder | - | 摘要：每洗牌 3 次获得 2 点能量；描述：每当你的抽牌堆洗牌 3 次时，获得 2 点能量。 |
-| 木乃伊之手 | mummified_hand | 非普通 | uncommon / neow | placeholder | - | 摘要：每次打出能力牌时，随机使手中 1 张牌费用变为 0；描述：每次打出能力牌时，随机使手中 1 张牌本回合费用变为 0。 |
-| 梨 | pear | 非普通 | uncommon / neow | placeholder | - | 摘要：最大生命值提高 10；描述：你的最大生命值提高 10。 |
+| 木乃伊之手 | mummified_hand | 非普通 | uncommon / neow | implemented | - | 摘要：每次打出能力牌时，随机使手中 1 张牌费用变为 0；描述：每次打出能力牌时，随机使手中 1 张牌本回合费用变为 0。 |
+| 梨 | pear | 非普通 | uncommon / neow | implemented | - | 摘要：最大生命值提高 10；描述：你的最大生命值提高 10。 |
 | 歌唱碗 | singing_bowl | 非普通 | uncommon / neow | placeholder | - | 摘要：跳过卡牌奖励时最大生命值提高 2；描述：每当你在卡牌奖励中选择跳过时，最大生命值提高 2。 |
 | 毒素蛋 | toxic_egg_2 | 非普通 | uncommon / neow | placeholder | - | 摘要：之后获得的技能牌都会被升级；描述：之后获得的技能牌都会自动升级。 |
-| 永恒羽毛 | eternal_feather | 非普通 | uncommon / neow | placeholder | - | 摘要：在休息点休息时每 5 张牌额外回复 3 点生命；描述：在休息点休息时，牌组中每有 5 张牌就额外回复 3 点生命。 |
+| 永恒羽毛 | eternal_feather | 非普通 | uncommon / neow | implemented | - | 摘要：在休息点休息时每 5 张牌额外回复 3 点生命；描述：在休息点休息时，牌组中每有 5 张牌就额外回复 3 点生命。 |
 | 泪滴吊坠 | teardrop_locket | 非普通 | uncommon / neow | placeholder | - | 摘要：每场战斗开始时进入平静；描述：每场战斗开始时，进入平静。 |
 | 熔火蛋 | molten_egg_2 | 非普通 | uncommon / neow | placeholder | - | 摘要：之后获得的攻击牌都会被升级；描述：之后获得的攻击牌都会自动升级。 |
 | 瓶装旋风 | bottled_tornado | 非普通 | uncommon / neow | placeholder | - | 摘要：选择 1 张能力牌，使其获得固有；描述：选择牌组中的 1 张能力牌。该牌在战斗开始时会出现在起始手牌中。 |
 | 瓶装火焰 | bottled_flame | 非普通 | uncommon / neow | placeholder | - | 摘要：选择 1 张攻击牌，使其获得固有；描述：选择牌组中的 1 张攻击牌。该牌在战斗开始时会出现在起始手牌中。 |
 | 瓶装闪电 | bottled_lightning | 非普通 | uncommon / neow | placeholder | - | 摘要：选择 1 张技能牌，使其获得固有；描述：选择牌组中的 1 张技能牌。该牌在战斗开始时会出现在起始手牌中。 |
-| 白兽雕像 | white_beast_statue | 非普通 | uncommon / neow | placeholder | - | 摘要：战斗奖励总会包含药水；描述：普通战斗与精英战的奖励现在总会包含药水。 |
+| 白兽雕像 | white_beast_statue | 非普通 | uncommon / neow | implemented | - | 摘要：战斗奖励总会包含药水；描述：普通战斗与精英战的奖励现在总会包含药水。 |
 | 示差仪 | pantograph | 非普通 | uncommon / neow | placeholder | - | 摘要：Boss 战开始时回复 25 点生命；描述：每场 Boss 战开始时，回复 25 点生命。 |
-| 算盘 | abacus | 非普通 | uncommon / neow | placeholder | - | 摘要：每次洗牌时获得 6 点格挡；描述：每次你的抽牌堆洗牌时，获得 6 点格挡。 |
 | 红头骨 | red_skull | 非普通 | uncommon / neow | placeholder | - | 摘要：生命低于一半时获得 3 点力量；描述：当你的生命低于一半时，获得 3 点力量。 |
 | 纸蛙 | paper_frog | 非普通 | uncommon / neow | placeholder | - | 摘要：易伤使敌人受到的伤害从 50% 提高到 75%；描述：敌人身上的易伤会让其受到的伤害从 50% 提高到 75%。 |
 | 纸鹤 | paper_krane | 非普通 | uncommon / neow | placeholder | - | 摘要：虚弱使敌人造成的伤害减少从 25% 提高到 40%；描述：敌人身上的虚弱会让其造成的伤害减少从 25% 提高到 40%。 |
-| 自塑黏土 | self_forming_clay | 非普通 | uncommon / neow | placeholder | - | 摘要：失去生命后下回合开始时获得 3 点格挡；描述：每当你失去生命后，下回合开始时获得 3 点格挡。 |
-| 苦无 | kunai | 非普通 | uncommon / neow | placeholder | - | 摘要：每回合打出 3 张攻击牌后获得 1 点敏捷；描述：每回合打出 3 张攻击牌后，获得 1 点敏捷。 |
+| 自塑黏土 | self_forming_clay | 非普通 | uncommon / neow | implemented | - | 摘要：失去生命后下回合开始时获得 3 点格挡；描述：每当你失去生命后，下回合开始时获得 3 点格挡。 |
+| 苦无 | kunai | 非普通 | uncommon / neow | implemented | - | 摘要：每回合打出 3 张攻击牌后获得 1 点敏捷；描述：每回合打出 3 张攻击牌后，获得 1 点敏捷。 |
 | 蓝蜡烛 | blue_candle | 非普通 | uncommon / neow | placeholder | - | 摘要：诅咒牌可被打出，打出时失去 1 点生命并消耗；描述：诅咒牌现在可以被打出，打出时失去 1 点生命并将其消耗。 |
-| 装饰扇 | ornamental_fan | 非普通 | uncommon / neow | placeholder | - | 摘要：每回合打出 3 张攻击牌后获得 4 点格挡；描述：每回合打出 3 张攻击牌后，获得 4 点格挡。 |
-| 角质护具 | horn_cleat | 非普通 | uncommon / neow | placeholder | - | 摘要：每场战斗的第 2 回合开始时获得 14 点格挡；描述：每场战斗的第 2 回合开始时，获得 14 点格挡。 |
-| 赌博筹码 | gambling_chip | 非普通 | uncommon / neow | placeholder | - | 摘要：每场战斗开始时可弃掉任意数量的牌并抽取等量牌；描述：每场战斗开始时，你可以弃掉任意数量的牌，然后抽取等量的牌。 |
-| 达摩鼓 | damaru | 非普通 | uncommon / neow | placeholder | - | 摘要：每经过 3 个回合获得 1 层神明姿态；描述：每经过 3 个回合，获得 1 层神明姿态。 |
+| 装饰扇 | ornamental_fan | 非普通 | uncommon / neow | implemented | - | 摘要：每回合打出 3 张攻击牌后获得 4 点格挡；描述：每回合打出 3 张攻击牌后，获得 4 点格挡。 |
+| 角质护具 | horn_cleat | 非普通 | uncommon / neow | implemented | - | 摘要：每场战斗的第 2 回合开始时获得 14 点格挡；描述：每场战斗的第 2 回合开始时，获得 14 点格挡。；触发时机：on_turn_start |
+| 送货员 | the_courier | 非普通 | uncommon / neow | implemented | - | 摘要：商人的卡牌、遗物和药水不再会卖光，并且所有商品打折 20%；描述：商人的卡牌、遗物和药水不再会卖光，并且所有商品打折 20%。 |
 | 金眼 | golden_eye | 非普通 | uncommon / neow | placeholder | - | 摘要：预见时多看 2 张牌；描述：每次预见时，多看 2 张牌。 |
-| 针线 | thread_and_needle | 非普通 | uncommon / neow | placeholder | - | 摘要：获得 4 点荆棘；描述：获得 4 点荆棘。 |
 | 镀金线缆 | gold_plated_cables | 非普通 | uncommon / neow | placeholder | - | 摘要：最右侧充能球每回合额外触发 1 次；描述：你最右侧的充能球每回合会额外触发 1 次。 |
-| 问号卡 | question_card | 非普通 | uncommon / neow | placeholder | - | 摘要：卡牌奖励额外显示 1 张牌；描述：每次卡牌奖励会额外显示 1 张牌供你选择。 |
-| 香料 | melange | 非普通 | uncommon / neow | placeholder | - | 摘要：在休息点可选择预见 3 张牌并在战斗开始时抽牌；描述：在休息点可以选择预见 3 张牌，下一场战斗开始时额外抽取这些牌。 |
+| 问号卡 | question_card | 非普通 | uncommon / neow | implemented | - | 摘要：卡牌奖励额外显示 1 张牌；描述：每次卡牌奖励会额外显示 1 张牌供你选择。 |
 | 黑石护符 | darkstone_periapt | 非普通 | uncommon / neow | placeholder | - | 摘要：每当你获得诅咒牌时，最大生命值提高 6；描述：每当你获得诅咒牌时，最大生命值提高 6。 |
 ## 稀有遗物
 
 | 名称 | ID | 稀有度 | 所属池 | 实现状态 | 效果 | 补充说明 |
 | --- | --- | --- | --- | --- | --- | --- |
-| 不息陀螺 | unceasing_top | 稀有 | rare / neow | placeholder | - | 摘要：手牌打空时抽 1 张牌；描述：每当你的手牌打空时，抽 1 张牌。 |
+| 不息陀螺 | unceasing_top | 稀有 | rare / neow | implemented | - | 摘要：手牌打空时抽 1 张牌；描述：每当你的手牌打空时，抽 1 张牌。 |
 | 冰淇淋 | ice_cream | 稀有 | rare / neow | placeholder | - | 摘要：未用完的能量会保留到下一回合；描述：每回合结束时，未用完的能量不会消失。 |
 | 化石螺旋 | fossilized_helix | 稀有 | rare / neow | placeholder | - | 摘要：每场战斗开始时获得 1 层缓冲；描述：每场战斗开始时，获得 1 层缓冲。 |
-| 卡戎之灰 | charons_ashes | 稀有 | rare / neow | placeholder | - | 摘要：每当你消耗一张牌时对所有敌人造成 3 点伤害；描述：每当你消耗一张牌时，对所有敌人造成 3 点伤害。 |
-| 卢恩电容器 | runic_capacitor | 稀有 | rare / neow | placeholder | - | 摘要：每场战斗开始时获得 3 个额外充能球栏位；描述：每场战斗开始时，获得 3 个额外的充能球栏位。 |
-| 古钱币 | old_coin | 稀有 | rare / neow | placeholder | - | 摘要：立即获得 300 金币；描述：获得此遗物时，立即获得 300 金币。 |
-| 和平烟斗 | peace_pipe | 稀有 | rare / neow | placeholder | - | 摘要：在休息点可以选择消耗 1 张牌；描述：在休息点可以选择消耗牌组中的 1 张牌。 |
-| 坚韧绷带 | tough_bandages | 稀有 | rare / neow | placeholder | - | 摘要：每当你弃牌时获得 3 点格挡；描述：每当你弃掉 1 张牌时，获得 3 点格挡。 |
+| 卡戎之灰 | charons_ashes | 稀有 | rare / neow | implemented | - | 摘要：每当你消耗一张牌时对所有敌人造成 3 点伤害；描述：每当你消耗一张牌时，对所有敌人造成 3 点伤害。 |
+| 古钱币 | old_coin | 稀有 | rare / neow | implemented | - | 摘要：立即获得 300 金币；描述：获得此遗物时，立即获得 300 金币。 |
+| 和平烟斗 | peace_pipe | 稀有 | rare / neow | implemented | - | 摘要：在休息点可以选择消耗 1 张牌；描述：在休息点可以选择消耗牌组中的 1 张牌。 |
+| 坚韧绷带 | tough_bandages | 稀有 | rare / neow | implemented | - | 摘要：每当你弃牌时获得 3 点格挡；描述：每当你弃掉 1 张牌时，获得 3 点格挡。 |
 | 姜 | ginger | 稀有 | rare / neow | placeholder | - | 摘要：你无法被施加虚弱；描述：你无法被施加虚弱。 |
+| 怀表 | pocketwatch | 稀有 | rare / neow | implemented | - | 摘要：若你在某个回合打出的牌少于等于 3 张，则在你的下个回合开始时额外抽 3 张牌；描述：若你在某个回合打出的牌少于等于 3 张，则在你的下个回合开始时额外抽 3 张牌。；触发时机：on_turn_start |
 | 情绪芯片 | emotion_chip | 稀有 | rare / neow | placeholder | - | 摘要：失去生命时触发最左侧充能球 1 次；描述：每当你失去生命时，触发最左侧充能球 1 次。 |
-| 手里剑 | shuriken | 稀有 | rare / neow | placeholder | - | 摘要：每回合打出 3 张攻击牌后获得 1 点力量；描述：每回合打出 3 张攻击牌后，获得 1 点力量。 |
+| 斗篷扣 | cloak_clasp | 稀有 | rare / neow | placeholder | - | 摘要：在你的回合结束时，每有一张手牌获得 1 点格挡；描述：在你的回合结束时，每有一张手牌获得 1 点格挡。 |
 | 杜符娃娃 | duvu_doll | 稀有 | rare / neow | placeholder | - | 摘要：每拥有 1 张诅咒牌便获得 1 点力量；描述：你每拥有 1 张诅咒牌，便获得 1 点力量。 |
-| 枯枝 | dead_branch | 稀有 | rare / neow | placeholder | - | 摘要：每当你消耗一张牌时，随机将 1 张牌加入手牌；描述：每当你消耗一张牌时，随机将 1 张牌加入手牌。 |
+| 枯枝 | dead_branch | 稀有 | rare / neow | implemented | - | 摘要：每当你消耗一张牌时，随机将 1 张牌加入手牌；描述：每当你消耗一张牌时，随机将 1 张牌加入手牌。 |
 | 标本 | the_specimen | 稀有 | rare / neow | placeholder | - | 摘要：带有中毒的敌人死亡时，将其全部中毒转移给随机敌人；描述：带有中毒的敌人死亡时，将其全部中毒转移给随机敌人。 |
-| 法轮 | prayer_wheel | 稀有 | rare / neow | placeholder | - | 摘要：普通战斗奖励额外显示 1 张牌；描述：普通战斗的卡牌奖励会额外显示 1 张牌。 |
-| 石制日历 | stone_calendar | 稀有 | rare / neow | placeholder | - | 摘要：每场战斗的第 7 回合结束时对所有敌人造成 52 点伤害；描述：每场战斗的第 7 回合结束时，对所有敌人造成 52 点伤害。 |
-| 羽翼战靴 | wing_boots | 稀有 | rare / neow | placeholder | - | 摘要：地图上可额外无视路径限制 3 次；描述：在地图上，你可以额外无视路径限制移动 3 次。 |
-| 臂力壶铃 | girya | 稀有 | rare / neow | placeholder | - | 摘要：在休息点可以举重，最多获得 3 点力量；描述：在休息点可以选择举重，整个冒险中最多获得 3 点力量。 |
-| 船长之轮 | captains_wheel | 稀有 | rare / neow | placeholder | - | 摘要：每场战斗的第 3 回合开始时获得 18 点格挡；描述：每场战斗的第 3 回合开始时，获得 18 点格挡。 |
-| 芒果 | mango | 稀有 | rare / neow | placeholder | - | 摘要：最大生命值提高 14；描述：你的最大生命值提高 14。 |
+| 法轮 | prayer_wheel | 稀有 | rare / neow | implemented | - | 摘要：普通战斗奖励额外显示 1 张牌；描述：普通战斗的卡牌奖励会额外显示 1 张牌。 |
+| 石制日历 | stone_calendar | 稀有 | rare / neow | implemented | - | 摘要：每场战斗的第 7 回合结束时对所有敌人造成 52 点伤害；描述：每场战斗的第 7 回合结束时，对所有敌人造成 52 点伤害。；触发时机：on_turn_end |
+| 羽翼战靴 | wing_boots | 稀有 | rare / neow | implemented | - | 摘要：地图上可额外无视路径限制 3 次；描述：在地图上，你可以额外无视路径限制移动 3 次。 |
+| 臂力壶铃 | girya | 稀有 | rare / neow | implemented | - | 摘要：在休息点可以举重，最多获得 3 点力量；描述：在休息点可以选择举重，整个冒险中最多获得 3 点力量。 |
+| 船长之轮 | captains_wheel | 稀有 | rare / neow | implemented | - | 摘要：每场战斗的第 3 回合开始时获得 18 点格挡；描述：每场战斗的第 3 回合开始时，获得 18 点格挡。；触发时机：on_turn_start |
+| 芒果 | mango | 稀有 | rare / neow | implemented | - | 摘要：最大生命值提高 14；描述：你的最大生命值提高 14。 |
 | 芜菁 | turnip | 稀有 | rare / neow | placeholder | - | 摘要：你无法被施加易伤；描述：你无法被施加易伤。 |
 | 蜥蜴尾巴 | lizard_tail | 稀有 | rare / neow | placeholder | - | 摘要：你第一次死亡时改为回复 50% 生命；描述：你第一次即将死亡时，改为回复 50% 的最大生命值。 |
-| 钨金棒 | tungsten_rod | 稀有 | rare / neow | placeholder | - | 摘要：每次受到生命损失时减少 1 点；描述：每当你将要失去生命时，改为少失去 1 点。 |
+| 赌博筹码 | gambling_chip | 稀有 | rare / neow | placeholder | - | 摘要：在每场战斗开始时，丢弃任意张牌，然后抽相同数量张牌；描述：在每场战斗开始时，丢弃任意张牌，然后抽相同数量张牌。 |
+| 针线 | thread_and_needle | 稀有 | rare / neow | implemented | - | 摘要：在每场战斗开始时，获得 4 层多层护甲；描述：在每场战斗开始时，获得 4 层多层护甲。；触发时机：战斗开始时 |
+| 钨金棒 | tungsten_rod | 稀有 | rare / neow | implemented | - | 摘要：每次受到生命损失时减少 1 点；描述：每当你将要失去生命时，改为少失去 1 点。 |
 | 铁卡尺 | calipers | 稀有 | rare / neow | placeholder | - | 摘要：回合结束时最多保留 15 点格挡；描述：在你的回合结束时，最多保留 15 点格挡。 |
-| 铜钹 | tingsha | 稀有 | rare / neow | placeholder | - | 摘要：每当你弃牌时对随机敌人造成 3 点伤害；描述：每当你弃掉 1 张牌时，对随机敌人造成 3 点伤害。 |
-| 铲子 | shovel | 稀有 | rare / neow | placeholder | - | 摘要：在休息点可以选择挖掘获得遗物；描述：在休息点可以选择挖掘来获得 1 个遗物。 |
+| 铜钹 | tingsha | 稀有 | rare / neow | implemented | - | 摘要：每当你弃牌时对随机敌人造成 3 点伤害；描述：每当你弃掉 1 张牌时，对随机敌人造成 3 点伤害。 |
+| 铲子 | shovel | 稀有 | rare / neow | implemented | - | 摘要：在休息点可以选择挖掘获得遗物；描述：在休息点可以选择挖掘来获得 1 个遗物。 |
 | 香炉 | incense_burner | 稀有 | rare / neow | placeholder | - | 摘要：每经过 6 个回合获得 1 回合无实体；描述：每经过 6 个回合，获得 1 回合无实体。 |
 | 魔法花 | magic_flower | 稀有 | rare / neow | placeholder | - | 摘要：回复生命的效果额外提高 50%；描述：你获得的所有回复生命效果都会额外提高 50%。 |
-| 鸟居 | torii | 稀有 | rare / neow | placeholder | - | 摘要：受到 5 点以下的未格挡攻击伤害时改为只受 1 点；描述：当你将受到 5 点以下的未格挡攻击伤害时，改为只受到 1 点。 |
-| 鸟面瓮 | bird_faced_urn | 稀有 | rare / neow | placeholder | - | 摘要：每打出一张能力牌时回复 2 点生命；描述：每当你打出一张能力牌时，回复 2 点生命。 |
+| 鸟居 | torii | 稀有 | rare / neow | implemented | - | 摘要：受到 5 点以下的未格挡攻击伤害时改为只受 1 点；描述：当你将受到 5 点以下的未格挡攻击伤害时，改为只受到 1 点。 |
+| 鸟面瓮 | bird_faced_urn | 稀有 | rare / neow | implemented | - | 摘要：每打出一张能力牌时回复 2 点生命；描述：每当你打出一张能力牌时，回复 2 点生命。 |
 ## 商店遗物
 
 | 名称 | ID | 稀有度 | 所属池 | 实现状态 | 效果 | 补充说明 |
 | --- | --- | --- | --- | --- | --- | --- |
 | X 化学物 | chemical_x | 商店 | shop | placeholder | - | 摘要：X 费用牌的效果额外提高 2；描述：你的 X 费用牌会将 X 额外视为增加 2。 |
-| 会员卡 | membership_card | 商店 | shop | placeholder | - | 摘要：商店所有商品半价；描述：商店中的所有商品价格减半。 |
-| 信使 | the_courier | 商店 | shop | placeholder | - | 摘要：商店中的商品不会售罄，所有商品价格降低 20%；描述：商店中的商品不会售罄，且所有商品价格降低 20%。 |
+| 会员卡 | membership_card | 商店 | shop | implemented | - | 摘要：商店所有商品半价；描述：商店中的所有商品价格减半。 |
 | 冰冻之眼 | frozen_eye | 商店 | shop | implemented | - | 摘要：查看抽牌堆时，按真实抽牌顺序显示；描述：你可以查看抽牌堆中的卡牌，并按实际抽牌顺序显示。 |
 | 勇气弹弓 | sling_of_courage | 商店 | shop | placeholder | - | 摘要：精英战开始时获得 2 点力量；描述：每场精英战开始时，获得 2 点力量。 |
 | 医疗包 | medical_kit | 商店 | shop | placeholder | - | 摘要：状态牌可被打出，打出时消耗；描述：状态牌现在可以被打出，打出时将其消耗。 |
-| 发条纪念品 | clockwork_souvenir | 商店 | shop | placeholder | - | 摘要：每场战斗开始时获得 1 层人工制品；描述：每场战斗开始时，获得 1 层人工制品。 |
+| 发条纪念品 | clockwork_souvenir | 商店 | shop | implemented | - | 摘要：每场战斗开始时获得 1 层人工制品；描述：每场战斗开始时，获得 1 层人工制品。；触发时机：战斗开始时 |
 | 坩埚 | cauldron | 商店 | shop | placeholder | - | 摘要：获得此遗物时获得 5 瓶随机药水；描述：获得此遗物时，获得 5 瓶随机药水。 |
 | 多莉的镜子 | dollys_mirror | 商店 | shop | placeholder | - | 摘要：获得此遗物时复制牌组中的 1 张牌；描述：获得此遗物时，复制牌组中的 1 张牌。 |
 | 奇怪的汤勺 | strange_spoon | 商店 | shop | placeholder | - | 摘要：本应被消耗的牌有 50% 概率不会被消耗；描述：当一张牌将要被消耗时，有 50% 的概率不会被消耗。 |
 | 工具箱 | toolbox | 商店 | shop | placeholder | - | 摘要：每场战斗开始时将 1 张无色牌加入手牌；描述：每场战斗开始时，随机将 1 张无色牌加入手牌。 |
 | 手摇钻 | hand_drill | 商店 | shop | placeholder | - | 摘要：打破敌人格挡后使其获得 2 层易伤；描述：每当你打破敌人的格挡时，使其获得 2 层易伤。 |
+| 扭曲漏斗 | twisted_funnel | 商店 | shop | implemented | - | 摘要：在每场战斗开始时，给予所有敌人 4 层中毒；描述：在每场战斗开始时，给予所有敌人 4 层中毒。；触发时机：战斗开始时 |
 | 星象仪 | orrery | 商店 | shop | placeholder | - | 摘要：获得此遗物时可从 5 张卡牌中选择 2 张加入牌组；描述：获得此遗物时，可以从 5 张卡牌中选择 2 张加入牌组。 |
-| 李子华夫饼 | leeches_waffle | 商店 | shop | placeholder | - | 摘要：最大生命值提高 7，并回复全部生命；描述：你的最大生命值提高 7，并回复全部生命。 |
-| 橙色药丸 | orange_pellets | 商店 | shop | placeholder | - | 摘要：同一回合中同时打出攻击、技能、能力后移除自身所有减益；描述：每回合中若你同时打出攻击、技能与能力牌，则移除自身所有减益。 |
+| 李子华夫饼 | leeches_waffle | 商店 | shop | implemented | - | 摘要：最大生命值提高 7，并回复全部生命；描述：你的最大生命值提高 7，并回复全部生命。 |
+| 橙色药丸 | orange_pellets | 商店 | shop | implemented | - | 摘要：同一回合中同时打出攻击、技能、能力后移除自身所有减益；描述：每回合中若你同时打出攻击、技能与能力牌，则移除自身所有减益。 |
 | 硫磺 | brimstone | 商店 | shop | placeholder | - | 摘要：每回合开始时你与所有敌人都获得 2 点力量；描述：每回合开始时，你与所有敌人都获得 2 点力量。 |
+| 符文电容器 | runic_capacitor | 商店 | shop | placeholder | - | 摘要：每场战斗开始时，获得 3 个额外充能球栏位；描述：每场战斗开始时，获得 3 个额外充能球栏位。 |
+| 算盘 | abacus | 商店 | shop | placeholder | - | 摘要：你每次将抽牌堆洗牌时，获得 6 点格挡；描述：你每次将抽牌堆洗牌时，获得 6 点格挡。 |
+| 美琅脂 | melange | 商店 | shop | placeholder | - | 摘要：你每次将抽牌堆洗牌时，预见 3；描述：你每次将抽牌堆洗牌时，预见 3。 |
 | 虹彩碎片 | prismatic_shard | 商店 | shop | placeholder | - | 摘要：之后可见到其他角色的卡牌与遗物；描述：之后你可以找到其他角色的卡牌与遗物。 |
 ## Boss 遗物
 
@@ -184,52 +187,53 @@
 | 冰冻核心 | frozen_core | Boss | boss | placeholder | - | 摘要：取代破损核心，在回合结束时若没有充能球则生成 1 个闪电充能球；描述：取代破损核心。每回合结束时，若你没有任何充能球，则生成 1 个闪电充能球。；替换：破损核心 |
 | 卢恩圆顶 | runic_dome | Boss | boss | placeholder | 获得 1 点能量 | 摘要：每场战斗开始时获得 1 点能量，你无法看到敌人意图；描述：每场战斗开始时获得 1 点能量，但你无法看到敌人的意图。 |
 | 卢恩金字塔 | runic_pyramid | Boss | boss | placeholder | - | 摘要：回合结束时不再弃掉手牌；描述：在你的回合结束时，不再弃掉手牌。 |
-| 卢恩魔方 | runic_cube | Boss | boss | placeholder | - | 摘要：每次失去生命时抽 1 张牌；描述：每当你失去生命时，抽 1 张牌。 |
+| 卢恩魔方 | runic_cube | Boss | boss | implemented | - | 摘要：每次失去生命时抽 1 张牌；描述：每当你失去生命时，抽 1 张牌。 |
 | 召唤铃 | calling_bell | Boss | boss | placeholder | - | 摘要：获得此遗物时获得 3 个诅咒遗物并加入 1 张诅咒牌；描述：获得此遗物时，获得 3 个诅咒遗物，并将 1 张诅咒牌加入牌组。 |
-| 咖啡滴滤器 | coffee_dripper | Boss | boss | implemented | 获得 1 点能量 | 摘要：休息时不能恢复生命；描述：你可以在休息点锻造，但不能选择休息恢复生命。；禁用操作：休息回复；触发时机：战斗开始时 |
+| 咖啡滴滤器 | coffee_dripper | Boss | boss | implemented | 获得 1 点能量 | 摘要：休息时不能恢复生命；描述：你可以在休息点锻造，但不能选择休息恢复生命。；禁用操作：休息回复；触发时机：on_turn_start |
 | 圣树皮 | sacred_bark | Boss | boss | placeholder | - | 摘要：药水效果翻倍；描述：你的药水效果翻倍。 |
 | 圣水 | holy_water | Boss | boss | placeholder | - | 摘要：取代净水，每场战斗开始时将 3 张升级后的奇迹加入手牌；描述：取代净水。每场战斗开始时，将 3 张升级后的奇迹加入手牌。；替换：净水 |
 | 奴役者项圈 | slavers_collar | Boss | boss | placeholder | 获得 1 点能量 | 摘要：精英战与 Boss 战开始时获得 1 点能量；描述：每场精英战与 Boss 战开始时，获得 1 点能量。 |
 | 小屋 | tiny_house | Boss | boss | placeholder | - | 摘要：获得治疗、金币、药水、升级与 1 张牌；描述：获得此遗物时，回复生命、获得金币、获得药水、升级 1 张牌并获得 1 张牌。 |
-| 悬浮风筝 | hovering_kite | Boss | boss | placeholder | 获得 1 点能量 | 摘要：每回合若你弃过牌，则下回合开始时获得 1 点能量；描述：每回合若你弃过牌，则下回合开始时获得 1 点能量。 |
+| 悬浮风筝 | hovering_kite | Boss | boss | implemented | 获得 1 点能量 | 摘要：每回合若你弃过牌，则下回合开始时获得 1 点能量；描述：每回合若你弃过牌，则下回合开始时获得 1 点能量。 |
 | 护腕刃 | wrist_blade | Boss | boss | placeholder | - | 摘要：费用为 0 的攻击牌额外造成 4 点伤害；描述：你的费用为 0 的攻击牌额外造成 4 点伤害。 |
 | 插入器 | inserter | Boss | boss | placeholder | - | 摘要：每经过 2 个回合获得 1 个充能球栏位；描述：每经过 2 个回合，获得 1 个充能球栏位。 |
 | 星盘 | astrolabe | Boss | boss | placeholder | - | 摘要：随机变形牌组中的 3 张牌并将其升级；描述：获得此遗物时，随机变形牌组中的 3 张牌并将其升级。 |
 | 核电池 | nuclear_battery | Boss | boss | placeholder | - | 摘要：每场战斗开始时生成 1 个等离子充能球；描述：每场战斗开始时，生成 1 个等离子充能球。 |
 | 潘多拉魔盒 | pandoras_box | Boss | boss | placeholder | - | 摘要：将所有打击与防御变形为随机牌；描述：获得此遗物时，将牌组中的所有打击与防御变形为随机牌。 |
-| 破碎王冠 | busted_crown | Boss | boss | placeholder | 获得 1 点能量 | 摘要：每场战斗开始时获得 1 点能量，卡牌奖励少显示 2 张牌；描述：每场战斗开始时获得 1 点能量，但卡牌奖励少显示 2 张牌。 |
+| 破碎王冠 | busted_crown | Boss | boss | implemented | 获得 1 点能量 | 摘要：每回合开始时获得 1 点能量，卡牌奖励少显示 2 张牌；描述：每回合开始时获得 1 点能量，但卡牌奖励少显示 2 张牌。；触发时机：on_turn_start |
 | 空鸟笼 | empty_cage | Boss | boss | placeholder | - | 摘要：获得此遗物时移除牌组中的 2 张牌；描述：获得此遗物时，可以从牌组中移除 2 张牌。 |
-| 索祖之壶 | sozu | Boss | boss | placeholder | 获得 1 点能量 | 摘要：每场战斗开始时获得 1 点能量，无法再获得药水；描述：每场战斗开始时获得 1 点能量，但你无法再获得药水。 |
+| 索祖之壶 | sozu | Boss | boss | implemented | 获得 1 点能量 | 摘要：每场战斗开始时获得 1 点能量，无法再获得药水；描述：每场战斗开始时获得 1 点能量，但你无法再获得药水。 |
 | 紫莲花 | violet_lotus | Boss | boss | placeholder | - | 摘要：离开平静时额外获得 1 点能量；描述：每当你离开平静时，额外获得 1 点能量。 |
 | 苦痛印记 | mark_of_pain | Boss | boss | placeholder | 获得 1 点能量 | 摘要：每场战斗开始时获得 1 点能量，并将 2 张伤口洗入抽牌堆；描述：每场战斗开始时获得 1 点能量，但开局会将 2 张伤口洗入抽牌堆。 |
-| 虚空质 | ectoplasm | Boss | boss | implemented | 获得 1 点能量 | 摘要：每场战斗开始时获得 1 点能量；描述：每场战斗开始时获得 1 点能量，你无法获得金币。；禁用操作：获得金币；金币规则：无法获得金币；触发时机：战斗开始时 |
+| 虚空质 | ectoplasm | Boss | boss | implemented | 获得 1 点能量 | 摘要：每回合开始时获得 1 点能量；描述：每回合开始时获得 1 点能量，你无法获得金币。；禁用操作：获得金币；金币规则：无法获得金币；触发时机：on_turn_start |
 | 蛇之戒指 | ring_of_the_serpent | Boss | boss | placeholder | - | 摘要：取代蛇之戒，每回合开始时额外抽 1 张牌；描述：取代蛇之戒。每回合开始时额外抽 1 张牌。；替换：蛇之戒 |
 | 蛇眼 | snecko_eye | Boss | boss | placeholder | - | 摘要：每回合开始时额外抽 2 张牌，手牌费用随机化；描述：每回合开始时额外抽 2 张牌，但手牌费用会被随机化。 |
-| 融合之锤 | fusion_hammer | Boss | boss | implemented | 获得 1 点能量 | 摘要：升级后不再能在休息点锻造卡牌；描述：每场战斗开始时获得 1 点能量，但休息点锻造卡牌的动作会被禁用。；禁用操作：锻造；触发时机：战斗开始时 |
+| 融合之锤 | fusion_hammer | Boss | boss | implemented | 获得 1 点能量 | 摘要：每回合开始时获得 1 点能量，休息点不能锻造卡牌；描述：每回合开始时获得 1 点能量，但休息点锻造卡牌的动作会被禁用。；禁用操作：锻造；触发时机：on_turn_start |
 | 诅咒钥匙 | cursed_key | Boss | boss | placeholder | 获得 1 点能量 | 摘要：每场战斗开始时获得 1 点能量，宝箱会加入诅咒牌；描述：每场战斗开始时获得 1 点能量，但开启非 Boss 宝箱时会加入 1 张诅咒牌。 |
 | 贤者之石 | philosophers_stone | Boss | boss | placeholder | 获得 1 点能量 | 摘要：每场战斗开始时获得 1 点能量，所有敌人获得 1 点力量；描述：每场战斗开始时获得 1 点能量，但所有敌人获得 1 点力量。 |
-| 黑星 | black_star | Boss | boss | placeholder | - | 摘要：精英敌人额外掉落 1 个遗物；描述：精英敌人现在会额外掉落 1 个遗物。 |
+| 黑星 | black_star | Boss | boss | implemented | - | 摘要：精英敌人额外掉落 1 个遗物；描述：精英敌人现在会额外掉落 1 个遗物。 |
 | 黑色之血 | black_blood | Boss | boss | implemented | 回复 12 点生命 | 摘要：战斗结束后回复 12 点生命；描述：取代燃烧之血，战斗结束后回复 12 点生命。；替换：燃烧之血；触发时机：战斗结束后 |
 ## 事件遗物
 
 | 名称 | ID | 稀有度 | 所属池 | 实现状态 | 效果 | 补充说明 |
 | --- | --- | --- | --- | --- | --- | --- |
 | 军略宝典 | enchiridion | 事件 | event | placeholder | - | 摘要：每场战斗开始时随机将 1 张能力牌加入手牌，本回合费用为 0；描述：每场战斗开始时，随机将 1 张能力牌加入手牌。本回合其费用为 0。 |
-| 地精面容 | gremlin_visage | 事件 | event | placeholder | - | 摘要：你无法获得敏捷；描述：你无法获得敏捷。 |
+| 地精容貌 | gremlin_visage | 事件 | event | placeholder | - | 摘要：每场战斗开始时，你拥有 1 层虚弱；描述：每场战斗开始时，你拥有 1 层虚弱。 |
 | 奇异蘑菇 | odd_mushroom | 事件 | event | placeholder | - | 摘要：易伤让你受到的伤害增加从 50% 降低到 25%；描述：你身上的易伤会让你受到的伤害增加从 50% 降低到 25%。 |
 | 尼利的法典 | nilrys_codex | 事件 | event | placeholder | - | 摘要：每回合结束时可从 3 张随机牌中选择 1 张洗入抽牌堆；描述：每回合结束时，可以从 3 张随机牌中选择 1 张洗入抽牌堆。 |
-| 弯曲铁钳 | warped_tongs | 事件 | event | placeholder | - | 摘要：每回合结束时随机升级手中的 1 张牌；描述：每回合结束时，随机升级手中的 1 张牌。 |
-| 恩洛斯的礼物 | nloths_gift | 事件 | event | placeholder | - | 摘要：精英敌人额外掉落 1 张卡牌；描述：精英敌人的奖励会额外包含 1 张卡牌。 |
+| 弯曲铁钳 | warped_tongs | 事件 | event | placeholder | - | 摘要：在你的每个回合开始时，随机升级一张你的手牌（只影响本场战斗）；描述：在你的每个回合开始时，随机升级一张你的手牌（只影响本场战斗）。 |
+| 恩洛斯的礼物 | nloths_gift | 事件 | event | placeholder | - | 摘要：使你在怪物奖励中遇见稀有牌的几率变为 3 倍；描述：使你在怪物奖励中遇见稀有牌的几率变为 3 倍。 |
 | 恩洛斯的饥饿脸 | nloths_hungry_face | 事件 | event | placeholder | - | 摘要：它没有正面效果，只是被夺走了你的脸；描述：这张脸只会提醒你与恩洛斯的交易。 |
-| 教士之脸 | face_of_cleric | 事件 | event | placeholder | - | 摘要：每次进入休息点后最大生命值提高 1；描述：每次进入休息点后，你的最大生命值提高 1。 |
 | 死灵之书 | necronomicon | 事件 | event | placeholder | - | 摘要：费用 2 及以上的第一张攻击牌每回合会额外打出 1 次；描述：每回合中，你打出的第一张费用为 2 及以上的攻击牌会额外打出 1 次。 |
-| 灵魂便便 | spirit_poop | 事件 | event | placeholder | - | 摘要：真的没有效果；描述：它真的没有任何效果。 |
+| 涅奥的悲恸 | neows_lament | 事件 | event | placeholder | - | 摘要：接下来 3 场战斗中的敌人将只有 1 点生命；描述：接下来 3 场战斗中的敌人将只有 1 点生命。 |
+| 灵魂便便 | spirit_poop | 事件 | event | implemented | - | 摘要：真的没有效果；描述：它真的没有任何效果。 |
+| 牧师的脸 | face_of_cleric | 事件 | event | placeholder | - | 摘要：每场战斗后你的最大生命值增加 1；描述：每场战斗后，你的最大生命值增加 1。 |
 | 突变力量 | mutagenic_strength | 事件 | event | placeholder | - | 摘要：每场战斗开始时获得 3 点力量，本回合结束时失去 3 点力量；描述：每场战斗开始时，获得 3 点力量，并在本回合结束时失去这些力量。 |
 | 红面具 | red_mask | 事件 | event | placeholder | - | 摘要：每场战斗开始时使所有敌人获得 1 层虚弱；描述：每场战斗开始时，使所有敌人获得 1 层虚弱。 |
 | 花开烙印 | mark_of_the_bloom | 事件 | event | placeholder | - | 摘要：你无法再回复生命；描述：你无法再回复生命。 |
-| 蛇头 | ssserpent_head | 事件 | event | placeholder | - | 摘要：每经过一个房间获得 50 金币；描述：每经过一个房间，获得 50 金币。 |
+| 蛇的头 | ssserpent_head | 事件 | event | implemented | - | 摘要：每次进入？房间时获得 50 金币；描述：每次进入？房间时，获得 50 金币。 |
 | 血神像 | bloody_idol | 事件 | event | placeholder | - | 摘要：每当你获得金币时回复 5 点生命；描述：每当你获得金币时，回复 5 点生命。 |
-| 邪教徒头罩 | cultist_headpiece | 事件 | event | placeholder | - | 摘要：羽毛万岁；描述：它并没有实际效果，只会让你感受到羽毛的荣耀。 |
+| 邪教徒头罩 | cultist_headpiece | 事件 | event | implemented | - | 摘要：羽毛万岁；描述：它并没有实际效果，只会让你感受到羽毛的荣耀。 |
 | 金神像 | golden_idol | 事件 | event | implemented | 事件金币奖励 +25% | 摘要：获得金币的数量提高 25%；描述：你获得金币的数量提高 25%。 |
 ## 特殊遗物
 
@@ -237,7 +241,6 @@
 | --- | --- | --- | --- | --- | --- | --- |
 | 圆环 | circlet | 特殊 | special | implemented | - | 摘要：没有效果；描述：没有效果。 |
 | 守护图腾 | guarding_totem | 特殊 | special | implemented | 获得 10 格挡 | 摘要：每场战斗开始时获得 10 点格挡；描述：每场战斗开始时获得 10 点格挡。；触发时机：战斗开始时 |
-| 尼欧的哀歌 | neows_lament | 特殊 | special | placeholder | - | 摘要：接下来 3 场战斗中，敌人的生命降为 1；描述：接下来 3 场战斗中，所有敌人的生命会降为 1。 |
 
 # 卡牌
 
@@ -432,6 +435,7 @@
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 灼伤 | burn | X | 状态 | 回合结束时若仍在手中，失去 2 点生命 | 无法打出 | 生成物 / 状态牌 | - |
 | 迷糊 | dazed | X | 状态 | 无效果 | 无法打出；打出后消耗 | 生成物 / 状态牌 | - |
+| 小刀 | shiv | 0 | 攻击 | 造成 4 伤害 | 打出后消耗 | 生成物 | - |
 | 伤口 | wound | X | 状态 | 无效果 | 无法打出 | 生成物 / 状态牌 | - |
 
 # 敌人
