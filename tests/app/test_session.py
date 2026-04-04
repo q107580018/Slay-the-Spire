@@ -269,6 +269,58 @@ def test_route_menu_choice_wing_boots_allows_unlinked_next_room() -> None:
     assert "detour" in message
 
 
+def test_root_next_room_with_wing_boots_enters_select_next_room_menu() -> None:
+    session = start_session(seed=5)
+    current_room = replace(
+        session.act_state.nodes[1],
+        node_id="r1c0",
+        row=1,
+        col=0,
+        next_node_ids=["linked"],
+    )
+    linked_room = replace(
+        session.act_state.nodes[1],
+        node_id="linked",
+        row=2,
+        col=0,
+        next_node_ids=[],
+    )
+    detour_room = replace(
+        session.act_state.nodes[1], node_id="detour", row=2, col=2, next_node_ids=[]
+    )
+    act_state = replace(
+        session.act_state,
+        nodes=[session.act_state.nodes[0], current_room, linked_room, detour_room],
+    )
+    session = replace(
+        session,
+        run_state=replace(session.run_state, relics=["burning_blood", "wing_boots"]),
+        act_state=act_state,
+        room_state=RoomState(
+            room_id="act1:r1c0",
+            room_type="combat",
+            stage="completed",
+            payload={"node_id": "r1c0", "next_node_ids": ["linked"]},
+            is_resolved=True,
+            rewards=[],
+        ),
+        menu_state=MenuState(mode="root"),
+    )
+
+    running, next_session, message = route_menu_choice(
+        _choice_for_root_action(session, "next_room"), session=session
+    )
+
+    assert running is True
+    assert next_session.room_state.payload["node_id"] == "r1c0"
+    assert next_session.menu_state.mode == "select_next_room"
+    assert (
+        next_session.run_state.relic_sequence_positions.get("wing_boots_charges", 0)
+        == 0
+    )
+    assert "选择下一个房间" in message
+
+
 def test_route_menu_choice_without_wing_boots_rejects_unlinked_next_room() -> None:
     session = start_session(seed=5)
     current_room = replace(

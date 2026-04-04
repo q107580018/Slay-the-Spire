@@ -2061,8 +2061,8 @@ def _route_root_menu(
         next_session = replace(session, menu_state=MenuState(mode="select_reward"))
         return True, next_session, render_session(next_session)
     if action_id == "next_room":
-        next_node_ids = session.room_state.payload.get("next_node_ids", [])
-        if isinstance(next_node_ids, list) and len(next_node_ids) > 1:
+        next_node_ids = _next_room_options(session)
+        if len(next_node_ids) > 1:
             next_session = replace(
                 session, menu_state=MenuState(mode="select_next_room")
             )
