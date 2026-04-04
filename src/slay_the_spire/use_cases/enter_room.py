@@ -354,7 +354,9 @@ def _room_payload_for_entry(
 ) -> dict[str, object]:
     cached_payload = act_state.room_payloads.get(room_id)
     if cached_payload is not None:
-        return dict(cached_payload)
+        payload = dict(cached_payload)
+        payload.pop("tiny_chest_counter", None)
+        return payload
 
     payload: dict[str, object] = {
         "act_id": act_state.act_id,
@@ -420,7 +422,7 @@ def _room_payload_for_entry(
             _build_treasure_payload(run_state, room_id=room_id, registry=registry)
         )
 
-    if resolved_room_kind in {"shop", "treasure"}:
+    if room_kind == "event" or resolved_room_kind in {"shop", "treasure"}:
         act_state.room_payloads[room_id] = dict(payload)
     return payload
 
@@ -506,7 +508,9 @@ def _record_event_room_progress(
     if room_kind != "event" or "tiny_chest" not in run_state.relics:
         return
     counter = run_state.relic_sequence_positions.get("tiny_chest_counter", 0)
-    act_state.room_payloads[room_id] = {"tiny_chest_counter": counter}
+    payload = dict(act_state.room_payloads.get(room_id, {}))
+    payload["tiny_chest_counter"] = counter
+    act_state.room_payloads[room_id] = payload
 
 
 def _mark_node_visited(act_state: ActState, node_id: str) -> None:

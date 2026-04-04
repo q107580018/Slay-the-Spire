@@ -715,6 +715,26 @@ def test_tiny_chest_marks_counter_when_entering_event_room() -> None:
     assert act_state.room_payloads["act1:event-1"]["tiny_chest_counter"] == 1
 
 
+def test_tiny_chest_event_room_reentry_keeps_original_room_payload() -> None:
+    act_state = _act_state(
+        node_id="event-1", room_type="event", next_node_ids=["r2c0", "r2c1"]
+    )
+    run_state = _run_state(seed=37, relics=["burning_blood", "tiny_chest"])
+
+    first_room = enter_room(run_state, act_state, "event-1", _content_provider())
+    second_room = enter_room(run_state, act_state, "event-1", _content_provider())
+
+    assert first_room.payload["node_id"] == "event-1"
+    assert first_room.payload["next_node_ids"] == ["r2c0", "r2c1"]
+    assert first_room.payload["resolved_room_kind"] == "event"
+    assert "event_id" in first_room.payload
+    assert act_state.room_payloads["act1:event-1"] == {
+        **first_room.payload,
+        "tiny_chest_counter": 1,
+    }
+    assert second_room.payload == first_room.payload
+
+
 def test_enter_combat_room_applies_blood_vial_on_combat_start() -> None:
     room_state = enter_room(
         _run_state(
