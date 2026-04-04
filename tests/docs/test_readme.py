@@ -17,4 +17,7 @@ def test_readme_mentions_batch_five_relic_coverage_without_claiming_full_complet
     assert "matryoshka" in readme
     assert "wing_boots" in readme
     assert "高复杂度遗物" in readme
+    assert "implementation_status" in readme
+    assert "不会再进入普通掉落、商店、Boss 奖励或 Neow 随机遗物池" not in readme
+    assert "基于 `implementation_status` 的过滤" in readme
     assert "遗物已全部完成" not in readme
