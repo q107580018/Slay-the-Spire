@@ -136,6 +136,7 @@ uv build
 - `sts_huiji_baike_entries.json`：抓取得到的原始条目集合
 - `sts_huiji_baike_entries_clean.json`：清洗后的条目集合，适合直接检索和比对
 - `sts_huiji_baike_entries_summary.json`：抓取范围、时间和条目统计摘要
+- `card_relic_expectations.json`：卡牌和遗物的中文名称与简要说明期望值，用于回归校验；卡牌和遗物的中文名称及简明摘要现均通过 `tests/content/test_registry_validation.py` 中的审计测试与本地语料库进行回归对比。
 - 这些文件仅作开发参考，不参与运行时内容加载，也不是 `content/` 的替代品
 - 需要查原版资料时，默认先看这里；需要补充或校验时，再去外部 Wiki
 

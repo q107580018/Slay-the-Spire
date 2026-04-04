@@ -1122,6 +1122,38 @@ def test_provider_loads_remaining_ironclad_cards(
 
 
 @pytest.mark.parametrize("content_root", _content_roots())
+def test_all_relic_names_and_summaries_match_huiji_reference(
+    content_root: Path,
+) -> None:
+    fixture_path = (
+        Path(__file__).resolve().parents[2]
+        / "docs"
+        / "reference"
+        / "sts_huijiwiki"
+        / "card_relic_expectations.json"
+    )
+    expectations = json.loads(fixture_path.read_text(encoding="utf-8"))["relics"]
+    provider = StarterContentProvider(content_root)
+
+    mismatches: list[str] = []
+    for relic in provider.relics().all():
+        expected = expectations.get(relic.id)
+        if expected is None:
+            mismatches.append(f"{relic.id}: missing expectation")
+            continue
+        if relic.name != expected["name"]:
+            mismatches.append(
+                f"{relic.id}: name mismatch (content={relic.name!r}, fixture={expected['name']!r})"
+            )
+        if relic.summary != expected["summary"]:
+            mismatches.append(
+                f"{relic.id}: summary mismatch (content={relic.summary!r}, fixture={expected['summary']!r})"
+            )
+
+    assert not mismatches, "\n".join(mismatches[:20])
+
+
+@pytest.mark.parametrize("content_root", _content_roots())
 def test_implementation_status_matches_code_behavior(content_root: Path) -> None:
     """Guard against status drift: relics marked 'implemented' must have real behavior."""
     provider = StarterContentProvider(content_root)

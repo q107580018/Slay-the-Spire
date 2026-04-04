@@ -1446,689 +1446,725 @@
     }
   },
   "relics": {
-    "orichalcum": {
-      "name": "奥利哈钢",
-      "summary": "奥利哈钢遗物 id: Orichalcum 遗物信息效果中文描述 如果你在回合结束时没有任何 格挡 ，获得 6点 格挡。效果英文描述 Every time you play 3 Attacks in a single turn, gain"
-    },
-    "white_beast_statue": {
-      "name": "白兽雕像",
-      "summary": "白兽雕像遗物 id: White Beast Statue 遗物信息效果中文描述 战斗结束后必定掉落药水效果英文描述 Potions always appear in combat rewards.中文引言 一个小小的白色雕像，这种动物你从"
-    },
-    "centennial_puzzle": {
-      "name": "百年积木",
-      "summary": "百年积木遗物 id: Centennial Puzzle 遗物信息效果中文描述 你在每场战斗中第一次损伤生命时，抽 3 张牌。效果英文描述 The first time you lose HP each combat, draw 3 car"
-    },
-    "ice_cream": {
-      "name": "冰淇淋",
-      "summary": "冰淇淋遗物 id: Ice Cream 遗物信息效果中文描述 多余的能量可以留到下一回合。效果英文描述 Energy is now conserved between turns.中文引言 “好吃！”英文引言 Delicious!所属 通用"
-    },
-    "dream_catcher": {
-      "name": "捕梦网",
-      "summary": "捕梦网遗物 id: Dream Catcher 遗物信息效果中文描述 每当你 休息 时，可以增加一张牌到你的牌组。效果英文描述 \"Whenever you Rest, you may add a card into your deck.中文"
-    },
-    "unceasing_top": {
-      "name": "不休陀螺",
-      "summary": "不休陀螺遗物 id: Unceasing Top 遗物信息效果中文描述 在你的回合，当你没有手牌时，抽一张牌。效果英文描述 Whenever you have no cards in hand during your turn, draw"
-    },
-    "meal_ticket": {
-      "name": "餐券",
-      "summary": "餐券遗物 id: Meal Ticket 遗物信息效果中文描述 每当你进入商店房间时，回复 15 点生命。效果英文描述 Whenever you enter a shop, heal 15 HP.中文引言 “这里的肉丸子可是有名的！以后每次"
-    },
-    "strawberry": {
-      "name": "草莓",
-      "summary": "草莓遗物 id: Strawberry 遗物信息效果中文描述 拾起时，将你的最大生命值提升 7.效果英文描述 Upon pickup, raise your Max HP by 7中文引言 太好吃了！荒疫之后就没见过这东西了啊。”——兰伟德"
-    },
-    "shovel": {
-      "name": "铲子",
-      "summary": "铲子遗物 id: Shovel 遗物信息效果中文描述 现在你可以在休息处 挖掘 遗物。效果英文描述 You can now Dig for relics at Rest Sites.中文引言 高塔中有着无数过去文明遗留下的遗物和强大的冒险者"
-    },
-    "orange_pellets": {
-      "name": "橙色药丸",
-      "summary": "橙色药丸遗物 id: Orange Pellets 遗物信息效果中文描述 你每在同一回合内打出 能力牌 、 攻击牌 和 技能牌 各一张，移除你身上的所有负面效果。效果英文描述 Made from various fungi found th"
-    },
-    "clockwork_souvenir": {
-      "name": "齿轮工艺品",
-      "summary": "齿轮工艺品遗物 id: Clockwork Souvenir 遗物信息效果中文描述 每场战斗开始时，获得 1 层 人工制品 。效果英文描述 Start each combat with 1 Artifact.中文引言 “你看里面齿轮这么多，"
-    },
-    "akabeko": {
-      "name": "赤牛",
-      "summary": "赤牛遗物 id: Akabeko 遗物信息效果中文描述 你在每场战斗中的第一次攻击造成 8 点额外伤害效果英文描述 Your first Attack each combat deals 8 additional damage.中文引言 哞"
-    },
-    "horn_cleat": {
-      "name": "船夹板",
-      "summary": "船夹板遗物 id: Horn Cleat 遗物信息效果中文描述 在你的第二回合开始时，获得 14 点 格挡。效果英文描述 At the start of your 2nd turn, gain 14 Block.中文引言 拿在手里有一种莫名"
-    },
-    "strike_dummy": {
-      "name": "打击木偶",
-      "summary": "打击木偶遗物 id: Strike Dummy 遗物信息效果中文描述 名字中有“打击”的卡牌造成 3 点额外伤害。效果英文描述 Cards containing \\\"Strike\\\" deal 3 additional damage.中文引"
-    },
-    "cauldron": {
-      "name": "大锅",
-      "summary": "大锅遗物 id: Cauldron 遗物信息效果中文描述 拾起时，制作 5 瓶随机药水。效果英文描述 Upon pickup, brews 5 random potions.中文引言 商人其实是位技术相当不错的药剂师。买四送一。英文引言 T"
-    },
-    "meat_on_the_bone": {
-      "name": "带骨肉",
-      "summary": "带骨肉遗物 id: Meat on the Bone 遗物信息效果中文描述 如果你在战斗结束时生命值等于或低于 50% ，回复 12 点生命。效果英文描述 If your HP is at or below 50% at the end o"
-    },
-    "bag_of_marbles": {
-      "name": "弹珠袋",
-      "summary": "弹珠袋遗物 id: Bag of Marbles 遗物信息效果中文描述 在每场战斗开始时，给予所有敌人 1层 易伤效果英文描述 At the start of each combat, apply 3,Vulnerable to ALL e"
-    },
-    "gremlin_mask": {
-      "name": "地精容貌",
-      "summary": "地精容貌遗物 id: Gremlin Mask 遗物信息效果中文描述 在每场战斗开始时，你拥有 1 层 虚弱 。效果英文描述 Start each combat with 1 Weak.中文引言 呜哇，好想逃跑。英文引言 Time to r"
-    },
-    "gremlin_horn": {
-      "name": "地精之角",
-      "summary": "地精之角遗物 id: Gremlin Horn 遗物信息效果中文描述 每当有一名敌人死亡，获得1点能量并抽 1 张牌。效果英文描述 Whenever an enemy dies, gain an energy and draw 1 card"
-    },
-    "lantern": {
-      "name": "灯笼",
-      "summary": "灯笼遗物 id: Lantern 遗物信息效果中文描述 在每场战斗的第一回合获得一点能量。效果英文描述 Start each combat with an additional energy.中文引言 一盏诡异的灯笼，只为提灯者照明。英文引"
-    },
-    "frozencore": {
-      "name": "冻结核心",
-      "summary": "冻结核心遗物 id: FrozenCore 遗物信息效果中文描述 替换 破损核心 。如果你在你的回合结束时还有空余的充能球栏位， 生成 1 个 冰霜 充能球。效果英文描述 Replaces Cracked Core.If you end"
-    },
-    "frozen_egg": {
-      "name": "冻结之蛋",
-      "summary": "冻结之蛋遗物 id: Frozen Egg 遗物信息效果中文描述 每当你获得 能力牌 时，将其 升级 。效果英文描述 Whenever you add a Power card to your deck, it is Upgraded.中文"
-    },
-    "frozen_eye": {
-      "name": "冻结之眼",
-      "summary": "冻结之眼遗物 id: Frozen Eye 遗物信息效果中文描述 现在观看 抽牌堆 时，卡牌将按顺序排列。效果英文描述 When viewing your Draw Pile, the cards are now shown in orde"
-    },
-    "cloak_clasp": {
-      "name": "斗篷扣",
-      "summary": "斗篷扣遗物 id: Cloak Clasp 遗物信息效果中文描述 在你的回合结束时，每有一张手牌获得 1 点 格挡。效果英文描述 At the end of your turn, gain 1 Block for each card in"
-    },
-    "toxic_egg": {
-      "name": "毒素之蛋",
-      "summary": "毒素之蛋遗物 id: Toxic Egg 遗物信息效果中文描述 每当你获得 技能牌 时，将其 升级 。效果英文描述 Whenever you add a Skill into your deck, Upgrade it.中文引言 “真是了不"
-    },
-    "gambling_chip": {
-      "name": "赌博筹码",
-      "summary": "赌博筹码遗物 id: Gambling Chip 遗物信息效果中文描述 在每场战斗开始时，丢弃任意张牌，然后抽相同数量张牌。效果英文描述 At the start of each combat, discard any number of"
-    },
-    "cables": {
-      "name": "镀金缆线",
-      "summary": "镀金缆线遗物 id: Cables 遗物信息效果中文描述 你最右侧的充能球会额外触发一次被动效果。效果英文描述 Your rightmost Orb triggers its passive an additional time.中文引言"
-    },
-    "captains_wheel": {
-      "name": "舵盘",
-      "summary": "舵盘遗物 id: Captains Wheel 遗物信息效果中文描述 在你的第三回合开始时，获得 18 点 格挡。效果英文描述 At the start of your 3rd turn, gain 18 Block.中文引言 精雕细琢的木"
-    },
-    "nloths_mask": {
-      "name": "恩洛斯的饥饿的脸",
-      "summary": "恩洛斯的饥饿的脸遗物 id: Nloths Mask 遗物信息效果中文描述 你打开的下一个非Boss宝箱将是空的。效果英文描述 The next non-Boss chest you open is empty.中文引言 你觉得好饿。英文引"
-    },
-    "the_boot": {
-      "name": "发条靴",
-      "summary": "发条靴遗物 id: The Boot 遗物信息效果中文描述 每当你造成小于等于 5点 未被格挡的 攻击 伤害时，将伤害提升为 5。效果英文描述 Whenever you would deal 4 or less unblocked Atta"
-    },
-    "juzu_bracelet": {
-      "name": "佛珠手链",
-      "summary": "佛珠手链遗物 id: Juzu Bracelet 遗物信息效果中文描述 你在 ? 房间中不会再遭遇常规战斗。效果英文描述 Normal enemy combats are no longer encountered in ? rooms.中"
-    },
-    "runic_capacitor": {
-      "name": "符文电容器",
-      "summary": "符文电容器遗物 id: Runic Capacitor 遗物信息效果中文描述 每场战斗开始时，获得 3 个额外充能球栏位。效果英文描述 More is better.中文引言 多多益善。英文引言 Start each combat with"
-    },
-    "runic_pyramid": {
-      "name": "符文金字塔",
-      "summary": "符文金字塔遗物 id: Runic Pyramid 遗物信息效果中文描述 你在回合结束时不再自动丢弃所有手牌。效果英文描述 At the end of your turn, you no longer discard your hand.中"
-    },
-    "runic_cube": {
-      "name": "符文立方体",
-      "summary": "符文立方体遗物 id: Runic Cube 遗物信息效果中文描述 每当你失去生命时，抽 1 张牌。效果英文描述 Whenever you lose HP, draw 1 card.中文引言 上面的符文无法辨识。英文引言 The runes"
-    },
-    "runic_dome": {
-      "name": "符文圆顶",
-      "summary": "符文圆顶遗物 id: Runic Dome 遗物信息效果中文描述 你无法再看见敌人的 意图 。在每回合开始时获得一点能量。效果英文描述 At the start of your turn gain an energy. You can no"
-    },
-    "mummified_hand": {
-      "name": "干瘪之手",
-      "summary": "干瘪之手遗物 id: Mummified Hand 遗物信息效果中文描述 你每打出一张 能力牌 ，手牌中就有一张随机牌在这个回合耗能变为 0 。效果英文描述 Whenever you play a Power card, a random"
-    },
-    "pen_nib": {
-      "name": "钢笔尖",
-      "summary": "钢笔尖遗物 id: Pen Nib 遗物信息效果中文描述 你每打出的第 10 张 攻击牌 将会造成双倍伤害。效果英文描述 Every 10th Attack you play deals double damage.中文引言 拿着这支笔尖时"
-    },
-    "toolbox": {
-      "name": "工具箱",
-      "summary": "工具箱遗物 id: Toolbox 遗物信息效果中文描述 在每场战斗开始时，你可以从 3 张随机无色牌中选择 1 张增加到你的手牌。效果英文描述 At the start of each combat, choose 1 of 3 rand"
-    },
-    "symbiotic_virus": {
-      "name": "共生病毒",
-      "summary": "共生病毒遗物 id: Symbiotic Virus 遗物信息效果中文描述 在每场战斗开始时， 生成 1 个 黑暗 充能球。效果英文描述 At the start of each combat, Channel 1 Dark.中文引言 小小"
-    },
-    "ancient_tea_set": {
-      "name": "古茶具套装",
-      "summary": "古茶具套装遗物 id: Ancient Tea Set 遗物信息效果中文描述 到达休息处后的下一场战斗开始时获得2点能量。效果英文描述 Whenever you enter a Rest Site, start the next comba"
-    },
-    "old_coin": {
-      "name": "古钱币",
-      "summary": "古钱币遗物 id: Old Coin 遗物信息效果中文描述 拾起时，获得 300 金币效果英文描述 Upon pickup, gain 300 Gold.中文引言 因为其历史价值和稀有金属成分而被商人出以高价的独特钱币。英文引言 Uniqu"
-    },
-    "champion_belt": {
-      "name": "冠军腰带",
-      "summary": "冠军腰带遗物 id: Champion Belt 遗物信息效果中文描述 每当你给予 易伤 时，同时给予 1 层 虚弱 。效果英文描述 Whenever you apply Vulnerable, apply 1 Weak.中文引言 只有最强"
-    },
-    "nuclear_battery": {
-      "name": "核能电池",
-      "summary": "核能电池遗物 id: Nuclear Battery 遗物信息效果中文描述 在每场战斗开始时， 生成 1 个 等离子 充能球。效果英文描述 At the start of each combat, Channel 1 Plasma.中文引言"
+    "astrolabe": {
+      "name": "星盘",
+      "summary": "随机变形牌组中的 3 张牌并将其升级"
     },
     "black_blood": {
-      "name": "黑暗之血",
-      "summary": "黑暗之血遗物 id: Black Blood 遗物信息效果中文描述 替换 燃烧之血 。在战斗结束时，回复 12点生命。效果英文描述 Replaces Burning Blood. At the end of combat, heal 12"
-    },
-    "darkstone_periapt": {
-      "name": "黑石护符",
-      "summary": "黑石护符遗物 id: Darkstone Periapt 遗物信息效果中文描述 每当你获得一张 诅咒 ，将你的最大生命值提高 6效果英文描述 Whenever you obtain a Curse, increase your Max HP"
+      "name": "黑色之血",
+      "summary": "战斗结束后回复 12 点生命"
     },
     "black_star": {
       "name": "黑星",
-      "summary": "黑星遗物 id: Black Star 遗物信息效果中文描述 精英 敌人在被打败时多掉落一件 遗物 。效果英文描述 Elites drop an additional relic when defeated.中文引言 最初在蛇镇上发现的遗物"
-    },
-    "red_mask": {
-      "name": "红面具",
-      "summary": "红面具遗物 id: Red Mask 遗物信息效果中文描述 在每场战斗开始时，给予所有敌人 1 层 虚弱。效果英文描述 At the start of each combat, apply 1 Weak to ALL enemies.中文引"
-    },
-    "red_skull": {
-      "name": "红头骨",
-      "summary": "红头骨遗物 id: Red Skull 遗物信息效果中文描述 当你的生命值等于或低于 50% 时， 你获得额外 3点 力量。效果英文描述 While your HP is at or below 50%, you have 3 additi"
-    },
-    "girya": {
-      "name": "壶铃",
-      "summary": "壶铃遗物 id: Girya 遗物信息效果中文描述 你现在能在休息处获得 力量 。（最多3次）效果英文描述 You can now gain Strength at Rest Sites (up to 3 times).中文引言 这个壶铃重"
-    },
-    "chemical_x": {
-      "name": "化学物X",
-      "summary": "化学物X遗物 id: Chemical X 遗物信息效果中文描述 耗能为 X 的牌的效果数值增加 2 点。效果英文描述 The effects of your cost X cards are increased by 2.中文引言 警告："
-    },
-    "pocketwatch": {
-      "name": "怀表",
-      "summary": "怀表遗物 id: Pocketwatch 遗物信息效果中文描述 若你在某个回合打出的牌少于等于 3 张，则在你的下个回合开始时额外抽 3 张牌。效果英文描述 Whenever you play 3 or less cards during"
-    },
-    "regal_pillow": {
-      "name": "皇家枕头",
-      "summary": "皇家枕头遗物 id: Regal Pillow 遗物信息效果中文描述 在 休息 时额外回复 15 点生命。效果英文描述 Whenever you Rest, heal an additional 15 HP.中文引言 这下能好好睡一觉了。英"
-    },
-    "golden_eye": {
-      "name": "黄金眼",
-      "summary": "黄金眼遗物 id: Golden Eye 遗物信息效果中文描述 你每次 预见 时，额外 预见 2 张牌。效果英文描述 Whenever you Scry, Scry 2 additional cards.中文引言 能够看见近处生灵的心智，让"
-    },
-    "membership_card": {
-      "name": "会员卡",
-      "summary": "会员卡遗物 id: Membership Card 遗物信息效果中文描述 所有商品打折 50% ！效果英文描述 50% discount on all products!中文引言 “会员资格！只有本店最尊贵的客人，才有机会获得哦！”英文引言"
-    },
-    "inserter": {
-      "name": "机械臂",
-      "summary": "机械臂遗物 id: Inserter 遗物信息效果中文描述 每 2 回合，获得 1 个充能球栏位。效果英文描述 Every 2 turns, gain 1 Orb slot.中文引言 抓取。放置。堆叠。重复。英文引言 Push. Pull."
-    },
-    "tough_bandages": {
-      "name": "结实绷带",
-      "summary": "结实绷带遗物 id: Tough Bandages 遗物信息效果中文描述 你每在你的回合丢弃一张牌，就获得 3点 格挡 。效果英文描述 Whenever you discard a card during your turn, gain 3"
-    },
-    "vajra": {
-      "name": "金刚杵",
-      "summary": "金刚杵遗物 id: Vajra 遗物信息效果中文描述 在每场战斗开始时，获得 1 点 力量。效果英文描述 Start each combat with 1 Strength.中文引言 一件交给在战斗中展示了荣耀的战士们的装饰性遗物。英文引言"
-    },
-    "golden_idol": {
-      "name": "金神像",
-      "summary": "金神像遗物 id: Golden Idol 遗物信息效果中文描述 敌人掉落的 金币 增加 25% 。效果英文描述 Enemies drop 25% more Gold.中文引言 用纯金制成，只是拿在手里就让你觉得自己有钱了。英文引言 Mad"
-    },
-    "spirit_poop": {
-      "name": "精灵便便",
-      "summary": "精灵便便遗物 id: Spirit Poop 遗物信息效果中文描述 不管怎么看都很不舒服效果英文描述 It's unpleasant.中文引言 你向精灵献上的祭品被烧焦后的遗留物。英文引言 The charred remains of yo"
-    },
-    "ornamental_fan": {
-      "name": "精致折扇",
-      "summary": "精致折扇遗物 id: Ornamental Fan 遗物信息效果中文描述 你每在同一回合内打出 3 张 攻击牌 ，就获得 4 点 格挡 。效果英文描述 Every time you play 3 Attacks in a single tu"
-    },
-    "maw_bank": {
-      "name": "巨口储蓄罐",
-      "summary": "巨口储蓄罐遗物 id: Maw Bank 遗物信息效果中文描述 每攀爬一层楼层获得 12 金币 。一旦在商店中花费 金币 就会失效。效果英文描述 Whenever you climb a floor, gain 12 Gold. No lo"
-    },
-    "coffee_dripper": {
-      "name": "咖啡滤杯",
-      "summary": "咖啡滤杯遗物 id: Coffee Dripper 遗物信息效果中文描述 你无法再在休息处 休息。在每回合开始时获得1点能量。效果英文描述 Gain an energy at the start of your turn. You can"
-    },
-    "happy_flower": {
-      "name": "开心小花",
-      "summary": "开心小花遗物 id: Happy Flower 遗物信息效果中文描述 每 3 个回合，获得一点能量。效果英文描述 Every 3 turns, gain 1 energy .中文引言 这朵一直面带笑容的花是贵族间流行的小礼物。英文引言 Th"
-    },
-    "letter_opener": {
-      "name": "开信刀",
-      "summary": "开信刀遗物 id: Letter Opener 遗物信息效果中文描述 你每在同一回合内打出 3 张技能牌，对所有敌人造成 5 点伤害。效果英文描述 Every time you play 3 Skills in a single turn,"
-    },
-    "empty_cage": {
-      "name": "空鸟笼",
-      "summary": "空鸟笼遗物 id: Empty Cage 遗物信息效果中文描述 拾起时，选择移除牌组中的 2 张牌。效果英文描述 Upon pickup, remove 2 cards from your deck.Choose 2 Cards to Re"
-    },
-    "dead_branch": {
-      "name": "枯木树枝",
-      "summary": "枯木树枝遗物 id: Dead Branch 遗物信息效果中文描述 每当你 消耗 一张牌，增加一张随机卡牌到你的手牌。效果英文描述 The branch of a tree from a forgotten era.中文引言 一个早已被遗忘"
-    },
-    "kunai": {
-      "name": "苦无",
-      "summary": "苦无遗物 id: Kunai 遗物信息效果中文描述 你每在同一回合内打出 3 张 攻击牌 ，获得 1点 敏捷 。效果英文描述 Every time you play 3 Attacks in a single turn, gain 1 De"
-    },
-    "preserved_insect": {
-      "name": "昆虫标本",
-      "summary": "昆虫标本遗物 id: Preserved Insect 遗物信息效果中文描述 精英战中的敌人生命减少 25% 。效果英文描述 Enemies in Elite combats have 25% less HP.中文引言 这只昆虫似乎会对尤其"
-    },
-    "blue_candle": {
-      "name": "蓝蜡烛",
-      "summary": "蓝蜡烛遗物 id: Blue Candle 遗物信息效果中文描述 可以打出原本 不能被打出 的 诅咒牌 ， 打出 诅咒牌 会让你失去 1 点生命并将其 消耗。效果英文描述 Unplayable Curse cards can now be"
-    },
-    "teardrop_locket": {
-      "name": "泪滴吊坠盒",
-      "summary": "泪滴吊坠盒遗物 id: Teardrop Locket 遗物信息效果中文描述 每场战斗开始时处于 平静 。效果英文描述 Start each combat in Calm.中文引言 盒子的主人双目失明，其中的东西无人知晓。英文引言 Its"
-    },
-    "prismatic_shard": {
-      "name": "棱镜碎片",
-      "summary": "棱镜碎片遗物 id: Prismatic Shard 遗物信息效果中文描述 战斗奖励掉落的卡牌现在会包括无色牌和其他颜色的牌。效果英文描述 Combat reward screens now contain Colorless cards"
-    },
-    "pear": {
-      "name": "梨子",
-      "summary": "梨子遗物 id: Pear 遗物信息效果中文描述 拾起时，将你的最大生命值提升 10.效果英文描述 Upon pickup, raise your Max HP by 10.中文引言 在高塔荒疫发生之前十分常见的水果。英文引言 A comm"
-    },
-    "stone_calendar": {
-      "name": "历石",
-      "summary": "历石遗物 id: Stone Calendar 遗物信息效果中文描述 在第 7 回合结束时，对所有敌人造成 52 点伤害。效果英文描述 At the end of turn #b, deal #b damage to ALL enemies"
-    },
-    "duality": {
-      "name": "两仪",
-      "summary": "两仪遗物 id: Duality 遗物信息效果中文描述 每回合中，你每次打出一张 攻击牌 ，获得 1 点临时 敏捷 。效果英文描述 Whenever you play an Attack, gain 1 temporary Dexterit"
-    },
-    "ectoplasm": {
-      "name": "灵体外质",
-      "summary": "灵体外质遗物 id: Ectoplasm 遗物信息效果中文描述 你不能再获得任何 金币 。在回合开始时获得1点能量。效果英文描述 ou can no longer gain Gold.Gain an energy at the start"
-    },
-    "brimstone": {
-      "name": "硫磺",
-      "summary": "硫磺遗物 id: Brimstone 遗物信息效果中文描述 在你的每个回合开始时，你获得 2 点 力量 ，所有敌人也获得 1 力量。效果英文描述 At the start of your turn, gain 2 Strength and"
-    },
-    "turnip": {
-      "name": "萝卜",
-      "summary": "萝卜遗物 id: Turnip 遗物信息效果中文描述 你不会再被 脆弱 。效果英文描述 You can no longer become Frail.中文引言 与生姜搭配尤为适合英文引言 Best with Ginger.\"所属 通用稀有度"
-    },
-    "fossilized_helix": {
-      "name": "螺类化石",
-      "summary": "螺类化石遗物 id: Fossilized Helix 遗物信息效果中文描述 阻止你在每场战斗中第一次受到的生命值损伤。效果英文描述 Prevent the first time you would lose HP each combat."
-    },
-    "mango": {
-      "name": "芒果",
-      "summary": "芒果遗物 id: Mango 遗物信息效果中文描述 拾起时，将你的最大生命值提升 14。效果英文描述 Upon pickup, raise your Max HP by 14.中文引言 在众多被遗忘的水果中最令人垂涎的一种。被完美地保存了下"
-    },
-    "anchor": {
-      "name": "锚",
-      "summary": "锚遗物 id: Anchor 遗物信息效果中文描述 每场战斗开始时获得 10点 格挡效果英文描述 Start each combat with #b Block.中文引言 拿着这个小小的装饰，你觉得自己更稳也更重了。英文引言 Holding"
-    },
-    "melange": {
-      "name": "美琅脂",
-      "summary": "美琅脂遗物 id: Melange 遗物信息效果中文描述 你每次将抽牌堆洗牌时， 预见 3.效果英文描述 Whenever you shuffle your draw pile, Scry 3中文引言 来源不明的神秘沙子，气味有点像肉桂。英"
-    },
-    "whetstone": {
-      "name": "磨刀石",
-      "summary": "磨刀石遗物 id: Whetstone 遗物信息效果中文描述 拾起时，随机 升级 2 张 攻击牌 。效果英文描述 Upon pickup, Upgrade 2 random Attacks.中文引言 “肉体永远无法打败钢铁。”——忽必烈大帝"
-    },
-    "magic_flower": {
-      "name": "魔法花",
-      "summary": "魔法花遗物 id: Magic Flower 遗物信息效果中文描述 战斗中的回复效果提升 50% 。效果英文描述 Healing is 50% more effective during combat.中文引言 被认为是早已绝种的一朵花，竟"
-    },
-    "ink_bottle": {
-      "name": "墨水瓶",
-      "summary": "墨水瓶遗物 id: Ink Bottle 遗物信息效果中文描述 你每打出 10 张牌，抽 1 张牌。效果英文描述 Whenever you play 10 cards, draw 1 card.中文引言 每次用光，都会自动装满一种颜色不同的"
-    },
-    "face_of_cleric": {
-      "name": "牧师的脸",
-      "summary": "牧师的脸遗物 id: Face Of Cleric 遗物信息效果中文描述 每场战斗后你的最大生命值增加 1 。效果英文描述 At the end of combat, raise your Max HP by 1中文引言 人人都爱牧师。英文"
-    },
-    "torii": {
-      "name": "鸟居",
-      "summary": "鸟居遗物 id: Torii 遗物信息效果中文描述 每当你受到小于等于 5点的未被格挡 攻击 伤害时，将伤害降低为 1。效果英文描述 Whenever you would receive 5 or less unblocked attack"
-    },
-    "bird_faced_urn": {
-      "name": "鸟面瓮",
-      "summary": "鸟面瓮遗物 id: Bird Faced Urn 遗物信息效果中文描述 每当你打出一张 能力牌 ，回复 2 点生命。效果英文描述 Whenever you play a Power card, heal 2 HP.中文引言 这个瓮上雕着乌鸦"
-    },
-    "neowsblessing": {
-      "name": "涅奥的悲恸",
-      "summary": "涅奥的悲恸遗物 id: NeowsBlessing 遗物信息效果中文描述 接下来 3 场战斗中的敌人将只有 1 点生命。效果英文描述 Enemies in your first 3 combats will have 1 HP.中文引言 涅"
-    },
-    "peace_pipe": {
-      "name": "宁静烟斗",
-      "summary": "宁静烟斗遗物 id: Peace Pipe 遗物信息效果中文描述 现在你可以在休息处移除你牌组中的牌。效果英文描述 You can now remove cards from your deck at Rest Sites.中文引言 放空心"
-    },
-    "twisted_funnel": {
-      "name": "扭曲漏斗",
-      "summary": "扭曲漏斗遗物 id: Twisted Funnel 遗物信息效果中文描述 在每场战斗开始时，给予所有敌人 4 层 中毒 。效果英文描述 At the start of each combat, apply 4 Poison to ALL e"
-    },
-    "slavers_collar": {
-      "name": "奴隶贩子颈环",
-      "summary": "奴隶贩子颈环遗物 id: Slavers Collar 遗物信息效果中文描述 在Boss战与精英战中，你在每回合开始时获得1点能量。效果英文描述 During Boss and Elite combats, gain [E] at the"
-    },
-    "bottled_flame": {
-      "name": "瓶装火焰",
-      "summary": "瓶装火焰遗物 id: Bottled Flame 遗物信息效果中文描述 拾起时，选择一张 攻击牌 。在每场战斗开始时，这张牌会出现在手牌中。效果英文描述 Upon pickup, choose an Attack. Start each c"
-    },
-    "bottled_lightning": {
-      "name": "瓶装闪电",
-      "summary": "瓶装闪电遗物 id: Bottled Lightning 遗物信息效果中文描述 拾起时，选择一张 技能牌 。在每场战斗开始时，这张牌会出现在手牌中。效果英文描述 Upon pickup, choose a Skill. Start each"
-    },
-    "bottled_tornado": {
-      "name": "瓶装旋风",
-      "summary": "瓶装旋风遗物 id: Bottled Tornado 遗物信息效果中文描述 拾起时，选择一张 能力牌 。在每场战斗开始时，这张牌会出现在手牌中。效果英文描述 Upon pickup, choose a Power card. Start e"
+      "summary": "精英敌人额外掉落 1 个遗物"
     },
     "busted_crown": {
-      "name": "破碎金冠",
-      "summary": "破碎金冠遗物 id: Busted Crown 遗物信息效果中文描述 在卡牌奖励画面，可供选择的牌数减少 2 张。在每回合开始时获得1点能量。效果英文描述 Gain an energy at the start of your turn."
-    },
-    "cracked_core": {
-      "name": "破损核心",
-      "summary": "破损核心遗物 id: Cracked Core 遗物信息效果中文描述 在每场战斗开始时， 生成 1 个 闪电 充能球。效果英文描述 At the start of each combat, Channel 1 #y Lightning.中文"
-    },
-    "strange_spoon": {
-      "name": "奇怪的勺子",
-      "summary": "奇怪的勺子遗物 id: Strange Spoon 遗物信息效果中文描述 应该 消耗 的牌在被打出时会有 50% 几率只被丢弃。效果英文描述 Cards which Exhaust when played will instead disc"
-    },
-    "odd_mushroom": {
-      "name": "奇怪蘑菇",
-      "summary": "奇怪蘑菇遗物 id: Odd Mushroom 遗物信息效果中文描述 当你有 易伤 状态时，受到的额外伤害从 50% 下降为 25% 。效果英文描述 When Vulnerable, take 25% more attack damage"
-    },
-    "emotion_chip": {
-      "name": "情感芯片",
-      "summary": "情感芯片遗物 id: Emotion Chip 遗物信息效果中文描述 在每回合开始时，如果你在之前回合受到过伤害，则触发所有充能球的被动效果。效果英文描述 If you lost HP during the previous turn, t"
-    },
-    "burning_blood": {
-      "name": "燃烧之血",
-      "summary": "燃烧之血遗物 id: Burning Blood 遗物信息效果中文描述 在战斗结束时，回复6点生命。效果英文描述 At the end of combat, heal 6 HP中文引言 你自身的血液因为无尽的愤怒而燃烧沸腾。英文引言 You"
-    },
-    "ninja_scroll": {
-      "name": "忍术卷轴",
-      "summary": "忍术卷轴遗物 id: Ninja Scroll 遗物信息效果中文描述 每场战斗开始时，手牌中增加 3 张 小刀。效果英文描述 At the start of each combat, add 3 Shivs into your hand.中"
-    },
-    "sundial": {
-      "name": "日晷",
-      "summary": "日晷遗物 id: Sundial 遗物信息效果中文描述 你每洗牌 3次，获得2点能量。效果英文描述 Every 3 times you shuffle your draw pile, gain 2 energy.中文引言 “古代人类愚昧地执"
-    },
-    "molten_egg": {
-      "name": "熔火之蛋",
-      "summary": "熔火之蛋遗物 id: Molten Egg 遗物信息效果中文描述 每当你获得 攻击牌 时，将其 升级 。效果英文描述 Whenever you add an Attack into your deck, Upgrade it.中文引言 凤凰"
-    },
-    "fusion_hammer": {
-      "name": "融合之锤",
-      "summary": "融合之锤遗物 id: Fusion Hammer 遗物信息效果中文描述 你无法再在休息处锻造升级卡牌。每回合开始时获得1点能量。效果英文描述 Gain an energy at the start of your turn. You can"
-    },
-    "ssserpent_head": {
-      "name": "蛇的头",
-      "summary": "蛇的头遗物 id: Ssserpent Head 遗物信息效果中文描述 每次进入？房间时获得 50 金币 。效果英文描述 Whenever you enter a ? room, gain 50 Gold.中文引言 最幸福的人生当然就是什么"
-    },
-    "ring_of_the_snake": {
-      "name": "蛇之戒指",
-      "summary": "蛇之戒指遗物 id: Ring of the Snake 遗物信息效果中文描述 在每场战斗开始时，额外抽 2 张牌。效果英文描述 At the start of each combat, draw 2 additional cards.中文"
-    },
-    "sacred_bark": {
-      "name": "神圣树皮",
-      "summary": "神圣树皮遗物 id: Sacred Bark 遗物信息效果中文描述 药水的效果翻倍。效果英文描述 Double the effectiveness of potions.中文引言 传说中来自于世界树上的一块树皮。英文引言 A bark ru"
-    },
-    "ginger": {
-      "name": "生姜",
-      "summary": "生姜遗物 id: Ginger 遗物信息效果中文描述 你不会再被 虚弱 。效果英文描述 You can no longer become Weakened.中文引言 在许多补品中都能用上的好东西。英文引言 A potent tool in"
-    },
-    "the_specimen": {
-      "name": "生物样本",
-      "summary": "生物样本遗物 id: The Specimen 遗物信息效果中文描述 每当有敌人死去时，将其身上的 中毒 层数移到一名随机敌人身上。效果英文描述 Whenever an enemy dies, transfer any Poison it"
-    },
-    "holy_water": {
-      "name": "圣水",
-      "summary": "圣水遗物 id: Holy Water 遗物信息效果中文描述 在每场战斗开始时，将 3 张 奇迹 放入你的手牌。效果英文描述 Replaces Pure Water. At the start of each combat, add 3 M"
-    },
-    "shuriken": {
-      "name": "手里剑",
-      "summary": "手里剑遗物 id: Shuriken 遗物信息效果中文描述 你每在同一回合内打出 3 张 攻击牌 ，获得 1点 力量 。效果英文描述 Every time you play 3 Attacks in a single turn, gain"
-    },
-    "damaru": {
-      "name": "手摇鼓",
-      "summary": "手摇鼓遗物 id: Damaru 遗物信息效果中文描述 在你的回合开始时，获得 1 层 真言 。效果英文描述 At the start of your turn, gain 1 Mantra.中文引言 这面小鼓的声音让你时刻保持神志清醒，仿"
-    },
-    "hand_drill": {
-      "name": "手钻",
-      "summary": "手钻遗物 id: Hand Drill 遗物信息效果中文描述 每当你突破敌人的 格挡 时，给予其 2 层 易伤 。效果英文描述 Whenever you break an enemy's Block, apply 2 Vulnerable."
-    },
-    "data_disk": {
-      "name": "数据磁盘",
-      "summary": "数据磁盘遗物 id: Data Disk 遗物信息效果中文描述 在每场战斗开始时，获得 1 点 集中效果英文描述 Start each combat with 1 Focus.中文引言 这张磁盘里记录了关于鸟类和蛇类的珍贵数据。英文引言 T"
-    },
-    "nunchaku": {
-      "name": "双节棍",
-      "summary": "双节棍遗物 id: Nunchaku 遗物信息效果中文描述 你每打出 10张 攻击牌 ，获得一点能量。效果英文描述 Every time you play 10 Attacks, gain 1 energy.中文引言 优良的练武器具，能改善"
-    },
-    "mercury_hourglass": {
-      "name": "水银沙漏",
-      "summary": "水银沙漏遗物 id: Mercury Hourglass 遗物信息效果中文描述 在你的回合开始时，对所有敌人造成 3 点伤害。效果英文描述 At the start of your turn, deal 3 damage to ALL en"
-    },
-    "necronomicon": {
-      "name": "死灵之书",
-      "summary": "死灵之书遗物 id: Necronomicon 遗物信息效果中文描述 你每回合打出的第一张耗能大于等于 2 的 攻击牌 将被打出两次。当你拾起这件遗物时，被 诅咒 。效果英文描述 The first Attack played each t"
-    },
-    "the_courier": {
-      "name": "送货员",
-      "summary": "送货员遗物 id: The Courier 遗物信息效果中文描述 商人的卡牌、遗物和药水不再会卖光，并且所有商品打折 20% 。效果英文描述 The Merchant's personal pet!中文引言 这是商人的宠物！英文引言 The"
-    },
-    "singing_bowl": {
-      "name": "颂钵",
-      "summary": "颂钵遗物 id: Singing Bowl 遗物信息效果中文描述 可以将卡牌奖励转变为 +2 最大生命值。效果英文描述 When adding cards into your deck, you may raise your Max HP"
-    },
-    "the_abacus": {
-      "name": "算盘",
-      "summary": "算盘遗物 id: The Abacus 遗物信息效果中文描述 你每次将抽牌堆洗牌时，获得 6 点 格挡 。效果英文描述 Whenever you shuffle your draw pile, gain 6 Block.中文引言 “一……二"
-    },
-    "art_of_war": {
-      "name": "孙子兵法",
-      "summary": "孙子兵法遗物 id: Art of War 遗物信息效果中文描述 如果你在回合中不打出任何 攻击牌 ，在下一回合得到一点额外能量。效果英文描述 If you do not play any Attacks during your turn,"
-    },
-    "pantograph": {
-      "name": "缩放仪",
-      "summary": "缩放仪遗物 id: Pantograph 遗物信息效果中文描述 在Boss战开始时，回复 25点 #生命值。效果英文描述 At the start of Boss combats, heal 25 HP.中文引言 “坚实的地基从不是出自偶然"
-    },
-    "ceramic_fish": {
-      "name": "陶瓷小鱼",
-      "summary": "陶瓷小鱼遗物 id: Ceramic Fish 遗物信息效果中文描述 每次你往自己的牌组中加入一张卡牌时，获得 9 金币。效果英文描述 Whenever you add a card to your deck, gain 9 gold.中文"
-    },
-    "matryoshka": {
-      "name": "套娃",
-      "summary": "套娃遗物 id: Matryoshka 遗物信息效果中文描述 你接下来打开的 2 个宝箱内会有 2 件 遗物 。（Boss宝箱除外）效果英文描述 The next 2 non-Boss chests you open contain 2"
-    },
-    "velvet_choker": {
-      "name": "天鹅绒颈圈",
-      "summary": "天鹅绒颈圈遗物 id: Velvet Choker 遗物信息效果中文描述 你每回合不能打出超过 6 张牌。在每回合开始时获得1点能量。效果英文描述 Gain an energy at the start of your turn. You"
-    },
-    "sozu": {
-      "name": "添水",
-      "summary": "添水遗物 id: Sozu 遗物信息效果中文描述 你无法再获得药水。在每回合开始时获得1点能量。效果英文描述 Gain 1 Energy at the start of each turn. You can no longer obtain"
-    },
-    "tingsha": {
-      "name": "铜钹",
-      "summary": "铜钹遗物 id: Tingsha 遗物信息效果中文描述 你每在你的回合丢弃一张牌，就对一名随机敌人造成 3 点伤害。效果英文描述 Whenever you discard a card during your turn, deal 3 da"
-    },
-    "bronze_scales": {
-      "name": "铜制鳞片",
-      "summary": "铜制鳞片遗物 id: Bronze Scales 遗物信息效果中文描述 在每场战斗开始时，获得 3点 荆棘效果英文描述 Start each combat with 3 Thorns.中文引言 守护者身上的锐利鳞片，会自动变形来保护使用者。"
-    },
-    "mark_of_pain": {
-      "name": "痛楚印记",
-      "summary": "痛楚印记遗物 id: Mark of Pain 遗物信息效果中文描述 每回合开始获得 [R] 。在战斗开始时，将 2 张 伤口 放入你的抽牌堆。效果英文描述 Gain [R] at the start of your turn. At th"
-    },
-    "circlet": {
-      "name": "头环",
-      "summary": "头环遗物 id: Circlet 遗物信息效果中文描述 多多益善。效果英文描述 Collect as many as you can.中文引言 你已经没有更多遗物可以拿了。厉害！英文引言 You ran out of relics to f"
-    },
-    "mutagenic_strength": {
-      "name": "突变之力",
-      "summary": "突变之力遗物 id: Mutagenic Strength 遗物信息效果中文描述 在每场战斗开始时获得 3 点 力量，在你的第一个回合结束时失去 3 点 力量。效果英文描述 Start each combat with 3 Strength"
-    },
-    "calipers": {
-      "name": "外卡钳",
-      "summary": "外卡钳遗物 id: Calipers 遗物信息效果中文描述 在你的回合开始时，不再失去所有 格挡 ，而是失去 15 点 格挡 。效果英文描述 At the start of your turn, lose 15 Block rather t"
-    },
-    "warped_tongs": {
-      "name": "弯曲铁钳",
-      "summary": "弯曲铁钳遗物 id: Warped Tongs 遗物信息效果中文描述 在你的每个回合开始时，随机 升级 一张你的手牌（只影响本场战斗）。效果英文描述 At the start of your turn, Upgrade a random c"
-    },
-    "toy_ornithopter": {
-      "name": "玩具扑翼飞机",
-      "summary": "玩具扑翼飞机遗物 id: Toy Ornithopter 遗物信息效果中文描述 你每使用一瓶 药水，回复 5 点生命。效果英文描述 Whenever you use a potion, heal 5 HP.中文引言 这个小玩具最适合陪伴孤独"
-    },
-    "smiling_mask": {
-      "name": "微笑面具",
-      "summary": "微笑面具遗物 id: Smiling Mask 遗物信息效果中文描述 商人的卡牌移除服务现在价格永远是 50 金币。效果英文描述 The Merchant's card removal service now always costs 50"
-    },
-    "question_card": {
-      "name": "问号牌",
-      "summary": "问号牌遗物 id: Question Card 遗物信息效果中文描述 在选奖励牌时，可供选择的牌数增加 1 张。（拾起时同一窗口中的奖励牌不受影响）效果英文描述 Future card rewards have 1 additional c"
-    },
-    "tungsten_rod": {
-      "name": "钨合金棍",
-      "summary": "钨合金棍遗物 id: Tungsten Rod 遗物信息效果中文描述 你每次失去生命时，减少失去的生命值 1 点。效果英文描述 Whenever you would lose HP, lose 1 less.中文引言 非常非常重英文引言 I"
-    },
-    "lizard_tail": {
-      "name": "蜥蜴尾巴",
-      "summary": "蜥蜴尾巴遗物 id: Lizard Tail 遗物信息效果中文描述 当你要被杀死时，免死并回复到最大生命值的 50% （仅能起效一次）。效果英文描述 When you would die, heal to 50% of your Max H"
-    },
-    "bloody_idol": {
-      "name": "鲜血神像",
-      "summary": "鲜血神像遗物 id: Bloody Idol 遗物信息效果中文描述 每当你获得 金币 时，回复 5 点生命。效果英文描述 Whenever you gain Gold, heal 5 HP.中文引言 这个神像现在一直在流着血泪。英文引言 T"
-    },
-    "incense_burner": {
-      "name": "香炉",
-      "summary": "香炉遗物 id: Incense Burner 遗物信息效果中文描述 每 6 回合，获得 1 层 无实体 。效果英文描述 Every 6 turns, gain 1 Intangible.中文引言 香炉中的烟让拥有者获得被焚烧者的灵力。英文"
-    },
-    "tiny_chest": {
-      "name": "小宝箱",
-      "summary": "小宝箱遗物 id: Tiny Chest 遗物信息效果中文描述 每 4个 ？ 房间的最后一个必是 宝箱房 。效果英文描述 Every 4th ? room is a Treasure room.中文引言 作为原型而言相当不错。”——建筑师英"
-    },
-    "tiny_house": {
-      "name": "小屋子",
-      "summary": "小屋子遗物 id: Tiny House 遗物信息效果中文描述 拾起时，获得 1 瓶药水。获得 50 金币 。将你的最大生命值提升 5。获得 1 张牌。随机升级 1 张牌。效果英文描述 Upon pickup, obtain 1 p"
-    },
-    "blood_vial": {
-      "name": "小血瓶",
-      "summary": "小血瓶遗物 id: Blood Vial 遗物信息效果中文描述 在每场战斗开始时，回复 2 点生命。效果英文描述 At the start of each combat, heal 2 HP.中文引言 装着纯种年长吸血鬼血液的一个小瓶。英文"
-    },
-    "cultist_mask": {
-      "name": "邪教徒头套",
-      "summary": "邪教徒头套遗物 id: Cultist Mask 遗物信息效果中文描述 你觉得自己有开腔的欲望效果英文描述 You feel more talkative.中文引言 自己人！自己人！英文引言 Part of the Flock!所属 通用稀"
-    },
-    "astrolabe": {
-      "name": "星盘",
-      "summary": "星盘遗物 id: Astrolabe 遗物信息效果中文描述 拾起时，选择 3 张牌进行 变化 ，然后将这些牌 升级 。效果英文描述 Upon pickup, Transform 3 cards, then Upgrade them.中文引言"
-    },
-    "orrery": {
-      "name": "星系仪",
-      "summary": "星系仪遗物 id: Orrery 遗物信息效果中文描述 从五组三选一的卡牌中选择 5 张牌加入你的牌组。效果英文描述 Upon pickup, choose and add 5 cards to your deck.中文引言 “一旦你理解了"
-    },
-    "wristblade": {
-      "name": "袖剑",
-      "summary": "袖剑遗物 id: WristBlade 遗物信息效果中文描述 费用为0的 攻击牌 额外造成 4 点伤害。效果英文描述 Attacks that cost 0 deal 4 additional damage.中文引言 实用的暗杀工具。英文引"
-    },
-    "hovering_kite": {
-      "name": "悬浮风筝",
-      "summary": "悬浮风筝遗物 id: Hovering Kite 遗物信息效果中文描述 你在每回合第一次弃牌时，获得1点能量。效果英文描述 The first time you discard a card each turn,gain an energy"
-    },
-    "potion_belt": {
-      "name": "药水腰带",
-      "summary": "药水腰带遗物 id: Potion Belt 遗物信息效果中文描述 拾起时，获得 2 个药水栏位。效果英文描述 Upon pickup, gain 2 Potion slots.中文引言 穿上这条腰带，我就能携带更多药水！英文引言 I ca"
-    },
-    "medical_kit": {
-      "name": "医药箱",
-      "summary": "医药箱遗物 id: Medical Kit 遗物信息效果中文描述 可以打出原本 不能被打出 的 状态牌 。打出 状态牌 会将其 消耗。效果英文描述 Unplayable Status cards can now be played. Wh"
-    },
-    "snake_skull": {
-      "name": "异蛇头骨",
-      "summary": "异蛇头骨遗物 id: Snake Skull 遗物信息效果中文描述 每当你给予敌人 中毒 状态时，额外给予 1层 中毒效果英文描述 Whenever you apply Poison, apply an additional 1 Poiso"
-    },
-    "snecko_eye": {
-      "name": "异蛇之眼",
-      "summary": "异蛇之眼遗物 id: Snecko Eye 遗物信息效果中文描述 每回合多抽 2 张牌。每场战斗开始时获得 混乱 效果。效果英文描述 At the start of your turn, draw 2 additional cards. S"
-    },
-    "oddly_smooth_stone": {
-      "name": "意外光滑的石头",
-      "summary": "意外光滑的石头遗物 id: Oddly Smooth Stone 遗物信息效果中文描述 在每场战斗开始时，获得 1 点 敏捷。效果英文描述 Start each combat with 1 Dexterity.中文引言 你从没有见过这么光滑"
-    },
-    "enchiridion": {
-      "name": "英雄宝典",
-      "summary": "英雄宝典遗物 id: Enchiridion 遗物信息效果中文描述 每场战斗开始时增加一张随机 能力牌 到你的手牌，这张牌在第一回合的耗能变为 0 。效果英文描述 At the start of each combat, add a ran"
-    },
-    "eternal_feather": {
-      "name": "永恒羽毛",
-      "summary": "永恒羽毛遗物 id: Eternal Feather 遗物信息效果中文描述 你牌组中每有 5 张牌，当你进入休息处时就会回复 3 点生命。效果英文描述 For every 5 cards in your deck, heal 3 HP wh"
-    },
-    "sling_of_courage": {
-      "name": "勇气投石索",
-      "summary": "勇气投石索遗物 id: Sling of Courage 遗物信息效果中文描述 在与精英敌人战斗时，获得 2 点 力量。效果英文描述 Start each Elite combat with 2 Strength.中文引言 “对格外强大的对"
-    },
-    "winged_greaves": {
-      "name": "羽翼之靴",
-      "summary": "羽翼之靴遗物 id: Winged Greaves 遗物信息效果中文描述 你在选择下一层的房间时有3次机会可以无视当前的路线。效果英文描述 You may ignore paths when choosing the next room t"
-    },
-    "omamori": {
-      "name": "御守",
-      "summary": "御守遗物 id: Omamori 遗物信息效果中文描述 抵消你下 2 次获得的 诅咒。效果英文描述 Negate the next 2 Curses you obtain.中文引言 常见的用来抵御邪灵的护身符，这个护符里似乎有一股神圣的能量"
-    },
-    "war_paint": {
-      "name": "战纹涂料",
-      "summary": "战纹涂料遗物 id: War Paint 遗物信息效果中文描述 拾起时，随机 升级 2 张 技能牌。效果英文描述 Upon pickup, Upgrade 2 random Skills.中文引言 在过去，铁甲军团的士兵们会在战斗前使用带有"
-    },
-    "mark_of_the_bloom": {
-      "name": "绽放印记",
-      "summary": "绽放印记遗物 id: Mark of the Bloom 遗物信息效果中文描述 你无法再回复生命。效果英文描述 You can no longer heal.中文引言 在高塔的深处，思维与现实成为了一体。英文引言 In the Beyond"
-    },
-    "ring_of_the_serpent": {
-      "name": "长蛇戒指",
-      "summary": "长蛇戒指遗物 id: Ring of the Serpent 遗物信息效果中文描述 替换 #g蛇之戒指 。在你的每个回合开始时，额外抽 1 张牌。效果英文描述 Replaces #gRing #gof #gthe #gSnake.At th"
+      "name": "破碎王冠",
+      "summary": "每回合开始时获得 1 点能量，卡牌奖励少显示 2 张牌"
     },
     "calling_bell": {
-      "name": "召唤铃铛",
-      "summary": "召唤铃铛遗物 id: Calling Bell 遗物信息效果中文描述 获得一个独特的 诅咒 和 3 件 遗物 。效果英文描述 Upon pickup, obtain a unique Curse and 3 relics.中文引言 这个黑铁"
+      "name": "召唤铃",
+      "summary": "获得此遗物时获得 3 个诅咒遗物并加入 1 张诅咒牌"
     },
-    "thread_and_needle": {
-      "name": "针线",
-      "summary": "针线遗物 id: Thread and Needle 遗物信息效果中文描述 在每场战斗开始时，获得 4层 多层护甲 。效果英文描述 Start each combat with 4 Plated Armor.中文引言 将这些魔法线缠绕在你的"
-    },
-    "paper_crane": {
-      "name": "纸鹤",
-      "summary": "纸鹤遗物 id: Paper Crane 遗物信息效果中文描述 有 虚弱 状态的敌人造成的伤害降低 40% 而非 25% 。效果英文描述 Enemies with Weak deal 40% less damage rather than"
-    },
-    "paper_frog": {
-      "name": "纸蛙",
-      "summary": "纸蛙遗物 id: Paper Frog 遗物信息效果中文描述 有 易伤 状态的敌人受到的伤害增加 75% 而非 50%。效果英文描述 Enemies with Vulnerable take 75% more damage rather t"
-    },
-    "pure_water": {
-      "name": "至纯之水",
-      "summary": "至纯之水遗物 id: Pure Water 遗物信息效果中文描述 在每场战斗开始时，将一张 奇迹 放入你的手牌。效果英文描述 At the start of each combat, add a Miracle into your hand"
-    },
-    "prayer_wheel": {
-      "name": "转经轮",
-      "summary": "转经轮遗物 id: Prayer Wheel 遗物信息效果中文描述 普通敌人多掉落一次卡牌奖励。效果英文描述 Normal enemies drop an additional card reward.中文引言 经轮一直转动，永远不停。英文"
-    },
-    "bag_of_preparation": {
-      "name": "准备背包",
-      "summary": "准备背包遗物 id: Bag of Preparation 遗物信息效果中文描述 在每场战斗开始时，额外抽 2 张牌。效果英文描述 At the start of each combat, draw 2 additional cards中文"
-    },
-    "violet_lotus": {
-      "name": "紫色莲花",
-      "summary": "紫色莲花遗物 id: Violet Lotus 遗物信息效果中文描述 每次你离开 平静 时，获得1点额外能量。效果英文描述 Whenever you exit Calm, gain an additional energy.中文引言 远古的"
-    },
-    "self_forming_clay": {
-      "name": "自成型黏土",
-      "summary": "自成型黏土遗物 id: Self Forming Clay 遗物信息效果中文描述 每当你在战斗中失去生命，就在下回合获得 3 点 格挡 。效果英文描述 Whenever you lose HP, gain 3 Block next turn"
+    "coffee_dripper": {
+      "name": "咖啡滴滤器",
+      "summary": "休息时不能恢复生命"
     },
     "cursed_key": {
       "name": "诅咒钥匙",
-      "summary": "诅咒钥匙遗物 id: Cursed Key 遗物信息效果中文描述 你每次打开一个非Boss宝箱，都会获得一张 诅咒 。在每回合开始时获得一点能量。效果英文描述 at the start of your turn.gain 1 energy."
+      "summary": "每场战斗开始时获得 1 点能量，宝箱会加入诅咒牌"
+    },
+    "ectoplasm": {
+      "name": "虚空质",
+      "summary": "每回合开始时获得 1 点能量"
+    },
+    "empty_cage": {
+      "name": "空鸟笼",
+      "summary": "获得此遗物时移除牌组中的 2 张牌"
+    },
+    "frozen_core": {
+      "name": "冰冻核心",
+      "summary": "取代破损核心，在回合结束时若没有充能球则生成 1 个闪电充能球"
+    },
+    "fusion_hammer": {
+      "name": "融合之锤",
+      "summary": "每回合开始时获得 1 点能量，休息点不能锻造卡牌"
+    },
+    "holy_water": {
+      "name": "圣水",
+      "summary": "取代净水，每场战斗开始时将 3 张升级后的奇迹加入手牌"
+    },
+    "hovering_kite": {
+      "name": "悬浮风筝",
+      "summary": "每回合若你弃过牌，则下回合开始时获得 1 点能量"
+    },
+    "inserter": {
+      "name": "插入器",
+      "summary": "每经过 2 个回合获得 1 个充能球栏位"
+    },
+    "mark_of_pain": {
+      "name": "苦痛印记",
+      "summary": "每场战斗开始时获得 1 点能量，并将 2 张伤口洗入抽牌堆"
+    },
+    "nuclear_battery": {
+      "name": "核电池",
+      "summary": "每场战斗开始时生成 1 个等离子充能球"
+    },
+    "pandoras_box": {
+      "name": "潘多拉魔盒",
+      "summary": "将所有打击与防御变形为随机牌"
+    },
+    "philosophers_stone": {
+      "name": "贤者之石",
+      "summary": "每场战斗开始时获得 1 点能量，所有敌人获得 1 点力量"
+    },
+    "ring_of_the_serpent": {
+      "name": "蛇之戒指",
+      "summary": "取代蛇之戒，每回合开始时额外抽 1 张牌"
+    },
+    "runic_cube": {
+      "name": "卢恩魔方",
+      "summary": "每次失去生命时抽 1 张牌"
+    },
+    "runic_dome": {
+      "name": "卢恩圆顶",
+      "summary": "每场战斗开始时获得 1 点能量，你无法看到敌人意图"
+    },
+    "runic_pyramid": {
+      "name": "卢恩金字塔",
+      "summary": "回合结束时不再弃掉手牌"
+    },
+    "sacred_bark": {
+      "name": "圣树皮",
+      "summary": "药水效果翻倍"
+    },
+    "slavers_collar": {
+      "name": "奴役者项圈",
+      "summary": "精英战与 Boss 战开始时获得 1 点能量"
+    },
+    "snecko_eye": {
+      "name": "蛇眼",
+      "summary": "每回合开始时额外抽 2 张牌，手牌费用随机化"
+    },
+    "sozu": {
+      "name": "索祖之壶",
+      "summary": "每场战斗开始时获得 1 点能量，无法再获得药水"
+    },
+    "tiny_house": {
+      "name": "小屋",
+      "summary": "获得治疗、金币、药水、升级与 1 张牌"
+    },
+    "velvet_choker": {
+      "name": "丝绒项圈",
+      "summary": "每场战斗开始时获得 1 点能量，但每回合最多打出 6 张牌"
+    },
+    "violet_lotus": {
+      "name": "紫莲花",
+      "summary": "离开平静时额外获得 1 点能量"
+    },
+    "wrist_blade": {
+      "name": "护腕刃",
+      "summary": "费用为 0 的攻击牌额外造成 4 点伤害"
+    },
+    "akabeko": {
+      "name": "赤牛",
+      "summary": "每场战斗中你的第一次攻击额外造成 8 点伤害"
+    },
+    "anchor": {
+      "name": "船锚",
+      "summary": "每场战斗开始时获得 10 点格挡"
+    },
+    "ancient_tea_set": {
+      "name": "古茶具",
+      "summary": "进入休息点后下一场战斗开始时获得 2 点能量"
+    },
+    "art_of_war": {
+      "name": "兵法",
+      "summary": "本回合未打出攻击牌时，下回合开始获得 1 点能量"
+    },
+    "bag_of_marbles": {
+      "name": "弹珠袋",
+      "summary": "每场战斗开始时使所有敌人获得 1 层易伤"
+    },
+    "bag_of_preparation": {
+      "name": "准备背包",
+      "summary": "每场战斗开始时额外抽 2 张牌"
+    },
+    "blood_vial": {
+      "name": "鲜血药瓶",
+      "summary": "每场战斗开始时回复 2 点生命"
+    },
+    "bronze_scales": {
+      "name": "青铜鳞片",
+      "summary": "每次受到攻击时对攻击者造成 3 点伤害"
+    },
+    "centennial_puzzle": {
+      "name": "百年谜题",
+      "summary": "每场战斗中第一次失去生命时抽 3 张牌"
+    },
+    "ceramic_fish": {
+      "name": "陶瓷鱼",
+      "summary": "每当你将一张牌加入牌组时获得 9 金币"
+    },
+    "dream_catcher": {
+      "name": "捕梦网",
+      "summary": "在休息点休息后可以选择 1 张卡牌加入牌组"
+    },
+    "happy_flower": {
+      "name": "快乐花",
+      "summary": "每经过 3 个回合获得 1 点能量"
+    },
+    "juzu_bracelet": {
+      "name": "念珠",
+      "summary": "普通宝箱房不再出现怪物事件"
+    },
+    "lantern": {
+      "name": "灯笼",
+      "summary": "每场战斗的第一回合开始时获得 1 点能量"
+    },
+    "maw_bank": {
+      "name": "大嘴储蓄罐",
+      "summary": "每经过一个房间获得 12 金币，直到你进入商店"
+    },
+    "meal_ticket": {
+      "name": "餐券",
+      "summary": "进入商店时回复 15 点生命"
+    },
+    "meat_on_the_bone": {
+      "name": "带骨肉",
+      "summary": "战斗结束时若生命低于一半，回复 12 点生命"
+    },
+    "mercury_hourglass": {
+      "name": "水银沙漏",
+      "summary": "每回合开始时对所有敌人造成 3 点伤害"
+    },
+    "nunchaku": {
+      "name": "双节棍",
+      "summary": "每打出 10 张攻击牌获得 1 点能量"
+    },
+    "oddly_smooth_stone": {
+      "name": "光滑石",
+      "summary": "获得 1 点敏捷"
+    },
+    "omamori": {
+      "name": "御守",
+      "summary": "接下来获得的 2 张诅咒牌无效"
+    },
+    "orichalcum": {
+      "name": "山铜",
+      "summary": "若回合结束时没有格挡，则获得 6 点格挡"
+    },
+    "pen_nib": {
+      "name": "钢笔尖",
+      "summary": "每打出 10 张攻击牌，你的下一张攻击造成双倍伤害"
+    },
+    "potion_belt": {
+      "name": "药带",
+      "summary": "药水栏位上限增加 2"
+    },
+    "preserved_insect": {
+      "name": "标本昆虫",
+      "summary": "精英敌人生命降低 25%"
+    },
+    "regal_pillow": {
+      "name": "豪华枕头",
+      "summary": "在休息点休息时额外回复 15 点生命"
+    },
+    "smiling_mask": {
+      "name": "微笑面具",
+      "summary": "移除卡牌的价格固定为 50 金币"
+    },
+    "strawberry": {
+      "name": "草莓",
+      "summary": "最大生命值提高 7"
+    },
+    "the_boot": {
+      "name": "靴子",
+      "summary": "若攻击本应造成 5 点以下伤害，则改为造成 5 点"
+    },
+    "tiny_chest": {
+      "name": "小宝箱",
+      "summary": "每经过 4 个问号房获得 1 个宝箱房"
+    },
+    "toy_ornithopter": {
+      "name": "玩具扑翼机",
+      "summary": "每当你使用药水时回复 5 点生命"
+    },
+    "vajra": {
+      "name": "金刚杵",
+      "summary": "获得 1 点力量"
+    },
+    "war_paint": {
+      "name": "战漆",
+      "summary": "随机升级牌组中的 2 张技能牌"
+    },
+    "whetstone": {
+      "name": "磨刀石",
+      "summary": "随机升级牌组中的 2 张攻击牌"
+    },
+    "bloody_idol": {
+      "name": "血神像",
+      "summary": "每当你获得金币时回复 5 点生命"
+    },
+    "cultist_headpiece": {
+      "name": "邪教徒头罩",
+      "summary": "羽毛万岁"
+    },
+    "enchiridion": {
+      "name": "军略宝典",
+      "summary": "每场战斗开始时随机将 1 张能力牌加入手牌，本回合费用为 0"
+    },
+    "face_of_cleric": {
+      "name": "牧师的脸",
+      "summary": "每场战斗后你的最大生命值增加 1"
+    },
+    "golden_idol": {
+      "name": "金神像",
+      "summary": "获得金币的数量提高 25%"
+    },
+    "gremlin_visage": {
+      "name": "地精容貌",
+      "summary": "每场战斗开始时，你拥有 1 层虚弱"
+    },
+    "mark_of_the_bloom": {
+      "name": "花开烙印",
+      "summary": "你无法再回复生命"
+    },
+    "mutagenic_strength": {
+      "name": "突变力量",
+      "summary": "每场战斗开始时获得 3 点力量，本回合结束时失去 3 点力量"
+    },
+    "nilrys_codex": {
+      "name": "尼利的法典",
+      "summary": "每回合结束时可从 3 张随机牌中选择 1 张洗入抽牌堆"
+    },
+    "necronomicon": {
+      "name": "死灵之书",
+      "summary": "费用 2 及以上的第一张攻击牌每回合会额外打出 1 次"
+    },
+    "nloths_gift": {
+      "name": "恩洛斯的礼物",
+      "summary": "使你在怪物奖励中遇见稀有牌的几率变为 3 倍"
+    },
+    "nloths_hungry_face": {
+      "name": "恩洛斯的饥饿脸",
+      "summary": "它没有正面效果，只是被夺走了你的脸"
+    },
+    "odd_mushroom": {
+      "name": "奇异蘑菇",
+      "summary": "易伤让你受到的伤害增加从 50% 降低到 25%"
+    },
+    "red_mask": {
+      "name": "红面具",
+      "summary": "每场战斗开始时使所有敌人获得 1 层虚弱"
+    },
+    "spirit_poop": {
+      "name": "灵魂便便",
+      "summary": "真的没有效果"
+    },
+    "ssserpent_head": {
+      "name": "蛇的头",
+      "summary": "每次进入？房间时获得 50 金币"
+    },
+    "warped_tongs": {
+      "name": "弯曲铁钳",
+      "summary": "在你的每个回合开始时，随机升级一张你的手牌（只影响本场战斗）"
+    },
+    "neows_lament": {
+      "name": "涅奥的悲恸",
+      "summary": "接下来 3 场战斗中的敌人将只有 1 点生命"
+    },
+    "bird_faced_urn": {
+      "name": "鸟面瓮",
+      "summary": "每打出一张能力牌时回复 2 点生命"
+    },
+    "calipers": {
+      "name": "铁卡尺",
+      "summary": "回合结束时最多保留 15 点格挡"
+    },
+    "captains_wheel": {
+      "name": "船长之轮",
+      "summary": "每场战斗的第 3 回合开始时获得 18 点格挡"
+    },
+    "charons_ashes": {
+      "name": "卡戎之灰",
+      "summary": "每当你消耗一张牌时对所有敌人造成 3 点伤害"
+    },
+    "dead_branch": {
+      "name": "枯枝",
+      "summary": "每当你消耗一张牌时，随机将 1 张牌加入手牌"
+    },
+    "duvu_doll": {
+      "name": "杜符娃娃",
+      "summary": "每拥有 1 张诅咒牌便获得 1 点力量"
+    },
+    "emotion_chip": {
+      "name": "情绪芯片",
+      "summary": "失去生命时触发最左侧充能球 1 次"
+    },
+    "fossilized_helix": {
+      "name": "化石螺旋",
+      "summary": "每场战斗开始时获得 1 层缓冲"
+    },
+    "ginger": {
+      "name": "姜",
+      "summary": "你无法被施加虚弱"
+    },
+    "girya": {
+      "name": "臂力壶铃",
+      "summary": "在休息点可以举重，最多获得 3 点力量"
+    },
+    "ice_cream": {
+      "name": "冰淇淋",
+      "summary": "未用完的能量会保留到下一回合"
+    },
+    "incense_burner": {
+      "name": "香炉",
+      "summary": "每经过 6 个回合获得 1 回合无实体"
+    },
+    "lizard_tail": {
+      "name": "蜥蜴尾巴",
+      "summary": "你第一次死亡时改为回复 50% 生命"
+    },
+    "magic_flower": {
+      "name": "魔法花",
+      "summary": "回复生命的效果额外提高 50%"
+    },
+    "mango": {
+      "name": "芒果",
+      "summary": "最大生命值提高 14"
+    },
+    "old_coin": {
+      "name": "古钱币",
+      "summary": "立即获得 300 金币"
+    },
+    "peace_pipe": {
+      "name": "和平烟斗",
+      "summary": "在休息点可以选择消耗 1 张牌"
+    },
+    "prayer_wheel": {
+      "name": "法轮",
+      "summary": "普通战斗奖励额外显示 1 张牌"
+    },
+    "runic_capacitor": {
+      "name": "符文电容器",
+      "summary": "每场战斗开始时，获得 3 个额外充能球栏位"
+    },
+    "shovel": {
+      "name": "铲子",
+      "summary": "在休息点可以选择挖掘获得遗物"
+    },
+    "shuriken": {
+      "name": "手里剑",
+      "summary": "你每在同一回合内打出 3 张攻击牌，获得 1 点力量"
+    },
+    "pocketwatch": {
+      "name": "怀表",
+      "summary": "若你在某个回合打出的牌少于等于 3 张，则在你的下个回合开始时额外抽 3 张牌"
+    },
+    "stone_calendar": {
+      "name": "石制日历",
+      "summary": "每场战斗的第 7 回合结束时对所有敌人造成 52 点伤害"
+    },
+    "the_specimen": {
+      "name": "标本",
+      "summary": "带有中毒的敌人死亡时，将其全部中毒转移给随机敌人"
+    },
+    "tingsha": {
+      "name": "铜钹",
+      "summary": "每当你弃牌时对随机敌人造成 3 点伤害"
+    },
+    "torii": {
+      "name": "鸟居",
+      "summary": "受到 5 点以下的未格挡攻击伤害时改为只受 1 点"
+    },
+    "tough_bandages": {
+      "name": "坚韧绷带",
+      "summary": "每当你弃牌时获得 3 点格挡"
+    },
+    "tungsten_rod": {
+      "name": "钨金棒",
+      "summary": "每次受到生命损失时减少 1 点"
+    },
+    "turnip": {
+      "name": "芜菁",
+      "summary": "你无法被施加易伤"
+    },
+    "unceasing_top": {
+      "name": "不息陀螺",
+      "summary": "手牌打空时抽 1 张牌"
+    },
+    "wing_boots": {
+      "name": "羽翼战靴",
+      "summary": "地图上可额外无视路径限制 3 次"
+    },
+    "frozen_eye": {
+      "name": "冰冻之眼",
+      "summary": "查看抽牌堆时，按真实抽牌顺序显示"
+    },
+    "clockwork_souvenir": {
+      "name": "发条纪念品",
+      "summary": "每场战斗开始时获得 1 层人工制品"
+    },
+    "cauldron": {
+      "name": "坩埚",
+      "summary": "获得此遗物时获得 5 瓶随机药水"
+    },
+    "chemical_x": {
+      "name": "X 化学物",
+      "summary": "X 费用牌的效果额外提高 2"
+    },
+    "dollys_mirror": {
+      "name": "多莉的镜子",
+      "summary": "获得此遗物时复制牌组中的 1 张牌"
+    },
+    "hand_drill": {
+      "name": "手摇钻",
+      "summary": "打破敌人格挡后使其获得 2 层易伤"
+    },
+    "leeches_waffle": {
+      "name": "李子华夫饼",
+      "summary": "最大生命值提高 7，并回复全部生命"
+    },
+    "medical_kit": {
+      "name": "医疗包",
+      "summary": "状态牌可被打出，打出时消耗"
+    },
+    "membership_card": {
+      "name": "会员卡",
+      "summary": "商店所有商品半价"
+    },
+    "orange_pellets": {
+      "name": "橙色药丸",
+      "summary": "同一回合中同时打出攻击、技能、能力后移除自身所有减益"
+    },
+    "orrery": {
+      "name": "星象仪",
+      "summary": "获得此遗物时可从 5 张卡牌中选择 2 张加入牌组"
+    },
+    "prismatic_shard": {
+      "name": "虹彩碎片",
+      "summary": "之后可见到其他角色的卡牌与遗物"
+    },
+    "sling_of_courage": {
+      "name": "勇气弹弓",
+      "summary": "精英战开始时获得 2 点力量"
+    },
+    "strange_spoon": {
+      "name": "奇怪的汤勺",
+      "summary": "本应被消耗的牌有 50% 概率不会被消耗"
+    },
+    "toolbox": {
+      "name": "工具箱",
+      "summary": "每场战斗开始时将 1 张无色牌加入手牌"
+    },
+    "brimstone": {
+      "name": "硫磺",
+      "summary": "每回合开始时你与所有敌人都获得 2 点力量"
+    },
+    "the_courier": {
+      "name": "送货员",
+      "summary": "商人的卡牌、遗物和药水不再会卖光，并且所有商品打折 20%"
+    },
+    "twisted_funnel": {
+      "name": "扭曲漏斗",
+      "summary": "在每场战斗开始时，给予所有敌人 4 层中毒"
+    },
+    "circlet": {
+      "name": "圆环",
+      "summary": "没有效果"
+    },
+    "guarding_totem": {
+      "name": "守护图腾",
+      "summary": "每场战斗开始时获得 10 点格挡"
+    },
+    "burning_blood": {
+      "name": "燃烧之血",
+      "summary": "战斗结束后回复 6 点生命"
+    },
+    "ring_of_the_snake": {
+      "name": "蛇之戒",
+      "summary": "每场战斗开始时额外抽 2 张牌"
+    },
+    "cracked_core": {
+      "name": "破损核心",
+      "summary": "每场战斗开始时生成 1 个闪电充能球"
+    },
+    "pure_water": {
+      "name": "净水",
+      "summary": "每场战斗开始时将 3 张奇迹加入手牌"
+    },
+    "abacus": {
+      "name": "算盘",
+      "summary": "你每次将抽牌堆洗牌时，获得 6 点格挡"
+    },
+    "blue_candle": {
+      "name": "蓝蜡烛",
+      "summary": "诅咒牌可被打出，打出时失去 1 点生命并消耗"
+    },
+    "bottled_flame": {
+      "name": "瓶装火焰",
+      "summary": "选择 1 张攻击牌，使其获得固有"
+    },
+    "bottled_lightning": {
+      "name": "瓶装闪电",
+      "summary": "选择 1 张技能牌，使其获得固有"
+    },
+    "bottled_tornado": {
+      "name": "瓶装旋风",
+      "summary": "选择 1 张能力牌，使其获得固有"
+    },
+    "darkstone_periapt": {
+      "name": "黑石护符",
+      "summary": "每当你获得诅咒牌时，最大生命值提高 6"
+    },
+    "eternal_feather": {
+      "name": "永恒羽毛",
+      "summary": "在休息点休息时每 5 张牌额外回复 3 点生命"
+    },
+    "frozen_egg_2": {
+      "name": "冰冻蛋",
+      "summary": "之后获得的能力牌都会被升级"
+    },
+    "gambling_chip": {
+      "name": "赌博筹码",
+      "summary": "在每场战斗开始时，丢弃任意张牌，然后抽相同数量张牌"
+    },
+    "gremlin_horn": {
+      "name": "地精号角",
+      "summary": "敌人死亡时获得 1 点能量并抽 1 张牌"
+    },
+    "horn_cleat": {
+      "name": "角质护具",
+      "summary": "每场战斗的第 2 回合开始时获得 14 点格挡"
+    },
+    "ink_bottle": {
+      "name": "墨水瓶",
+      "summary": "每打出 10 张牌抽 1 张牌"
+    },
+    "kunai": {
+      "name": "苦无",
+      "summary": "每回合打出 3 张攻击牌后获得 1 点敏捷"
+    },
+    "letter_opener": {
+      "name": "拆信刀",
+      "summary": "每回合打出 3 张技能牌后对所有敌人造成 5 点伤害"
+    },
+    "matryoshka": {
+      "name": "套娃",
+      "summary": "接下来打开的 2 个普通宝箱都会额外给出 1 个遗物"
+    },
+    "molten_egg_2": {
+      "name": "熔火蛋",
+      "summary": "之后获得的攻击牌都会被升级"
+    },
+    "mummified_hand": {
+      "name": "木乃伊之手",
+      "summary": "每次打出能力牌时，随机使手中 1 张牌费用变为 0"
+    },
+    "ornamental_fan": {
+      "name": "装饰扇",
+      "summary": "每回合打出 3 张攻击牌后获得 4 点格挡"
+    },
+    "pantograph": {
+      "name": "示差仪",
+      "summary": "Boss 战开始时回复 25 点生命"
+    },
+    "paper_frog": {
+      "name": "纸蛙",
+      "summary": "易伤使敌人受到的伤害从 50% 提高到 75%"
+    },
+    "paper_krane": {
+      "name": "纸鹤",
+      "summary": "虚弱使敌人造成的伤害减少从 25% 提高到 40%"
+    },
+    "pear": {
+      "name": "梨",
+      "summary": "最大生命值提高 10"
+    },
+    "question_card": {
+      "name": "问号卡",
+      "summary": "卡牌奖励额外显示 1 张牌"
+    },
+    "self_forming_clay": {
+      "name": "自塑黏土",
+      "summary": "失去生命后下回合开始时获得 3 点格挡"
+    },
+    "singing_bowl": {
+      "name": "歌唱碗",
+      "summary": "跳过卡牌奖励时最大生命值提高 2"
+    },
+    "snecko_skull": {
+      "name": "异蛇头骨",
+      "summary": "你施加的中毒额外增加 1 层"
+    },
+    "strike_dummy": {
+      "name": "打击假人",
+      "summary": "名字中带有打击的牌额外造成 3 点伤害"
+    },
+    "sundial": {
+      "name": "日晷",
+      "summary": "每洗牌 3 次获得 2 点能量"
+    },
+    "thread_and_needle": {
+      "name": "针线",
+      "summary": "在每场战斗开始时，获得 4 层多层护甲"
+    },
+    "toxic_egg_2": {
+      "name": "毒素蛋",
+      "summary": "之后获得的技能牌都会被升级"
+    },
+    "white_beast_statue": {
+      "name": "白兽雕像",
+      "summary": "战斗奖励总会包含药水"
+    },
+    "champion_belt": {
+      "name": "冠军腰带",
+      "summary": "每当你施加易伤时，目标额外获得 1 层虚弱"
+    },
+    "data_disk": {
+      "name": "数据磁盘",
+      "summary": "获得 1 点集中"
+    },
+    "gold_plated_cables": {
+      "name": "镀金线缆",
+      "summary": "最右侧充能球每回合额外触发 1 次"
+    },
+    "symbiotic_virus": {
+      "name": "共生病毒",
+      "summary": "每场战斗开始时生成 1 个黑暗充能球"
+    },
+    "cloak_clasp": {
+      "name": "斗篷扣",
+      "summary": "在你的回合结束时，每有一张手牌获得 1 点格挡"
+    },
+    "damaru": {
+      "name": "手摇鼓",
+      "summary": "在你的回合开始时，获得 1 层真言"
+    },
+    "duality": {
+      "name": "二元性",
+      "summary": "每当你打出攻击牌时，获得 1 点敏捷"
+    },
+    "golden_eye": {
+      "name": "金眼",
+      "summary": "预见时多看 2 张牌"
+    },
+    "melange": {
+      "name": "美琅脂",
+      "summary": "你每次将抽牌堆洗牌时，预见 3"
+    },
+    "ninja_scroll": {
+      "name": "忍术卷轴",
+      "summary": "每场战斗开始时，手牌中增加 3 张小刀"
+    },
+    "teardrop_locket": {
+      "name": "泪滴吊坠",
+      "summary": "每场战斗开始时进入平静"
+    },
+    "red_skull": {
+      "name": "红头骨",
+      "summary": "生命低于一半时获得 3 点力量"
     }
   }
 }
