@@ -371,6 +371,17 @@ def test_girya_adds_lift_action_to_rest_site() -> None:
     assert "lift" in room_state.payload["actions"]
 
 
+def test_dream_catcher_does_not_add_separate_rest_action() -> None:
+    room_state = enter_room(
+        replace(_run_state(), relics=["burning_blood", "dream_catcher"]),
+        _single_room_act_state(node_id="rest-1", room_type="rest"),
+        "rest-1",
+        _content_provider(),
+    )
+
+    assert room_state.payload["actions"] == ["rest", "smith"]
+
+
 def test_peace_pipe_adds_remove_action_to_rest_site() -> None:
     room_state = enter_room(
         replace(_run_state(), relics=["burning_blood", "peace_pipe"]),

@@ -401,8 +401,6 @@ def _room_payload_for_entry(
         )
     elif resolved_room_kind == "rest":
         payload["actions"] = ["rest", "smith"]
-        if "dream_catcher" in run_state.relics:
-            payload["actions"].append("dream")
         if "girya" in run_state.relics:
             payload["actions"].append("lift")
         if "peace_pipe" in run_state.relics:
