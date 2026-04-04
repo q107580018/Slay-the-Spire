@@ -267,6 +267,65 @@ def test_the_courier_restocks_relic_offer_with_different_relic() -> None:
     assert restocked_offer["relic_id"] == "lantern"
 
 
+def test_membership_card_purchase_reprices_current_shop_and_keeps_courier_restock() -> (
+    None
+):
+    room_state = RoomState(
+        room_id="act1:shop",
+        room_type="shop",
+        stage="waiting_input",
+        payload={
+            "cards": [
+                {"offer_id": "card-1", "card_id": "strike", "price": 40},
+                {"offer_id": "card-2", "card_id": "defend", "price": 40},
+            ],
+            "relics": [
+                {
+                    "offer_id": "relic-1",
+                    "relic_id": "membership_card",
+                    "price": 120,
+                },
+                {"offer_id": "relic-2", "relic_id": "anchor", "price": 120},
+            ],
+            "potions": [
+                {"offer_id": "potion-1", "potion_id": "fire_potion", "price": 48},
+                {"offer_id": "potion-2", "potion_id": "block_potion", "price": 48},
+            ],
+            "remove_price": 60,
+        },
+        is_resolved=False,
+        rewards=[],
+    )
+
+    result = shop_action(
+        run_state=replace(
+            _run_state(gold=500),
+            relics=["burning_blood", "the_courier"],
+            relic_sequences={"shop": ["membership_card", "anchor", "bag_of_marbles"]},
+            relic_sequence_positions={"shop": 2},
+        ),
+        room_state=room_state,
+        action_id="buy_relic:relic-1",
+        registry=_content_provider(),
+    )
+
+    assert result.run_state.gold == 380
+    assert result.run_state.relics == [
+        "burning_blood",
+        "the_courier",
+        "membership_card",
+    ]
+    assert [offer["price"] for offer in result.room_state.payload["cards"]] == [20, 20]
+    assert result.room_state.payload["relics"][0]["relic_id"] == "bag_of_marbles"
+    assert result.room_state.payload["relics"][0]["price"] == 60
+    assert result.room_state.payload["relics"][1]["price"] == 60
+    assert [offer["price"] for offer in result.room_state.payload["potions"]] == [
+        24,
+        24,
+    ]
+    assert result.room_state.payload["remove_price"] == 30
+
+
 def test_the_courier_restocks_potion_offer_with_different_potion() -> None:
     room_state = RoomState(
         room_id="act1:shop",

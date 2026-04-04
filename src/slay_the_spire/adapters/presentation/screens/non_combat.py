@@ -85,6 +85,14 @@ _RUN_PHASE_LABELS = {
     "game_over": "失败",
 }
 
+_REST_ACTION_LABELS = {
+    "rest": "休息",
+    "smith": "锻造",
+    "lift": "举重",
+    "digestion": "冥想消耗",
+    "dig": "挖掘",
+}
+
 
 def _menu_mode(menu_state: Any) -> str:
     mode = str(getattr(menu_state, "mode", "root"))
@@ -159,6 +167,12 @@ def _format_reward_label(reward_id: str, registry: ContentProviderPort) -> str |
         reward_name = reward_id.split(":", 1)[1]
         card_def = registry.cards().get(_reward_card_id(reward_name))
         return Text.assemble("卡牌 ", render_card_name(card_def))
+    if reward_id.startswith("relic:"):
+        reward_name = reward_id.split(":", 1)[1]
+        return f"遗物 {registry.relics().get(reward_name).name}"
+    if reward_id.startswith("potion:"):
+        reward_name = reward_id.split(":", 1)[1]
+        return f"药水 {registry.potions().get(reward_name).name}"
     if reward_id.startswith("event:"):
         result = reward_id.split(":", 1)[1]
         if result == "gain_upgrade":
@@ -1003,7 +1017,12 @@ def render_rest_panel(room_state: RoomState, registry: ContentProviderPort) -> P
                 Text.assemble("- ", _format_card_instance_label(option, registry))
             )
         return Panel(Group(*lines), title="休息点", box=PANEL_BOX, expand=False)
-    lines: list[RenderableType] = [Text("可用动作:"), Text("- 休息"), Text("- 锻造")]
+    actions = room_state.payload.get("actions", [])
+    lines: list[RenderableType] = [Text("可用动作:")]
+    for action in actions if isinstance(actions, list) else []:
+        if not isinstance(action, str):
+            continue
+        lines.append(Text(f"- {_REST_ACTION_LABELS.get(action, action)}"))
     return Panel(Group(*lines), title="休息点", box=PANEL_BOX, expand=False)
 
 

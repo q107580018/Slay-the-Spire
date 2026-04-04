@@ -1379,6 +1379,38 @@ def test_rest_renderer_shows_root_and_upgrade_selection_states() -> None:
     assert "bash#9" in upgrade_output
 
 
+def test_rest_renderer_lists_dynamic_actions_in_body() -> None:
+    session = start_session(seed=5)
+    room_state = RoomState(
+        room_id="act1:rest",
+        room_type="rest",
+        stage="waiting_input",
+        payload={
+            "node_id": "r5c0",
+            "actions": ["rest", "smith", "lift", "digestion", "dig"],
+            "next_node_ids": ["r6c0"],
+        },
+        is_resolved=False,
+        rewards=[],
+    )
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=room_state,
+        registry=_provider(session),
+        menu_state=MenuState(mode="rest_root"),
+        run_phase="active",
+    )
+
+    assert "可用动作:" in output
+    assert "- 休息" in output
+    assert "- 锻造" in output
+    assert "- 举重" in output
+    assert "- 冥想消耗" in output
+    assert "- 挖掘" in output
+
+
 def test_rest_renderer_shows_remove_selection_state() -> None:
     session = start_session(seed=5)
     room_state = RoomState(
@@ -1478,6 +1510,37 @@ def test_reward_renderer_uses_concrete_card_offer_labels() -> None:
     assert "卡牌 痛击" in output
     assert "卡牌 愤怒" in output
     assert "card_offer:" not in output
+
+
+def test_non_combat_reward_renderer_uses_concrete_relic_and_potion_labels() -> None:
+    session = start_session(seed=5)
+    reward_room = RoomState(
+        room_id="act1:event",
+        room_type="event",
+        stage="completed",
+        payload={
+            "node_id": "r1c0",
+            "room_kind": "event",
+            "event_id": "the_cleric",
+            "next_node_ids": ["r2c0"],
+        },
+        is_resolved=True,
+        rewards=["relic:anchor", "potion:fire_potion"],
+    )
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=reward_room,
+        registry=_provider(session),
+        menu_state=MenuState(),
+        run_phase="active",
+    )
+
+    assert "遗物 船锚" in output
+    assert "药水 火焰药水" in output
+    assert "relic:anchor" not in output
+    assert "potion:fire_potion" not in output
 
 
 def test_map_renderer_marks_current_and_reachable_nodes_inline() -> None:

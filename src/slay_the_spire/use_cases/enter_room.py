@@ -22,6 +22,7 @@ _COMMON_RELIC_RARITY = "common"
 _UNCOMMON_RELIC_RARITY = "uncommon"
 _RARE_RELIC_RARITY = "rare"
 _UNKNOWN_EVENT_ROOM_TYPES = ("event", "combat", "treasure")
+_SHOP_CARD_BASE_PRICES = {"strike": 50, "defend": 50, "bash": 75}
 
 
 def _scaled_shop_price(price: int, *, run_state: RunState) -> int:
@@ -31,6 +32,18 @@ def _scaled_shop_price(price: int, *, run_state: RunState) -> int:
     if "the_courier" in run_state.relics:
         scaled_price = (scaled_price * 80) // 100
     return max(0, scaled_price)
+
+
+def _shop_card_base_price(card_id: str) -> int:
+    return _SHOP_CARD_BASE_PRICES.get(card_id, 60)
+
+
+def _shop_remove_price(run_state: RunState) -> int:
+    if "smiling_mask" in run_state.relics:
+        return 50
+    return _scaled_shop_price(
+        75 + (run_state.card_removal_count * 25), run_state=run_state
+    )
 
 
 def _heal_on_shop_entry(run_state: RunState) -> None:
@@ -293,13 +306,12 @@ def _build_shop_payload(
         or _TREASURE_FALLBACK_RELIC_ID
     )
 
-    card_prices = {"strike": 50, "defend": 50, "bash": 75}
     cards = [
         {
             "offer_id": f"card-{index}",
             "card_id": card_id,
             "price": _scaled_shop_price(
-                card_prices.get(card_id, 60), run_state=run_state
+                _shop_card_base_price(card_id), run_state=run_state
             ),
         }
         for index, card_id in enumerate(
@@ -327,11 +339,7 @@ def _build_shop_payload(
         "cards": cards,
         "relics": relics,
         "potions": potions,
-        "remove_price": 50
-        if "smiling_mask" in run_state.relics
-        else _scaled_shop_price(
-            75 + (run_state.card_removal_count * 25), run_state=run_state
-        ),
+        "remove_price": _shop_remove_price(run_state),
     }
 
 
