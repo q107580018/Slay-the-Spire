@@ -583,9 +583,39 @@ def _open_treasure(session: SessionState) -> SessionState:
     )
 
 
+def _treasure_relic_ids(room_state: RoomState) -> list[str]:
+    relic_ids = room_state.payload.get("treasure_relic_ids")
+    if isinstance(relic_ids, list):
+        return [
+            relic_id for relic_id in relic_ids if isinstance(relic_id, str) and relic_id
+        ]
+    relic_id = room_state.payload.get("treasure_relic_id")
+    if isinstance(relic_id, str) and relic_id:
+        return [relic_id]
+    return []
+
+
 def _claim_treasure(session: SessionState) -> SessionState:
     if session.room_state.is_resolved:
         return session
+    claimed_relic_ids = session.room_state.payload.get("claimed_treasure_relic_ids")
+    if isinstance(claimed_relic_ids, list) and claimed_relic_ids:
+        updated_room_state = replace(
+            session.room_state,
+            stage="completed",
+            is_resolved=True,
+        )
+        return replace(
+            session,
+            room_state=updated_room_state,
+            run_phase=_derive_run_phase(
+                session.run_state,
+                session.act_state,
+                updated_room_state,
+                registry=_content_provider(session),
+            ),
+            menu_state=MenuState(),
+        )
     claimed_relic_id = session.room_state.payload.get("claimed_treasure_relic_id")
     if isinstance(claimed_relic_id, str) and claimed_relic_id:
         updated_room_state = replace(
@@ -604,14 +634,18 @@ def _claim_treasure(session: SessionState) -> SessionState:
             ),
             menu_state=MenuState(),
         )
-    relic_id = session.room_state.payload.get("treasure_relic_id")
+    relic_ids = _treasure_relic_ids(session.room_state)
     provider = _content_provider(session)
-    if not isinstance(relic_id, str) or not relic_id:
+    if not relic_ids:
         updated_room_state = replace(
             session.room_state,
             stage="completed",
             is_resolved=True,
-            payload={**session.room_state.payload, "claimed_treasure_relic_id": None},
+            payload={
+                **session.room_state.payload,
+                "claimed_treasure_relic_id": None,
+                "claimed_treasure_relic_ids": [],
+            },
         )
         return replace(
             session,
@@ -624,11 +658,13 @@ def _claim_treasure(session: SessionState) -> SessionState:
             ),
             menu_state=MenuState(),
         )
-    updated_run_state = apply_reward(
-        run_state=session.run_state,
-        reward_id=f"relic:{relic_id}",
-        registry=provider,
-    )
+    updated_run_state = session.run_state
+    for relic_id in relic_ids:
+        updated_run_state = apply_reward(
+            run_state=updated_run_state,
+            reward_id=f"relic:{relic_id}",
+            registry=provider,
+        )
     updated_room_state = replace(
         session.room_state,
         stage="completed",
@@ -636,7 +672,8 @@ def _claim_treasure(session: SessionState) -> SessionState:
         payload={
             **session.room_state.payload,
             "treasure_opened": True,
-            "claimed_treasure_relic_id": relic_id,
+            "claimed_treasure_relic_id": relic_ids[0],
+            "claimed_treasure_relic_ids": relic_ids,
         },
     )
     return replace(

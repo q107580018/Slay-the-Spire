@@ -180,13 +180,16 @@ def test_meal_ticket_grants_five_healing_when_entering_shop() -> None:
     assert run_state.current_hp == 55
 
 
-def test_the_courier_keeps_shop_card_offer_available_after_purchase() -> None:
+def test_the_courier_restocks_card_offer_with_different_card() -> None:
     room_state = RoomState(
         room_id="act1:shop",
         room_type="shop",
         stage="waiting_input",
         payload={
-            "cards": [{"offer_id": "card-1", "card_id": "strike", "price": 40}],
+            "cards": [
+                {"offer_id": "card-1", "card_id": "strike", "price": 40},
+                {"offer_id": "card-2", "card_id": "defend", "price": 40},
+            ],
             "relics": [],
             "potions": [],
             "remove_price": 60,
@@ -202,7 +205,82 @@ def test_the_courier_keeps_shop_card_offer_available_after_purchase() -> None:
         registry=_content_provider(),
     )
 
-    assert result.room_state.payload["cards"][0].get("sold") is not True
+    restocked_offer = result.room_state.payload["cards"][0]
+
+    assert restocked_offer.get("sold") is not True
+    assert restocked_offer["card_id"] not in {"strike", "defend"}
+
+
+def test_the_courier_restocks_relic_offer_with_different_relic() -> None:
+    room_state = RoomState(
+        room_id="act1:shop",
+        room_type="shop",
+        stage="waiting_input",
+        payload={
+            "cards": [],
+            "relics": [
+                {"offer_id": "relic-1", "relic_id": "anchor", "price": 120},
+                {
+                    "offer_id": "relic-2",
+                    "relic_id": "bag_of_marbles",
+                    "price": 120,
+                },
+            ],
+            "potions": [],
+            "remove_price": 60,
+        },
+        is_resolved=False,
+        rewards=[],
+    )
+
+    result = shop_action(
+        run_state=replace(
+            _run_state(gold=400),
+            relics=["burning_blood", "the_courier"],
+            relic_sequences={"shop": ["anchor", "bag_of_marbles", "lantern"]},
+            relic_sequence_positions={"shop": 2},
+        ),
+        room_state=room_state,
+        action_id="buy_relic:relic-1",
+        registry=_content_provider(),
+    )
+
+    restocked_offer = result.room_state.payload["relics"][0]
+
+    assert result.run_state.relics == ["burning_blood", "the_courier", "anchor"]
+    assert restocked_offer.get("sold") is not True
+    assert restocked_offer["relic_id"] == "lantern"
+
+
+def test_the_courier_restocks_potion_offer_with_different_potion() -> None:
+    room_state = RoomState(
+        room_id="act1:shop",
+        room_type="shop",
+        stage="waiting_input",
+        payload={
+            "cards": [],
+            "relics": [],
+            "potions": [
+                {"offer_id": "potion-1", "potion_id": "fire_potion", "price": 40},
+                {"offer_id": "potion-2", "potion_id": "block_potion", "price": 40},
+            ],
+            "remove_price": 60,
+        },
+        is_resolved=False,
+        rewards=[],
+    )
+
+    result = shop_action(
+        run_state=replace(_run_state(), relics=["burning_blood", "the_courier"]),
+        room_state=room_state,
+        action_id="buy_potion:potion-1",
+        registry=_content_provider(),
+    )
+
+    restocked_offer = result.room_state.payload["potions"][0]
+
+    assert restocked_offer.get("sold") is not True
+    assert restocked_offer["potion_id"] not in {"fire_potion", "block_potion"}
 
 
 def test_maw_bank_adds_twelve_gold_when_entering_non_shop_room() -> None:

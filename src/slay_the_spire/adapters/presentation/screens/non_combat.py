@@ -1010,18 +1010,34 @@ def render_rest_panel(room_state: RoomState, registry: ContentProviderPort) -> P
 def render_treasure_panel(
     room_state: RoomState, registry: ContentProviderPort
 ) -> Panel:
+    treasure_relic_ids = room_state.payload.get("treasure_relic_ids")
+    claimed_relic_ids = room_state.payload.get("claimed_treasure_relic_ids")
     treasure_relic_id = room_state.payload.get("treasure_relic_id")
     claimed_relic_id = room_state.payload.get("claimed_treasure_relic_id")
     skipped_relic = room_state.payload.get("skipped_treasure_relic") is True
     treasure_opened = room_state.payload.get("treasure_opened") is True
-    preview_relic_id = (
-        claimed_relic_id
-        if isinstance(claimed_relic_id, str) and claimed_relic_id
-        else treasure_relic_id
-    )
+    preview_relic_ids: list[str] = []
+    if isinstance(claimed_relic_ids, list) and claimed_relic_ids:
+        preview_relic_ids = [
+            relic_id
+            for relic_id in claimed_relic_ids
+            if isinstance(relic_id, str) and relic_id
+        ]
+    elif isinstance(treasure_relic_ids, list) and treasure_relic_ids:
+        preview_relic_ids = [
+            relic_id
+            for relic_id in treasure_relic_ids
+            if isinstance(relic_id, str) and relic_id
+        ]
+    elif isinstance(claimed_relic_id, str) and claimed_relic_id:
+        preview_relic_ids = [claimed_relic_id]
+    elif isinstance(treasure_relic_id, str) and treasure_relic_id:
+        preview_relic_ids = [treasure_relic_id]
     relic_name = "-"
-    if treasure_opened and isinstance(preview_relic_id, str) and preview_relic_id:
-        relic_name = registry.relics().get(preview_relic_id).name
+    if treasure_opened and preview_relic_ids:
+        relic_name = "、".join(
+            registry.relics().get(relic_id).name for relic_id in preview_relic_ids
+        )
     if not treasure_opened:
         status = "未打开"
         label = "宝箱内容："

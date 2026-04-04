@@ -452,6 +452,50 @@ def test_open_treasure_reveals_relic_without_resolving_room() -> None:
     assert "将获得遗物" not in opened_message
 
 
+def test_matryoshka_treasure_via_menu_grants_all_relics_and_renders_them() -> None:
+    session = replace(
+        start_session(seed=41),
+        room_state=RoomState(
+            room_id="act1:treasure",
+            room_type="treasure",
+            stage="waiting_input",
+            payload={
+                "act_id": "act1",
+                "node_id": "r9c0",
+                "next_node_ids": ["r10c0"],
+                "treasure_relic_id": "anchor",
+                "treasure_relic_ids": ["anchor", "bag_of_marbles"],
+            },
+            is_resolved=False,
+            rewards=[],
+        ),
+        menu_state=MenuState(),
+    )
+
+    _running, opened_session, opened_message = route_menu_choice("1", session=session)
+
+    assert opened_session.room_state.stage == "opened"
+    assert "船锚" in opened_message
+    assert "弹珠袋" in opened_message
+
+    _running, claimed_session, claimed_message = route_menu_choice(
+        "1", session=opened_session
+    )
+
+    assert claimed_session.run_state.relics == [
+        "burning_blood",
+        "anchor",
+        "bag_of_marbles",
+    ]
+    assert claimed_session.room_state.is_resolved is True
+    assert claimed_session.room_state.payload["claimed_treasure_relic_ids"] == [
+        "anchor",
+        "bag_of_marbles",
+    ]
+    assert claimed_session.room_state.payload["claimed_treasure_relic_id"] == "anchor"
+    assert "已获得遗物：船锚、弹珠袋" in claimed_message
+
+
 def test_reward_claim_is_not_reapplied_after_load(tmp_path: Path) -> None:
     provider = _content_provider()
     run_state = start_new_run("ironclad", seed=37, registry=provider)

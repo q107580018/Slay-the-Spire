@@ -62,6 +62,111 @@ def _refresh_unsold_offer(items: object, offer_id: str) -> list[object]:
     return updated
 
 
+def _replace_offer(
+    items: object, offer_id: str, replacement: dict[str, object]
+) -> list[object]:
+    if not isinstance(items, list):
+        return []
+    updated: list[object] = []
+    for item in items:
+        if isinstance(item, dict) and item.get("offer_id") == offer_id:
+            next_item = dict(replacement)
+            next_item["offer_id"] = offer_id
+            updated.append(next_item)
+            continue
+        updated.append(item)
+    return updated
+
+
+def _other_offer_values(items: object, *, offer_id: str, field_name: str) -> set[str]:
+    if not isinstance(items, list):
+        return set()
+    values: set[str] = set()
+    for item in items:
+        if not isinstance(item, dict) or item.get("offer_id") == offer_id:
+            continue
+        value = item.get(field_name)
+        if isinstance(value, str) and value:
+            values.add(value)
+    return values
+
+
+def _restock_card_offer(
+    payload: dict[str, object], *, offer_id: str, registry
+) -> dict[str, object] | None:
+    excluded_ids = _other_offer_values(
+        payload.get("cards"), offer_id=offer_id, field_name="card_id"
+    )
+    sold_offer = _offer_by_id(payload.get("cards"), offer_id)
+    if sold_offer is not None and isinstance(sold_offer.get("card_id"), str):
+        excluded_ids.add(sold_offer["card_id"])
+    for card_def in registry.cards().all():
+        if "shop" not in card_def.acquisition_tags or card_def.id in excluded_ids:
+            continue
+        return {
+            "card_id": card_def.id,
+            "price": sold_offer.get("price") if sold_offer else 60,
+        }
+    return None
+
+
+def _next_relic_from_sequence(
+    run_state: RunState, *, pool_id: str, excluded_ids: set[str]
+) -> str | None:
+    sequence = run_state.relic_sequences.get(pool_id, [])
+    position = run_state.relic_sequence_positions.get(pool_id, 0)
+    while position < len(sequence):
+        relic_id = sequence[position]
+        position += 1
+        run_state.relic_sequence_positions[pool_id] = position
+        if relic_id not in run_state.relics and relic_id not in excluded_ids:
+            return relic_id
+    run_state.relic_sequence_positions[pool_id] = position
+    return None
+
+
+def _restock_relic_offer(
+    run_state: RunState, payload: dict[str, object], *, offer_id: str
+) -> dict[str, object] | None:
+    excluded_ids = set(run_state.relics)
+    excluded_ids.update(
+        _other_offer_values(
+            payload.get("relics"), offer_id=offer_id, field_name="relic_id"
+        )
+    )
+    sold_offer = _offer_by_id(payload.get("relics"), offer_id)
+    if sold_offer is not None and isinstance(sold_offer.get("relic_id"), str):
+        excluded_ids.add(sold_offer["relic_id"])
+    relic_id = _next_relic_from_sequence(
+        run_state, pool_id="shop", excluded_ids=excluded_ids
+    )
+    if relic_id is None:
+        return None
+    return {
+        "relic_id": relic_id,
+        "price": sold_offer.get("price") if sold_offer else 150,
+    }
+
+
+def _restock_potion_offer(
+    payload: dict[str, object], *, offer_id: str, registry
+) -> dict[str, object] | None:
+    excluded_ids = _other_offer_values(
+        payload.get("potions"), offer_id=offer_id, field_name="potion_id"
+    )
+    sold_offer = _offer_by_id(payload.get("potions"), offer_id)
+    if sold_offer is not None and isinstance(sold_offer.get("potion_id"), str):
+        excluded_ids.add(sold_offer["potion_id"])
+    for potion_def in registry.potions().all():
+        if potion_def.id in excluded_ids:
+            continue
+        return {
+            "potion_id": potion_def.id,
+            "price": sold_offer.get("price") if sold_offer else 60,
+        }
+    return None
+
+
 def _result(
     run_state: RunState, room_state: RoomState, message: str | None = None
 ) -> ShopActionResult:
@@ -171,7 +276,13 @@ def shop_action(
             return _result(run_state, room_state, "金币不足，无法购买该商品。")
         payload["cards"] = _mark_offer_sold(payload.get("cards"), offer_id)
         if "the_courier" in run_state.relics:
-            payload["cards"] = _refresh_unsold_offer(payload.get("cards"), offer_id)
+            replacement = _restock_card_offer(
+                payload, offer_id=offer_id, registry=registry
+            )
+            if replacement is not None:
+                payload["cards"] = _replace_offer(
+                    payload.get("cards"), offer_id, replacement
+                )
         updated_run_state = replace(
             run_state,
             gold=run_state.gold - price,
@@ -205,13 +316,19 @@ def shop_action(
         ):
             return _result(run_state, room_state, "金币不足，无法购买该商品。")
         payload["relics"] = _mark_offer_sold(payload.get("relics"), offer_id)
-        if "the_courier" in run_state.relics:
-            payload["relics"] = _refresh_unsold_offer(payload.get("relics"), offer_id)
         updated_run_state = apply_reward(
             run_state=replace(run_state, gold=run_state.gold - price),
             reward_id=f"relic:{relic_id}",
             registry=registry,
         )
+        if "the_courier" in run_state.relics:
+            replacement = _restock_relic_offer(
+                updated_run_state, payload, offer_id=offer_id
+            )
+            if replacement is not None:
+                payload["relics"] = _replace_offer(
+                    payload.get("relics"), offer_id, replacement
+                )
         return _result(
             updated_run_state,
             RoomState(
@@ -241,7 +358,13 @@ def shop_action(
             return _result(run_state, room_state, "金币不足，无法购买该商品。")
         payload["potions"] = _mark_offer_sold(payload.get("potions"), offer_id)
         if "the_courier" in run_state.relics:
-            payload["potions"] = _refresh_unsold_offer(payload.get("potions"), offer_id)
+            replacement = _restock_potion_offer(
+                payload, offer_id=offer_id, registry=registry
+            )
+            if replacement is not None:
+                payload["potions"] = _replace_offer(
+                    payload.get("potions"), offer_id, replacement
+                )
         updated_run_state = replace(
             run_state,
             gold=run_state.gold - price,
