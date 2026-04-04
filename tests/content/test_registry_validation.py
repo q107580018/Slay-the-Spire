@@ -1166,7 +1166,6 @@ def test_implementation_status_matches_code_behavior(content_root: Path) -> None
         "bronze_scales",
         "meat_on_the_bone",
         "mercury_hourglass",
-        "oddly_smooth_stone",
         "omamori",
         "orichalcum",
         "potion_belt",
@@ -1241,3 +1240,16 @@ def test_all_card_names_and_summaries_match_huiji_reference(content_root: Path) 
                 f"{card.id}: summary mismatch (got {actual_summary!r}, expected {expected['summary']!r})"
             )
     assert not mismatches, "\n".join(mismatches[:20])
+
+
+@pytest.mark.parametrize("content_root", _content_roots())
+def test_closure_targets_are_no_longer_placeholder(content_root: Path) -> None:
+    """The 4 relics targeted in the closure plan must be fully implemented."""
+    closure_targets = {"vajra", "oddly_smooth_stone", "war_paint", "whetstone"}
+    provider = StarterContentProvider(content_root)
+    still_placeholder = [
+        r.id
+        for r in provider.relics().all()
+        if r.id in closure_targets and r.implementation_status == "placeholder"
+    ]
+    assert not still_placeholder, f"Still placeholder: {still_placeholder}"
