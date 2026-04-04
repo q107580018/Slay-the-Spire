@@ -2126,6 +2126,55 @@ def test_dead_branch_adds_stable_random_card_to_hand_when_card_is_exhausted() ->
     assert state.hand == ["bash#1"]
 
 
+def test_play_card_infernal_blade_adds_zero_cost_attack_to_hand() -> None:
+    state = _combat_state(hand=["infernal_blade#1"], energy=1, enemy_hps=[10])
+    provider = _Provider()
+    provider.cards().register(
+        {
+            "id": "infernal_blade",
+            "name": "地狱之刃",
+            "cost": 1,
+            "card_type": "skill",
+            "exhausts": True,
+            "effects": [{"type": "add_random_attack_zero_cost_to_hand"}],
+        }
+    )
+    provider.cards().register(
+        {
+            "id": "strike",
+            "name": "Strike",
+            "cost": 1,
+            "effects": [{"type": "damage", "amount": 6}],
+            "card_type": "attack",
+        }
+    )
+    provider.cards().register(
+        {
+            "id": "reaper",
+            "name": "Reaper",
+            "cost": 2,
+            "effects": [{"type": "damage_lifesteal_all_enemies", "amount": 4}],
+            "card_type": "attack",
+        }
+    )
+    provider.enemies().register(
+        {
+            "id": "training_dummy",
+            "name": "Training Dummy",
+            "hp": 10,
+            "move_table": [],
+            "intent_policy": "scripted",
+        }
+    )
+
+    play_card(state, "infernal_blade#1", None, provider)
+
+    assert state.energy == 0
+    assert state.hand == ["strike#1"]
+    assert state.temporary_costs == {"strike#1": 0}
+    assert state.exhaust_pile == ["infernal_blade#1"]
+
+
 def test_unceasing_top_draws_when_hand_becomes_empty() -> None:
     state = _combat_state(hand=["strike#1"], energy=0, enemy_hps=[10])
     state.draw_pile = ["bonus_card#1"]

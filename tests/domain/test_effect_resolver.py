@@ -503,6 +503,41 @@ def test_add_cards_to_hand_creates_new_cards() -> None:
     assert state.hand == ["wound#1", "wound#2"]
 
 
+def test_add_random_attack_zero_cost_to_hand_excludes_lifesteal_attacks() -> None:
+    state = make_combat_state(
+        enemies=[make_enemy("enemy-1", 3)],
+        effect_queue=[{"type": "add_random_attack_zero_cost_to_hand"}],
+    )
+    provider = _CardProvider()
+    provider.cards().register(
+        {
+            "id": "strike",
+            "name": "Strike",
+            "cost": 1,
+            "effects": [{"type": "damage", "amount": 6}],
+            "card_type": "attack",
+        }
+    )
+    provider.cards().register(
+        {
+            "id": "reaper",
+            "name": "Reaper",
+            "cost": 2,
+            "effects": [{"type": "damage_lifesteal_all_enemies", "amount": 4}],
+            "card_type": "attack",
+        }
+    )
+
+    resolved = resolve_next_effect(state, registry=provider)
+
+    assert resolved == {
+        "type": "add_random_attack_zero_cost_to_hand",
+        "result": {"created_card_instance_id": "strike#1"},
+    }
+    assert state.hand == ["strike#1"]
+    assert state.temporary_costs == {"strike#1": 0}
+
+
 def test_gain_energy_effect_increases_combat_energy() -> None:
     state = make_combat_state(
         enemies=[make_enemy("enemy-1", 3)],

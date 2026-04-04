@@ -7,6 +7,7 @@ from slay_the_spire.domain.effects.effect_types import (
     EFFECT_ADD_CARD_TO_DISCARD,
     EFFECT_ADD_CARD_TO_DRAW_PILE,
     EFFECT_ADD_CARDS_TO_HAND,
+    EFFECT_ADD_RANDOM_ATTACK_ZERO_COST_TO_HAND,
     EFFECT_ADD_POWER,
     EFFECT_BLOCK,
     EFFECT_COPY_CARD_TO_HAND,
@@ -826,6 +827,26 @@ def _dead_branch_card_id(state: CombatState, registry: object | None) -> str | N
     return _pseudo_random_choice(state, candidates)
 
 
+def _infernal_blade_card_id(state: CombatState, registry: object | None) -> str | None:
+    if registry is None:
+        return None
+    cards = getattr(registry, "cards", None)
+    if not callable(cards):
+        return None
+    candidates = [
+        card_def.id
+        for card_def in cards().all()
+        if card_def.card_type == "attack"
+        and card_def.playable
+        and not any(
+            str(effect.get("type"))
+            in {EFFECT_HEAL, EFFECT_DAMAGE_LIFESTEAL_ALL_ENEMIES}
+            for effect in card_def.effects
+        )
+    ]
+    return _pseudo_random_choice(state, candidates)
+
+
 def refill_draw_pile_from_discard(state: CombatState) -> bool:
     if not state.discard_pile:
         return False
@@ -1368,6 +1389,18 @@ def resolve_next_effect(
             count=int(effect.get("count", 1)),
         )
         return effect
+
+    if effect_type == EFFECT_ADD_RANDOM_ATTACK_ZERO_COST_TO_HAND:
+        card_id = _infernal_blade_card_id(state, registry)
+        if card_id is None:
+            return _with_result(effect, created_card_instance_id=None)
+        created_card_instance_id = _next_card_instance_id(state, card_id)
+        state.hand.append(created_card_instance_id)
+        state.temporary_costs[created_card_instance_id] = 0
+        return _with_result(
+            effect,
+            created_card_instance_id=created_card_instance_id,
+        )
 
     if effect_type == EFFECT_EXHAUST_ALL_NON_ATTACKS_GAIN_BLOCK:
         source = _get_target(state, effect.get("source_instance_id"))
