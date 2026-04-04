@@ -348,6 +348,8 @@ def shop_action(
             return _result(run_state, room_state)
         if offer.get("sold") is True:
             return _result(run_state, room_state, "该商品已购买。")
+        if "sozu" in run_state.relics:
+            return _result(run_state, room_state, "索祖禁止你获得药水。")
         price = offer.get("price")
         potion_id = offer.get("potion_id")
         if (

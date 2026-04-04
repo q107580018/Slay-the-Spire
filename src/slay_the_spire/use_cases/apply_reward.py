@@ -126,6 +126,8 @@ def apply_reward(
     if reward_id.startswith("potion:"):
         potion_id = reward_id.split(":", 1)[1]
         registry.potions().get(potion_id)
+        if "sozu" in run_state.relics:
+            return run_state
         return replace(run_state, potions=[*run_state.potions, potion_id])
     if reward_id.startswith("card:"):
         card_id = reward_id.split(":", 1)[1]

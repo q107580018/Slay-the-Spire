@@ -316,6 +316,18 @@ def test_sozu_blocks_white_beast_statue_potion_reward() -> None:
     assert not [reward for reward in rewards if reward.startswith("potion:")]
 
 
+def test_apply_reward_sozu_blocks_potion_rewards() -> None:
+    run_state = replace(_run_state(), relics=["burning_blood", "sozu"])
+
+    updated = apply_reward(
+        run_state=run_state,
+        reward_id="potion:fire_potion",
+        registry=_content_provider(),
+    )
+
+    assert updated.potions == []
+
+
 def test_generate_combat_rewards_from_a_new_run_does_not_offer_rare_cards_in_normal_combat() -> (
     None
 ):

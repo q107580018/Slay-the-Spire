@@ -124,6 +124,21 @@ def test_shop_buy_potion_spends_gold_and_adds_potion() -> None:
     assert result.message is None
 
 
+def test_shop_buy_potion_is_blocked_by_sozu() -> None:
+    run_state = replace(_run_state(), relics=["burning_blood", "sozu"])
+
+    result = shop_action(
+        run_state=run_state,
+        room_state=_shop_room(),
+        action_id="buy_potion:potion-1",
+        registry=_content_provider(),
+    )
+
+    assert result.run_state.to_dict() == run_state.to_dict()
+    assert result.room_state.to_dict() == _shop_room().to_dict()
+    assert result.message == "索祖禁止你获得药水。"
+
+
 def test_membership_card_halves_shop_prices() -> None:
     room_state = enter_room(
         replace(_run_state(), relics=["burning_blood", "membership_card"]),
