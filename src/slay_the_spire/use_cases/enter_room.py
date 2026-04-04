@@ -99,6 +99,21 @@ def _player_start_statuses(run_state: RunState) -> list[StatusState]:
     girya_lifts = run_state.relic_sequence_positions.get("girya_lifts", 0)
     if girya_lifts > 0:
         statuses.append(StatusState(status_id="strength", stacks=girya_lifts))
+    vajra_strength = run_state.relic_sequence_positions.get(
+        "relic:vajra:strength_bonus", 0
+    )
+    if vajra_strength > 0:
+        statuses.append(StatusState(status_id="strength", stacks=vajra_strength))
+    oddly_smooth_stone_dexterity = run_state.relic_sequence_positions.get(
+        "relic:oddly_smooth_stone:dexterity_bonus", 0
+    )
+    if oddly_smooth_stone_dexterity > 0:
+        statuses.append(
+            StatusState(
+                status_id="dexterity",
+                stacks=oddly_smooth_stone_dexterity,
+            )
+        )
     return statuses
 
 
@@ -291,6 +306,14 @@ def _roll_treasure_relic_rarity(*, room_id: str, seed: int) -> str:
     return _COMMON_RELIC_RARITY
 
 
+def _fallback_rarity_order(target_rarity: str) -> tuple[str, ...]:
+    if target_rarity == _RARE_RELIC_RARITY:
+        return (_RARE_RELIC_RARITY, _UNCOMMON_RELIC_RARITY, _COMMON_RELIC_RARITY)
+    if target_rarity == _UNCOMMON_RELIC_RARITY:
+        return (_UNCOMMON_RELIC_RARITY, _COMMON_RELIC_RARITY, _RARE_RELIC_RARITY)
+    return (_COMMON_RELIC_RARITY, _UNCOMMON_RELIC_RARITY, _RARE_RELIC_RARITY)
+
+
 def _build_shop_payload(
     run_state: RunState, *, room_id: str, registry: ContentProviderPort
 ) -> dict[str, object]:
@@ -479,10 +502,15 @@ def _build_treasure_payload(
                 matryoshka_chests_opened + 1
             )
             return {"treasure_relic_id": relic_ids[0], "treasure_relic_ids": relic_ids}
-    treasure_relic_id = _next_relic_from_sequence(
-        run_state=run_state,
-        pool_id=_roll_treasure_relic_rarity(room_id=room_id, seed=run_state.seed),
-    )
+    rolled_rarity = _roll_treasure_relic_rarity(room_id=room_id, seed=run_state.seed)
+    treasure_relic_id = None
+    for pool_id in _fallback_rarity_order(rolled_rarity):
+        treasure_relic_id = _next_relic_from_sequence(
+            run_state=run_state,
+            pool_id=pool_id,
+        )
+        if treasure_relic_id is not None:
+            break
     if treasure_relic_id is None:
         registry.relics().get(_TREASURE_FALLBACK_RELIC_ID)
         return {"treasure_relic_id": _TREASURE_FALLBACK_RELIC_ID}

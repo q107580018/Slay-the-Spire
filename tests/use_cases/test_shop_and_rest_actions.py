@@ -565,6 +565,40 @@ def test_girya_lift_persists_across_rest_sites_and_applies_strength_in_combat() 
     assert StatusState(status_id="strength", stacks=3) in combat_state.player.statuses
 
 
+def test_vajra_applies_strength_in_combat() -> None:
+    combat_room = enter_room(
+        replace(
+            _run_state(),
+            relics=["burning_blood", "vajra"],
+            relic_sequence_positions={"relic:vajra:strength_bonus": 1},
+        ),
+        _single_room_act_state(node_id="combat-1", room_type="combat"),
+        "combat-1",
+        _content_provider(),
+    )
+
+    combat_state = CombatState.from_dict(combat_room.payload["combat_state"])
+
+    assert StatusState(status_id="strength", stacks=1) in combat_state.player.statuses
+
+
+def test_oddly_smooth_stone_applies_dexterity_in_combat() -> None:
+    combat_room = enter_room(
+        replace(
+            _run_state(),
+            relics=["burning_blood", "oddly_smooth_stone"],
+            relic_sequence_positions={"relic:oddly_smooth_stone:dexterity_bonus": 1},
+        ),
+        _single_room_act_state(node_id="combat-1", room_type="combat"),
+        "combat-1",
+        _content_provider(),
+    )
+
+    combat_state = CombatState.from_dict(combat_room.payload["combat_state"])
+
+    assert StatusState(status_id="dexterity", stacks=1) in combat_state.player.statuses
+
+
 def test_eternal_feather_adds_three_healing_per_five_cards() -> None:
     run_state = replace(
         _run_state(),

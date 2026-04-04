@@ -118,7 +118,6 @@ def _apply_relic_on_acquire_effects(
             registry=registry,
             card_type="skill",
             limit=2,
-            exclude_rarity="basic",
         )
     if relic_id == "whetstone":
         updated = _upgrade_matching_cards(

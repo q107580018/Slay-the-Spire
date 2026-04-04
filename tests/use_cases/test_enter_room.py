@@ -548,6 +548,41 @@ def test_enter_treasure_room_falls_back_to_circlet_when_no_relic_candidates_rema
     assert room_state.is_resolved is False
 
 
+def test_enter_treasure_room_uses_other_rarity_relics_before_circlet(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        enter_room_module,
+        "_roll_treasure_relic_rarity",
+        lambda *, room_id, seed: "rare",
+        raising=False,
+    )
+
+    run_state = _run_state(
+        seed=13,
+        relic_sequences={
+            "common": ["anchor"],
+            "uncommon": ["oddly_smooth_stone"],
+            "rare": [],
+        },
+        relic_sequence_positions={"common": 0, "uncommon": 0, "rare": 0},
+    )
+
+    room_state = enter_room(
+        run_state,
+        _act_state(node_id="r1c0", room_type="treasure"),
+        "r1c0",
+        _content_provider(),
+    )
+
+    assert room_state.payload["treasure_relic_id"] == "oddly_smooth_stone"
+    assert run_state.relic_sequence_positions == {
+        "common": 0,
+        "uncommon": 1,
+        "rare": 0,
+    }
+
+
 def test_black_star_adds_extra_relic_after_elite_combat() -> None:
     rewards, _next_rare_offset = generate_combat_rewards(
         room_id="act1:elite_reward",

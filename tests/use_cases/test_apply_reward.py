@@ -745,7 +745,7 @@ def test_apply_reward_war_paint_upgrades_two_random_skill_cards() -> None:
 
     assert "war_paint" in updated.relics
     upgraded = {card for card in updated.deck if card.endswith("_plus#1")}
-    assert upgraded == {"shrug_it_off_plus#1", "armaments_plus#1"}
+    assert upgraded == {"defend_plus#1", "shrug_it_off_plus#1"}
 
 
 def test_apply_reward_whetstone_upgrades_two_random_attack_cards() -> None:
