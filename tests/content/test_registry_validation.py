@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from slay_the_spire.adapters.presentation.widgets import summarize_card_definition
 from slay_the_spire.content.catalog import ContentCatalog
 from slay_the_spire.content.loaders import load_json_file
 from slay_the_spire.content.provider import StarterContentProvider
@@ -1211,3 +1212,32 @@ def test_implementation_status_matches_code_behavior(content_root: Path) -> None
         assert relic.implementation_status == "implemented", (
             f"{relic_id} has real behavior but is marked '{relic.implementation_status}'"
         )
+
+
+@pytest.mark.parametrize("content_root", _content_roots())
+def test_all_card_names_and_summaries_match_huiji_reference(content_root: Path) -> None:
+    fixture_path = (
+        Path(__file__).resolve().parents[2]
+        / "docs"
+        / "reference"
+        / "sts_huijiwiki"
+        / "card_relic_expectations.json"
+    )
+    expectations = json.loads(fixture_path.read_text(encoding="utf-8"))["cards"]
+    provider = StarterContentProvider(content_root)
+    mismatches: list[str] = []
+    for card in provider.cards().all():
+        expected = expectations.get(card.id)
+        if expected is None:
+            mismatches.append(f"{card.id}: missing expectation")
+            continue
+        if card.name != expected["name"]:
+            mismatches.append(
+                f"{card.id}: name mismatch (got {card.name!r}, expected {expected['name']!r})"
+            )
+        actual_summary = summarize_card_definition(card)
+        if actual_summary != expected["summary"]:
+            mismatches.append(
+                f"{card.id}: summary mismatch (got {actual_summary!r}, expected {expected['summary']!r})"
+            )
+    assert not mismatches, "\n".join(mismatches[:20])
