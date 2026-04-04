@@ -56,6 +56,7 @@ from slay_the_spire.app.session import (
     SessionState,
     _build_load_select_menu,
     _content_provider,
+    _next_room_options,
     build_opening_action_menu,
     render_session_renderable,
     route_menu_choice,
@@ -112,6 +113,7 @@ _CARD_PREVIEW_MENU_MODES = frozenset(
     {
         "select_card",
         "shop_remove_card",
+        "rest_remove_card",
         "rest_upgrade_card",
         "event_upgrade_card",
         "event_remove_card",
@@ -308,9 +310,11 @@ def _card_preview_instance_id(session: SessionState, action_id: str) -> str | No
         return _card_instance_from_indexed_action(
             action_id, prefix="play_card:", card_instance_ids=combat_state.hand
         )
-    if menu_mode in {"shop_remove_card", "event_remove_card"} and action_id.startswith(
-        "remove_card:"
-    ):
+    if menu_mode in {
+        "shop_remove_card",
+        "rest_remove_card",
+        "event_remove_card",
+    } and action_id.startswith("remove_card:"):
         return action_id.split(":", 1)[1]
     if menu_mode == "opening_neow_remove_card" and action_id.startswith("remove_card:"):
         return action_id.split(":", 1)[1]
@@ -796,9 +800,7 @@ def _current_action_menu(session: SessionState) -> MenuDefinition | None:
             room_state=room_state, run_state=session.run_state, registry=registry
         )
     if menu_mode == "select_next_room":
-        next_node_ids = room_state.payload.get("next_node_ids", [])
-        if not isinstance(next_node_ids, list):
-            next_node_ids = []
+        next_node_ids = _next_room_options(session)
         labels = format_next_room_labels(session.act_state, next_node_ids)
         return build_next_room_menu(
             options=[
@@ -862,6 +864,8 @@ def _current_action_menu(session: SessionState) -> MenuDefinition | None:
             run_state=session.run_state, room_state=room_state, registry=registry
         )
     if menu_mode == "shop_remove_card":
+        return build_shop_remove_menu(room_state=room_state, registry=registry)
+    if menu_mode == "rest_remove_card":
         return build_shop_remove_menu(room_state=room_state, registry=registry)
     if menu_mode == "rest_root":
         return build_rest_root_menu(room_state=room_state, run_state=session.run_state)
@@ -1218,7 +1222,8 @@ class SlayApp(App[None]):
             return
         registry = _content_provider(self._session)
         relic_names = [
-            registry.relics().get(relic_id).name for relic_id in self._session.run_state.relics
+            registry.relics().get(relic_id).name
+            for relic_id in self._session.run_state.relics
         ]
         potion_names = [
             registry.potions().get(potion_id).name
@@ -1289,7 +1294,9 @@ class SlayApp(App[None]):
     def _refresh_hover_preview(self, action_id: str | None = None) -> None:
         preview = self.query_one("#hover-preview", Static)
         if self._combat_preview_pile is not None:
-            rendered = _combat_pile_preview_text(self._session, self._combat_preview_pile)
+            rendered = _combat_pile_preview_text(
+                self._session, self._combat_preview_pile
+            )
             if rendered is not None:
                 preview.update(rendered)
                 preview.display = True

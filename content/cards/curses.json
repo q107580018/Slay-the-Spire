@@ -65,6 +65,23 @@
         "generated",
         "status"
       ]
+    },
+    {
+      "id": "shiv",
+      "name": "小刀",
+      "cost": 0,
+      "rarity": "special",
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 4
+        }
+      ],
+      "card_type": "attack",
+      "exhausts": true,
+      "acquisition_tags": [
+        "generated"
+      ]
     }
   ]
 }

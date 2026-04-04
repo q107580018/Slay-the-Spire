@@ -36,6 +36,7 @@ from slay_the_spire.app.menu_definitions import (
     format_menu_entries,
     format_menu_lines,
 )
+from slay_the_spire.app.next_room_options import next_room_options
 from slay_the_spire.adapters.presentation.screens.layout import build_standard_screen
 from slay_the_spire.adapters.presentation.theme import PANEL_BOX
 from slay_the_spire.adapters.presentation.widgets import render_card_name, render_menu
@@ -84,6 +85,14 @@ _RUN_PHASE_LABELS = {
     "game_over": "失败",
 }
 
+_REST_ACTION_LABELS = {
+    "rest": "休息",
+    "smith": "锻造",
+    "lift": "举重",
+    "digestion": "冥想消耗",
+    "dig": "挖掘",
+}
+
 
 def _menu_mode(menu_state: Any) -> str:
     mode = str(getattr(menu_state, "mode", "root"))
@@ -124,14 +133,22 @@ def _format_node_choice(act_state: ActState, node_id: object) -> str:
     return format_next_room_labels(act_state, [node_id])[0]
 
 
-def _format_next_nodes(act_state: ActState, room_state: RoomState) -> str:
-    next_node_ids = room_state.payload.get("next_node_ids", [])
-    if not isinstance(next_node_ids, list) or not next_node_ids:
+def _format_next_nodes(
+    act_state: ActState, room_state: RoomState, run_state: RunState
+) -> str:
+    next_node_ids = next_room_options(
+        act_state=act_state,
+        room_state=room_state,
+        run_state=run_state,
+    )
+    if not next_node_ids:
         return "-"
     return ", ".join(format_next_room_labels(act_state, next_node_ids))
 
 
-def _format_card_instance_label(card_instance_id: str, registry: ContentProviderPort) -> Text:
+def _format_card_instance_label(
+    card_instance_id: str, registry: ContentProviderPort
+) -> Text:
     card_id = card_id_from_instance_id(card_instance_id)
     card_def = registry.cards().get(card_id)
     return Text.assemble(render_card_name(card_def), f" ({card_instance_id})")
@@ -156,6 +173,12 @@ def _format_reward_label(reward_id: str, registry: ContentProviderPort) -> str |
         reward_name = reward_id.split(":", 1)[1]
         card_def = registry.cards().get(_reward_card_id(reward_name))
         return Text.assemble("卡牌 ", render_card_name(card_def))
+    if reward_id.startswith("relic:"):
+        reward_name = reward_id.split(":", 1)[1]
+        return f"遗物 {registry.relics().get(reward_name).name}"
+    if reward_id.startswith("potion:"):
+        reward_name = reward_id.split(":", 1)[1]
+        return f"药水 {registry.potions().get(reward_name).name}"
     if reward_id.startswith("event:"):
         result = reward_id.split(":", 1)[1]
         if result == "gain_upgrade":
@@ -166,7 +189,9 @@ def _format_reward_label(reward_id: str, registry: ContentProviderPort) -> str |
     return reward_id
 
 
-def _format_reward_lines(rewards: list[str], registry: ContentProviderPort) -> list[str | Text]:
+def _format_reward_lines(
+    rewards: list[str], registry: ContentProviderPort
+) -> list[str | Text]:
     if not rewards:
         return ["-"]
     lines: list[str | Text] = []
@@ -202,7 +227,11 @@ def _boss_rewards(room_state: RoomState) -> dict[str, object] | None:
 
 def _has_pending_boss_rewards(room_state: RoomState) -> bool:
     boss_rewards = _boss_rewards(room_state)
-    if boss_rewards is None or room_state.room_type not in {"boss", "boss_chest"} or not room_state.is_resolved:
+    if (
+        boss_rewards is None
+        or room_state.room_type not in {"boss", "boss_chest"}
+        or not room_state.is_resolved
+    ):
         return False
     claimed_relic_id = boss_rewards.get("claimed_relic_id")
     return not (isinstance(claimed_relic_id, str) and bool(claimed_relic_id))
@@ -292,7 +321,10 @@ def _cell_to_text_index(cells: list[str], cell_position: int) -> int:
 
 def _node_label_cell_range(act_state: ActState, node: ActNodeState) -> tuple[int, int]:
     label = _MAP_ROOM_TYPE_LABELS.get(node.room_type, node.room_type[:1].upper())
-    if node.node_id == act_state.current_node_id or node.node_id in act_state.reachable_node_ids:
+    if (
+        node.node_id == act_state.current_node_id
+        or node.node_id in act_state.reachable_node_ids
+    ):
         raw = f"x{label}x"
         offset = 1
     else:
@@ -304,10 +336,15 @@ def _node_label_cell_range(act_state: ActState, node: ActNodeState) -> tuple[int
     return start, end
 
 
-def _map_positions(nodes: list[ActNodeState], *, col_spacing: int, row_spacing: int, margin_x: int) -> dict[str, tuple[int, int]]:
+def _map_positions(
+    nodes: list[ActNodeState], *, col_spacing: int, row_spacing: int, margin_x: int
+) -> dict[str, tuple[int, int]]:
     last_row = max(node.row for node in nodes)
     return {
-        node.node_id: (margin_x + (node.col * col_spacing), (last_row - node.row) * row_spacing)
+        node.node_id: (
+            margin_x + (node.col * col_spacing),
+            (last_row - node.row) * row_spacing,
+        )
         for node in nodes
     }
 
@@ -321,7 +358,9 @@ def _add_step(canvas: list[list[set[str]]], x: int, y: int, direction: str) -> N
         canvas[y][x].add(direction)
 
 
-def _add_segment(canvas: list[list[set[str]]], start: tuple[int, int], end: tuple[int, int]) -> None:
+def _add_segment(
+    canvas: list[list[set[str]]], start: tuple[int, int], end: tuple[int, int]
+) -> None:
     x, y = start
     end_x, end_y = end
     if x != end_x and y != end_y:
@@ -373,11 +412,19 @@ def _render_direction_canvas(direction_canvas: list[list[set[str]]]) -> list[lis
 
 
 def _metric_line(label: str, value: str) -> Text:
-    return Text.assemble((label, "map.metric.label"), ("  ", "map.metric.sep"), (value, "map.metric.value"))
+    return Text.assemble(
+        (label, "map.metric.label"),
+        ("  ", "map.metric.sep"),
+        (value, "map.metric.value"),
+    )
 
 
 def _tip_line(message: str) -> Text:
-    return Text.assemble(("TIP", "map.legend.label"), (" | ", "map.legend.sep"), (message, "map.legend.value"))
+    return Text.assemble(
+        ("TIP", "map.legend.label"),
+        (" | ", "map.legend.sep"),
+        (message, "map.legend.value"),
+    )
 
 
 def _legend_line(label: str, entries: list[tuple[str, str, str | None]]) -> Text:
@@ -428,25 +475,39 @@ def _status_legend_line() -> Text:
 def _full_map_lines(act_state: ActState) -> list[Text]:
     current_row, current_col = act_state.current_coord()
     visible_node_ids = _reachable_node_ids(act_state)
-    visible_nodes = [node for node in act_state.nodes if node.node_id in visible_node_ids]
+    visible_nodes = [
+        node for node in act_state.nodes if node.node_id in visible_node_ids
+    ]
     if not visible_nodes:
         return [Text("地图不可用")]
 
     row_numbers = sorted({node.row for node in visible_nodes})
-    next_nodes = ", ".join(format_next_room_labels(act_state, act_state.reachable_node_ids)) or "-"
+    next_nodes = (
+        ", ".join(format_next_room_labels(act_state, act_state.reachable_node_ids))
+        or "-"
+    )
     total_cols = max(node.col for node in visible_nodes) + 1
     col_spacing = 14
     row_spacing = 4
     margin_x = 6
-    positions = _map_positions(visible_nodes, col_spacing=col_spacing, row_spacing=row_spacing, margin_x=margin_x)
-    grid_width = margin_x * 2 + max(1, total_cols - 1) * col_spacing + _MAP_NODE_CELL_WIDTH
+    positions = _map_positions(
+        visible_nodes,
+        col_spacing=col_spacing,
+        row_spacing=row_spacing,
+        margin_x=margin_x,
+    )
+    grid_width = (
+        margin_x * 2 + max(1, total_cols - 1) * col_spacing + _MAP_NODE_CELL_WIDTH
+    )
     grid_height = max(row_numbers) * row_spacing + 1
     direction_canvas = _blank_direction_canvas(grid_width, grid_height)
 
     for node in visible_nodes:
         from_pos = positions[node.node_id]
         for next_node_id in node.next_node_ids:
-            _draw_edge(direction_canvas, from_pos=from_pos, to_pos=positions[next_node_id])
+            _draw_edge(
+                direction_canvas, from_pos=from_pos, to_pos=positions[next_node_id]
+            )
 
     rendered_canvas = [list(row) for row in _render_direction_canvas(direction_canvas)]
     for node in visible_nodes:
@@ -455,7 +516,9 @@ def _full_map_lines(act_state: ActState) -> list[Text]:
         start_x = x - (_MAP_NODE_CELL_WIDTH // 2)
         for offset, char in enumerate(token_cells):
             target_x = start_x + offset
-            if 0 <= y < len(rendered_canvas) and 0 <= target_x < len(rendered_canvas[y]):
+            if 0 <= y < len(rendered_canvas) and 0 <= target_x < len(
+                rendered_canvas[y]
+            ):
                 rendered_canvas[y][target_x] = char
 
     lines: list[Text] = [
@@ -486,9 +549,15 @@ def _full_map_lines(act_state: ActState) -> list[Text]:
                 if start < end:
                     line.stylize(base_style, start, end)
 
-                label_start_cell, label_end_cell = _node_label_cell_range(act_state, node)
-                label_start = len(prefix) + _cell_to_text_index(row_cells, token_start_cell + label_start_cell)
-                label_end = len(prefix) + _cell_to_text_index(row_cells, token_start_cell + label_end_cell)
+                label_start_cell, label_end_cell = _node_label_cell_range(
+                    act_state, node
+                )
+                label_start = len(prefix) + _cell_to_text_index(
+                    row_cells, token_start_cell + label_start_cell
+                )
+                label_end = len(prefix) + _cell_to_text_index(
+                    row_cells, token_start_cell + label_end_cell
+                )
                 if label_start < label_end:
                     line.stylize(room_style, label_start, label_end)
         lines.append(line)
@@ -504,60 +573,86 @@ def _full_map_lines(act_state: ActState) -> list[Text]:
     return lines
 
 
-def _format_next_room_menu(act_state: ActState, room_state: RoomState) -> list[str]:
-    next_node_ids = room_state.payload.get("next_node_ids", [])
-    if not isinstance(next_node_ids, list):
-        next_node_ids = []
+def _format_next_room_menu(
+    act_state: ActState, room_state: RoomState, run_state: RunState
+) -> list[str]:
+    next_node_ids = next_room_options(
+        act_state=act_state,
+        room_state=room_state,
+        run_state=run_state,
+    )
     labels = format_next_room_labels(act_state, next_node_ids)
     return format_menu_lines(
         build_next_room_menu(
-            options=[(f"next_node:{node_id}", label) for node_id, label in zip(next_node_ids, labels, strict=False)],
+            options=[
+                (f"next_node:{node_id}", label)
+                for node_id, label in zip(next_node_ids, labels, strict=False)
+            ],
         )
     )
 
 
-def _format_event_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str]:
+def _format_event_menu(
+    room_state: RoomState, registry: ContentProviderPort
+) -> list[str]:
     event_id = room_state.payload.get("event_id")
     if not isinstance(event_id, str):
         return format_menu_lines(build_event_choice_menu(options=[]))
     event_def = registry.events().get(event_id)
     return format_menu_lines(
         build_event_choice_menu(
-            options=[(f"choice:{choice.get('id')}", str(choice.get("label"))) for choice in event_def.choices]
+            options=[
+                (f"choice:{choice.get('id')}", str(choice.get("label")))
+                for choice in event_def.choices
+            ]
         )
     )
 
 
-def _format_event_upgrade_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str | Text]:
+def _format_event_upgrade_menu(
+    room_state: RoomState, registry: ContentProviderPort
+) -> list[str | Text]:
     options = room_state.payload.get("upgrade_options", [])
     if not isinstance(options, list):
         options = []
     return format_menu_entries(
         build_event_upgrade_menu(
             options=[
-                (f"upgrade_card:{card_instance_id}", _format_card_instance_label(card_instance_id, registry))
+                (
+                    f"upgrade_card:{card_instance_id}",
+                    _format_card_instance_label(card_instance_id, registry),
+                )
                 for card_instance_id in options
             ]
         )
     )
 
 
-def _format_event_remove_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str | Text]:
+def _format_event_remove_menu(
+    room_state: RoomState, registry: ContentProviderPort
+) -> list[str | Text]:
     candidates = room_state.payload.get("remove_candidates", [])
     if not isinstance(candidates, list):
         candidates = []
     return format_menu_entries(
         build_event_remove_menu(
             options=[
-                (f"remove_card:{card_instance_id}", _format_card_instance_label(card_instance_id, registry))
+                (
+                    f"remove_card:{card_instance_id}",
+                    _format_card_instance_label(card_instance_id, registry),
+                )
                 for card_instance_id in candidates
             ]
         )
     )
 
 
-def _format_reward_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str | Text]:
-    return format_menu_entries(build_reward_menu(room_state=room_state, registry=registry))
+def _format_reward_menu(
+    room_state: RoomState, registry: ContentProviderPort
+) -> list[str | Text]:
+    return format_menu_entries(
+        build_reward_menu(room_state=room_state, registry=registry)
+    )
 
 
 def _format_boss_reward_menu(room_state: RoomState) -> list[str]:
@@ -565,7 +660,9 @@ def _format_boss_reward_menu(room_state: RoomState) -> list[str]:
     return format_menu_lines(build_boss_reward_menu(boss_rewards))
 
 
-def _format_boss_relic_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str]:
+def _format_boss_relic_menu(
+    room_state: RoomState, registry: ContentProviderPort
+) -> list[str]:
     boss_rewards = _boss_rewards(room_state) or {}
     relic_ids = boss_rewards.get("boss_relic_offers")
     if not isinstance(relic_ids, list):
@@ -615,7 +712,12 @@ def render_non_combat_inspect_panel(
         "可查看共享资料页。",
         "包含属性、牌组、遗物和药水。",
     ]
-    return Panel(Group(*[Text(line) for line in lines]), title="资料总览", box=PANEL_BOX, expand=False)
+    return Panel(
+        Group(*[Text(line) for line in lines]),
+        title="资料总览",
+        box=PANEL_BOX,
+        expand=False,
+    )
 
 
 def _shop_offer_status(*, price: object, sold: bool, current_gold: int) -> str:
@@ -626,7 +728,21 @@ def _shop_offer_status(*, price: object, sold: bool, current_gold: int) -> str:
     return "可购买"
 
 
-def _remove_service_status(*, remove_used: bool, remove_price: object, current_gold: int) -> str:
+def _shop_potion_status(
+    *, price: object, sold: bool, current_gold: int, has_sozu: bool
+) -> str:
+    if sold:
+        return "已购买"
+    if has_sozu:
+        return "已禁用"
+    if not isinstance(price, int) or current_gold < price:
+        return "金币不足"
+    return "可购买"
+
+
+def _remove_service_status(
+    *, remove_used: bool, remove_price: object, current_gold: int
+) -> str:
     if remove_used:
         return "已使用"
     if not isinstance(remove_price, int) or current_gold < remove_price:
@@ -634,20 +750,36 @@ def _remove_service_status(*, remove_used: bool, remove_price: object, current_g
     return "可购买"
 
 
-def _format_shop_root_menu(room_state: RoomState, registry: ContentProviderPort, run_state: RunState) -> list[str | Text]:
-    return format_menu_entries(build_shop_root_menu(run_state=run_state, room_state=room_state, registry=registry))
+def _format_shop_root_menu(
+    room_state: RoomState, registry: ContentProviderPort, run_state: RunState
+) -> list[str | Text]:
+    return format_menu_entries(
+        build_shop_root_menu(
+            run_state=run_state, room_state=room_state, registry=registry
+        )
+    )
 
 
-def _format_shop_remove_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str | Text]:
-    return format_menu_entries(build_shop_remove_menu(room_state=room_state, registry=registry))
+def _format_shop_remove_menu(
+    room_state: RoomState, registry: ContentProviderPort
+) -> list[str | Text]:
+    return format_menu_entries(
+        build_shop_remove_menu(room_state=room_state, registry=registry)
+    )
 
 
 def _format_rest_root_menu(room_state: RoomState, run_state: RunState) -> list[str]:
-    return format_menu_lines(build_rest_root_menu(room_state=room_state, run_state=run_state))
+    return format_menu_lines(
+        build_rest_root_menu(room_state=room_state, run_state=run_state)
+    )
 
 
-def _format_rest_upgrade_menu(room_state: RoomState, registry: ContentProviderPort) -> list[str | Text]:
-    return format_menu_entries(build_rest_upgrade_menu(room_state=room_state, registry=registry))
+def _format_rest_upgrade_menu(
+    room_state: RoomState, registry: ContentProviderPort
+) -> list[str | Text]:
+    return format_menu_entries(
+        build_rest_upgrade_menu(room_state=room_state, registry=registry)
+    )
 
 
 def _format_terminal_phase_menu(run_phase: str) -> list[str]:
@@ -671,26 +803,51 @@ def render_summary_panel(
     character_name = registry.characters().get(run_state.character_id).name
     act_name = registry.acts().get(act_state.act_id).name
     lines = [
-        Text.assemble(("种子 ", "summary.label"), str(run_state.seed), f" (种子: {run_state.seed})"),
+        Text.assemble(
+            ("种子 ", "summary.label"),
+            str(run_state.seed),
+            f" (种子: {run_state.seed})",
+        ),
         Text.assemble(("角色 ", "summary.label"), (character_name, "player.name")),
-        Text.assemble(("章节 ", "summary.label"), str(act_name), f" (章节: {act_name})"),
-        Text.assemble(("房间 ", "summary.label"), format_node_id(node_id), f" (房间: {format_node_id(node_id)})"),
+        Text.assemble(
+            ("章节 ", "summary.label"), str(act_name), f" (章节: {act_name})"
+        ),
+        Text.assemble(
+            ("房间 ", "summary.label"),
+            format_node_id(node_id),
+            f" (房间: {format_node_id(node_id)})",
+        ),
         Text.assemble(
             ("房间类型 ", "summary.label"),
             _ROOM_TYPE_LABELS.get(str(room_kind), str(room_kind)),
             f" (房间类型: {_ROOM_TYPE_LABELS.get(str(room_kind), str(room_kind))})",
         ),
-        Text.assemble(("阶段 ", "summary.label"), _STAGE_LABELS.get(room_state.stage, room_state.stage)),
-        Text.assemble(("运行阶段 ", "summary.label"), _RUN_PHASE_LABELS.get(run_phase, run_phase)),
-        Text.assemble(("玩家生命 ", "summary.label"), f"{run_state.current_hp}/{run_state.max_hp}"),
+        Text.assemble(
+            ("阶段 ", "summary.label"),
+            _STAGE_LABELS.get(room_state.stage, room_state.stage),
+        ),
+        Text.assemble(
+            ("运行阶段 ", "summary.label"), _RUN_PHASE_LABELS.get(run_phase, run_phase)
+        ),
+        Text.assemble(
+            ("玩家生命 ", "summary.label"), f"{run_state.current_hp}/{run_state.max_hp}"
+        ),
         Text.assemble(("当前金币 ", "summary.label"), str(run_state.gold)),
-        Text.assemble(("下一房间 ", "summary.label"), _format_next_nodes(act_state, room_state)),
+        Text.assemble(
+            ("下一房间 ", "summary.label"),
+            _format_next_nodes(act_state, room_state, run_state),
+        ),
     ]
     return Panel(Group(*lines), title="房间摘要", box=PANEL_BOX, expand=False)
 
 
 def render_full_map_panel(act_state: ActState) -> Panel:
-    return Panel(Group(*_full_map_lines(act_state)), title="当前可达地图", box=PANEL_BOX, expand=False)
+    return Panel(
+        Group(*_full_map_lines(act_state)),
+        title="当前可达地图",
+        box=PANEL_BOX,
+        expand=False,
+    )
 
 
 def render_event_body(room_state: RoomState, registry: ContentProviderPort) -> Panel:
@@ -704,26 +861,45 @@ def render_event_body(room_state: RoomState, registry: ContentProviderPort) -> P
         lines.extend(["", f"结果: {result_text}"])
     if room_state.stage == "select_event_upgrade_card":
         lines.extend(["", "可升级卡牌:"])
-        for option in room_state.payload.get("upgrade_options", []) if isinstance(room_state.payload.get("upgrade_options", []), list) else []:
-            lines.append(Text.assemble("- ", _format_card_instance_label(option, registry)))
+        for option in (
+            room_state.payload.get("upgrade_options", [])
+            if isinstance(room_state.payload.get("upgrade_options", []), list)
+            else []
+        ):
+            lines.append(
+                Text.assemble("- ", _format_card_instance_label(option, registry))
+            )
     if room_state.stage == "select_event_remove_card":
         lines.extend(["", "可移除卡牌:"])
-        for option in room_state.payload.get("remove_candidates", []) if isinstance(room_state.payload.get("remove_candidates", []), list) else []:
-            lines.append(Text.assemble("- ", _format_card_instance_label(option, registry)))
+        for option in (
+            room_state.payload.get("remove_candidates", [])
+            if isinstance(room_state.payload.get("remove_candidates", []), list)
+            else []
+        ):
+            lines.append(
+                Text.assemble("- ", _format_card_instance_label(option, registry))
+            )
     body = [line if isinstance(line, Text) else Text(line) for line in lines]
     return Panel(Group(*body), title="事件正文", box=PANEL_BOX, expand=False)
 
 
 def render_reward_panel(room_state: RoomState, registry: ContentProviderPort) -> Panel:
     body: list[RenderableType] = []
-    event_result = _format_event_result(room_state) if room_state.room_type == "event" else None
+    event_result = (
+        _format_event_result(room_state) if room_state.room_type == "event" else None
+    )
     if event_result is not None:
         body.append(Text.assemble(("结果: ", "summary.label"), event_result))
-    body.extend(line if isinstance(line, Text) else Text(line) for line in _format_reward_lines(room_state.rewards, registry))
+    body.extend(
+        line if isinstance(line, Text) else Text(line)
+        for line in _format_reward_lines(room_state.rewards, registry)
+    )
     return Panel(Group(*body), title="奖励", box=PANEL_BOX, expand=False)
 
 
-def render_boss_reward_panel(room_state: RoomState, registry: ContentProviderPort) -> Panel:
+def render_boss_reward_panel(
+    room_state: RoomState, registry: ContentProviderPort
+) -> Panel:
     boss_rewards = _boss_rewards(room_state) or {}
     claimed_relic_id = boss_rewards.get("claimed_relic_id")
     relic_ids = boss_rewards.get("boss_relic_offers")
@@ -745,9 +921,13 @@ def render_boss_reward_panel(room_state: RoomState, registry: ContentProviderPor
     return Panel(Group(*lines), title="Boss奖励", box=PANEL_BOX, expand=False)
 
 
-def render_boss_chest_panel(room_state: RoomState, registry: ContentProviderPort) -> Panel:
+def render_boss_chest_panel(
+    room_state: RoomState, registry: ContentProviderPort
+) -> Panel:
     if _has_pending_boss_rewards(room_state):
-        lines: list[RenderableType] = [Text("首领宝箱已经开启，请从中选择一件首领遗物。")]
+        lines: list[RenderableType] = [
+            Text("首领宝箱已经开启，请从中选择一件首领遗物。")
+        ]
         boss_rewards = _boss_rewards(room_state) or {}
         relic_ids = boss_rewards.get("boss_relic_offers")
         if isinstance(relic_ids, list) and relic_ids:
@@ -773,28 +953,46 @@ def render_boss_chest_panel(room_state: RoomState, registry: ContentProviderPort
     return Panel(Group(*lines), title="Boss宝箱", box=PANEL_BOX, expand=False)
 
 
-def render_shop_panel(room_state: RoomState, registry: ContentProviderPort, run_state: RunState) -> Panel:
+def render_shop_panel(
+    room_state: RoomState, registry: ContentProviderPort, run_state: RunState
+) -> Panel:
     cards = room_state.payload.get("cards", [])
     relics = room_state.payload.get("relics", [])
     potions = room_state.payload.get("potions", [])
     remove_price = room_state.payload.get("remove_price", 75)
-    lines: list[RenderableType] = [Text(f"当前金币: {run_state.gold}"), Text(""), Text("卡牌商品:")]
+    lines: list[RenderableType] = [
+        Text(f"当前金币: {run_state.gold}"),
+        Text(""),
+        Text("卡牌商品:"),
+    ]
     for offer in cards if isinstance(cards, list) else []:
         if isinstance(offer, dict):
             card_id = offer.get("card_id")
-            card_name = render_card_name(registry.cards().get(card_id)) if isinstance(card_id, str) else Text(str(card_id))
+            card_name = (
+                render_card_name(registry.cards().get(card_id))
+                if isinstance(card_id, str)
+                else Text(str(card_id))
+            )
             status = _shop_offer_status(
                 price=offer.get("price"),
                 sold=offer.get("sold") is True,
                 current_gold=run_state.gold,
             )
-            lines.append(Text.assemble("- ", card_name, f" / {offer.get('price')} 金币 [{status}]"))
+            lines.append(
+                Text.assemble(
+                    "- ", card_name, f" / {offer.get('price')} 金币 [{status}]"
+                )
+            )
     lines.append(Text(""))
     lines.append(Text("遗物商品:"))
     for offer in relics if isinstance(relics, list) else []:
         if isinstance(offer, dict):
             relic_id = offer.get("relic_id")
-            relic_name = registry.relics().get(relic_id).name if isinstance(relic_id, str) else relic_id
+            relic_name = (
+                registry.relics().get(relic_id).name
+                if isinstance(relic_id, str)
+                else relic_id
+            )
             status = _shop_offer_status(
                 price=offer.get("price"),
                 sold=offer.get("sold") is True,
@@ -806,13 +1004,20 @@ def render_shop_panel(room_state: RoomState, registry: ContentProviderPort, run_
     for offer in potions if isinstance(potions, list) else []:
         if isinstance(offer, dict):
             potion_id = offer.get("potion_id")
-            potion_name = registry.potions().get(potion_id).name if isinstance(potion_id, str) else potion_id
-            status = _shop_offer_status(
+            potion_name = (
+                registry.potions().get(potion_id).name
+                if isinstance(potion_id, str)
+                else potion_id
+            )
+            status = _shop_potion_status(
                 price=offer.get("price"),
                 sold=offer.get("sold") is True,
                 current_gold=run_state.gold,
+                has_sozu="sozu" in run_state.relics,
             )
-            lines.append(Text(f"- {potion_name} / {offer.get('price')} 金币 [{status}]"))
+            lines.append(
+                Text(f"- {potion_name} / {offer.get('price')} 金币 [{status}]")
+            )
     lines.append(Text(""))
     remove_status = _remove_service_status(
         remove_used=room_state.payload.get("remove_used") is True,
@@ -828,21 +1033,50 @@ def render_rest_panel(room_state: RoomState, registry: ContentProviderPort) -> P
         options = room_state.payload.get("upgrade_options", [])
         lines: list[RenderableType] = [Text("可升级卡牌:")]
         for option in options if isinstance(options, list) else []:
-            lines.append(Text.assemble("- ", _format_card_instance_label(option, registry)))
+            lines.append(
+                Text.assemble("- ", _format_card_instance_label(option, registry))
+            )
         return Panel(Group(*lines), title="休息点", box=PANEL_BOX, expand=False)
-    lines: list[RenderableType] = [Text("可用动作:"), Text("- 休息"), Text("- 锻造")]
+    actions = room_state.payload.get("actions", [])
+    lines: list[RenderableType] = [Text("可用动作:")]
+    for action in actions if isinstance(actions, list) else []:
+        if not isinstance(action, str):
+            continue
+        lines.append(Text(f"- {_REST_ACTION_LABELS.get(action, action)}"))
     return Panel(Group(*lines), title="休息点", box=PANEL_BOX, expand=False)
 
 
-def render_treasure_panel(room_state: RoomState, registry: ContentProviderPort) -> Panel:
+def render_treasure_panel(
+    room_state: RoomState, registry: ContentProviderPort
+) -> Panel:
+    treasure_relic_ids = room_state.payload.get("treasure_relic_ids")
+    claimed_relic_ids = room_state.payload.get("claimed_treasure_relic_ids")
     treasure_relic_id = room_state.payload.get("treasure_relic_id")
     claimed_relic_id = room_state.payload.get("claimed_treasure_relic_id")
     skipped_relic = room_state.payload.get("skipped_treasure_relic") is True
     treasure_opened = room_state.payload.get("treasure_opened") is True
-    preview_relic_id = claimed_relic_id if isinstance(claimed_relic_id, str) and claimed_relic_id else treasure_relic_id
+    preview_relic_ids: list[str] = []
+    if isinstance(claimed_relic_ids, list) and claimed_relic_ids:
+        preview_relic_ids = [
+            relic_id
+            for relic_id in claimed_relic_ids
+            if isinstance(relic_id, str) and relic_id
+        ]
+    elif isinstance(treasure_relic_ids, list) and treasure_relic_ids:
+        preview_relic_ids = [
+            relic_id
+            for relic_id in treasure_relic_ids
+            if isinstance(relic_id, str) and relic_id
+        ]
+    elif isinstance(claimed_relic_id, str) and claimed_relic_id:
+        preview_relic_ids = [claimed_relic_id]
+    elif isinstance(treasure_relic_id, str) and treasure_relic_id:
+        preview_relic_ids = [treasure_relic_id]
     relic_name = "-"
-    if treasure_opened and isinstance(preview_relic_id, str) and preview_relic_id:
-        relic_name = registry.relics().get(preview_relic_id).name
+    if treasure_opened and preview_relic_ids:
+        relic_name = "、".join(
+            registry.relics().get(relic_id).name for relic_id in preview_relic_ids
+        )
     if not treasure_opened:
         status = "未打开"
         label = "宝箱内容："
@@ -862,12 +1096,19 @@ def render_treasure_panel(room_state: RoomState, registry: ContentProviderPort) 
 
 def render_terminal_phase_panel(run_phase: str) -> Panel:
     title = "胜利" if run_phase == "victory" else "游戏结束"
-    message = "首领已被击败，本轮冒险已完成。" if run_phase == "victory" else "玩家已倒下，本轮冒险结束。"
+    message = (
+        "首领已被击败，本轮冒险已完成。"
+        if run_phase == "victory"
+        else "玩家已倒下，本轮冒险结束。"
+    )
     return Panel(Group(Text(message)), title=title, box=PANEL_BOX, expand=False)
 
 
 def _resolved_combat_log_entries(room_state: RoomState) -> list[str]:
-    if room_state.room_type not in {"combat", "elite", "boss"} or not room_state.is_resolved:
+    if (
+        room_state.room_type not in {"combat", "elite", "boss"}
+        or not room_state.is_resolved
+    ):
         return []
     combat_state = room_state.payload.get("combat_state")
     if not isinstance(combat_state, dict):
@@ -908,9 +1149,27 @@ def render_non_combat_screen(
     if run_phase != "active":
         body.append(render_terminal_phase_panel(run_phase))
     elif mode.startswith("inspect_"):
-        body.append(render_non_combat_inspect_panel(run_state, act_state, room_state, registry, menu_state))
+        body.append(
+            render_non_combat_inspect_panel(
+                run_state, act_state, room_state, registry, menu_state
+            )
+        )
     elif mode == "select_next_room":
-        body.append(Panel(Group(*[Text(line) for line in _format_next_room_menu(act_state, room_state)]), title="路径选择", box=PANEL_BOX, expand=False))
+        body.append(
+            Panel(
+                Group(
+                    *[
+                        Text(line)
+                        for line in _format_next_room_menu(
+                            act_state, room_state, run_state
+                        )
+                    ]
+                ),
+                title="路径选择",
+                box=PANEL_BOX,
+                expand=False,
+            )
+        )
     elif room_state.room_type == "shop":
         body.append(render_shop_panel(room_state, registry, run_state))
     elif room_state.room_type == "rest":
@@ -919,14 +1178,24 @@ def render_non_combat_screen(
         body.append(render_treasure_panel(room_state, registry))
     elif room_state.room_type == "boss_chest":
         body.append(render_boss_chest_panel(room_state, registry))
-    elif mode in {"select_boss_reward", "select_boss_relic"} or _has_pending_boss_rewards(room_state):
+    elif mode in {
+        "select_boss_reward",
+        "select_boss_relic",
+    } or _has_pending_boss_rewards(room_state):
         body.append(render_boss_reward_panel(room_state, registry))
     elif room_state.is_resolved and room_state.rewards:
         body.append(render_reward_panel(room_state, registry))
     elif room_state.room_type == "event":
         body.append(render_event_body(room_state, registry))
     else:
-        body.append(Panel(Group(Text("等待下一步操作。")), title="房间状态", box=PANEL_BOX, expand=False))
+        body.append(
+            Panel(
+                Group(Text("等待下一步操作。")),
+                title="房间状态",
+                box=PANEL_BOX,
+                expand=False,
+            )
+        )
 
     resolved_combat_log_panel = render_resolved_combat_log_panel(room_state)
     if resolved_combat_log_panel is not None and run_phase == "active":
@@ -935,9 +1204,11 @@ def render_non_combat_screen(
     if run_phase != "active":
         footer = render_menu(_format_terminal_phase_menu(run_phase))
     elif mode.startswith("inspect_"):
-        footer = render_menu(format_non_combat_inspect_menu(run_state, room_state, registry, menu_state))
+        footer = render_menu(
+            format_non_combat_inspect_menu(run_state, room_state, registry, menu_state)
+        )
     elif mode == "select_next_room":
-        footer = render_menu(_format_next_room_menu(act_state, room_state))
+        footer = render_menu(_format_next_room_menu(act_state, room_state, run_state))
     elif mode == "select_event_choice":
         footer = render_menu(_format_event_menu(room_state, registry))
     elif mode == "event_upgrade_card":
@@ -953,6 +1224,8 @@ def render_non_combat_screen(
     elif mode == "shop_root":
         footer = render_menu(_format_shop_root_menu(room_state, registry, run_state))
     elif mode == "shop_remove_card":
+        footer = render_menu(_format_shop_remove_menu(room_state, registry))
+    elif mode == "rest_remove_card":
         footer = render_menu(_format_shop_remove_menu(room_state, registry))
     elif mode == "rest_root":
         footer = render_menu(_format_rest_root_menu(room_state, run_state))

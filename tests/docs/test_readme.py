@@ -1,0 +1,23 @@
+from pathlib import Path
+
+
+def test_readme_mentions_batch_five_relic_coverage_without_claiming_full_completion() -> (
+    None
+):
+    readme = (Path(__file__).resolve().parents[2] / "README.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "question_card" in readme
+    assert "prayer_wheel" in readme
+    assert "busted_crown" in readme
+    assert "white_beast_statue" in readme
+    assert "sozu" in readme
+    assert "the_courier" in readme
+    assert "matryoshka" in readme
+    assert "wing_boots" in readme
+    assert "高复杂度遗物" in readme
+    assert "implementation_status" in readme
+    assert "不会再进入普通掉落、商店、Boss 奖励或 Neow 随机遗物池" not in readme
+    assert "基于 `implementation_status` 的过滤" in readme
+    assert "遗物已全部完成" not in readme

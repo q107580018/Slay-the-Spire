@@ -262,6 +262,10 @@ def test_save_load_round_trips_extended_combat_state(tmp_path: Path) -> None:
         active_powers=[],
         log=[],
         times_hit_this_combat=3,
+        cards_played_this_turn=4,
+        attacks_played_this_turn=1,
+        cards_played_last_turn=2,
+        attacks_played_last_turn=0,
         card_play_data={"rampage#1": 2},
         temporary_costs={"infernal_blade_roll#1": 0},
     )

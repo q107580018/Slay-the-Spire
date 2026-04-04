@@ -14,6 +14,7 @@ from slay_the_spire.domain.effects.effect_types import (
     EFFECT_DROPKICK_EFFECT,
     EFFECT_EXHAUST_ALL_IN_HAND_DAMAGE,
     EFFECT_DAMAGE_ON_KILL_GAIN_MAX_HP,
+    EFFECT_DISCARD_TARGET_CARD,
     EFFECT_EXHAUST_TARGET_CARD,
     EFFECT_PUT_TOP_OF_DECK_FROM_DISCARD,
     EFFECT_PUT_TOP_OF_DECK_FROM_HAND,
@@ -28,6 +29,7 @@ from slay_the_spire.domain.effects.effect_types import (
     copy_effect,
 )
 from slay_the_spire.domain.hooks.hook_types import HookRegistration
+from slay_the_spire.domain.hooks.runtime import registered_relic_ids
 from slay_the_spire.domain.models.cards import (
     CombatActionResult,
     card_id_from_instance_id,
@@ -78,6 +80,7 @@ _TARGETED_EFFECT_TYPES = {
     "strength",
 }
 _HAND_TARGETED_EFFECT_TYPES = {
+    EFFECT_DISCARD_TARGET_CARD,
     EFFECT_EXHAUST_TARGET_CARD,
     EFFECT_UPGRADE_TARGET_CARD,
     EFFECT_PUT_TOP_OF_DECK_FROM_HAND,
@@ -132,6 +135,223 @@ def _consume_player_power(state: CombatState, power_id: str) -> int:
     return 0
 
 
+def _relic_counter(state: CombatState, relic_id: str) -> int:
+    return state.card_play_data.get(f"relic:{relic_id}", 0)
+
+
+def _set_relic_counter(state: CombatState, relic_id: str, value: int) -> None:
+    state.card_play_data[f"relic:{relic_id}"] = max(value, 0)
+
+
+def _mark_relic_active(state: CombatState, relic_id: str) -> None:
+    state.card_play_data[f"relic:{relic_id}:active"] = 1
+
+
+def _pseudo_random_relic_target(
+    combat_state: CombatState, candidates: Sequence[str]
+) -> str | None:
+    if not candidates:
+        return None
+    ordered = sorted(candidates)
+    seed_basis = sum(
+        ord(char)
+        for item in [
+            *combat_state.hand,
+            *combat_state.draw_pile,
+            *combat_state.discard_pile,
+            *combat_state.exhaust_pile,
+            *combat_state._cards_in_limbo,
+        ]
+        for char in item
+    )
+    return ordered[seed_basis % len(ordered)]
+
+
+def _apply_action_triggered_relics(
+    combat_state: CombatState,
+    *,
+    card_def: CardDef,
+    card_instance_id: str,
+    hook_registrations: Sequence[HookRegistration],
+) -> list[JsonDict]:
+    relic_ids = registered_relic_ids(hook_registrations)
+    triggered_effects: list[JsonDict] = []
+    player_id = combat_state.player.instance_id
+
+    for passive_relic_id in (
+        "charons_ashes",
+        "dead_branch",
+        "gremlin_horn",
+        "hovering_kite",
+        "tingsha",
+        "tough_bandages",
+    ):
+        if passive_relic_id in relic_ids:
+            _mark_relic_active(combat_state, passive_relic_id)
+
+    if "ink_bottle" in relic_ids:
+        next_count = _relic_counter(combat_state, "ink_bottle") + 1
+        if next_count >= 10:
+            next_count = 0
+            triggered_effects.append(
+                {
+                    "type": "draw",
+                    "source_instance_id": player_id,
+                    "target_instance_id": player_id,
+                    "amount": 1,
+                    "relic_id": "ink_bottle",
+                    "trigger": "on_play",
+                }
+            )
+        _set_relic_counter(combat_state, "ink_bottle", next_count)
+
+    if card_def.card_type == "attack":
+        if "nunchaku" in relic_ids:
+            next_count = _relic_counter(combat_state, "nunchaku") + 1
+            if next_count >= 10:
+                next_count = 0
+                triggered_effects.append(
+                    {
+                        "type": "gain_energy",
+                        "source_instance_id": player_id,
+                        "target_instance_id": player_id,
+                        "amount": 1,
+                        "relic_id": "nunchaku",
+                        "trigger": "on_attack_play",
+                    }
+                )
+            _set_relic_counter(combat_state, "nunchaku", next_count)
+        if "pen_nib" in relic_ids:
+            next_count = _relic_counter(combat_state, "pen_nib") + 1
+            if next_count >= 10:
+                _mark_relic_active(combat_state, "pen_nib")
+                next_count = 0
+            _set_relic_counter(combat_state, "pen_nib", next_count)
+        if (
+            "kunai" in relic_ids
+            and combat_state.attacks_played_this_turn > 0
+            and combat_state.attacks_played_this_turn % 3 == 0
+        ):
+            triggered_effects.append(
+                {
+                    "type": "dexterity",
+                    "source_instance_id": player_id,
+                    "target_instance_id": player_id,
+                    "amount": 1,
+                    "relic_id": "kunai",
+                    "trigger": "on_attack_play",
+                }
+            )
+        if (
+            "shuriken" in relic_ids
+            and combat_state.attacks_played_this_turn > 0
+            and combat_state.attacks_played_this_turn % 3 == 0
+        ):
+            triggered_effects.append(
+                {
+                    "type": "strength",
+                    "source_instance_id": player_id,
+                    "target_instance_id": player_id,
+                    "amount": 1,
+                    "relic_id": "shuriken",
+                    "trigger": "on_attack_play",
+                }
+            )
+        if (
+            "ornamental_fan" in relic_ids
+            and combat_state.attacks_played_this_turn > 0
+            and combat_state.attacks_played_this_turn % 3 == 0
+        ):
+            triggered_effects.append(
+                {
+                    "type": "block",
+                    "source_instance_id": player_id,
+                    "target_instance_id": player_id,
+                    "amount": 4,
+                    "relic_id": "ornamental_fan",
+                    "trigger": "on_attack_play",
+                }
+            )
+
+    if card_def.card_type == "skill":
+        next_count = _relic_counter(combat_state, "letter_opener") + 1
+        if "letter_opener" in relic_ids:
+            if next_count >= 3:
+                next_count = 0
+                for enemy in combat_state.enemies:
+                    if enemy.hp <= 0:
+                        continue
+                    triggered_effects.append(
+                        {
+                            "type": "damage",
+                            "source_instance_id": player_id,
+                            "target_instance_id": enemy.instance_id,
+                            "amount": 5,
+                            "uses_strength": False,
+                            "relic_id": "letter_opener",
+                            "trigger": "on_skill_play",
+                        }
+                    )
+            _set_relic_counter(combat_state, "letter_opener", next_count)
+
+    if card_def.card_type == "power":
+        if "bird_faced_urn" in relic_ids:
+            triggered_effects.append(
+                {
+                    "type": "heal",
+                    "source_instance_id": player_id,
+                    "target_instance_id": player_id,
+                    "amount": 2,
+                    "relic_id": "bird_faced_urn",
+                    "trigger": "on_power_play",
+                }
+            )
+        if "mummified_hand" in relic_ids:
+            target_card_instance_id = _pseudo_random_relic_target(
+                combat_state,
+                [
+                    hand_card_instance_id
+                    for hand_card_instance_id in combat_state.hand
+                    if hand_card_instance_id != card_instance_id
+                ],
+            )
+            if target_card_instance_id is not None:
+                combat_state.temporary_costs[target_card_instance_id] = 0
+
+    if "orange_pellets" in relic_ids:
+        _mark_relic_active(combat_state, f"orange_pellets:{card_def.card_type}")
+        if all(
+            combat_state.card_play_data.get(
+                f"relic:orange_pellets:{card_type}:active", 0
+            )
+            > 0
+            for card_type in ("attack", "skill", "power")
+        ):
+            combat_state.player.statuses = [
+                status
+                for status in combat_state.player.statuses
+                if status.status_id not in {"vulnerable", "weak", "frail", "poison"}
+            ]
+            for card_type in ("attack", "skill", "power"):
+                combat_state.card_play_data[
+                    f"relic:orange_pellets:{card_type}:active"
+                ] = 0
+
+    if "unceasing_top" in relic_ids and not combat_state.hand:
+        triggered_effects.append(
+            {
+                "type": "draw",
+                "source_instance_id": player_id,
+                "target_instance_id": player_id,
+                "amount": 1,
+                "relic_id": "unceasing_top",
+                "trigger": "on_hand_empty",
+            }
+        )
+
+    return triggered_effects
+
+
 def _materialize_card_effects(
     raw_effects: Sequence[JsonDict],
     *,
@@ -168,15 +388,15 @@ def _materialize_card_effects(
             damage_amount = int(effect.get("amount", 0))
             for _ in range(repeat_count):
                 for enemy in combat_state.enemies:
-                        effects.append(
-                            {
-                                "type": EFFECT_DAMAGE,
-                                "amount": damage_amount,
-                                "source_instance_id": source_instance_id,
-                                "target_instance_id": enemy.instance_id,
-                                "uses_strength": card_type == "attack",
-                            }
-                        )
+                    effects.append(
+                        {
+                            "type": EFFECT_DAMAGE,
+                            "amount": damage_amount,
+                            "source_instance_id": source_instance_id,
+                            "target_instance_id": enemy.instance_id,
+                            "uses_strength": card_type == "attack",
+                        }
+                    )
             continue
         if effect_type == EFFECT_VULNERABLE_ALL_ENEMIES:
             stacks = int(effect.get("stacks", 0))
@@ -300,6 +520,12 @@ def play_card(
             )
 
     # Attack-trigger power hooks: double_tap, rage
+    active_powers_before = [copy_effect(power) for power in combat_state.active_powers]
+    player_statuses_before = list(combat_state.player.statuses)
+    hand_before = list(combat_state.hand)
+    card_play_data_before = dict(combat_state.card_play_data)
+    temporary_costs_before = dict(combat_state.temporary_costs)
+    effect_queue_before = [copy_effect(effect) for effect in combat_state.effect_queue]
     attack_trigger_extras: list[JsonDict] = []
     if card_def.card_type == "attack":
         double_tap_amount = _consume_player_power(combat_state, "double_tap")
@@ -348,10 +574,20 @@ def play_card(
     combat_state.energy -= energy_spent
     combat_state.hand.remove(card_instance_id)
     combat_state._cards_in_limbo.append(card_instance_id)
+    combat_state.cards_played_this_turn += 1
+    if card_def.card_type == "attack":
+        combat_state.attacks_played_this_turn += 1
+    relic_trigger_effects = _apply_action_triggered_relics(
+        combat_state,
+        card_def=card_def,
+        card_instance_id=card_instance_id,
+        hook_registrations=hook_registrations,
+    )
     combat_state.effect_queue.extend(punishment_effects)
     combat_state.effect_queue.extend(materialized_effects)
     combat_state.effect_queue.extend(attack_trigger_extras)
     combat_state.effect_queue.extend(rupture_extras)
+    combat_state.effect_queue.extend(relic_trigger_effects)
     try:
         resolved_effects = resolve_player_actions(
             combat_state,
@@ -359,8 +595,24 @@ def play_card(
             registry=registry,
         )
     except Exception:
+        combat_state.cards_played_this_turn = max(
+            combat_state.cards_played_this_turn - 1,
+            0,
+        )
+        if card_def.card_type == "attack":
+            combat_state.attacks_played_this_turn = max(
+                combat_state.attacks_played_this_turn - 1,
+                0,
+            )
         if card_instance_id in combat_state._cards_in_limbo:
             combat_state._cards_in_limbo.remove(card_instance_id)
+        combat_state.hand = hand_before
+        combat_state.energy += energy_spent
+        combat_state.active_powers = active_powers_before
+        combat_state.player.statuses = player_statuses_before
+        combat_state.card_play_data = card_play_data_before
+        combat_state.temporary_costs = temporary_costs_before
+        combat_state.effect_queue = effect_queue_before
         raise
     destination = resolve_post_play_destination(
         card_def, combat_state, card_instance_id

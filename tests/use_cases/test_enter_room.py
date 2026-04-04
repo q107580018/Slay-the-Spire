@@ -13,6 +13,7 @@ from slay_the_spire.domain.models.act_state import ActNodeState, ActState
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import PlayerCombatState
 from slay_the_spire.domain.models.run_state import RunState
+from slay_the_spire.domain.rewards.reward_generator import generate_combat_rewards
 from slay_the_spire.use_cases import enter_room as enter_room_module
 from slay_the_spire.use_cases.enter_room import enter_room
 
@@ -547,6 +548,228 @@ def test_enter_treasure_room_falls_back_to_circlet_when_no_relic_candidates_rema
     assert room_state.is_resolved is False
 
 
+def test_enter_treasure_room_uses_other_rarity_relics_before_circlet(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        enter_room_module,
+        "_roll_treasure_relic_rarity",
+        lambda *, room_id, seed: "rare",
+        raising=False,
+    )
+
+    run_state = _run_state(
+        seed=13,
+        relic_sequences={
+            "common": ["anchor"],
+            "uncommon": ["oddly_smooth_stone"],
+            "rare": [],
+        },
+        relic_sequence_positions={"common": 0, "uncommon": 0, "rare": 0},
+    )
+
+    room_state = enter_room(
+        run_state,
+        _act_state(node_id="r1c0", room_type="treasure"),
+        "r1c0",
+        _content_provider(),
+    )
+
+    assert room_state.payload["treasure_relic_id"] == "oddly_smooth_stone"
+    assert run_state.relic_sequence_positions == {
+        "common": 0,
+        "uncommon": 1,
+        "rare": 0,
+    }
+
+
+def test_black_star_adds_extra_relic_after_elite_combat() -> None:
+    rewards, _next_rare_offset = generate_combat_rewards(
+        room_id="act1:elite_reward",
+        run_state=_run_state(
+            seed=13,
+            relics=["burning_blood", "black_star"],
+            relic_sequences={
+                "common": ["anchor", "bag_of_marbles"],
+                "uncommon": ["oddly_smooth_stone"],
+                "rare": ["bird_faced_urn"],
+            },
+            relic_sequence_positions={"common": 0, "uncommon": 0, "rare": 0},
+        ),
+        registry=_content_provider(),
+        room_type="elite",
+    )
+
+    relic_rewards = [reward for reward in rewards if reward.startswith("relic:")]
+
+    assert len(relic_rewards) == 2
+
+
+def test_preserved_insect_reduces_elite_enemy_hp_by_quarter() -> None:
+    room_state = enter_room(
+        _run_state(seed=7, relics=["burning_blood", "preserved_insect"]),
+        _act_state(node_id="elite-1", room_type="elite"),
+        "elite-1",
+        _content_provider(),
+    )
+
+    combat_state = CombatState.from_dict(room_state.payload["combat_state"])
+
+    assert all(enemy.hp == enemy.max_hp for enemy in combat_state.enemies)
+    assert all(
+        enemy.max_hp < _content_provider().enemies().get(enemy.enemy_id).hp
+        for enemy in combat_state.enemies
+    )
+
+
+def test_ssserpent_head_adds_fifty_gold_when_entering_event_room() -> None:
+    run_state = _run_state(seed=37, relics=["burning_blood", "ssserpent_head"])
+
+    enter_room(
+        run_state,
+        _act_state(node_id="event-1", room_type="event"),
+        "event-1",
+        _content_provider(),
+    )
+
+    assert run_state.gold == 149
+
+
+def test_matryoshka_only_affects_next_two_treasure_rooms() -> None:
+    run_state = _run_state(
+        seed=13,
+        relics=["burning_blood", "matryoshka"],
+        relic_sequences={
+            "common": ["anchor", "bag_of_marbles", "lantern"],
+            "uncommon": ["oddly_smooth_stone"],
+            "rare": ["bird_faced_urn"],
+        },
+        relic_sequence_positions={"common": 0, "uncommon": 0, "rare": 0},
+    )
+
+    first_room = enter_room(
+        run_state,
+        _act_state(node_id="r1c0", room_type="treasure"),
+        "r1c0",
+        _content_provider(),
+    )
+    second_room = enter_room(
+        run_state,
+        _act_state(node_id="r2c0", room_type="treasure"),
+        "r2c0",
+        _content_provider(),
+    )
+    third_room = enter_room(
+        run_state,
+        _act_state(node_id="r3c0", room_type="treasure"),
+        "r3c0",
+        _content_provider(),
+    )
+
+    assert first_room.payload["treasure_relic_ids"] == ["anchor", "bag_of_marbles"]
+    assert second_room.payload["treasure_relic_ids"] == [
+        "lantern",
+        "oddly_smooth_stone",
+    ]
+    assert "treasure_relic_ids" not in third_room.payload
+    assert run_state.relic_sequence_positions["matryoshka_chests_opened"] == 2
+
+
+def test_event_node_resolves_to_combat_room_without_juzu_bracelet() -> None:
+    provider = _content_provider()
+    room_state = enter_room(
+        _run_state(seed=7),
+        _act_state(node_id="event-1", room_type="event"),
+        "event-1",
+        provider,
+    )
+
+    assert room_state.payload["room_kind"] == "event"
+    assert room_state.payload["resolved_room_kind"] in {"event", "combat", "treasure"}
+    if room_state.payload["resolved_room_kind"] == "combat":
+        assert room_state.room_type == "combat"
+        assert "combat_state" in room_state.payload
+
+
+def test_juzu_bracelet_prevents_event_node_from_resolving_to_combat() -> None:
+    provider = _content_provider()
+
+    for seed in range(1, 50):
+        room_state = enter_room(
+            _run_state(seed=seed, relics=["burning_blood", "juzu_bracelet"]),
+            _act_state(node_id="event-1", room_type="event"),
+            "event-1",
+            provider,
+        )
+        assert room_state.payload["resolved_room_kind"] in {"event", "treasure"}
+
+
+def test_tiny_chest_turns_every_fourth_event_node_into_treasure() -> None:
+    provider = _content_provider()
+    run_state = _run_state(seed=11, relics=["burning_blood", "tiny_chest"])
+
+    first = enter_room(
+        run_state,
+        _act_state(node_id="event-1", room_type="event"),
+        "event-1",
+        provider,
+    )
+    second = enter_room(
+        run_state,
+        _act_state(node_id="event-2", room_type="event"),
+        "event-2",
+        provider,
+    )
+    third = enter_room(
+        run_state,
+        _act_state(node_id="event-3", room_type="event"),
+        "event-3",
+        provider,
+    )
+    fourth = enter_room(
+        run_state,
+        _act_state(node_id="event-4", room_type="event"),
+        "event-4",
+        provider,
+    )
+
+    assert first.payload["resolved_room_kind"] in {"event", "combat", "treasure"}
+    assert second.payload["resolved_room_kind"] in {"event", "combat", "treasure"}
+    assert third.payload["resolved_room_kind"] in {"event", "combat", "treasure"}
+    assert fourth.room_type == "treasure"
+    assert fourth.payload["resolved_room_kind"] == "treasure"
+    assert run_state.relic_sequence_positions["tiny_chest_counter"] == 0
+
+
+def test_tiny_chest_marks_counter_when_entering_event_room() -> None:
+    act_state = _act_state(node_id="event-1", room_type="event")
+    run_state = _run_state(seed=37, relics=["burning_blood", "tiny_chest"])
+
+    enter_room(run_state, act_state, "event-1", _content_provider())
+
+    assert act_state.room_payloads["act1:event-1"]["tiny_chest_counter"] == 1
+
+
+def test_tiny_chest_event_room_reentry_keeps_original_room_payload() -> None:
+    act_state = _act_state(
+        node_id="event-1", room_type="event", next_node_ids=["r2c0", "r2c1"]
+    )
+    run_state = _run_state(seed=37, relics=["burning_blood", "tiny_chest"])
+
+    first_room = enter_room(run_state, act_state, "event-1", _content_provider())
+    second_room = enter_room(run_state, act_state, "event-1", _content_provider())
+
+    assert first_room.payload["node_id"] == "event-1"
+    assert first_room.payload["next_node_ids"] == ["r2c0", "r2c1"]
+    assert first_room.payload["resolved_room_kind"] == "event"
+    assert "event_id" in first_room.payload
+    assert act_state.room_payloads["act1:event-1"] == {
+        **first_room.payload,
+        "tiny_chest_counter": 1,
+    }
+    assert second_room.payload == first_room.payload
+
+
 def test_enter_combat_room_applies_blood_vial_on_combat_start() -> None:
     room_state = enter_room(
         _run_state(
@@ -565,6 +788,19 @@ def test_enter_combat_room_applies_blood_vial_on_combat_start() -> None:
 def test_enter_combat_room_applies_guarding_totem_on_combat_start() -> None:
     room_state = enter_room(
         _run_state(seed=7, relics=["burning_blood", "guarding_totem"]),
+        _act_state(node_id="r1c0", room_type="combat"),
+        "r1c0",
+        _content_provider(),
+    )
+
+    combat_state = CombatState.from_dict(room_state.payload["combat_state"])
+
+    assert combat_state.player.block == 10
+
+
+def test_enter_combat_room_applies_anchor_only_once() -> None:
+    room_state = enter_room(
+        _run_state(seed=7, relics=["burning_blood", "anchor"]),
         _act_state(node_id="r1c0", room_type="combat"),
         "r1c0",
         _content_provider(),

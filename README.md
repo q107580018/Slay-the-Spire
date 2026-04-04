@@ -20,8 +20,8 @@
 - 当前 `Neow` 的诅咒 tradeoff 选项会以“加入诅咒牌”作为代价，并发放配套高价值奖励；不会再出现“奖励本身就是诅咒牌”的选项
 - 当前默认交互：Textual TUI，底层复用共享的 `rich` 渲染和 inspect 组件
 - 当前铁甲战士红卡已按原版 1 代完整补齐，包含普通 / 非普通 / 稀有 / 多档升级 `Searing Blow`、动态费用 `Blood for Blood`、条件出牌 `Clash`、消耗联动 `Dark Embrace` / `Feel No Pain`、状态牌联动 `Evolve` / `Fire Breathing`、双目标牌 `Headbutt` 等完整机制
-- 当前原版 1 代遗物目录以 `content/relics/` 为内容真源维护，并持续按本地原版资料校对；运行时效果仍按批次逐步补齐
-- 当前未实现的遗物会通过元数据中的实现状态标记出来，且不会再进入普通掉落、商店、Boss 奖励或 Neow 随机遗物池
+- 当前原版 1 代遗物目录以 `content/relics/` 为内容真源维护，并持续按本地原版资料校对；运行时效果仍按批次逐步补齐。当前除拿取时效果、战斗开局效果外，批次五已补到一批非战斗遗物：奖励相关 `black_star`、`question_card`、`prayer_wheel`、`busted_crown`、`white_beast_statue`、`sozu`，商店相关 `membership_card`、`the_courier`、`smiling_mask`、`meal_ticket`、`maw_bank`，休息点相关 `dream_catcher`、`regal_pillow`、`eternal_feather`、`girya`、`peace_pipe`、`shovel`，地图 / 房间相关 `juzu_bracelet`、`tiny_chest`、`matryoshka`、`preserved_insect`、`ssserpent_head`、`wing_boots`
+- 遗物覆盖：180 种遗物已录入，其中 78 种已实现完整行为，102 种为占位定义；未实现的遗物通过元数据中的 `implementation_status` 标记，当前仍未对普通掉落、商店、Boss 奖励或 `Neow` 随机遗物池做基于 `implementation_status` 的过滤，仍有一批高复杂度遗物需要依赖额外系统或交互流程后再继续补齐，并非全部完成
 - 当前 `Corruption` 已按原版规则生效：所有技能牌耗能变为 `0`，且在被打出时进入消耗堆；相关逻辑已收口到通用“卡牌运行时规则”层，便于继续扩展其他运行时覆写效果
 - 当前 `Rampage` / `Rampage+` 已支持按同一张卡实例进行战斗内累计伤害；`Rampage+` 的每次增伤为 `+8`
 - 当前 `Fiend Fire` / `Fiend Fire+` 已按原版规则生效：消耗所有其他手牌，并按被消耗的牌数对目标结算每张 `7` / `10` 点伤害
@@ -136,6 +136,7 @@ uv build
 - `sts_huiji_baike_entries.json`：抓取得到的原始条目集合
 - `sts_huiji_baike_entries_clean.json`：清洗后的条目集合，适合直接检索和比对
 - `sts_huiji_baike_entries_summary.json`：抓取范围、时间和条目统计摘要
+- `card_relic_expectations.json`：卡牌和遗物的中文名称与简要说明期望值，用于回归校验；卡牌和遗物的中文名称及简明摘要现均通过 `tests/content/test_registry_validation.py` 中的审计测试与本地语料库进行回归对比。
 - 这些文件仅作开发参考，不参与运行时内容加载，也不是 `content/` 的替代品
 - 需要查原版资料时，默认先看这里；需要补充或校验时，再去外部 Wiki
 

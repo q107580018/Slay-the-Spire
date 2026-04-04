@@ -894,6 +894,45 @@ def test_build_shop_root_menu_binds_offer_and_system_actions() -> None:
     assert resolve_menu_action("4", menu) == "inspect"
 
 
+def test_build_shop_root_menu_marks_potions_disabled_with_sozu() -> None:
+    base = start_session(seed=5)
+    session = replace(
+        base,
+        run_state=replace(base.run_state, relics=["burning_blood", "sozu"]),
+        room_state=replace(
+            base.room_state,
+            room_type="shop",
+            payload={
+                "cards": [],
+                "relics": [],
+                "potions": [
+                    {"offer_id": "potion-1", "potion_id": "fire_potion", "price": 60}
+                ],
+                "remove_price": 75,
+            },
+            is_resolved=False,
+            rewards=[],
+        ),
+    )
+    registry = StarterContentProvider(session.content_root)
+
+    menu = build_shop_root_menu(
+        run_state=session.run_state, room_state=session.room_state, registry=registry
+    )
+
+    assert format_menu_lines(menu) == [
+        "商店操作:",
+        f"当前金币: {session.run_state.gold}",
+        "1. 购买药水 火焰药水 - 60 金币 [已禁用]",
+        "2. 删牌服务 - 75 金币 [可购买]",
+        "3. 离开商店",
+        "4. 查看资料",
+        "5. 保存游戏",
+        "6. 读取存档",
+        "7. 退出游戏",
+    ]
+
+
 def test_build_rest_upgrade_menu_binds_cards_cancel_and_system_actions() -> None:
     session = replace(
         start_session(seed=5),

@@ -260,6 +260,74 @@ def test_generate_combat_rewards_returns_gold_and_three_unique_card_offers() -> 
     assert isinstance(next_rare_offset, int)
 
 
+def test_question_card_adds_one_more_card_reward_offer() -> None:
+    run_state = replace(_run_state(), relics=["burning_blood", "question_card"])
+
+    rewards, _next_rare_offset = generate_combat_rewards(
+        room_id="act1:question_card_reward",
+        run_state=run_state,
+        registry=_content_provider(),
+    )
+
+    card_rewards = [reward for reward in rewards if reward.startswith("card_offer:")]
+
+    assert len(card_rewards) == 4
+    assert len(set(card_rewards)) == 4
+
+
+def test_white_beast_statue_adds_potion_reward_after_combat() -> None:
+    run_state = replace(_run_state(), relics=["burning_blood", "white_beast_statue"])
+
+    rewards, _next_rare_offset = generate_combat_rewards(
+        room_id="act1:white_beast_reward",
+        run_state=run_state,
+        registry=_content_provider(),
+    )
+
+    potion_rewards = [reward for reward in rewards if reward.startswith("potion:")]
+
+    assert len(potion_rewards) == 1
+    assert potion_rewards[0] != "potion:circlet"
+
+
+def test_prayer_wheel_adds_one_more_card_reward_offer_for_normal_combat() -> None:
+    run_state = replace(_run_state(), relics=["burning_blood", "prayer_wheel"])
+
+    rewards, _next_rare_offset = generate_combat_rewards(
+        room_id="act1:prayer_wheel_reward",
+        run_state=run_state,
+        registry=_content_provider(),
+    )
+
+    assert len([reward for reward in rewards if reward.startswith("card_offer:")]) == 4
+
+
+def test_sozu_blocks_white_beast_statue_potion_reward() -> None:
+    run_state = replace(
+        _run_state(), relics=["burning_blood", "white_beast_statue", "sozu"]
+    )
+
+    rewards, _next_rare_offset = generate_combat_rewards(
+        room_id="act1:sozu_reward",
+        run_state=run_state,
+        registry=_content_provider(),
+    )
+
+    assert not [reward for reward in rewards if reward.startswith("potion:")]
+
+
+def test_apply_reward_sozu_blocks_potion_rewards() -> None:
+    run_state = replace(_run_state(), relics=["burning_blood", "sozu"])
+
+    updated = apply_reward(
+        run_state=run_state,
+        reward_id="potion:fire_potion",
+        registry=_content_provider(),
+    )
+
+    assert updated.potions == []
+
+
 def test_generate_combat_rewards_from_a_new_run_does_not_offer_rare_cards_in_normal_combat() -> (
     None
 ):
@@ -543,6 +611,158 @@ def test_apply_reward_black_blood_replaces_burning_blood() -> None:
 
     assert "burning_blood" not in updated.relics
     assert "black_blood" in updated.relics
+
+
+def test_apply_reward_grants_strawberry_max_hp_bonus() -> None:
+    run_state = replace(_run_state(), current_hp=70)
+    updated = apply_reward(
+        run_state=run_state, reward_id="relic:strawberry", registry=_content_provider()
+    )
+
+    assert updated.max_hp == 87
+    assert updated.current_hp == 77
+    assert "strawberry" in updated.relics
+
+
+def test_apply_reward_grants_pear_max_hp_bonus() -> None:
+    run_state = replace(_run_state(), current_hp=60)
+    updated = apply_reward(
+        run_state=run_state, reward_id="relic:pear", registry=_content_provider()
+    )
+
+    assert updated.max_hp == 90
+    assert updated.current_hp == 70
+    assert "pear" in updated.relics
+
+
+def test_apply_reward_grants_mango_max_hp_bonus() -> None:
+    run_state = replace(_run_state(), current_hp=50)
+    updated = apply_reward(
+        run_state=run_state, reward_id="relic:mango", registry=_content_provider()
+    )
+
+    assert updated.max_hp == 94
+    assert updated.current_hp == 64
+    assert "mango" in updated.relics
+
+
+def test_apply_reward_grants_leeches_waffle_max_hp_and_full_heal() -> None:
+    run_state = replace(_run_state(), current_hp=50)
+    updated = apply_reward(
+        run_state=run_state,
+        reward_id="relic:leeches_waffle",
+        registry=_content_provider(),
+    )
+
+    assert updated.max_hp == 87
+    assert updated.current_hp == 87
+    assert "leeches_waffle" in updated.relics
+
+
+def test_apply_reward_grants_old_coin_gold_bonus() -> None:
+    run_state = _run_state()
+    updated = apply_reward(
+        run_state=run_state, reward_id="relic:old_coin", registry=_content_provider()
+    )
+
+    assert updated.gold == 399
+    assert "old_coin" in updated.relics
+
+
+def test_apply_reward_old_coin_gold_bonus_is_blocked_by_ectoplasm() -> None:
+    run_state = replace(_run_state(), relics=["burning_blood", "ectoplasm"])
+
+    updated = apply_reward(
+        run_state=run_state, reward_id="relic:old_coin", registry=_content_provider()
+    )
+
+    assert updated.gold == run_state.gold
+    assert "old_coin" in updated.relics
+
+
+def test_apply_reward_duplicate_strawberry_reward_is_no_op() -> None:
+    run_state = replace(
+        _run_state(), current_hp=70, relics=["burning_blood", "strawberry"]
+    )
+
+    updated = apply_reward(
+        run_state=run_state, reward_id="relic:strawberry", registry=_content_provider()
+    )
+
+    assert updated == run_state
+
+
+def test_apply_reward_duplicate_old_coin_reward_is_no_op() -> None:
+    run_state = replace(_run_state(), gold=399, relics=["burning_blood", "old_coin"])
+
+    updated = apply_reward(
+        run_state=run_state, reward_id="relic:old_coin", registry=_content_provider()
+    )
+
+    assert updated == run_state
+
+
+def test_apply_reward_grants_vajra_permanent_strength_bonus() -> None:
+    run_state = _run_state()
+
+    updated = apply_reward(
+        run_state=run_state,
+        reward_id="relic:vajra",
+        registry=_content_provider(),
+    )
+
+    assert "vajra" in updated.relics
+    assert updated.relic_sequence_positions["relic:vajra:strength_bonus"] == 1
+
+
+def test_apply_reward_grants_oddly_smooth_stone_permanent_dexterity_bonus() -> None:
+    run_state = _run_state()
+
+    updated = apply_reward(
+        run_state=run_state,
+        reward_id="relic:oddly_smooth_stone",
+        registry=_content_provider(),
+    )
+
+    assert "oddly_smooth_stone" in updated.relics
+    assert (
+        updated.relic_sequence_positions["relic:oddly_smooth_stone:dexterity_bonus"]
+        == 1
+    )
+
+
+def test_apply_reward_war_paint_upgrades_two_random_skill_cards() -> None:
+    run_state = replace(
+        _run_state(),
+        deck=["defend#1", "shrug_it_off#1", "bash#1", "armaments#1"],
+    )
+
+    updated = apply_reward(
+        run_state=run_state,
+        reward_id="relic:war_paint",
+        registry=_content_provider(),
+    )
+
+    assert "war_paint" in updated.relics
+    upgraded = {card for card in updated.deck if card.endswith("_plus#1")}
+    assert upgraded == {"defend_plus#1", "shrug_it_off_plus#1"}
+
+
+def test_apply_reward_whetstone_upgrades_two_random_attack_cards() -> None:
+    run_state = replace(
+        _run_state(),
+        deck=["strike#1", "bash#1", "defend#1", "anger#1"],
+    )
+
+    updated = apply_reward(
+        run_state=run_state,
+        reward_id="relic:whetstone",
+        registry=_content_provider(),
+    )
+
+    assert "whetstone" in updated.relics
+    upgraded = {card for card in updated.deck if card.endswith("_plus#1")}
+    assert upgraded == {"strike_plus#1", "bash_plus#1"}
 
 
 def test_apply_reward_adds_generic_relic_and_repeated_claim_is_no_op() -> None:

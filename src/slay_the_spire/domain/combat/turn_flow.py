@@ -5,6 +5,7 @@ from collections.abc import Mapping, Sequence
 from slay_the_spire.content.registries import EnemyDef
 from slay_the_spire.domain.effects.effect_resolver import (
     _apply_status,
+    _add_cards_to_zone,
     _draw_cards,
     _move_cards_to_exhaust,
     refill_draw_pile_from_discard,
@@ -16,6 +17,7 @@ from slay_the_spire.domain.effects.effect_types import (
     damage_effect,
 )
 from slay_the_spire.domain.hooks.hook_dispatcher import dispatch_hook
+from slay_the_spire.domain.hooks.runtime import registered_relic_ids
 from slay_the_spire.domain.hooks.hook_types import HookRegistration
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.combat_state import CombatState
@@ -332,6 +334,17 @@ def _move_end_turn_hand_cards(
     state.hand.clear()
 
 
+def _reset_action_relic_flags(state: CombatState) -> None:
+    for key in [
+        "relic:orange_pellets:attack:active",
+        "relic:orange_pellets:skill:active",
+        "relic:orange_pellets:power:active",
+        "relic:hovering_kite:discarded",
+        "relic:pen_nib:active",
+    ]:
+        state.card_play_data.pop(key, None)
+
+
 def _active_power_end_turn_effects(state: CombatState) -> list[JsonDict]:
     effects: list[JsonDict] = []
     for power in state.active_powers:
@@ -379,6 +392,44 @@ def _active_power_end_turn_effects(state: CombatState) -> list[JsonDict]:
                     "trigger": "end_turn_power",
                 }
             )
+    return effects
+
+
+def _enemy_status_end_turn_effects(state: CombatState) -> list[JsonDict]:
+    effects: list[JsonDict] = []
+    for enemy in state.enemies:
+        if enemy.hp <= 0:
+            continue
+        poison_stacks = _status_stacks(enemy, "poison")
+        if poison_stacks <= 0:
+            continue
+        effects.append(
+            {
+                "type": "lose_hp",
+                "source_instance_id": enemy.instance_id,
+                "target_instance_id": enemy.instance_id,
+                "amount": poison_stacks,
+                "status_id": "poison",
+                "trigger": "end_turn_status",
+            }
+        )
+        _set_status_stacks(enemy, "poison", poison_stacks - 1)
+    return effects
+
+
+def _player_status_end_turn_effects(state: CombatState) -> list[JsonDict]:
+    effects: list[JsonDict] = []
+    plated_armor_stacks = _status_stacks(state.player, "plated_armor")
+    if plated_armor_stacks > 0:
+        effects.append(
+            block_effect(
+                source_instance_id=state.player.instance_id,
+                target_instance_id=state.player.instance_id,
+                amount=plated_armor_stacks,
+            )
+        )
+        effects[-1]["status_id"] = "plated_armor"
+        effects[-1]["trigger"] = "end_turn_status"
     return effects
 
 
@@ -460,6 +511,127 @@ def _has_player_power(state: CombatState, power_id: str) -> bool:
     return any(power.get("power_id") == power_id for power in state.active_powers)
 
 
+def _apply_opening_combat_relics(
+    state: CombatState,
+    *,
+    hand_size: int,
+    hook_registrations: Sequence[HookRegistration],
+) -> int:
+    if state.round_number != 1:
+        return hand_size
+    opening_hand_size = hand_size
+    opening_relic_ids = registered_relic_ids(
+        hook_registrations,
+        hook_names=("on_opening_combat_turn",),
+    )
+
+    if "anchor" in opening_relic_ids:
+        state.player.block += 10
+    if "bag_of_marbles" in opening_relic_ids:
+        for enemy in state.enemies:
+            if enemy.hp > 0:
+                state.effect_queue.append(
+                    {
+                        "type": "vulnerable",
+                        "source_instance_id": state.player.instance_id,
+                        "target_instance_id": enemy.instance_id,
+                        "stacks": 1,
+                    }
+                )
+    if "lantern" in opening_relic_ids:
+        state.energy += 1
+    if "clockwork_souvenir" in opening_relic_ids:
+        _apply_status(state.player, status_id="artifact", stacks=1)
+    if "thread_and_needle" in opening_relic_ids:
+        _apply_status(state.player, status_id="plated_armor", stacks=4)
+    if "twisted_funnel" in opening_relic_ids:
+        for enemy in state.enemies:
+            if enemy.hp > 0:
+                state.effect_queue.append(
+                    {
+                        "type": "poison",
+                        "source_instance_id": state.player.instance_id,
+                        "target_instance_id": enemy.instance_id,
+                        "stacks": 4,
+                    }
+                )
+    if "ninja_scroll" in opening_relic_ids:
+        _add_cards_to_zone(state, zone="hand", card_id="shiv", count=3)
+        opening_hand_size += 3
+    if "bag_of_preparation" in opening_relic_ids:
+        opening_hand_size += 2
+    return opening_hand_size
+
+
+def _apply_turn_start_relics(
+    state: CombatState,
+    *,
+    hand_size: int,
+    hook_registrations: Sequence[HookRegistration],
+) -> int:
+    turn_relic_ids = registered_relic_ids(
+        hook_registrations,
+        hook_names=("on_turn_start", "on_opening_combat_turn"),
+    )
+    next_hand_size = hand_size
+
+    if "happy_flower" in turn_relic_ids and state.round_number % 3 == 0:
+        state.energy += 1
+    if "horn_cleat" in turn_relic_ids and state.round_number == 2:
+        state.player.block += 14
+    if "captains_wheel" in turn_relic_ids and state.round_number == 3:
+        state.player.block += 18
+    if state.card_play_data.get("relic:self_forming_clay:pending", 0) > 0:
+        state.player.block += 3
+        state.card_play_data["relic:self_forming_clay:pending"] = 0
+    if "art_of_war" in turn_relic_ids and state.round_number > 1:
+        if state.attacks_played_last_turn == 0:
+            state.energy += 1
+    if "pocketwatch" in turn_relic_ids and state.round_number > 1:
+        if state.cards_played_last_turn <= 3:
+            next_hand_size += 3
+    if (
+        "hovering_kite" in registered_relic_ids(hook_registrations)
+        and state.round_number > 1
+    ):
+        if state.card_play_data.get("relic:hovering_kite:discarded", 0) > 0:
+            state.energy += 1
+    return next_hand_size
+
+
+def _apply_turn_end_relics(
+    state: CombatState,
+    *,
+    hook_registrations: Sequence[HookRegistration],
+) -> None:
+    turn_relic_ids = registered_relic_ids(
+        hook_registrations,
+        hook_names=("on_turn_end", "on_turn_start", "on_opening_combat_turn"),
+    )
+    if "stone_calendar" in turn_relic_ids and state.round_number == 7:
+        for enemy in state.enemies:
+            if enemy.hp <= 0:
+                continue
+            effect = damage_effect(
+                source_instance_id=state.player.instance_id,
+                target_instance_id=enemy.instance_id,
+                amount=52,
+            )
+            effect["uses_strength"] = False
+            effect["uses_status_modifiers"] = False
+            effect["relic_id"] = "stone_calendar"
+            effect["trigger"] = "end_turn_relic"
+            state.effect_queue.append(effect)
+
+
+def _reset_turn_card_counters(state: CombatState) -> None:
+    state.cards_played_last_turn = state.cards_played_this_turn
+    state.attacks_played_last_turn = state.attacks_played_this_turn
+    state.cards_played_this_turn = 0
+    state.attacks_played_this_turn = 0
+    _reset_action_relic_flags(state)
+
+
 def start_turn(
     state: CombatState,
     *,
@@ -475,6 +647,16 @@ def start_turn(
     )
     _clear_temporary_power(state, "flame_barrier")
     state.energy = energy_per_turn
+    hand_size = _apply_opening_combat_relics(
+        state,
+        hand_size=hand_size,
+        hook_registrations=hook_registrations,
+    )
+    hand_size = _apply_turn_start_relics(
+        state,
+        hand_size=hand_size,
+        hook_registrations=hook_registrations,
+    )
     dispatch_hook(state, "on_turn_start", hook_registrations)
     _apply_start_turn_powers(state)
     _apply_brutality(state)
@@ -560,7 +742,10 @@ def end_turn(
     hand_at_end_turn = tuple(state.hand)
     _clear_temporary_power(state, "battle_trance")
     _remove_flex_power(state)
+    state.effect_queue.extend(_enemy_status_end_turn_effects(state))
+    state.effect_queue.extend(_player_status_end_turn_effects(state))
     state.effect_queue.extend(_active_power_end_turn_effects(state))
+    _apply_turn_end_relics(state, hook_registrations=hook_registrations)
     state.effect_queue.extend(
         _burn_end_turn_effects(hand_at_end_turn, state.player.instance_id)
     )
@@ -601,6 +786,7 @@ def end_turn(
     for enemy in state.enemies:
         _tick_temporary_statuses(enemy)
     state.round_number += 1
+    _reset_turn_card_counters(state)
     start_turn(
         state,
         hand_size=hand_size,

@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
+from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.content.registries import CardRegistry, EnemyRegistry
+from slay_the_spire.domain.hooks.runtime import build_runtime_hook_registrations
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
+from slay_the_spire.domain.models.run_state import RunState
 from slay_the_spire.domain.models.statuses import StatusState
 from slay_the_spire.use_cases.play_card import play_card
 
@@ -116,6 +121,17 @@ def _provider_with_card(
     return provider
 
 
+def _relic_hook_registrations(*relic_ids: str):
+    provider = StarterContentProvider(Path(__file__).resolve().parents[2] / "content")
+    run_state = RunState(
+        seed=7,
+        character_id="ironclad",
+        current_act_id="act1",
+        relics=list(relic_ids),
+    )
+    return provider, build_runtime_hook_registrations(run_state, provider)
+
+
 def test_playing_skill_grants_strength_to_gremlin_nob() -> None:
     state = _combat_state(
         hand=["skill_guard#1"],
@@ -163,6 +179,146 @@ def test_play_card_rejects_missing_target_for_targeted_effect() -> None:
     assert state.to_dict() == before
 
 
+def test_play_card_failure_does_not_increment_turn_counters() -> None:
+    state = _combat_state(hand=["broken_card#1"])
+    provider = _provider_with_card(
+        card_id="broken_card",
+        effects=[{"type": "unsupported_effect"}],
+        card_type="attack",
+    )
+
+    with pytest.raises(ValueError, match="unsupported effect type"):
+        play_card(state, "broken_card#1", "enemy-1", provider)
+
+    assert state.cards_played_this_turn == 0
+    assert state.attacks_played_this_turn == 0
+
+
+def test_play_card_failure_does_not_consume_attack_trigger_powers() -> None:
+    state = _combat_state(hand=["broken_card#1"])
+    state.active_powers = [
+        {"power_id": "double_tap", "amount": 1},
+        {"power_id": "rage", "amount": 3},
+    ]
+    provider = _provider_with_card(
+        card_id="broken_card",
+        effects=[{"type": "unsupported_effect"}],
+        card_type="attack",
+    )
+
+    with pytest.raises(ValueError, match="unsupported effect type"):
+        play_card(state, "broken_card#1", "enemy-1", provider)
+
+    assert state.active_powers == [
+        {"power_id": "double_tap", "amount": 1},
+        {"power_id": "rage", "amount": 3},
+    ]
+
+
+def test_play_card_failure_does_not_pollute_action_relic_runtime_state() -> None:
+    state = _combat_state(hand=["broken_power#1", "bash#2"], energy=1)
+    state.card_play_data = {
+        "relic:ink_bottle": 9,
+        "relic:nunchaku": 9,
+        "relic:pen_nib": 9,
+        "relic:letter_opener": 2,
+        "relic:hovering_kite:discarded": 1,
+    }
+    state.temporary_costs = {"bash#2": 2}
+    provider = _Provider()
+    provider.cards().register(
+        {
+            "id": "broken_power",
+            "name": "Broken Power",
+            "cost": 1,
+            "card_type": "power",
+            "effects": [{"type": "unsupported_effect"}],
+        }
+    )
+    provider.cards().register(
+        {
+            "id": "bash",
+            "name": "Bash",
+            "cost": 2,
+            "effects": [{"type": "damage", "amount": 8}],
+            "card_type": "attack",
+        }
+    )
+    provider.enemies().register(
+        {
+            "id": "training_dummy",
+            "name": "Training Dummy",
+            "hp": 10,
+            "move_table": [],
+            "intent_policy": "scripted",
+        }
+    )
+    _, hook_registrations = _relic_hook_registrations(
+        "ink_bottle",
+        "pen_nib",
+        "orange_pellets",
+        "mummified_hand",
+    )
+    before = state.to_dict()
+
+    with pytest.raises(ValueError, match="unsupported effect type"):
+        play_card(
+            state,
+            "broken_power#1",
+            None,
+            provider,
+            hook_registrations=hook_registrations,
+        )
+
+    assert state.to_dict() == before
+
+
+def test_play_card_failure_restores_debuffs_cleared_by_orange_pellets() -> None:
+    state = _combat_state(hand=["broken_power#1"], energy=1)
+    state.card_play_data = {
+        "relic:orange_pellets:attack:active": 1,
+        "relic:orange_pellets:skill:active": 1,
+    }
+    state.player.statuses = [
+        StatusState(status_id="weak", stacks=1),
+        StatusState(status_id="poison", stacks=2),
+    ]
+    provider = _Provider()
+    provider.cards().register(
+        {
+            "id": "broken_power",
+            "name": "Broken Power",
+            "cost": 1,
+            "card_type": "power",
+            "effects": [{"type": "unsupported_effect"}],
+        }
+    )
+    provider.enemies().register(
+        {
+            "id": "training_dummy",
+            "name": "Training Dummy",
+            "hp": 10,
+            "move_table": [],
+            "intent_policy": "scripted",
+        }
+    )
+    _, hook_registrations = _relic_hook_registrations("orange_pellets")
+
+    with pytest.raises(ValueError, match="unsupported effect type"):
+        play_card(
+            state,
+            "broken_power#1",
+            None,
+            provider,
+            hook_registrations=hook_registrations,
+        )
+
+    assert state.player.statuses == [
+        StatusState(status_id="weak", stacks=1),
+        StatusState(status_id="poison", stacks=2),
+    ]
+
+
 def test_play_card_body_slam_deals_damage_equal_to_player_block() -> None:
     state = _combat_state(hand=["body_slam#1"], enemy_hps=[20])
     state.player.block = 12
@@ -184,7 +340,9 @@ def test_play_card_damage_with_strength_multiplier_uses_selected_target() -> Non
     provider = _provider_with_card(
         card_id="heavy_blade",
         cost=2,
-        effects=[{"type": "damage_with_strength_multiplier", "base": 14, "multiplier": 3}],
+        effects=[
+            {"type": "damage_with_strength_multiplier", "base": 14, "multiplier": 3}
+        ],
         card_type="attack",
     )
 
@@ -814,7 +972,9 @@ def test_play_card_draw_log_uses_refilled_discard_cards() -> None:
     ]
 
 
-def test_play_card_perfected_strike_uses_bonus_per_strike_and_logs_actual_damage() -> None:
+def test_play_card_perfected_strike_uses_bonus_per_strike_and_logs_actual_damage() -> (
+    None
+):
     state = _combat_state(hand=["perfected_strike#1", "strike#2"], enemy_hps=[20])
     state.draw_pile = ["wild_strike#3"]
     state.discard_pile = ["pommel_strike#4"]
@@ -1460,7 +1620,9 @@ def test_play_card_fiend_fire_appends_damage_log_entry() -> None:
 
     play_card(state, "fiend_fire#1", "enemy-1", provider)
 
-    assert state.log == ["你打出 Custom Strike，对 Training Dummy 造成 14 伤害，并消耗 2 张手牌。"]
+    assert state.log == [
+        "你打出 Custom Strike，对 Training Dummy 造成 14 伤害，并消耗 2 张手牌。"
+    ]
 
 
 def test_play_card_corruption_adds_power_and_skills_cost_zero() -> None:
@@ -1533,3 +1695,449 @@ def test_play_card_corruption_does_not_change_attack_cost_or_destination() -> No
     assert result.combat_state.energy == 0
     assert state.exhaust_pile == []
     assert state.discard_pile == ["strike#1"]
+
+
+def test_shuriken_grants_strength_after_three_attacks_in_one_turn() -> None:
+    state = _combat_state(
+        hand=["strike#1", "strike#2", "strike#3"],
+        energy=3,
+        enemy_hps=[30],
+    )
+    provider = _provider_with_card(
+        card_id="strike", effects=[{"type": "damage", "amount": 4}]
+    )
+    _, hook_registrations = _relic_hook_registrations("shuriken")
+
+    play_card(
+        state, "strike#1", "enemy-1", provider, hook_registrations=hook_registrations
+    )
+    play_card(
+        state, "strike#2", "enemy-1", provider, hook_registrations=hook_registrations
+    )
+    play_card(
+        state, "strike#3", "enemy-1", provider, hook_registrations=hook_registrations
+    )
+
+    assert state.player.statuses == [StatusState(status_id="strength", stacks=1)]
+
+
+def test_tingsha_deals_damage_when_player_discards() -> None:
+    state = _combat_state(hand=["prepared#1", "strike#2"], enemy_hps=[10])
+    provider = _provider_with_card(
+        card_id="prepared",
+        cost=0,
+        effects=[{"type": "discard_target_card"}],
+        card_type="skill",
+    )
+    provider.cards().register(
+        {
+            "id": "strike",
+            "name": "Strike",
+            "cost": 1,
+            "effects": [{"type": "damage", "amount": 6}],
+            "card_type": "attack",
+        }
+    )
+    _, hook_registrations = _relic_hook_registrations("tingsha")
+
+    play_card(
+        state,
+        "prepared#1",
+        "strike#2",
+        provider,
+        hook_registrations=hook_registrations,
+    )
+
+    assert state.enemies[0].hp == 7
+    assert state.discard_pile == ["strike#2", "prepared#1"]
+
+
+def test_charons_ashes_hits_all_enemies_when_card_is_exhausted() -> None:
+    state = _combat_state(hand=["sentinel_skill#1"], energy=3, enemy_hps=[10, 10])
+    provider = _Provider()
+    provider.cards().register(
+        {
+            "id": "sentinel_skill",
+            "name": "Sentinel Skill",
+            "cost": 1,
+            "card_type": "skill",
+            "exhausts": True,
+            "effects": [],
+            "on_exhaust_effects": [{"type": "gain_energy", "amount": 2}],
+        }
+    )
+    provider.enemies().register(
+        {
+            "id": "training_dummy",
+            "name": "Training Dummy",
+            "hp": 10,
+            "move_table": [],
+            "intent_policy": "scripted",
+        }
+    )
+    _, hook_registrations = _relic_hook_registrations("charons_ashes")
+
+    play_card(
+        state, "sentinel_skill#1", None, provider, hook_registrations=hook_registrations
+    )
+
+    assert [enemy.hp for enemy in state.enemies] == [7, 7]
+
+
+def test_gremlin_horn_draws_and_grants_energy_on_enemy_death() -> None:
+    state = _combat_state(hand=["strike#1"], energy=1, enemy_hps=[4, 10])
+    state.draw_pile = ["bonus_card#1"]
+    provider = _provider_with_card(
+        card_id="strike", effects=[{"type": "damage", "amount": 4}]
+    )
+    _, hook_registrations = _relic_hook_registrations("gremlin_horn")
+
+    play_card(
+        state, "strike#1", "enemy-1", provider, hook_registrations=hook_registrations
+    )
+
+    assert state.energy == 1
+    assert state.hand == ["bonus_card#1"]
+
+
+def test_nunchaku_grants_energy_after_tenth_attack() -> None:
+    state = _combat_state(hand=["strike#1"], energy=0, enemy_hps=[20])
+    state.card_play_data["relic:nunchaku"] = 9
+    provider = _provider_with_card(
+        card_id="strike",
+        cost=0,
+        effects=[{"type": "damage", "amount": 4}],
+    )
+    _, hook_registrations = _relic_hook_registrations("nunchaku")
+
+    play_card(
+        state, "strike#1", "enemy-1", provider, hook_registrations=hook_registrations
+    )
+
+    assert state.energy == 1
+    assert state.card_play_data["relic:nunchaku"] == 0
+
+
+def test_pen_nib_doubles_damage_on_tenth_attack() -> None:
+    state = _combat_state(hand=["strike#1"], energy=1, enemy_hps=[20])
+    state.card_play_data["relic:pen_nib"] = 9
+    provider = _provider_with_card(
+        card_id="strike", effects=[{"type": "damage", "amount": 6}]
+    )
+    _, hook_registrations = _relic_hook_registrations("pen_nib")
+
+    play_card(
+        state, "strike#1", "enemy-1", provider, hook_registrations=hook_registrations
+    )
+
+    assert state.enemies[0].hp == 8
+    assert state.card_play_data["relic:pen_nib"] == 0
+
+
+def test_ink_bottle_draws_after_tenth_card_played() -> None:
+    state = _combat_state(hand=["skill_guard#1"], energy=1, enemy_hps=[20])
+    state.draw_pile = ["bonus_card#1"]
+    state.card_play_data["relic:ink_bottle"] = 9
+    provider = _provider_with_card(
+        card_id="skill_guard",
+        cost=1,
+        effects=[{"type": "block", "amount": 5}],
+        card_type="skill",
+    )
+    _, hook_registrations = _relic_hook_registrations("ink_bottle")
+
+    play_card(
+        state, "skill_guard#1", None, provider, hook_registrations=hook_registrations
+    )
+
+    assert state.hand == ["bonus_card#1"]
+    assert state.card_play_data["relic:ink_bottle"] == 0
+
+
+def test_hovering_kite_grants_energy_next_turn_after_discard() -> None:
+    state = _combat_state(hand=["prepared#1", "strike#2"], energy=0, enemy_hps=[10])
+    provider = _provider_with_card(
+        card_id="prepared",
+        cost=0,
+        effects=[{"type": "discard_target_card"}],
+        card_type="skill",
+    )
+    provider.cards().register(
+        {
+            "id": "strike",
+            "name": "Strike",
+            "cost": 1,
+            "effects": [{"type": "damage", "amount": 6}],
+            "card_type": "attack",
+        }
+    )
+    _, hook_registrations = _relic_hook_registrations("hovering_kite")
+
+    play_card(
+        state, "prepared#1", "strike#2", provider, hook_registrations=hook_registrations
+    )
+    state.round_number = 2
+
+    from slay_the_spire.domain.combat.turn_flow import start_turn
+
+    start_turn(state, registry=provider, hook_registrations=hook_registrations)
+
+    assert state.energy == 4
+
+
+def test_kunai_grants_dexterity_after_three_attacks_in_one_turn() -> None:
+    state = _combat_state(
+        hand=["strike#1", "strike#2", "strike#3"],
+        energy=3,
+        enemy_hps=[30],
+    )
+    provider = _provider_with_card(
+        card_id="strike", effects=[{"type": "damage", "amount": 4}]
+    )
+    _, hook_registrations = _relic_hook_registrations("kunai")
+
+    play_card(
+        state, "strike#1", "enemy-1", provider, hook_registrations=hook_registrations
+    )
+    play_card(
+        state, "strike#2", "enemy-1", provider, hook_registrations=hook_registrations
+    )
+    play_card(
+        state, "strike#3", "enemy-1", provider, hook_registrations=hook_registrations
+    )
+
+    assert state.player.statuses == [StatusState(status_id="dexterity", stacks=1)]
+
+
+def test_ornamental_fan_grants_block_after_three_attacks_in_one_turn() -> None:
+    state = _combat_state(
+        hand=["strike#1", "strike#2", "strike#3"],
+        energy=3,
+        enemy_hps=[30],
+    )
+    provider = _provider_with_card(
+        card_id="strike", effects=[{"type": "damage", "amount": 4}]
+    )
+    _, hook_registrations = _relic_hook_registrations("ornamental_fan")
+
+    play_card(
+        state, "strike#1", "enemy-1", provider, hook_registrations=hook_registrations
+    )
+    play_card(
+        state, "strike#2", "enemy-1", provider, hook_registrations=hook_registrations
+    )
+    play_card(
+        state, "strike#3", "enemy-1", provider, hook_registrations=hook_registrations
+    )
+
+    assert state.player.block == 4
+
+
+def test_letter_opener_hits_all_enemies_after_three_skills_in_one_turn() -> None:
+    state = _combat_state(
+        hand=["guard#1", "guard#2", "guard#3"],
+        energy=3,
+        enemy_hps=[20, 20],
+    )
+    provider = _provider_with_card(
+        card_id="guard",
+        cost=1,
+        effects=[{"type": "block", "amount": 5}],
+        card_type="skill",
+    )
+    _, hook_registrations = _relic_hook_registrations("letter_opener")
+
+    play_card(state, "guard#1", None, provider, hook_registrations=hook_registrations)
+    play_card(state, "guard#2", None, provider, hook_registrations=hook_registrations)
+    play_card(state, "guard#3", None, provider, hook_registrations=hook_registrations)
+
+    assert [enemy.hp for enemy in state.enemies] == [15, 15]
+
+
+def test_bird_faced_urn_heals_when_power_is_played() -> None:
+    state = _combat_state(hand=["inflame#1"], energy=1)
+    state.player.hp = 30
+    provider = _provider_with_card(
+        card_id="inflame",
+        effects=[{"type": "add_power", "power_id": "inflame", "amount": 2}],
+        card_type="power",
+    )
+    _, hook_registrations = _relic_hook_registrations("bird_faced_urn")
+
+    play_card(state, "inflame#1", None, provider, hook_registrations=hook_registrations)
+
+    assert state.player.hp == 32
+
+
+def test_mummified_hand_uses_stable_random_target_selection() -> None:
+    state = _combat_state(hand=["inflame#1", "bash#2", "strike#3"], energy=2)
+    provider = _provider_with_card(
+        card_id="inflame",
+        effects=[{"type": "add_power", "power_id": "inflame", "amount": 2}],
+        card_type="power",
+    )
+    provider.cards().register(
+        {
+            "id": "bash",
+            "name": "Bash",
+            "cost": 2,
+            "effects": [{"type": "damage", "amount": 8}],
+            "card_type": "attack",
+        }
+    )
+    provider.cards().register(
+        {
+            "id": "strike",
+            "name": "Strike",
+            "cost": 2,
+            "effects": [{"type": "damage", "amount": 6}],
+            "card_type": "attack",
+        }
+    )
+    _, hook_registrations = _relic_hook_registrations("mummified_hand")
+
+    play_card(state, "inflame#1", None, provider, hook_registrations=hook_registrations)
+
+    assert state.temporary_costs == {"strike#3": 0}
+
+
+def test_orange_pellets_clears_player_debuffs_after_attack_skill_and_power() -> None:
+    state = _combat_state(hand=["strike#1", "guard#2", "inflame#3"], energy=3)
+    state.player.statuses = [
+        StatusState(status_id="weak", stacks=1),
+        StatusState(status_id="vulnerable", stacks=1),
+        StatusState(status_id="frail", stacks=1),
+        StatusState(status_id="poison", stacks=2),
+    ]
+    provider = _provider_with_card(
+        card_id="strike", effects=[{"type": "damage", "amount": 4}]
+    )
+    provider.cards().register(
+        {
+            "id": "guard",
+            "name": "Guard",
+            "cost": 1,
+            "effects": [{"type": "block", "amount": 5}],
+            "card_type": "skill",
+        }
+    )
+    provider.cards().register(
+        {
+            "id": "inflame",
+            "name": "Inflame",
+            "cost": 1,
+            "effects": [{"type": "add_power", "power_id": "inflame", "amount": 2}],
+            "card_type": "power",
+        }
+    )
+    _, hook_registrations = _relic_hook_registrations("orange_pellets")
+
+    play_card(
+        state, "strike#1", "enemy-1", provider, hook_registrations=hook_registrations
+    )
+    play_card(state, "guard#2", None, provider, hook_registrations=hook_registrations)
+    play_card(state, "inflame#3", None, provider, hook_registrations=hook_registrations)
+
+    assert state.player.statuses == [StatusState(status_id="strength", stacks=2)]
+
+
+def test_tough_bandages_grants_block_when_player_discards() -> None:
+    state = _combat_state(hand=["prepared#1", "strike#2"], energy=0, enemy_hps=[10])
+    provider = _provider_with_card(
+        card_id="prepared",
+        cost=0,
+        effects=[{"type": "discard_target_card"}],
+        card_type="skill",
+    )
+    provider.cards().register(
+        {
+            "id": "strike",
+            "name": "Strike",
+            "cost": 1,
+            "effects": [{"type": "damage", "amount": 6}],
+            "card_type": "attack",
+        }
+    )
+    _, hook_registrations = _relic_hook_registrations("tough_bandages")
+
+    play_card(
+        state, "prepared#1", "strike#2", provider, hook_registrations=hook_registrations
+    )
+
+    assert state.player.block == 3
+
+
+def test_dead_branch_adds_stable_random_card_to_hand_when_card_is_exhausted() -> None:
+    state = _combat_state(hand=["sentinel_skill#1"], energy=3, enemy_hps=[10])
+    provider = _Provider()
+    provider.cards().register(
+        {
+            "id": "sentinel_skill",
+            "name": "Sentinel Skill",
+            "cost": 1,
+            "card_type": "skill",
+            "exhausts": True,
+            "effects": [],
+            "on_exhaust_effects": [{"type": "gain_energy", "amount": 2}],
+        }
+    )
+    provider.enemies().register(
+        {
+            "id": "training_dummy",
+            "name": "Training Dummy",
+            "hp": 10,
+            "move_table": [],
+            "intent_policy": "scripted",
+        }
+    )
+    provider.cards().register(
+        {
+            "id": "anger",
+            "name": "Anger",
+            "cost": 0,
+            "effects": [{"type": "damage", "amount": 6}],
+            "card_type": "attack",
+        }
+    )
+    provider.cards().register(
+        {
+            "id": "bash",
+            "name": "Bash",
+            "cost": 2,
+            "effects": [{"type": "damage", "amount": 8}],
+            "card_type": "attack",
+        }
+    )
+    provider.cards().register(
+        {
+            "id": "body_slam",
+            "name": "Body Slam",
+            "cost": 1,
+            "effects": [{"type": "damage_equal_to_block"}],
+            "card_type": "attack",
+        }
+    )
+    _, hook_registrations = _relic_hook_registrations("dead_branch")
+
+    play_card(
+        state, "sentinel_skill#1", None, provider, hook_registrations=hook_registrations
+    )
+
+    assert state.hand == ["bash#1"]
+
+
+def test_unceasing_top_draws_when_hand_becomes_empty() -> None:
+    state = _combat_state(hand=["strike#1"], energy=0, enemy_hps=[10])
+    state.draw_pile = ["bonus_card#1"]
+    provider = _provider_with_card(
+        card_id="strike",
+        cost=0,
+        effects=[{"type": "damage", "amount": 4}],
+    )
+    _, hook_registrations = _relic_hook_registrations("unceasing_top")
+
+    play_card(
+        state, "strike#1", "enemy-1", provider, hook_registrations=hook_registrations
+    )
+
+    assert state.hand == ["bonus_card#1"]

@@ -22,6 +22,7 @@ from slay_the_spire.adapters.presentation.theme import TERMINAL_THEME
 from slay_the_spire.adapters.presentation.widgets import render_card_name, render_menu
 from slay_the_spire.adapters.persistence.save_files import JsonFileSaveRepository
 from slay_the_spire.app.map_labels import format_next_room_labels
+from slay_the_spire.app.next_room_options import next_room_options
 from slay_the_spire.build_content import packaged_content_root
 from slay_the_spire.app.menu_definitions import (
     build_menu,
@@ -397,6 +398,8 @@ def _menu_state_for_room(room_state: RoomState) -> MenuState:
             return MenuState(mode="shop_remove_card")
         return MenuState(mode="shop_root")
     if room_state.room_type == "rest" and not room_state.is_resolved:
+        if room_state.stage == "select_remove_card":
+            return MenuState(mode="rest_remove_card")
         if room_state.stage == "select_upgrade_card":
             return MenuState(mode="rest_upgrade_card")
         return MenuState(mode="rest_root")
@@ -580,9 +583,39 @@ def _open_treasure(session: SessionState) -> SessionState:
     )
 
 
+def _treasure_relic_ids(room_state: RoomState) -> list[str]:
+    relic_ids = room_state.payload.get("treasure_relic_ids")
+    if isinstance(relic_ids, list):
+        return [
+            relic_id for relic_id in relic_ids if isinstance(relic_id, str) and relic_id
+        ]
+    relic_id = room_state.payload.get("treasure_relic_id")
+    if isinstance(relic_id, str) and relic_id:
+        return [relic_id]
+    return []
+
+
 def _claim_treasure(session: SessionState) -> SessionState:
     if session.room_state.is_resolved:
         return session
+    claimed_relic_ids = session.room_state.payload.get("claimed_treasure_relic_ids")
+    if isinstance(claimed_relic_ids, list) and claimed_relic_ids:
+        updated_room_state = replace(
+            session.room_state,
+            stage="completed",
+            is_resolved=True,
+        )
+        return replace(
+            session,
+            room_state=updated_room_state,
+            run_phase=_derive_run_phase(
+                session.run_state,
+                session.act_state,
+                updated_room_state,
+                registry=_content_provider(session),
+            ),
+            menu_state=MenuState(),
+        )
     claimed_relic_id = session.room_state.payload.get("claimed_treasure_relic_id")
     if isinstance(claimed_relic_id, str) and claimed_relic_id:
         updated_room_state = replace(
@@ -601,14 +634,18 @@ def _claim_treasure(session: SessionState) -> SessionState:
             ),
             menu_state=MenuState(),
         )
-    relic_id = session.room_state.payload.get("treasure_relic_id")
+    relic_ids = _treasure_relic_ids(session.room_state)
     provider = _content_provider(session)
-    if not isinstance(relic_id, str) or not relic_id:
+    if not relic_ids:
         updated_room_state = replace(
             session.room_state,
             stage="completed",
             is_resolved=True,
-            payload={**session.room_state.payload, "claimed_treasure_relic_id": None},
+            payload={
+                **session.room_state.payload,
+                "claimed_treasure_relic_id": None,
+                "claimed_treasure_relic_ids": [],
+            },
         )
         return replace(
             session,
@@ -621,11 +658,13 @@ def _claim_treasure(session: SessionState) -> SessionState:
             ),
             menu_state=MenuState(),
         )
-    updated_run_state = apply_reward(
-        run_state=session.run_state,
-        reward_id=f"relic:{relic_id}",
-        registry=provider,
-    )
+    updated_run_state = session.run_state
+    for relic_id in relic_ids:
+        updated_run_state = apply_reward(
+            run_state=updated_run_state,
+            reward_id=f"relic:{relic_id}",
+            registry=provider,
+        )
     updated_room_state = replace(
         session.room_state,
         stage="completed",
@@ -633,7 +672,8 @@ def _claim_treasure(session: SessionState) -> SessionState:
         payload={
             **session.room_state.payload,
             "treasure_opened": True,
-            "claimed_treasure_relic_id": relic_id,
+            "claimed_treasure_relic_id": relic_ids[0],
+            "claimed_treasure_relic_ids": relic_ids,
         },
     )
     return replace(
@@ -1026,19 +1066,46 @@ def _advance_to_next_room(session: SessionState) -> SessionState:
     return _advance_to_node(session, None)
 
 
+def _next_room_options(session: SessionState) -> list[str]:
+    return next_room_options(
+        act_state=session.act_state,
+        room_state=session.room_state,
+        run_state=session.run_state,
+    )
+
+
 def _advance_to_node(session: SessionState, node_id: str | None) -> SessionState:
-    next_node_ids = session.room_state.payload.get("next_node_ids", [])
-    if not isinstance(next_node_ids, list) or not next_node_ids:
+    next_node_ids = _next_room_options(session)
+    if not next_node_ids:
         return session
     next_node_id = next_node_ids[0] if node_id is None else node_id
     if not isinstance(next_node_id, str):
         return session
+    if next_node_id not in next_node_ids:
+        return session
+    updated_run_state = session.run_state
+    linked_node_ids = session.room_state.payload.get("next_node_ids", [])
+    if (
+        isinstance(linked_node_ids, list)
+        and next_node_id not in linked_node_ids
+        and "wing_boots" in session.run_state.relics
+    ):
+        updated_positions = dict(session.run_state.relic_sequence_positions)
+        updated_positions["wing_boots_charges"] = (
+            updated_positions.get("wing_boots_charges", 0) + 1
+        )
+        updated_run_state = replace(
+            session.run_state, relic_sequence_positions=updated_positions
+        )
     provider = StarterContentProvider(session.content_root)
     room_state = enter_room(
-        session.run_state, session.act_state, node_id=next_node_id, registry=provider
+        updated_run_state, session.act_state, node_id=next_node_id, registry=provider
     )
     return replace(
-        session, room_state=room_state, menu_state=_menu_state_for_room(room_state)
+        session,
+        run_state=updated_run_state,
+        room_state=room_state,
+        menu_state=_menu_state_for_room(room_state),
     )
 
 
@@ -1422,7 +1489,9 @@ def _route_load_select_menu(
     save_path = default_save_dir() / save_name
     if not save_path.is_file():
         if not _list_available_save_paths():
-            fallback_session = replace(session, menu_state=MenuState(mode=previous_mode))
+            fallback_session = replace(
+                session, menu_state=MenuState(mode=previous_mode)
+            )
             return (
                 True,
                 fallback_session,
@@ -1992,8 +2061,8 @@ def _route_root_menu(
         next_session = replace(session, menu_state=MenuState(mode="select_reward"))
         return True, next_session, render_session(next_session)
     if action_id == "next_room":
-        next_node_ids = session.room_state.payload.get("next_node_ids", [])
-        if isinstance(next_node_ids, list) and len(next_node_ids) > 1:
+        next_node_ids = _next_room_options(session)
+        if len(next_node_ids) > 1:
             next_session = replace(
                 session, menu_state=MenuState(mode="select_next_room")
             )
@@ -2408,8 +2477,8 @@ def _route_target_menu(
 def _route_next_room_menu(
     choice: str, session: SessionState
 ) -> tuple[bool, SessionState, str]:
-    next_node_ids = session.room_state.payload.get("next_node_ids", [])
-    if not isinstance(next_node_ids, list):
+    next_node_ids = _next_room_options(session)
+    if not next_node_ids:
         return _invalid_menu_choice(session)
     labels = format_next_room_labels(session.act_state, next_node_ids)
     action_id = resolve_menu_action(
@@ -2776,6 +2845,38 @@ def _route_rest_upgrade_card_menu(
     return True, next_session, _message_with_render(next_session, result.message)
 
 
+def _route_rest_remove_card_menu(
+    choice: str, session: SessionState
+) -> tuple[bool, SessionState, str]:
+    action_id = resolve_menu_action(
+        choice,
+        build_shop_remove_menu(
+            room_state=session.room_state, registry=_content_provider(session)
+        ),
+    )
+    if action_id is None:
+        return _invalid_menu_choice(session)
+    if action_id == "save":
+        return _save_current_session(session)
+    if action_id == "load":
+        return _enter_load_select_menu(session)
+    if action_id == "quit":
+        return False, replace(session, menu_state=MenuState()), "已退出游戏。"
+    result = rest_action(
+        run_state=session.run_state,
+        room_state=session.room_state,
+        action_id=action_id,
+        registry=_content_provider(session),
+    )
+    next_session = replace(
+        session,
+        run_state=result.run_state,
+        room_state=result.room_state,
+        menu_state=_menu_state_for_room(result.room_state),
+    )
+    return True, next_session, _message_with_render(next_session, result.message)
+
+
 def _route_menu_choice_legacy(
     choice: str, *, session: SessionState
 ) -> tuple[bool, SessionState, str]:
@@ -2830,6 +2931,8 @@ def _route_menu_choice_legacy(
         return _route_shop_remove_card_menu(choice.strip(), next_session)
     if next_session.menu_state.mode == "rest_root":
         return _route_rest_root_menu(choice.strip(), next_session)
+    if next_session.menu_state.mode == "rest_remove_card":
+        return _route_rest_remove_card_menu(choice.strip(), next_session)
     if next_session.menu_state.mode == "rest_upgrade_card":
         return _route_rest_upgrade_card_menu(choice.strip(), next_session)
     if next_session.menu_state.mode == "inspect_root":

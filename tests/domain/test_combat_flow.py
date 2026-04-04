@@ -16,11 +16,14 @@ from slay_the_spire.domain.combat.turn_flow import (
     start_turn,
 )
 from slay_the_spire.domain.effects.effect_types import damage_effect, noop_effect
+from slay_the_spire.domain.hooks.runtime import build_runtime_hook_registrations
 from slay_the_spire.domain.hooks.hook_types import HookRegistration
 from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.entities import EnemyState, PlayerCombatState
+from slay_the_spire.domain.models.run_state import RunState
 from slay_the_spire.domain.models.statuses import StatusState
 from slay_the_spire.use_cases.end_turn import end_turn as run_end_turn
+from slay_the_spire.use_cases.play_card import play_card
 
 
 class _Registry:
@@ -166,6 +169,51 @@ def _hexaghost_registry() -> _Registry:
 
 def _content_provider() -> StarterContentProvider:
     return StarterContentProvider(Path(__file__).resolve().parents[2] / "content")
+
+
+def _hook_registrations_for_relics(*relic_ids: str) -> list[HookRegistration]:
+    provider = _content_provider()
+    run_state = RunState(
+        seed=7,
+        character_id="ironclad",
+        current_act_id="act1",
+        relics=list(relic_ids),
+    )
+    return build_runtime_hook_registrations(run_state, provider)
+
+
+def _combat_state_with_relics(*relic_ids: str, enemy_count: int = 2) -> CombatState:
+    state = CombatState(
+        round_number=1,
+        energy=3,
+        hand=[],
+        draw_pile=[f"strike#{index}" for index in range(1, 11)],
+        discard_pile=[],
+        exhaust_pile=[],
+        player=PlayerCombatState(
+            instance_id="player-ironclad",
+            hp=30,
+            max_hp=30,
+            block=0,
+            statuses=[],
+        ),
+        enemies=[
+            EnemyState(
+                instance_id=f"enemy-{index}",
+                enemy_id="training_slime",
+                hp=12,
+                max_hp=12,
+                block=0,
+                statuses=[],
+            )
+            for index in range(1, enemy_count + 1)
+        ],
+        effect_queue=[],
+        log=[],
+    )
+    state._refresh_entity_index()
+    state.log.append(",".join(relic_ids))
+    return state
 
 
 def test_playing_strike_spends_energy_and_deals_damage() -> None:
@@ -447,6 +495,591 @@ def test_start_turn_berserk_grants_energy() -> None:
     start_turn(state)
 
     assert state.energy == 4
+
+
+def test_combat_start_relics_apply_opening_block_vulnerable_and_draw() -> None:
+    state = _combat_state_with_relics(
+        "anchor",
+        "bag_of_marbles",
+        "bag_of_preparation",
+    )
+
+    start_turn(
+        state,
+        registry=_content_provider(),
+        hook_registrations=_hook_registrations_for_relics(
+            "anchor",
+            "bag_of_marbles",
+            "bag_of_preparation",
+        ),
+    )
+
+    assert state.player.block == 10
+    assert all(
+        any(
+            status.status_id == "vulnerable" and status.stacks == 1
+            for status in enemy.statuses
+        )
+        for enemy in state.enemies
+    )
+    assert len(state.hand) == 7
+
+
+def test_combat_start_relics_apply_first_turn_energy_statuses_and_shivs() -> None:
+    state = _combat_state_with_relics(
+        "lantern",
+        "clockwork_souvenir",
+        "thread_and_needle",
+        "twisted_funnel",
+        "ninja_scroll",
+    )
+
+    start_turn(
+        state,
+        registry=_content_provider(),
+        hook_registrations=_hook_registrations_for_relics(
+            "lantern",
+            "clockwork_souvenir",
+            "thread_and_needle",
+            "twisted_funnel",
+            "ninja_scroll",
+        ),
+    )
+
+    assert state.energy == 4
+    assert state.player.statuses == [
+        StatusState(status_id="artifact", stacks=1),
+        StatusState(status_id="plated_armor", stacks=4),
+    ]
+    assert all(
+        any(
+            status.status_id == "poison" and status.stacks == 4
+            for status in enemy.statuses
+        )
+        for enemy in state.enemies
+    )
+    assert len([card for card in state.hand if card.startswith("shiv#")]) == 3
+    assert len(state.hand) == 8
+
+
+def test_the_boot_raises_small_attack_damage_to_five() -> None:
+    registry = _enemy_registry_without_attacks()
+    registry.cards().register(
+        {
+            "id": "light_jab",
+            "name": "轻击",
+            "cost": 1,
+            "card_type": "attack",
+            "effects": [{"type": "damage", "amount": 3}],
+        }
+    )
+    state = _combat_state_with_relics("the_boot", enemy_count=1)
+    state.hand = ["light_jab#1"]
+
+    result = play_card(
+        state,
+        "light_jab#1",
+        "enemy-1",
+        registry,
+        hook_registrations=_hook_registrations_for_relics("the_boot"),
+    )
+    damage_result = next(
+        effect for effect in result.resolved_effects if effect["type"] == "damage"
+    )
+
+    assert state.enemies[0].hp == 7
+    assert damage_result["result"]["applied_amount"] == 5
+    assert damage_result["result"]["actual_damage"] == 5
+
+
+def test_the_boot_does_not_raise_non_attack_relic_damage() -> None:
+    state = _combat_state_with_relics("the_boot", enemy_count=1)
+    state.effect_queue.append(
+        {
+            "type": "damage",
+            "source_instance_id": state.player.instance_id,
+            "target_instance_id": state.enemies[0].instance_id,
+            "amount": 3,
+            "uses_strength": False,
+            "relic_id": "bronze_scales",
+        }
+    )
+
+    resolved = resolve_player_actions(
+        state,
+        hook_registrations=_hook_registrations_for_relics("the_boot"),
+        registry=_content_provider(),
+    )
+
+    assert state.enemies[0].hp == 9
+    assert resolved[0]["result"]["applied_amount"] == 3
+    assert resolved[0]["result"]["actual_damage"] == 3
+
+
+def test_the_boot_raises_partially_blocked_attack_damage_to_five() -> None:
+    registry = _enemy_registry_without_attacks()
+    registry.cards().register(
+        {
+            "id": "heavy_jab",
+            "name": "重击",
+            "cost": 1,
+            "card_type": "attack",
+            "effects": [{"type": "damage", "amount": 6}],
+        }
+    )
+    state = _combat_state_with_relics("the_boot", enemy_count=1)
+    state.hand = ["heavy_jab#1"]
+    state.enemies[0].block = 3
+
+    result = play_card(
+        state,
+        "heavy_jab#1",
+        "enemy-1",
+        registry,
+        hook_registrations=_hook_registrations_for_relics("the_boot"),
+    )
+    damage_result = next(
+        effect for effect in result.resolved_effects if effect["type"] == "damage"
+    )
+
+    assert state.enemies[0].hp == 7
+    assert state.enemies[0].block == 0
+    assert damage_result["result"]["blocked"] == 3
+    assert damage_result["result"]["actual_damage"] == 5
+
+
+def test_the_boot_does_not_raise_power_damage() -> None:
+    registry = _enemy_registry_without_attacks()
+    state = _combat_state_with_relics("the_boot", enemy_count=1)
+    state.active_powers = [{"power_id": "combust", "amount": 3, "self_damage": 1}]
+
+    resolved = end_turn(
+        state,
+        registry,
+        hook_registrations=_hook_registrations_for_relics("the_boot"),
+    )
+    combust_damage = next(
+        effect for effect in resolved if effect.get("power_id") == "combust"
+    )
+
+    assert state.enemies[0].hp == 9
+    assert combust_damage["result"]["applied_amount"] == 3
+    assert combust_damage["result"]["actual_damage"] == 3
+
+
+def test_torii_reduces_small_unblocked_attack_damage_to_one() -> None:
+    registry = _enemy_registry()
+    state = _combat_state_with_relics("torii", enemy_count=1)
+
+    resolved = run_enemy_turn(
+        state,
+        registry,
+        hook_registrations=_hook_registrations_for_relics("torii"),
+    )
+
+    assert state.player.hp == 29
+    assert resolved[0]["result"]["applied_amount"] == 5
+    assert resolved[0]["result"]["actual_damage"] == 1
+
+
+def test_tungsten_rod_reduces_hp_loss_by_one() -> None:
+    state = _combat_state_with_relics("tungsten_rod", enemy_count=1)
+    state.player.hp = 10
+    state.effect_queue.append(
+        {
+            "type": "lose_hp",
+            "source_instance_id": state.player.instance_id,
+            "target_instance_id": state.player.instance_id,
+            "amount": 3,
+        }
+    )
+
+    resolved = resolve_player_actions(
+        state,
+        hook_registrations=_hook_registrations_for_relics("tungsten_rod"),
+        registry=_content_provider(),
+    )
+
+    assert state.player.hp == 8
+    assert resolved[0]["result"]["actual_hp_lost"] == 2
+
+
+def test_centennial_puzzle_draws_three_on_first_hp_loss() -> None:
+    registry = _enemy_registry()
+    state = _combat_state_with_relics("centennial_puzzle", enemy_count=1)
+    state.hand = []
+    state.draw_pile = [f"strike#{index}" for index in range(1, 7)]
+
+    run_enemy_turn(
+        state,
+        registry,
+        hook_registrations=_hook_registrations_for_relics("centennial_puzzle"),
+    )
+
+    assert state.player.hp == 25
+    assert state.hand == ["strike#1", "strike#2", "strike#3"]
+
+
+def test_self_forming_clay_gains_three_block_next_turn_after_hp_loss() -> None:
+    registry = _enemy_registry()
+    state = _combat_state_with_relics("self_forming_clay", enemy_count=1)
+
+    run_enemy_turn(
+        state,
+        registry,
+        hook_registrations=_hook_registrations_for_relics("self_forming_clay"),
+    )
+    state.round_number = 2
+    start_turn(
+        state,
+        registry=_content_provider(),
+        hook_registrations=_hook_registrations_for_relics("self_forming_clay"),
+    )
+
+    assert state.player.hp == 25
+    assert state.player.block == 3
+
+
+def test_runic_cube_draws_one_card_each_time_hp_is_lost() -> None:
+    registry = _enemy_registry()
+    state = _combat_state_with_relics("runic_cube", enemy_count=1)
+    state.hand = []
+    state.draw_pile = [f"strike#{index}" for index in range(1, 7)]
+
+    run_enemy_turn(
+        state,
+        registry,
+        hook_registrations=_hook_registrations_for_relics("runic_cube"),
+    )
+    state.effect_queue.append(
+        {
+            "type": "lose_hp",
+            "source_instance_id": state.player.instance_id,
+            "target_instance_id": state.player.instance_id,
+            "amount": 2,
+        }
+    )
+    resolve_player_actions(
+        state,
+        hook_registrations=_hook_registrations_for_relics("runic_cube"),
+        registry=_content_provider(),
+    )
+
+    assert state.player.hp == 23
+    assert state.hand == ["strike#1", "strike#2"]
+
+
+def test_combat_start_relics_only_apply_once_per_combat() -> None:
+    provider = _content_provider()
+    registrations = _hook_registrations_for_relics(
+        "anchor",
+        "bag_of_marbles",
+        "bag_of_preparation",
+        "lantern",
+        "clockwork_souvenir",
+        "thread_and_needle",
+        "twisted_funnel",
+        "ninja_scroll",
+    )
+    state = _combat_state_with_relics(
+        "anchor",
+        "bag_of_marbles",
+        "bag_of_preparation",
+        "lantern",
+        "clockwork_souvenir",
+        "thread_and_needle",
+        "twisted_funnel",
+        "ninja_scroll",
+        enemy_count=1,
+    )
+
+    start_turn(
+        state,
+        registry=provider,
+        hook_registrations=registrations,
+    )
+
+    first_turn_statuses = list(state.player.statuses)
+    first_turn_enemy_statuses = list(state.enemies[0].statuses)
+    state.round_number = 2
+    state.energy = 0
+    state.player.block = 0
+    state.hand.clear()
+    state.draw_pile = [f"strike#{index}" for index in range(11, 16)]
+
+    start_turn(
+        state,
+        registry=provider,
+        hook_registrations=registrations,
+    )
+
+    assert state.energy == 3
+    assert state.player.block == 0
+    assert state.player.statuses == first_turn_statuses
+    assert state.enemies[0].statuses == first_turn_enemy_statuses
+    assert len(state.hand) == 5
+    assert not any(card.startswith("shiv#") for card in state.hand)
+
+
+def test_combat_start_relic_debuffs_respect_artifact() -> None:
+    state = _combat_state_with_relics("bag_of_marbles", "twisted_funnel")
+    state.enemies[0].statuses.append(StatusState(status_id="artifact", stacks=2))
+
+    start_turn(
+        state,
+        registry=_content_provider(),
+        hook_registrations=_hook_registrations_for_relics(
+            "bag_of_marbles",
+            "twisted_funnel",
+        ),
+    )
+
+    assert state.enemies[0].statuses == []
+    assert state.enemies[1].statuses == [
+        StatusState(status_id="vulnerable", stacks=1),
+        StatusState(status_id="poison", stacks=4),
+    ]
+
+
+def test_happy_flower_grants_energy_on_every_third_turn_start() -> None:
+    state = _combat_state_with_relics("happy_flower", enemy_count=1)
+    state.round_number = 3
+    state.energy = 0
+
+    start_turn(
+        state,
+        registry=_content_provider(),
+        hook_registrations=_hook_registrations_for_relics("happy_flower"),
+    )
+
+    assert state.energy == 4
+
+
+def test_horn_cleat_grants_block_on_second_turn_start() -> None:
+    state = _combat_state_with_relics("horn_cleat", enemy_count=1)
+    state.round_number = 2
+
+    start_turn(
+        state,
+        registry=_content_provider(),
+        hook_registrations=_hook_registrations_for_relics("horn_cleat"),
+    )
+
+    assert state.player.block == 14
+
+
+def test_captains_wheel_grants_block_on_third_turn_start() -> None:
+    state = _combat_state_with_relics("captains_wheel", enemy_count=1)
+    state.round_number = 3
+
+    start_turn(
+        state,
+        registry=_content_provider(),
+        hook_registrations=_hook_registrations_for_relics("captains_wheel"),
+    )
+
+    assert state.player.block == 18
+
+
+def test_stone_calendar_deals_damage_at_end_of_seventh_turn_before_enemy_acts() -> None:
+    registry = _enemy_registry()
+    state = _combat_state_with_relics("stone_calendar", enemy_count=1)
+    state.round_number = 7
+    state.enemies[0].hp = 40
+
+    resolved = end_turn(
+        state,
+        registry,
+        hook_registrations=_hook_registrations_for_relics("stone_calendar"),
+    )
+
+    assert any(effect["type"] == "damage" for effect in resolved)
+    assert state.enemies[0].hp == 0
+    assert state.player.hp == 30
+
+
+def test_stone_calendar_ignores_player_weak_and_enemy_vulnerable() -> None:
+    registry = _enemy_registry_without_attacks()
+    state = _combat_state_with_relics("stone_calendar", enemy_count=1)
+    state.round_number = 7
+    state.player.statuses.append(StatusState(status_id="weak", stacks=2))
+    state.enemies[0].hp = 60
+    state.enemies[0].statuses.append(StatusState(status_id="vulnerable", stacks=2))
+
+    end_turn(
+        state,
+        registry,
+        hook_registrations=_hook_registrations_for_relics("stone_calendar"),
+    )
+
+    assert state.enemies[0].hp == 8
+
+
+def test_art_of_war_grants_energy_next_turn_after_no_attack_played() -> None:
+    registry = _enemy_registry_without_attacks()
+    state = _combat_state_with_relics("art_of_war", enemy_count=1)
+
+    end_turn(
+        state,
+        registry,
+        hook_registrations=_hook_registrations_for_relics("art_of_war"),
+    )
+
+    assert state.round_number == 2
+    assert state.energy == 4
+
+
+def test_art_of_war_does_not_grant_energy_after_attack_played() -> None:
+    registry = _enemy_registry_without_attacks()
+    state = _combat_state_with_relics("art_of_war", enemy_count=1)
+    state.hand = ["strike#1"]
+    state.draw_pile = [f"defend#{index}" for index in range(1, 8)]
+
+    play_card(state, "strike#1", "enemy-1", registry)
+    end_turn(
+        state,
+        registry,
+        hook_registrations=_hook_registrations_for_relics("art_of_war"),
+    )
+
+    assert state.round_number == 2
+    assert state.energy == 3
+
+
+def test_pocketwatch_draws_three_extra_cards_next_turn_after_three_or_fewer_plays() -> (
+    None
+):
+    registry = _enemy_registry_without_attacks()
+    state = _combat_state_with_relics("pocketwatch", enemy_count=1)
+    state.energy = 10
+    state.hand = ["defend#1", "defend#2", "defend#3"]
+    state.draw_pile = [f"strike#{index}" for index in range(1, 12)]
+
+    play_card(state, "defend#1", None, registry)
+    play_card(state, "defend#2", None, registry)
+    play_card(state, "defend#3", None, registry)
+    end_turn(
+        state,
+        registry,
+        hook_registrations=_hook_registrations_for_relics("pocketwatch"),
+    )
+
+    assert state.round_number == 2
+    assert len(state.hand) == 8
+
+
+def test_pocketwatch_does_not_draw_extra_cards_next_turn_after_more_than_three_plays() -> (
+    None
+):
+    registry = _enemy_registry_without_attacks()
+    state = _combat_state_with_relics("pocketwatch", enemy_count=1)
+    state.energy = 10
+    state.hand = ["defend#1", "defend#2", "defend#3", "defend#4"]
+    state.draw_pile = [f"strike#{index}" for index in range(1, 12)]
+
+    play_card(state, "defend#1", None, registry)
+    play_card(state, "defend#2", None, registry)
+    play_card(state, "defend#3", None, registry)
+    play_card(state, "defend#4", None, registry)
+    end_turn(
+        state,
+        registry,
+        hook_registrations=_hook_registrations_for_relics("pocketwatch"),
+    )
+
+    assert state.round_number == 2
+    assert len(state.hand) == 5
+
+
+def test_artifact_blocks_one_incoming_debuff_application() -> None:
+    state = _combat_state()
+    state.player.statuses.append(StatusState(status_id="artifact", stacks=1))
+    state.effect_queue.append(
+        {
+            "type": "weak",
+            "source_instance_id": "enemy-1",
+            "target_instance_id": state.player.instance_id,
+            "stacks": 2,
+        }
+    )
+
+    resolved = resolve_player_actions(state)
+
+    assert [effect["type"] for effect in resolved] == ["weak"]
+    assert state.player.statuses == []
+
+
+def test_artifact_blocks_one_incoming_strength_or_dexterity_loss() -> None:
+    state = _combat_state()
+    state.player.statuses.append(StatusState(status_id="artifact", stacks=1))
+    state.effect_queue.extend(
+        [
+            {
+                "type": "strength",
+                "source_instance_id": "enemy-1",
+                "target_instance_id": state.player.instance_id,
+                "amount": -2,
+            },
+            {
+                "type": "dexterity",
+                "source_instance_id": "enemy-1",
+                "target_instance_id": state.player.instance_id,
+                "amount": -2,
+            },
+        ]
+    )
+
+    resolved = resolve_player_actions(state)
+
+    assert [effect["type"] for effect in resolved] == ["strength", "dexterity"]
+    assert state.player.statuses == [StatusState(status_id="dexterity", stacks=-2)]
+
+
+def test_end_turn_plated_armor_grants_block_before_enemy_attack() -> None:
+    registry = _enemy_registry()
+    state = _combat_state()
+    state.player.statuses.append(StatusState(status_id="plated_armor", stacks=4))
+
+    resolved = end_turn(state, registry)
+
+    assert [effect["type"] for effect in resolved] == ["block", "damage"]
+    assert state.player.hp == 29
+    assert state.player.block == 0
+
+
+def test_end_turn_plated_armor_loses_one_stack_after_unblocked_attack_damage() -> None:
+    registry = _enemy_registry()
+    state = _combat_state()
+    state.player.statuses.append(StatusState(status_id="plated_armor", stacks=4))
+
+    end_turn(state, registry)
+
+    assert state.player.statuses == [StatusState(status_id="plated_armor", stacks=3)]
+
+
+def test_end_turn_poison_damages_enemy_and_reduces_stacks_before_attack() -> None:
+    registry = _enemy_registry()
+    state = _combat_state()
+    state.enemies[0].statuses.append(StatusState(status_id="poison", stacks=4))
+
+    resolved = end_turn(state, registry)
+
+    assert [effect["type"] for effect in resolved] == ["lose_hp", "damage"]
+    assert state.enemies[0].hp == 8
+    assert state.enemies[0].statuses == [StatusState(status_id="poison", stacks=3)]
+
+
+def test_end_turn_poison_can_defeat_enemy_before_it_acts() -> None:
+    registry = _enemy_registry()
+    state = _combat_state()
+    state.enemies[0].hp = 3
+    state.enemies[0].statuses.append(StatusState(status_id="poison", stacks=3))
+
+    resolved = end_turn(state, registry)
+
+    assert [effect["type"] for effect in resolved] == ["lose_hp"]
+    assert state.enemies[0].hp == 0
+    assert state.player.hp == 30
 
 
 def test_end_turn_flex_power_loses_strength_and_removes_power() -> None:
