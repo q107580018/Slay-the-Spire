@@ -600,24 +600,110 @@ def test_ssserpent_head_adds_fifty_gold_when_entering_event_room() -> None:
     assert run_state.gold == 149
 
 
-def test_matryoshka_generates_two_treasure_relics() -> None:
-    room_state = enter_room(
-        _run_state(
-            seed=13,
-            relics=["burning_blood", "matryoshka"],
-            relic_sequences={
-                "common": ["anchor", "bag_of_marbles"],
-                "uncommon": ["oddly_smooth_stone"],
-                "rare": ["bird_faced_urn"],
-            },
-            relic_sequence_positions={"common": 0, "uncommon": 0, "rare": 0},
-        ),
+def test_matryoshka_only_affects_next_two_treasure_rooms() -> None:
+    run_state = _run_state(
+        seed=13,
+        relics=["burning_blood", "matryoshka"],
+        relic_sequences={
+            "common": ["anchor", "bag_of_marbles", "lantern"],
+            "uncommon": ["oddly_smooth_stone"],
+            "rare": ["bird_faced_urn"],
+        },
+        relic_sequence_positions={"common": 0, "uncommon": 0, "rare": 0},
+    )
+
+    first_room = enter_room(
+        run_state,
         _act_state(node_id="r1c0", room_type="treasure"),
         "r1c0",
         _content_provider(),
     )
+    second_room = enter_room(
+        run_state,
+        _act_state(node_id="r2c0", room_type="treasure"),
+        "r2c0",
+        _content_provider(),
+    )
+    third_room = enter_room(
+        run_state,
+        _act_state(node_id="r3c0", room_type="treasure"),
+        "r3c0",
+        _content_provider(),
+    )
 
-    assert len(room_state.payload["treasure_relic_ids"]) == 2
+    assert first_room.payload["treasure_relic_ids"] == ["anchor", "bag_of_marbles"]
+    assert second_room.payload["treasure_relic_ids"] == [
+        "lantern",
+        "oddly_smooth_stone",
+    ]
+    assert "treasure_relic_ids" not in third_room.payload
+    assert run_state.relic_sequence_positions["matryoshka_chests_opened"] == 2
+
+
+def test_event_node_resolves_to_combat_room_without_juzu_bracelet() -> None:
+    provider = _content_provider()
+    room_state = enter_room(
+        _run_state(seed=7),
+        _act_state(node_id="event-1", room_type="event"),
+        "event-1",
+        provider,
+    )
+
+    assert room_state.payload["room_kind"] == "event"
+    assert room_state.payload["resolved_room_kind"] in {"event", "combat", "treasure"}
+    if room_state.payload["resolved_room_kind"] == "combat":
+        assert room_state.room_type == "combat"
+        assert "combat_state" in room_state.payload
+
+
+def test_juzu_bracelet_prevents_event_node_from_resolving_to_combat() -> None:
+    provider = _content_provider()
+
+    for seed in range(1, 50):
+        room_state = enter_room(
+            _run_state(seed=seed, relics=["burning_blood", "juzu_bracelet"]),
+            _act_state(node_id="event-1", room_type="event"),
+            "event-1",
+            provider,
+        )
+        assert room_state.payload["resolved_room_kind"] in {"event", "treasure"}
+
+
+def test_tiny_chest_turns_every_fourth_event_node_into_treasure() -> None:
+    provider = _content_provider()
+    run_state = _run_state(seed=11, relics=["burning_blood", "tiny_chest"])
+
+    first = enter_room(
+        run_state,
+        _act_state(node_id="event-1", room_type="event"),
+        "event-1",
+        provider,
+    )
+    second = enter_room(
+        run_state,
+        _act_state(node_id="event-2", room_type="event"),
+        "event-2",
+        provider,
+    )
+    third = enter_room(
+        run_state,
+        _act_state(node_id="event-3", room_type="event"),
+        "event-3",
+        provider,
+    )
+    fourth = enter_room(
+        run_state,
+        _act_state(node_id="event-4", room_type="event"),
+        "event-4",
+        provider,
+    )
+
+    assert first.payload["resolved_room_kind"] in {"event", "combat", "treasure"}
+    assert second.payload["resolved_room_kind"] in {"event", "combat", "treasure"}
+    assert third.payload["resolved_room_kind"] in {"event", "combat", "treasure"}
+    assert fourth.room_type == "treasure"
+    assert fourth.payload["resolved_room_kind"] == "treasure"
+    assert run_state.relic_sequence_positions["tiny_chest_counter"] == 0
 
 
 def test_tiny_chest_marks_counter_when_entering_event_room() -> None:

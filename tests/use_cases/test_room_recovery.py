@@ -172,6 +172,42 @@ def test_rest_upgrade_subflow_survives_load_session(tmp_path: Path) -> None:
     assert restored_session.menu_state.mode == "rest_upgrade_card"
 
 
+def test_rest_remove_subflow_survives_load_session(tmp_path: Path) -> None:
+    provider = _content_provider()
+    run_state = start_new_run("ironclad", seed=31, registry=provider)
+    act_state = generate_act_state("act1", seed=31, registry=provider)
+    entered_remove = rest_action(
+        run_state=replace(run_state, relics=["burning_blood", "peace_pipe"]),
+        room_state=RoomState(
+            room_id="act1:rest",
+            room_type="rest",
+            stage="waiting_input",
+            payload={"actions": ["rest", "smith", "digestion"]},
+            is_resolved=False,
+            rewards=[],
+        ),
+        action_id="digestion",
+        registry=provider,
+    )
+    repository = JsonFileSaveRepository(tmp_path / "rest-remove.json")
+    save_game(
+        repository=repository,
+        run_state=entered_remove.run_state,
+        act_state=act_state,
+        room_state=entered_remove.room_state,
+    )
+
+    restored_room = load_game(repository=repository)["room_state"]
+    restored_session = load_session(
+        save_path=tmp_path / "rest-remove.json",
+        content_root=Path(__file__).resolve().parents[2] / "content",
+    )
+
+    assert restored_room.stage == "select_remove_card"
+    assert restored_room.payload["remove_candidates"] == entered_remove.run_state.deck
+    assert restored_session.menu_state.mode == "rest_remove_card"
+
+
 def test_open_treasure_via_menu_grants_relic_marks_room_resolved_and_is_not_reapplied_after_load(
     tmp_path: Path,
 ) -> None:
@@ -559,7 +595,9 @@ def test_boss_victory_generates_combat_rewards_and_boss_relic_offers() -> None:
     _running, next_session, _message = route_command("play 1", session=session)
     boss_rewards = next_session.room_state.payload["boss_rewards"]
     gold_rewards = [
-        reward for reward in next_session.room_state.rewards if reward.startswith("gold:")
+        reward
+        for reward in next_session.room_state.rewards
+        if reward.startswith("gold:")
     ]
     card_rewards = [
         reward
@@ -630,9 +668,7 @@ def test_partial_boss_reward_progress_survives_load_session(tmp_path: Path) -> N
         menu_state=MenuState(mode="root"),
     )
 
-    _running, reward_session, _message = route_menu_choice(
-        "1", session=initial_session
-    )
+    _running, reward_session, _message = route_menu_choice("1", session=initial_session)
     _running, claimed_gold_session, _message = route_menu_choice(
         "1", session=reward_session
     )
@@ -663,7 +699,9 @@ def test_partial_boss_reward_progress_survives_load_session(tmp_path: Path) -> N
     assert restored_session.run_state.gold == claimed_gold_session.run_state.gold
     assert restored_session.run_phase == "active"
     assert restored_session.menu_state.mode == "root"
-    assert restored_session.room_state.payload["boss_rewards"]["claimed_relic_id"] is None
+    assert (
+        restored_session.room_state.payload["boss_rewards"]["claimed_relic_id"] is None
+    )
     assert set(
         restored_session.room_state.payload["boss_rewards"]["boss_relic_offers"]
     ).isdisjoint(restored_session.run_state.relics)
@@ -897,7 +935,10 @@ def test_boss_reward_root_inspect_round_trip_keeps_reward_menu_numbering() -> No
     assert select_reward_session.menu_state.mode == "select_boss_relic"
     assert "选择Boss遗物" in select_reward_message
     assert claimed_session.run_phase == "active"
-    assert claimed_session.room_state.payload["boss_rewards"]["claimed_relic_id"] == "black_blood"
+    assert (
+        claimed_session.room_state.payload["boss_rewards"]["claimed_relic_id"]
+        == "black_blood"
+    )
 
 
 def test_claiming_boss_relic_from_boss_chest_returns_to_root_with_selection() -> None:
@@ -927,7 +968,10 @@ def test_claiming_boss_relic_from_boss_chest_returns_to_root_with_selection() ->
     _running, next_session, message = route_menu_choice("1", session=session)
 
     assert next_session.menu_state.mode == "root"
-    assert next_session.room_state.payload["boss_rewards"]["claimed_relic_id"] == "black_blood"
+    assert (
+        next_session.room_state.payload["boss_rewards"]["claimed_relic_id"]
+        == "black_blood"
+    )
     assert "Boss宝箱" in message
 
 

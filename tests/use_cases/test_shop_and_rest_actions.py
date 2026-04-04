@@ -7,7 +7,9 @@ from pathlib import Path
 
 from slay_the_spire.app.session import MenuState, route_menu_choice, start_session
 from slay_the_spire.domain.models.act_state import ActNodeState, ActState
+from slay_the_spire.domain.models.combat_state import CombatState
 from slay_the_spire.domain.models.room_state import RoomState
+from slay_the_spire.domain.models.statuses import StatusState
 from slay_the_spire.domain.models.run_state import RunState
 from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.use_cases.enter_room import enter_room
@@ -235,7 +237,7 @@ def test_maw_bank_stops_adding_gold_after_entering_shop() -> None:
     assert run_state.gold == 100
 
 
-def test_dream_catcher_rest_adds_card_reward() -> None:
+def test_dream_catcher_rest_adds_three_card_reward_choices() -> None:
     result = rest_action(
         run_state=replace(_run_state(), relics=["burning_blood", "dream_catcher"]),
         room_state=_rest_room(),
@@ -243,7 +245,100 @@ def test_dream_catcher_rest_adds_card_reward() -> None:
         registry=_content_provider(),
     )
 
-    assert result.room_state.rewards == ["card_offer:anger"]
+    card_rewards = [
+        reward
+        for reward in result.room_state.rewards
+        if reward.startswith("card_offer:")
+    ]
+
+    assert len(card_rewards) == 3
+    assert len(set(card_rewards)) == 3
+
+
+def test_peace_pipe_enters_select_remove_card_stage() -> None:
+    result = rest_action(
+        run_state=replace(_run_state(), relics=["burning_blood", "peace_pipe"]),
+        room_state=_rest_room(),
+        action_id="digestion",
+        registry=_content_provider(),
+    )
+
+    assert result.run_state.deck == ["strike#1", "defend#2", "bash#3"]
+    assert result.room_state.stage == "select_remove_card"
+    assert result.room_state.is_resolved is False
+    assert result.room_state.payload["remove_candidates"] == [
+        "strike#1",
+        "defend#2",
+        "bash#3",
+    ]
+
+
+def test_peace_pipe_remove_card_removes_selected_card() -> None:
+    entered_remove = rest_action(
+        run_state=replace(_run_state(), relics=["burning_blood", "peace_pipe"]),
+        room_state=_rest_room(),
+        action_id="digestion",
+        registry=_content_provider(),
+    )
+
+    result = rest_action(
+        run_state=entered_remove.run_state,
+        room_state=entered_remove.room_state,
+        action_id="remove_card:defend#2",
+        registry=_content_provider(),
+    )
+
+    assert result.run_state.deck == ["strike#1", "bash#3"]
+    assert result.room_state.stage == "completed"
+    assert result.room_state.is_resolved is True
+
+
+def test_shovel_dig_adds_generated_relic_reward() -> None:
+    result = rest_action(
+        run_state=replace(
+            _run_state(),
+            relics=["burning_blood", "shovel"],
+            relic_sequences={
+                "common": ["anchor"],
+                "uncommon": ["oddly_smooth_stone"],
+                "rare": ["bird_faced_urn"],
+            },
+            relic_sequence_positions={"common": 0, "uncommon": 0, "rare": 0},
+        ),
+        room_state=_rest_room(),
+        action_id="dig",
+        registry=_content_provider(),
+    )
+
+    assert result.room_state.rewards == ["relic:anchor"]
+
+
+def test_girya_lift_persists_across_rest_sites_and_applies_strength_in_combat() -> None:
+    lifted_run_state = replace(
+        _run_state(),
+        relics=["burning_blood", "girya"],
+        relic_sequence_positions={"girya_lifts": 2},
+    )
+
+    lift_result = rest_action(
+        run_state=lifted_run_state,
+        room_state=_rest_room(),
+        action_id="lift",
+        registry=_content_provider(),
+    )
+
+    assert lift_result.run_state.relic_sequence_positions["girya_lifts"] == 3
+
+    combat_room = enter_room(
+        lift_result.run_state,
+        _single_room_act_state(node_id="combat-1", room_type="combat"),
+        "combat-1",
+        _content_provider(),
+    )
+
+    combat_state = CombatState.from_dict(combat_room.payload["combat_state"])
+
+    assert StatusState(status_id="strength", stacks=3) in combat_state.player.statuses
 
 
 def test_eternal_feather_adds_three_healing_per_five_cards() -> None:
@@ -626,6 +721,27 @@ def test_rest_menu_route_can_leave_when_both_actions_disabled() -> None:
     assert next_session.room_state.is_resolved is True
     assert next_session.menu_state.mode == "root"
     assert "前往下一个房间" in message
+
+
+def test_rest_menu_route_enters_remove_card_subflow_for_peace_pipe() -> None:
+    session = replace(
+        start_session(seed=5),
+        run_state=replace(
+            start_session(seed=5).run_state, relics=["burning_blood", "peace_pipe"]
+        ),
+        room_state=replace(
+            _rest_room(),
+            room_id="act1:rest",
+            payload={"actions": ["rest", "smith", "digestion"]},
+        ),
+        menu_state=MenuState(mode="rest_root"),
+    )
+
+    _running, next_session, message = route_menu_choice("3", session=session)
+
+    assert next_session.room_state.stage == "select_remove_card"
+    assert next_session.menu_state.mode == "rest_remove_card"
+    assert "选择要移除的卡牌" in message
 
 
 def test_rest_select_upgrade_card_rewrites_card_instance_to_upgraded_card() -> None:

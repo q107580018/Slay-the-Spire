@@ -21,6 +21,7 @@ _TREASURE_FALLBACK_RELIC_ID = "circlet"
 _COMMON_RELIC_RARITY = "common"
 _UNCOMMON_RELIC_RARITY = "uncommon"
 _RARE_RELIC_RARITY = "rare"
+_UNKNOWN_EVENT_ROOM_TYPES = ("event", "combat", "treasure")
 
 
 def _scaled_shop_price(price: int, *, run_state: RunState) -> int:
@@ -78,6 +79,14 @@ def _build_enemy_state(
         block=0,
         statuses=statuses,
     )
+
+
+def _player_start_statuses(run_state: RunState) -> list[StatusState]:
+    statuses: list[StatusState] = []
+    girya_lifts = run_state.relic_sequence_positions.get("girya_lifts", 0)
+    if girya_lifts > 0:
+        statuses.append(StatusState(status_id="strength", stacks=girya_lifts))
+    return statuses
 
 
 def _apply_preserved_insect(enemy: EnemyState) -> EnemyState:
@@ -177,7 +186,7 @@ def _build_combat_state(
             hp=run_state.current_hp,
             max_hp=run_state.max_hp,
             block=0,
-            statuses=[],
+            statuses=_player_start_statuses(run_state),
         ),
         enemies=[
             _build_enemy_state(enemy_id, registry, instance_id=f"enemy-{index}")
@@ -205,6 +214,24 @@ def _build_combat_state(
 
 def _offer_rng(run_state: RunState, room_id: str, category: str):
     return rng_for_room(seed=run_state.seed, room_id=room_id, category=category)
+
+
+def _resolved_unknown_room_kind(run_state: RunState, *, room_id: str) -> str:
+    tiny_chest_counter = run_state.relic_sequence_positions.get("tiny_chest_counter", 0)
+    if "tiny_chest" in run_state.relics and tiny_chest_counter + 1 >= 4:
+        run_state.relic_sequence_positions["tiny_chest_counter"] = 0
+        return "treasure"
+
+    rng = _offer_rng(run_state, room_id, "unknown_room")
+    choices = [("event", 55), ("combat", 30), ("treasure", 15)]
+    if "juzu_bracelet" in run_state.relics:
+        choices = [("event", 79), ("treasure", 21)]
+    resolved_kind = weighted_choice(choices, rng=rng)
+    if "tiny_chest" in run_state.relics:
+        run_state.relic_sequence_positions["tiny_chest_counter"] = (
+            tiny_chest_counter + 1
+        )
+    return resolved_kind
 
 
 def _sample_ids(ids: list[str], *, count: int, rng) -> list[str]:
@@ -327,15 +354,25 @@ def _room_payload_for_entry(
         "room_kind": room_kind,
         "next_node_ids": list(current_node.next_node_ids),
     }
-    if room_kind in {"combat", "elite", "boss"}:
+    resolved_room_kind = room_kind
+    if room_kind == "event":
+        resolved_room_kind = _resolved_unknown_room_kind(run_state, room_id=room_id)
+        payload["resolved_room_kind"] = resolved_room_kind
+    if resolved_room_kind in {"combat", "elite", "boss"}:
         if room_kind == "combat":
             enemy_pool_id = act_state.enemy_pool_id
         elif room_kind == "elite":
             enemy_pool_id = act_state.elite_pool_id
         else:
             enemy_pool_id = act_state.boss_pool_id
+        if resolved_room_kind == "combat":
+            enemy_pool_id = act_state.enemy_pool_id
+        elif resolved_room_kind == "elite":
+            enemy_pool_id = act_state.elite_pool_id
+        elif resolved_room_kind == "boss":
+            enemy_pool_id = act_state.boss_pool_id
         if enemy_pool_id is None:
-            raise ValueError(f"{room_kind} rooms require an enemy pool id")
+            raise ValueError(f"{resolved_room_kind} rooms require an enemy pool id")
         payload["enemy_pool_id"] = enemy_pool_id
         combat_state, encounter_id = _build_combat_state(
             run_state,
@@ -347,7 +384,7 @@ def _room_payload_for_entry(
         if encounter_id is not None:
             payload["encounter_id"] = encounter_id
         payload["combat_state"] = combat_state.to_dict()
-    elif room_kind == "event":
+    elif resolved_room_kind == "event":
         if act_state.event_pool_id is None:
             raise ValueError("event rooms require an event pool id")
         payload.update(
@@ -358,11 +395,11 @@ def _room_payload_for_entry(
                 registry=registry,
             )
         )
-    elif room_kind == "shop":
+    elif resolved_room_kind == "shop":
         payload.update(
             _build_shop_payload(run_state, room_id=room_id, registry=registry)
         )
-    elif room_kind == "rest":
+    elif resolved_room_kind == "rest":
         payload["actions"] = ["rest", "smith"]
         if "dream_catcher" in run_state.relics:
             payload["actions"].append("dream")
@@ -372,12 +409,12 @@ def _room_payload_for_entry(
             payload["actions"].append("digestion")
         if "shovel" in run_state.relics:
             payload["actions"].append("dig")
-    elif room_kind == "treasure":
+    elif resolved_room_kind == "treasure":
         payload.update(
             _build_treasure_payload(run_state, room_id=room_id, registry=registry)
         )
 
-    if room_kind in {"shop", "treasure"}:
+    if resolved_room_kind in {"shop", "treasure"}:
         act_state.room_payloads[room_id] = dict(payload)
     return payload
 
@@ -409,7 +446,10 @@ def _build_event_payload(
 def _build_treasure_payload(
     run_state: RunState, *, room_id: str, registry: ContentProviderPort
 ) -> dict[str, object]:
-    if "matryoshka" in run_state.relics:
+    matryoshka_chests_opened = run_state.relic_sequence_positions.get(
+        "matryoshka_chests_opened", 0
+    )
+    if "matryoshka" in run_state.relics and matryoshka_chests_opened < 2:
         rarity_pool_order = ["common", "uncommon", "rare"]
         first_relic = None
         second_relic = None
@@ -427,6 +467,9 @@ def _build_treasure_payload(
                 break
         relic_ids = [relic_id for relic_id in [first_relic, second_relic] if relic_id]
         if relic_ids:
+            run_state.relic_sequence_positions["matryoshka_chests_opened"] = (
+                matryoshka_chests_opened + 1
+            )
             return {"treasure_relic_id": relic_ids[0], "treasure_relic_ids": relic_ids}
     treasure_relic_id = _next_relic_from_sequence(
         run_state=run_state,
@@ -456,8 +499,7 @@ def _record_event_room_progress(
 ) -> None:
     if room_kind != "event" or "tiny_chest" not in run_state.relics:
         return
-    counter = run_state.relic_sequence_positions.get("tiny_chest_counter", 0) + 1
-    run_state.relic_sequence_positions["tiny_chest_counter"] = counter
+    counter = run_state.relic_sequence_positions.get("tiny_chest_counter", 0)
     act_state.room_payloads[room_id] = {"tiny_chest_counter": counter}
 
 
@@ -485,9 +527,12 @@ def enter_room(
         run_state=run_state,
         registry=registry,
     )
+    resolved_room_kind = payload.get("resolved_room_kind", room_kind)
+    if not isinstance(resolved_room_kind, str):
+        resolved_room_kind = room_kind
     room_state = RoomState(
         room_id=room_id,
-        room_type=room_kind,
+        room_type=resolved_room_kind,
         stage="waiting_input",
         payload=payload,
         is_resolved=False,

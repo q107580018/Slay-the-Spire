@@ -806,6 +806,35 @@ def test_current_action_menu_preserves_rarity_style_for_event_remove_choices() -
     assert "card.upgraded" in _span_styles(label)
 
 
+def test_current_action_menu_preserves_rarity_style_for_rest_remove_choices() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=RoomState(
+            room_id="act1:rest",
+            room_type="rest",
+            stage="select_remove_card",
+            payload={
+                "node_id": "r1c1",
+                "room_kind": "rest",
+                "remove_candidates": ["anger_plus#1"],
+                "next_node_ids": ["r2c0"],
+            },
+            is_resolved=False,
+            rewards=[],
+        ),
+        menu_state=replace(start_session(seed=5).menu_state, mode="rest_remove_card"),
+    )
+
+    menu = _current_action_menu(session)
+
+    assert menu is not None
+    label = menu.options[0].label
+    assert isinstance(label, Text)
+    assert label.plain == "愤怒+"
+    assert "card.rarity.common" in _span_styles(label)
+    assert "card.upgraded" in _span_styles(label)
+
+
 def test_current_action_menu_shows_readable_next_room_labels() -> None:
     base_session = start_session(seed=5)
     act_state = ActState(

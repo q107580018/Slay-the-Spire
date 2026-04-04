@@ -125,7 +125,10 @@ def test_select_card_menu_keeps_unplayable_curse_as_unplayable() -> None:
     session = start_session(seed=5)
     combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
     combat_state.hand = ["doubt#1"]
-    room_state = replace(session.room_state, payload={**session.room_state.payload, "combat_state": combat_state.to_dict()})
+    room_state = replace(
+        session.room_state,
+        payload={**session.room_state.payload, "combat_state": combat_state.to_dict()},
+    )
 
     output = render_room(
         run_state=session.run_state,
@@ -163,7 +166,9 @@ def test_select_card_menu_shows_scaled_rampage_damage_for_card_instance() -> Non
     assert "暴走+ 费用1 - 造成 16 伤害（每次使用后永久增加 8 伤害）" in output
 
 
-def test_select_card_menu_shows_scaled_perfected_strike_damage_for_card_instance() -> None:
+def test_select_card_menu_shows_scaled_perfected_strike_damage_for_card_instance() -> (
+    None
+):
     session = start_session(seed=5)
     combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
     combat_state.hand = ["perfected_strike#1", "strike#2"]
@@ -204,7 +209,9 @@ def test_target_menu_keeps_current_card_styles() -> None:
     combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
     combat_state.hand = ["anger_plus#1", "strike_plus#2"]
 
-    lines = _format_target_menu(combat_state, session.run_state, _provider(session), "anger_plus#1")
+    lines = _format_target_menu(
+        combat_state, session.run_state, _provider(session), "anger_plus#1"
+    )
 
     assert isinstance(lines[1], Text)
     assert lines[1].plain == "当前卡牌: 愤怒+"
@@ -390,7 +397,10 @@ def test_combat_renderer_shows_recent_battle_log_entries() -> None:
         "你打出 打击，对 绿史莱姆 造成 6 伤害。",
         "绿史莱姆攻击你 3，实际受到 3。",
     ]
-    room_state = replace(session.room_state, payload={**session.room_state.payload, "combat_state": combat_state.to_dict()})
+    room_state = replace(
+        session.room_state,
+        payload={**session.room_state.payload, "combat_state": combat_state.to_dict()},
+    )
 
     output = render_room(
         run_state=session.run_state,
@@ -470,7 +480,12 @@ def test_combat_renderer_uses_dynamic_enemy_intent_for_sleeping_enemy() -> None:
         room_id="act1:elite",
         room_type="elite",
         stage="waiting_input",
-        payload={"node_id": "elite", "room_kind": "elite", "combat_state": combat_state.to_dict(), "next_node_ids": ["boss"]},
+        payload={
+            "node_id": "elite",
+            "room_kind": "elite",
+            "combat_state": combat_state.to_dict(),
+            "next_node_ids": ["boss"],
+        },
         is_resolved=False,
         rewards=[],
     )
@@ -492,7 +507,10 @@ def test_combat_renderer_shows_active_powers_in_player_panel() -> None:
     session = start_session(seed=5)
     combat_state = CombatState.from_dict(session.room_state.payload["combat_state"])
     combat_state.active_powers = [{"power_id": "metallicize", "amount": 3}]
-    room_state = replace(session.room_state, payload={**session.room_state.payload, "combat_state": combat_state.to_dict()})
+    room_state = replace(
+        session.room_state,
+        payload={**session.room_state.payload, "combat_state": combat_state.to_dict()},
+    )
 
     output = render_room(
         run_state=session.run_state,
@@ -552,7 +570,12 @@ def test_combat_renderer_uses_dynamic_enemy_intent_for_awake_enemy() -> None:
         room_id="act1:elite",
         room_type="elite",
         stage="waiting_input",
-        payload={"node_id": "elite", "room_kind": "elite", "combat_state": combat_state.to_dict(), "next_node_ids": ["boss"]},
+        payload={
+            "node_id": "elite",
+            "room_kind": "elite",
+            "combat_state": combat_state.to_dict(),
+            "next_node_ids": ["boss"],
+        },
         is_resolved=False,
         rewards=[],
     )
@@ -603,7 +626,12 @@ def test_combat_renderer_includes_enemy_strength_in_intent_preview() -> None:
         room_id="act1:combat",
         room_type="combat",
         stage="waiting_input",
-        payload={"node_id": "combat", "room_kind": "combat", "combat_state": combat_state.to_dict(), "next_node_ids": ["next"]},
+        payload={
+            "node_id": "combat",
+            "room_kind": "combat",
+            "combat_state": combat_state.to_dict(),
+            "next_node_ids": ["next"],
+        },
         is_resolved=False,
         rewards=[],
     )
@@ -645,7 +673,9 @@ def test_combat_renderer_shows_deck_list_and_back_choice_in_inspect_mode() -> No
         act_state=session.act_state,
         room_state=session.room_state,
         registry=_provider(session),
-        menu_state=MenuState(mode="inspect_deck", inspect_parent_mode="root", inspect_item_id="deck"),
+        menu_state=MenuState(
+            mode="inspect_deck", inspect_parent_mode="root", inspect_item_id="deck"
+        ),
         run_phase=session.run_phase,
     )
 
@@ -663,7 +693,9 @@ def test_combat_renderer_distinguishes_inspect_stats_and_relics_pages() -> None:
         act_state=session.act_state,
         room_state=session.room_state,
         registry=_provider(session),
-        menu_state=MenuState(mode="inspect_stats", inspect_parent_mode="root", inspect_item_id="stats"),
+        menu_state=MenuState(
+            mode="inspect_stats", inspect_parent_mode="root", inspect_item_id="stats"
+        ),
         run_phase=session.run_phase,
     )
     relics_output = render_room(
@@ -671,7 +703,9 @@ def test_combat_renderer_distinguishes_inspect_stats_and_relics_pages() -> None:
         act_state=session.act_state,
         room_state=session.room_state,
         registry=_provider(session),
-        menu_state=MenuState(mode="inspect_relics", inspect_parent_mode="root", inspect_item_id="relics"),
+        menu_state=MenuState(
+            mode="inspect_relics", inspect_parent_mode="root", inspect_item_id="relics"
+        ),
         run_phase=session.run_phase,
     )
 
@@ -685,10 +719,17 @@ def test_combat_renderer_distinguishes_inspect_stats_and_relics_pages() -> None:
     assert "角色状态" not in relics_output
 
 
-def test_combat_renderer_shows_inspect_slot_after_resolved_combat_with_rewards() -> None:
+def test_combat_renderer_shows_inspect_slot_after_resolved_combat_with_rewards() -> (
+    None
+):
     session = replace(
         start_session(seed=5),
-        room_state=replace(start_session(seed=5).room_state, stage="completed", is_resolved=True, rewards=["gold:99"]),
+        room_state=replace(
+            start_session(seed=5).room_state,
+            stage="completed",
+            is_resolved=True,
+            rewards=["gold:99"],
+        ),
     )
 
     output = render_room(
@@ -709,16 +750,29 @@ def test_combat_renderer_shows_inspect_slot_after_resolved_combat_with_rewards()
     assert "1. 查看奖励" not in output
 
 
-def test_non_combat_renderer_legacy_reward_inspect_modes_fall_back_to_current_reward_root() -> None:
+def test_non_combat_renderer_legacy_reward_inspect_modes_fall_back_to_current_reward_root() -> (
+    None
+):
     base = replace(
         start_session(seed=5),
-        room_state=replace(start_session(seed=5).room_state, stage="completed", is_resolved=True, rewards=["gold:11", "card_offer:anger"]),
+        room_state=replace(
+            start_session(seed=5).room_state,
+            stage="completed",
+            is_resolved=True,
+            rewards=["gold:11", "card_offer:anger"],
+        ),
     )
 
     for menu_state in (
         MenuState(mode="inspect_reward_root", inspect_parent_mode="root"),
-        MenuState(mode="inspect_reward_list", inspect_parent_mode="inspect_reward_root"),
-        MenuState(mode="inspect_reward_detail", inspect_parent_mode="inspect_reward_list", inspect_item_id="gold:11"),
+        MenuState(
+            mode="inspect_reward_list", inspect_parent_mode="inspect_reward_root"
+        ),
+        MenuState(
+            mode="inspect_reward_detail",
+            inspect_parent_mode="inspect_reward_list",
+            inspect_item_id="gold:11",
+        ),
     ):
         output = render_room(
             run_state=base.run_state,
@@ -751,7 +805,12 @@ def test_boss_reward_renderer_shows_reward_actions_on_root_screen() -> None:
                     "generated_by": "boss_reward_generator",
                     "gold_reward": 99,
                     "claimed_gold": False,
-                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"],
+                    "boss_relic_offers": [
+                        "black_blood",
+                        "ectoplasm",
+                        "coffee_dripper",
+                        "fusion_hammer",
+                    ],
                     "claimed_relic_id": None,
                 },
             },
@@ -791,7 +850,12 @@ def test_boss_reward_renderer_shows_boss_reward_menu() -> None:
                     "generated_by": "boss_reward_generator",
                     "gold_reward": 99,
                     "claimed_gold": False,
-                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"],
+                    "boss_relic_offers": [
+                        "black_blood",
+                        "ectoplasm",
+                        "coffee_dripper",
+                        "fusion_hammer",
+                    ],
                     "claimed_relic_id": None,
                 },
             },
@@ -830,7 +894,12 @@ def test_boss_reward_renderer_shows_boss_relic_menu() -> None:
                     "generated_by": "boss_reward_generator",
                     "gold_reward": 99,
                     "claimed_gold": True,
-                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"],
+                    "boss_relic_offers": [
+                        "black_blood",
+                        "ectoplasm",
+                        "coffee_dripper",
+                        "fusion_hammer",
+                    ],
                     "claimed_relic_id": None,
                 },
             },
@@ -871,7 +940,12 @@ def test_boss_reward_renderer_shows_claimed_status_labels() -> None:
                     "generated_by": "boss_reward_generator",
                     "gold_reward": 99,
                     "claimed_gold": True,
-                    "boss_relic_offers": ["black_blood", "ectoplasm", "coffee_dripper", "fusion_hammer"],
+                    "boss_relic_offers": [
+                        "black_blood",
+                        "ectoplasm",
+                        "coffee_dripper",
+                        "fusion_hammer",
+                    ],
                     "claimed_relic_id": "black_blood",
                 },
             },
@@ -894,10 +968,17 @@ def test_boss_reward_renderer_shows_claimed_status_labels() -> None:
     assert "2. 返回上一步" in output
 
 
-def test_combat_renderer_shows_inspect_slot_after_resolved_combat_without_rewards() -> None:
+def test_combat_renderer_shows_inspect_slot_after_resolved_combat_without_rewards() -> (
+    None
+):
     session = replace(
         start_session(seed=5),
-        room_state=replace(start_session(seed=5).room_state, stage="completed", is_resolved=True, rewards=[]),
+        room_state=replace(
+            start_session(seed=5).room_state,
+            stage="completed",
+            is_resolved=True,
+            rewards=[],
+        ),
     )
 
     output = render_room(
@@ -923,7 +1004,12 @@ def test_non_combat_renderer_shows_full_map_rows_and_current_position() -> None:
         room_id="act1:event",
         room_type="event",
         stage="waiting_input",
-        payload={"node_id": "r1c0", "room_kind": "event", "event_id": "shining_light", "next_node_ids": ["r2c0"]},
+        payload={
+            "node_id": "r1c0",
+            "room_kind": "event",
+            "event_id": "shining_light",
+            "next_node_ids": ["r2c0"],
+        },
         is_resolved=False,
         rewards=[],
     )
@@ -950,13 +1036,43 @@ def test_full_map_panel_lists_reachable_nodes_and_topology_hint() -> None:
         act_id="act1",
         current_node_id="r2c0",
         nodes=[
-            ActNodeState(node_id="start", row=0, col=0, room_type="combat", next_node_ids=["r1c0"]),
-            ActNodeState(node_id="r1c0", row=1, col=0, room_type="event", next_node_ids=["r2c0", "r2c1"]),
-            ActNodeState(node_id="r2c0", row=2, col=0, room_type="event", next_node_ids=["r3c1", "r3c2"]),
-            ActNodeState(node_id="r2c1", row=2, col=1, room_type="combat", next_node_ids=["r3c0", "r3c1"]),
-            ActNodeState(node_id="r3c0", row=3, col=0, room_type="shop", next_node_ids=[]),
-            ActNodeState(node_id="r3c1", row=3, col=1, room_type="combat", next_node_ids=[]),
-            ActNodeState(node_id="r3c2", row=3, col=2, room_type="combat", next_node_ids=[]),
+            ActNodeState(
+                node_id="start",
+                row=0,
+                col=0,
+                room_type="combat",
+                next_node_ids=["r1c0"],
+            ),
+            ActNodeState(
+                node_id="r1c0",
+                row=1,
+                col=0,
+                room_type="event",
+                next_node_ids=["r2c0", "r2c1"],
+            ),
+            ActNodeState(
+                node_id="r2c0",
+                row=2,
+                col=0,
+                room_type="event",
+                next_node_ids=["r3c1", "r3c2"],
+            ),
+            ActNodeState(
+                node_id="r2c1",
+                row=2,
+                col=1,
+                room_type="combat",
+                next_node_ids=["r3c0", "r3c1"],
+            ),
+            ActNodeState(
+                node_id="r3c0", row=3, col=0, room_type="shop", next_node_ids=[]
+            ),
+            ActNodeState(
+                node_id="r3c1", row=3, col=1, room_type="combat", next_node_ids=[]
+            ),
+            ActNodeState(
+                node_id="r3c2", row=3, col=2, room_type="combat", next_node_ids=[]
+            ),
         ],
         visited_node_ids=["start", "r1c0", "r2c0"],
         enemy_pool_id="act1_basic",
@@ -977,11 +1093,25 @@ def test_full_map_panel_hides_unreachable_branch_rows() -> None:
         act_id="act1",
         current_node_id="r1c0",
         nodes=[
-            ActNodeState(node_id="start", row=0, col=0, room_type="combat", next_node_ids=["r1c0", "r1c1"]),
-            ActNodeState(node_id="r1c0", row=1, col=0, room_type="event", next_node_ids=["r2c0"]),
-            ActNodeState(node_id="r1c1", row=1, col=1, room_type="elite", next_node_ids=["r2c1"]),
-            ActNodeState(node_id="r2c0", row=2, col=0, room_type="boss", next_node_ids=[]),
-            ActNodeState(node_id="r2c1", row=2, col=1, room_type="boss", next_node_ids=[]),
+            ActNodeState(
+                node_id="start",
+                row=0,
+                col=0,
+                room_type="combat",
+                next_node_ids=["r1c0", "r1c1"],
+            ),
+            ActNodeState(
+                node_id="r1c0", row=1, col=0, room_type="event", next_node_ids=["r2c0"]
+            ),
+            ActNodeState(
+                node_id="r1c1", row=1, col=1, room_type="elite", next_node_ids=["r2c1"]
+            ),
+            ActNodeState(
+                node_id="r2c0", row=2, col=0, room_type="boss", next_node_ids=[]
+            ),
+            ActNodeState(
+                node_id="r2c1", row=2, col=1, room_type="boss", next_node_ids=[]
+            ),
         ],
         visited_node_ids=["start", "r1c0"],
         enemy_pool_id="act1_basic",
@@ -993,7 +1123,9 @@ def test_full_map_panel_hides_unreachable_branch_rows() -> None:
     output = _export(render_full_map_panel(act_state))
 
     assert any("L01 |" in line for line in output.splitlines())
-    assert not any(line.startswith("L01 |") and "精英" in line for line in output.splitlines())
+    assert not any(
+        line.startswith("L01 |") and "精英" in line for line in output.splitlines()
+    )
 
 
 def test_shop_renderer_shows_cards_relics_potions_and_remove_service() -> None:
@@ -1008,8 +1140,12 @@ def test_shop_renderer_shows_cards_relics_potions_and_remove_service() -> None:
                 {"offer_id": "card-1", "card_id": "strike", "price": 50},
                 {"offer_id": "card-2", "card_id": "defend", "price": 50, "sold": True},
             ],
-            "relics": [{"offer_id": "relic-1", "relic_id": "burning_blood", "price": 150}],
-            "potions": [{"offer_id": "potion-1", "potion_id": "fire_potion", "price": 60}],
+            "relics": [
+                {"offer_id": "relic-1", "relic_id": "burning_blood", "price": 150}
+            ],
+            "potions": [
+                {"offer_id": "potion-1", "potion_id": "fire_potion", "price": 60}
+            ],
             "remove_price": 75,
             "remove_used": True,
             "next_node_ids": ["r4c0"],
@@ -1046,7 +1182,10 @@ def test_shop_renderer_shows_cards_relics_potions_and_remove_service() -> None:
 
 
 def test_shop_renderer_shows_current_gold_and_affordance_statuses() -> None:
-    session = replace(start_session(seed=5), run_state=replace(start_session(seed=5).run_state, gold=60))
+    session = replace(
+        start_session(seed=5),
+        run_state=replace(start_session(seed=5).run_state, gold=60),
+    )
     room_state = RoomState(
         room_id="act1:shop",
         room_type="shop",
@@ -1057,7 +1196,14 @@ def test_shop_renderer_shows_current_gold_and_affordance_statuses() -> None:
                 {"offer_id": "card-1", "card_id": "strike", "price": 50},
                 {"offer_id": "card-2", "card_id": "defend", "price": 75},
             ],
-            "relics": [{"offer_id": "relic-1", "relic_id": "burning_blood", "price": 150, "sold": True}],
+            "relics": [
+                {
+                    "offer_id": "relic-1",
+                    "relic_id": "burning_blood",
+                    "price": 150,
+                    "sold": True,
+                }
+            ],
             "potions": [],
             "remove_price": 75,
             "next_node_ids": ["r4c0"],
@@ -1130,7 +1276,9 @@ def test_shop_menus_keep_styled_card_labels_in_terminal_entries() -> None:
         rewards=[],
     )
 
-    shop_lines = _format_shop_root_menu(shop_room, _provider(session), session.run_state)
+    shop_lines = _format_shop_root_menu(
+        shop_room, _provider(session), session.run_state
+    )
     remove_lines = _format_shop_remove_menu(shop_room, _provider(session))
 
     assert isinstance(shop_lines[2], Text)
@@ -1159,7 +1307,11 @@ def test_shop_and_rest_panels_keep_styled_card_labels_in_body() -> None:
         room_id="act1:rest",
         room_type="rest",
         stage="select_upgrade_card",
-        payload={"node_id": "r5c0", "upgrade_options": ["terror_plus#10"], "next_node_ids": ["r6c0"]},
+        payload={
+            "node_id": "r5c0",
+            "upgrade_options": ["terror_plus#10"],
+            "next_node_ids": ["r6c0"],
+        },
         is_resolved=False,
         rewards=[],
     )
@@ -1180,12 +1332,18 @@ def test_shop_and_rest_panels_keep_styled_card_labels_in_body() -> None:
 
 def test_rest_renderer_shows_root_and_upgrade_selection_states() -> None:
     session = start_session(seed=5)
-    run_state = replace(session.run_state, relics=["burning_blood", "coffee_dripper", "fusion_hammer"])
+    run_state = replace(
+        session.run_state, relics=["burning_blood", "coffee_dripper", "fusion_hammer"]
+    )
     root_room = RoomState(
         room_id="act1:rest",
         room_type="rest",
         stage="waiting_input",
-        payload={"node_id": "r5c0", "actions": ["rest", "smith"], "next_node_ids": ["r6c0"]},
+        payload={
+            "node_id": "r5c0",
+            "actions": ["rest", "smith"],
+            "next_node_ids": ["r6c0"],
+        },
         is_resolved=False,
         rewards=[],
     )
@@ -1200,7 +1358,11 @@ def test_rest_renderer_shows_root_and_upgrade_selection_states() -> None:
     upgrade_output = render_room(
         run_state=session.run_state,
         act_state=session.act_state,
-        room_state=replace(root_room, stage="select_upgrade_card", payload={**root_room.payload, "upgrade_options": ["bash#9"]}),
+        room_state=replace(
+            root_room,
+            stage="select_upgrade_card",
+            payload={**root_room.payload, "upgrade_options": ["bash#9"]},
+        ),
         registry=_provider(session),
         menu_state=MenuState(mode="rest_upgrade_card"),
         run_phase="active",
@@ -1217,13 +1379,46 @@ def test_rest_renderer_shows_root_and_upgrade_selection_states() -> None:
     assert "bash#9" in upgrade_output
 
 
+def test_rest_renderer_shows_remove_selection_state() -> None:
+    session = start_session(seed=5)
+    room_state = RoomState(
+        room_id="act1:rest",
+        room_type="rest",
+        stage="select_remove_card",
+        payload={
+            "node_id": "r5c0",
+            "remove_candidates": ["bash#9"],
+            "next_node_ids": ["r6c0"],
+        },
+        is_resolved=False,
+        rewards=[],
+    )
+
+    output = render_room(
+        run_state=session.run_state,
+        act_state=session.act_state,
+        room_state=room_state,
+        registry=_provider(session),
+        menu_state=MenuState(mode="rest_remove_card"),
+        run_phase="active",
+    )
+
+    assert "选择要移除的卡牌" in output
+    assert "痛击" in output
+    assert "bash#9" in output
+
+
 def test_rest_upgrade_menu_keeps_styled_card_labels_in_terminal_entries() -> None:
     session = start_session(seed=5)
     room_state = RoomState(
         room_id="act1:rest",
         room_type="rest",
         stage="select_upgrade_card",
-        payload={"node_id": "r5c0", "upgrade_options": ["terror_plus#10"], "next_node_ids": ["r6c0"]},
+        payload={
+            "node_id": "r5c0",
+            "upgrade_options": ["terror_plus#10"],
+            "next_node_ids": ["r6c0"],
+        },
         is_resolved=False,
         rewards=[],
     )
@@ -1291,10 +1486,22 @@ def test_map_renderer_marks_current_and_reachable_nodes_inline() -> None:
         act_id="act1",
         current_node_id="start",
         nodes=[
-            ActNodeState(node_id="start", row=0, col=0, room_type="combat", next_node_ids=["r1c0", "r1c1"]),
-            ActNodeState(node_id="r1c0", row=1, col=0, room_type="event", next_node_ids=["r2c0"]),
-            ActNodeState(node_id="r1c1", row=1, col=1, room_type="shop", next_node_ids=["r2c0"]),
-            ActNodeState(node_id="r2c0", row=2, col=0, room_type="boss", next_node_ids=[]),
+            ActNodeState(
+                node_id="start",
+                row=0,
+                col=0,
+                room_type="combat",
+                next_node_ids=["r1c0", "r1c1"],
+            ),
+            ActNodeState(
+                node_id="r1c0", row=1, col=0, room_type="event", next_node_ids=["r2c0"]
+            ),
+            ActNodeState(
+                node_id="r1c1", row=1, col=1, room_type="shop", next_node_ids=["r2c0"]
+            ),
+            ActNodeState(
+                node_id="r2c0", row=2, col=0, room_type="boss", next_node_ids=[]
+            ),
         ],
         visited_node_ids=["start"],
         enemy_pool_id="act1_basic",
@@ -1306,7 +1513,12 @@ def test_map_renderer_marks_current_and_reachable_nodes_inline() -> None:
         room_id="act1:event",
         room_type="event",
         stage="waiting_input",
-        payload={"node_id": "start", "room_kind": "event", "event_id": "shining_light", "next_node_ids": ["r1c0", "r1c1"]},
+        payload={
+            "node_id": "start",
+            "room_kind": "event",
+            "event_id": "shining_light",
+            "next_node_ids": ["r1c0", "r1c1"],
+        },
         is_resolved=False,
         rewards=[],
     )
@@ -1332,10 +1544,22 @@ def test_map_renderer_draws_continuous_connectors_for_branch_and_merge() -> None
         act_id="act1",
         current_node_id="start",
         nodes=[
-            ActNodeState(node_id="start", row=0, col=1, room_type="combat", next_node_ids=["r1c0", "r1c2"]),
-            ActNodeState(node_id="r1c0", row=1, col=0, room_type="event", next_node_ids=["r2c1"]),
-            ActNodeState(node_id="r1c2", row=1, col=2, room_type="shop", next_node_ids=["r2c1"]),
-            ActNodeState(node_id="r2c1", row=2, col=1, room_type="boss", next_node_ids=[]),
+            ActNodeState(
+                node_id="start",
+                row=0,
+                col=1,
+                room_type="combat",
+                next_node_ids=["r1c0", "r1c2"],
+            ),
+            ActNodeState(
+                node_id="r1c0", row=1, col=0, room_type="event", next_node_ids=["r2c1"]
+            ),
+            ActNodeState(
+                node_id="r1c2", row=1, col=2, room_type="shop", next_node_ids=["r2c1"]
+            ),
+            ActNodeState(
+                node_id="r2c1", row=2, col=1, room_type="boss", next_node_ids=[]
+            ),
         ],
         visited_node_ids=["start"],
         enemy_pool_id="act1_basic",
@@ -1347,7 +1571,12 @@ def test_map_renderer_draws_continuous_connectors_for_branch_and_merge() -> None
         room_id="act1:event",
         room_type="event",
         stage="waiting_input",
-        payload={"node_id": "start", "room_kind": "event", "event_id": "shining_light", "next_node_ids": ["r1c0", "r1c2"]},
+        payload={
+            "node_id": "start",
+            "room_kind": "event",
+            "event_id": "shining_light",
+            "next_node_ids": ["r1c0", "r1c2"],
+        },
         is_resolved=False,
         rewards=[],
     )
@@ -1371,10 +1600,22 @@ def test_map_renderer_uses_terminal_ruler_and_legend_layout() -> None:
         act_id="act1",
         current_node_id="start",
         nodes=[
-            ActNodeState(node_id="start", row=0, col=0, room_type="combat", next_node_ids=["r1c0", "r1c1"]),
-            ActNodeState(node_id="r1c0", row=1, col=0, room_type="event", next_node_ids=["r2c0"]),
-            ActNodeState(node_id="r1c1", row=1, col=1, room_type="elite", next_node_ids=["r2c0"]),
-            ActNodeState(node_id="r2c0", row=2, col=0, room_type="boss", next_node_ids=[]),
+            ActNodeState(
+                node_id="start",
+                row=0,
+                col=0,
+                room_type="combat",
+                next_node_ids=["r1c0", "r1c1"],
+            ),
+            ActNodeState(
+                node_id="r1c0", row=1, col=0, room_type="event", next_node_ids=["r2c0"]
+            ),
+            ActNodeState(
+                node_id="r1c1", row=1, col=1, room_type="elite", next_node_ids=["r2c0"]
+            ),
+            ActNodeState(
+                node_id="r2c0", row=2, col=0, room_type="boss", next_node_ids=[]
+            ),
         ],
         visited_node_ids=["start"],
         enemy_pool_id="act1_basic",
@@ -1386,7 +1627,12 @@ def test_map_renderer_uses_terminal_ruler_and_legend_layout() -> None:
         room_id="act1:event",
         room_type="event",
         stage="waiting_input",
-        payload={"node_id": "start", "room_kind": "event", "event_id": "shining_light", "next_node_ids": ["r1c0", "r1c1"]},
+        payload={
+            "node_id": "start",
+            "room_kind": "event",
+            "event_id": "shining_light",
+            "next_node_ids": ["r1c0", "r1c1"],
+        },
         is_resolved=False,
         rewards=[],
     )
@@ -1416,9 +1662,19 @@ def test_next_room_menu_shows_human_readable_room_labels() -> None:
         act_id="act1",
         current_node_id="start",
         nodes=[
-            ActNodeState(node_id="start", row=0, col=0, room_type="combat", next_node_ids=["r1c0", "r1c1"]),
-            ActNodeState(node_id="r1c0", row=1, col=0, room_type="event", next_node_ids=[]),
-            ActNodeState(node_id="r1c1", row=1, col=1, room_type="shop", next_node_ids=[]),
+            ActNodeState(
+                node_id="start",
+                row=0,
+                col=0,
+                room_type="combat",
+                next_node_ids=["r1c0", "r1c1"],
+            ),
+            ActNodeState(
+                node_id="r1c0", row=1, col=0, room_type="event", next_node_ids=[]
+            ),
+            ActNodeState(
+                node_id="r1c1", row=1, col=1, room_type="shop", next_node_ids=[]
+            ),
         ],
         visited_node_ids=["start"],
         enemy_pool_id="act1_basic",
@@ -1430,7 +1686,11 @@ def test_next_room_menu_shows_human_readable_room_labels() -> None:
         room_id="act1:start",
         room_type="combat",
         stage="completed",
-        payload={"node_id": "start", "room_kind": "combat", "next_node_ids": ["r1c0", "r1c1"]},
+        payload={
+            "node_id": "start",
+            "room_kind": "combat",
+            "next_node_ids": ["r1c0", "r1c1"],
+        },
         is_resolved=True,
         rewards=[],
     )
@@ -1455,10 +1715,22 @@ def test_map_renderer_applies_light_rich_styles_to_priority_tokens() -> None:
         act_id="act1",
         current_node_id="start",
         nodes=[
-            ActNodeState(node_id="start", row=0, col=0, room_type="combat", next_node_ids=["r1c0", "r1c1"]),
-            ActNodeState(node_id="r1c0", row=1, col=0, room_type="event", next_node_ids=["r2c0"]),
-            ActNodeState(node_id="r1c1", row=1, col=1, room_type="elite", next_node_ids=["r2c0"]),
-            ActNodeState(node_id="r2c0", row=2, col=0, room_type="boss", next_node_ids=[]),
+            ActNodeState(
+                node_id="start",
+                row=0,
+                col=0,
+                room_type="combat",
+                next_node_ids=["r1c0", "r1c1"],
+            ),
+            ActNodeState(
+                node_id="r1c0", row=1, col=0, room_type="event", next_node_ids=["r2c0"]
+            ),
+            ActNodeState(
+                node_id="r1c1", row=1, col=1, room_type="elite", next_node_ids=["r2c0"]
+            ),
+            ActNodeState(
+                node_id="r2c0", row=2, col=0, room_type="boss", next_node_ids=[]
+            ),
         ],
         visited_node_ids=["start"],
         enemy_pool_id="act1_basic",
@@ -1468,15 +1740,25 @@ def test_map_renderer_applies_light_rich_styles_to_priority_tokens() -> None:
     )
 
     panel = render_full_map_panel(act_state)
-    text_lines = [renderable for renderable in panel.renderable.renderables if hasattr(renderable, "plain")]
-    styled_lines = {line.plain: {span.style for span in line.spans} for line in text_lines}
+    text_lines = [
+        renderable
+        for renderable in panel.renderable.renderables
+        if hasattr(renderable, "plain")
+    ]
+    styled_lines = {
+        line.plain: {span.style for span in line.spans} for line in text_lines
+    }
 
     assert "POS  (0, 0)" in styled_lines
     assert "TYPE | 战斗 精英 Boss 事件 商店 休息 宝箱" in styled_lines
     assert "map.metric.label" in styled_lines["POS  (0, 0)"]
-    assert "map.legend.label" in styled_lines["TYPE | 战斗 精英 Boss 事件 商店 休息 宝箱"]
+    assert (
+        "map.legend.label" in styled_lines["TYPE | 战斗 精英 Boss 事件 商店 休息 宝箱"]
+    )
 
-    current_line_styles = next(styles for line, styles in styled_lines.items() if ">战斗<" in line)
+    current_line_styles = next(
+        styles for line, styles in styled_lines.items() if ">战斗<" in line
+    )
     assert "map.node.current" in current_line_styles
     assert "map.room.combat" in current_line_styles
 
@@ -1489,7 +1771,11 @@ def test_map_renderer_applies_light_rich_styles_to_priority_tokens() -> None:
     assert "map.room.event" in reachable_line_styles
     assert "map.room.elite" in reachable_line_styles
 
-    boss_line_styles = next(styles for line, styles in styled_lines.items() if line.startswith("L02 |") and "Boss" in line)
+    boss_line_styles = next(
+        styles
+        for line, styles in styled_lines.items()
+        if line.startswith("L02 |") and "Boss" in line
+    )
     assert "map.room.boss" in boss_line_styles
 
 
@@ -1594,7 +1880,9 @@ def test_victory_renderer_blocks_normal_room_menu() -> None:
     output = render_room(
         run_state=session.run_state,
         act_state=session.act_state,
-        room_state=replace(session.room_state, stage="completed", is_resolved=True, rewards=[]),
+        room_state=replace(
+            session.room_state, stage="completed", is_resolved=True, rewards=[]
+        ),
         registry=_provider(session),
         menu_state=MenuState(),
         run_phase="victory",

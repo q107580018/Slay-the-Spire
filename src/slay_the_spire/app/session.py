@@ -22,6 +22,7 @@ from slay_the_spire.adapters.presentation.theme import TERMINAL_THEME
 from slay_the_spire.adapters.presentation.widgets import render_card_name, render_menu
 from slay_the_spire.adapters.persistence.save_files import JsonFileSaveRepository
 from slay_the_spire.app.map_labels import format_next_room_labels
+from slay_the_spire.app.next_room_options import next_room_options
 from slay_the_spire.build_content import packaged_content_root
 from slay_the_spire.app.menu_definitions import (
     build_menu,
@@ -397,6 +398,8 @@ def _menu_state_for_room(room_state: RoomState) -> MenuState:
             return MenuState(mode="shop_remove_card")
         return MenuState(mode="shop_root")
     if room_state.room_type == "rest" and not room_state.is_resolved:
+        if room_state.stage == "select_remove_card":
+            return MenuState(mode="rest_remove_card")
         if room_state.stage == "select_upgrade_card":
             return MenuState(mode="rest_upgrade_card")
         return MenuState(mode="rest_root")
@@ -1026,19 +1029,46 @@ def _advance_to_next_room(session: SessionState) -> SessionState:
     return _advance_to_node(session, None)
 
 
+def _next_room_options(session: SessionState) -> list[str]:
+    return next_room_options(
+        act_state=session.act_state,
+        room_state=session.room_state,
+        run_state=session.run_state,
+    )
+
+
 def _advance_to_node(session: SessionState, node_id: str | None) -> SessionState:
-    next_node_ids = session.room_state.payload.get("next_node_ids", [])
-    if not isinstance(next_node_ids, list) or not next_node_ids:
+    next_node_ids = _next_room_options(session)
+    if not next_node_ids:
         return session
     next_node_id = next_node_ids[0] if node_id is None else node_id
     if not isinstance(next_node_id, str):
         return session
+    if next_node_id not in next_node_ids:
+        return session
+    updated_run_state = session.run_state
+    linked_node_ids = session.room_state.payload.get("next_node_ids", [])
+    if (
+        isinstance(linked_node_ids, list)
+        and next_node_id not in linked_node_ids
+        and "wing_boots" in session.run_state.relics
+    ):
+        updated_positions = dict(session.run_state.relic_sequence_positions)
+        updated_positions["wing_boots_charges"] = (
+            updated_positions.get("wing_boots_charges", 0) + 1
+        )
+        updated_run_state = replace(
+            session.run_state, relic_sequence_positions=updated_positions
+        )
     provider = StarterContentProvider(session.content_root)
     room_state = enter_room(
-        session.run_state, session.act_state, node_id=next_node_id, registry=provider
+        updated_run_state, session.act_state, node_id=next_node_id, registry=provider
     )
     return replace(
-        session, room_state=room_state, menu_state=_menu_state_for_room(room_state)
+        session,
+        run_state=updated_run_state,
+        room_state=room_state,
+        menu_state=_menu_state_for_room(room_state),
     )
 
 
@@ -1422,7 +1452,9 @@ def _route_load_select_menu(
     save_path = default_save_dir() / save_name
     if not save_path.is_file():
         if not _list_available_save_paths():
-            fallback_session = replace(session, menu_state=MenuState(mode=previous_mode))
+            fallback_session = replace(
+                session, menu_state=MenuState(mode=previous_mode)
+            )
             return (
                 True,
                 fallback_session,
@@ -2408,8 +2440,8 @@ def _route_target_menu(
 def _route_next_room_menu(
     choice: str, session: SessionState
 ) -> tuple[bool, SessionState, str]:
-    next_node_ids = session.room_state.payload.get("next_node_ids", [])
-    if not isinstance(next_node_ids, list):
+    next_node_ids = _next_room_options(session)
+    if not next_node_ids:
         return _invalid_menu_choice(session)
     labels = format_next_room_labels(session.act_state, next_node_ids)
     action_id = resolve_menu_action(
@@ -2776,6 +2808,38 @@ def _route_rest_upgrade_card_menu(
     return True, next_session, _message_with_render(next_session, result.message)
 
 
+def _route_rest_remove_card_menu(
+    choice: str, session: SessionState
+) -> tuple[bool, SessionState, str]:
+    action_id = resolve_menu_action(
+        choice,
+        build_shop_remove_menu(
+            room_state=session.room_state, registry=_content_provider(session)
+        ),
+    )
+    if action_id is None:
+        return _invalid_menu_choice(session)
+    if action_id == "save":
+        return _save_current_session(session)
+    if action_id == "load":
+        return _enter_load_select_menu(session)
+    if action_id == "quit":
+        return False, replace(session, menu_state=MenuState()), "已退出游戏。"
+    result = rest_action(
+        run_state=session.run_state,
+        room_state=session.room_state,
+        action_id=action_id,
+        registry=_content_provider(session),
+    )
+    next_session = replace(
+        session,
+        run_state=result.run_state,
+        room_state=result.room_state,
+        menu_state=_menu_state_for_room(result.room_state),
+    )
+    return True, next_session, _message_with_render(next_session, result.message)
+
+
 def _route_menu_choice_legacy(
     choice: str, *, session: SessionState
 ) -> tuple[bool, SessionState, str]:
@@ -2830,6 +2894,8 @@ def _route_menu_choice_legacy(
         return _route_shop_remove_card_menu(choice.strip(), next_session)
     if next_session.menu_state.mode == "rest_root":
         return _route_rest_root_menu(choice.strip(), next_session)
+    if next_session.menu_state.mode == "rest_remove_card":
+        return _route_rest_remove_card_menu(choice.strip(), next_session)
     if next_session.menu_state.mode == "rest_upgrade_card":
         return _route_rest_upgrade_card_menu(choice.strip(), next_session)
     if next_session.menu_state.mode == "inspect_root":
