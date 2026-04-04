@@ -6,10 +6,14 @@
       "summary": "你每次将抽牌堆洗牌时，获得 6 点格挡",
       "description": "你每次将抽牌堆洗牌时，获得 6 点格挡。",
       "rarity": "shop",
-      "pools": ["shop"],
-      "source_tags": ["shop"],
+      "pools": [
+        "shop"
+      ],
+      "source_tags": [
+        "shop"
+      ],
       "owner_character_ids": [],
-      "implementation_status": "implemented",
+      "implementation_status": "placeholder",
       "effect_blueprint": [],
       "trigger_hooks": [],
       "passive_effects": [],
@@ -21,10 +25,15 @@
       "summary": "诅咒牌可被打出，打出时失去 1 点生命并消耗",
       "description": "诅咒牌现在可以被打出，打出时失去 1 点生命并将其消耗。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
       "owner_character_ids": [],
-      "implementation_status": "implemented",
+      "implementation_status": "placeholder",
       "effect_blueprint": [],
       "trigger_hooks": [],
       "passive_effects": [],
@@ -36,10 +45,15 @@
       "summary": "选择 1 张攻击牌，使其获得固有",
       "description": "选择牌组中的 1 张攻击牌。该牌在战斗开始时会出现在起始手牌中。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
       "owner_character_ids": [],
-      "implementation_status": "implemented",
+      "implementation_status": "placeholder",
       "effect_blueprint": [],
       "trigger_hooks": [],
       "passive_effects": [],
@@ -51,10 +65,15 @@
       "summary": "选择 1 张技能牌，使其获得固有",
       "description": "选择牌组中的 1 张技能牌。该牌在战斗开始时会出现在起始手牌中。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
       "owner_character_ids": [],
-      "implementation_status": "implemented",
+      "implementation_status": "placeholder",
       "effect_blueprint": [],
       "trigger_hooks": [],
       "passive_effects": [],
@@ -66,10 +85,15 @@
       "summary": "选择 1 张能力牌，使其获得固有",
       "description": "选择牌组中的 1 张能力牌。该牌在战斗开始时会出现在起始手牌中。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
       "owner_character_ids": [],
-      "implementation_status": "implemented",
+      "implementation_status": "placeholder",
       "effect_blueprint": [],
       "trigger_hooks": [],
       "passive_effects": [],
@@ -81,10 +105,15 @@
       "summary": "每当你获得诅咒牌时，最大生命值提高 6",
       "description": "每当你获得诅咒牌时，最大生命值提高 6。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
       "owner_character_ids": [],
-      "implementation_status": "implemented",
+      "implementation_status": "placeholder",
       "effect_blueprint": [],
       "trigger_hooks": [],
       "passive_effects": [],
@@ -96,8 +125,13 @@
       "summary": "在休息点休息时每 5 张牌额外回复 3 点生命",
       "description": "在休息点休息时，牌组中每有 5 张牌就额外回复 3 点生命。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
       "owner_character_ids": [],
       "implementation_status": "implemented",
       "effect_blueprint": [],
@@ -111,10 +145,15 @@
       "summary": "之后获得的能力牌都会被升级",
       "description": "之后获得的能力牌都会自动升级。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
       "owner_character_ids": [],
-      "implementation_status": "implemented",
+      "implementation_status": "placeholder",
       "effect_blueprint": [],
       "trigger_hooks": [],
       "passive_effects": [],
@@ -126,10 +165,15 @@
       "summary": "在每场战斗开始时，丢弃任意张牌，然后抽相同数量张牌",
       "description": "在每场战斗开始时，丢弃任意张牌，然后抽相同数量张牌。",
       "rarity": "rare",
-      "pools": ["rare", "neow"],
-      "source_tags": ["standard_pool"],
+      "pools": [
+        "rare",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
       "owner_character_ids": [],
-      "implementation_status": "implemented",
+      "implementation_status": "placeholder",
       "effect_blueprint": [],
       "trigger_hooks": [],
       "passive_effects": [],
@@ -141,8 +185,13 @@
       "summary": "敌人死亡时获得 1 点能量并抽 1 张牌",
       "description": "每当一个敌人死亡时，获得 1 点能量并抽 1 张牌。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
       "owner_character_ids": [],
       "implementation_status": "implemented",
       "effect_blueprint": [],
@@ -156,12 +205,19 @@
       "summary": "每场战斗的第 2 回合开始时获得 14 点格挡",
       "description": "每场战斗的第 2 回合开始时，获得 14 点格挡。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
       "owner_character_ids": [],
       "implementation_status": "implemented",
       "effect_blueprint": [],
-      "trigger_hooks": ["on_turn_start"],
+      "trigger_hooks": [
+        "on_turn_start"
+      ],
       "passive_effects": [],
       "can_appear_in_shop": false
     },
@@ -171,8 +227,13 @@
       "summary": "每打出 10 张牌抽 1 张牌",
       "description": "每当你打出 10 张牌时，抽 1 张牌。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
       "owner_character_ids": [],
       "implementation_status": "implemented",
       "effect_blueprint": [],
@@ -186,8 +247,13 @@
       "summary": "每回合打出 3 张攻击牌后获得 1 点敏捷",
       "description": "每回合打出 3 张攻击牌后，获得 1 点敏捷。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
       "owner_character_ids": [],
       "implementation_status": "implemented",
       "effect_blueprint": [],
@@ -201,8 +267,13 @@
       "summary": "每回合打出 3 张技能牌后对所有敌人造成 5 点伤害",
       "description": "每回合打出 3 张技能牌后，对所有敌人造成 5 点伤害。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
       "owner_character_ids": [],
       "implementation_status": "implemented",
       "effect_blueprint": [],
@@ -216,8 +287,13 @@
       "summary": "接下来打开的 2 个普通宝箱都会额外给出 1 个遗物",
       "description": "接下来打开的 2 个普通宝箱都会额外给出 1 个遗物。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
       "owner_character_ids": [],
       "implementation_status": "implemented",
       "effect_blueprint": [],
@@ -231,8 +307,13 @@
       "summary": "之后获得的攻击牌都会被升级",
       "description": "之后获得的攻击牌都会自动升级。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
       "owner_character_ids": [],
       "implementation_status": "placeholder",
       "effect_blueprint": [],
@@ -246,8 +327,13 @@
       "summary": "每次打出能力牌时，随机使手中 1 张牌费用变为 0",
       "description": "每次打出能力牌时，随机使手中 1 张牌本回合费用变为 0。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
       "owner_character_ids": [],
       "implementation_status": "implemented",
       "effect_blueprint": [],
@@ -261,8 +347,13 @@
       "summary": "每回合打出 3 张攻击牌后获得 4 点格挡",
       "description": "每回合打出 3 张攻击牌后，获得 4 点格挡。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
       "owner_character_ids": [],
       "implementation_status": "implemented",
       "effect_blueprint": [],
@@ -276,8 +367,13 @@
       "summary": "Boss 战开始时回复 25 点生命",
       "description": "每场 Boss 战开始时，回复 25 点生命。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
       "owner_character_ids": [],
       "implementation_status": "placeholder",
       "effect_blueprint": [],
@@ -291,8 +387,13 @@
       "summary": "易伤使敌人受到的伤害从 50% 提高到 75%",
       "description": "敌人身上的易伤会让其受到的伤害从 50% 提高到 75%。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
       "owner_character_ids": [],
       "implementation_status": "placeholder",
       "effect_blueprint": [],
@@ -306,9 +407,16 @@
       "summary": "虚弱使敌人造成的伤害减少从 25% 提高到 40%",
       "description": "敌人身上的虚弱会让其造成的伤害减少从 25% 提高到 40%。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
-      "owner_character_ids": ["silent"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
+      "owner_character_ids": [
+        "silent"
+      ],
       "implementation_status": "placeholder",
       "effect_blueprint": [],
       "trigger_hooks": [],
@@ -321,8 +429,13 @@
       "summary": "最大生命值提高 10",
       "description": "你的最大生命值提高 10。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
       "owner_character_ids": [],
       "implementation_status": "implemented",
       "effect_blueprint": [],
@@ -336,8 +449,13 @@
       "summary": "卡牌奖励额外显示 1 张牌",
       "description": "每次卡牌奖励会额外显示 1 张牌供你选择。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
       "owner_character_ids": [],
       "implementation_status": "implemented",
       "effect_blueprint": [],
@@ -351,8 +469,13 @@
       "summary": "失去生命后下回合开始时获得 3 点格挡",
       "description": "每当你失去生命后，下回合开始时获得 3 点格挡。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
       "owner_character_ids": [],
       "implementation_status": "implemented",
       "effect_blueprint": [],
@@ -366,8 +489,13 @@
       "summary": "跳过卡牌奖励时最大生命值提高 2",
       "description": "每当你在卡牌奖励中选择跳过时，最大生命值提高 2。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
       "owner_character_ids": [],
       "implementation_status": "placeholder",
       "effect_blueprint": [],
@@ -381,9 +509,16 @@
       "summary": "你施加的中毒额外增加 1 层",
       "description": "每当你对敌人施加中毒时，额外增加 1 层。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
-      "owner_character_ids": ["silent"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
+      "owner_character_ids": [
+        "silent"
+      ],
       "implementation_status": "placeholder",
       "effect_blueprint": [],
       "trigger_hooks": [],
@@ -396,8 +531,13 @@
       "summary": "名字中带有打击的牌额外造成 3 点伤害",
       "description": "名字中带有打击的牌额外造成 3 点伤害。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
       "owner_character_ids": [],
       "implementation_status": "placeholder",
       "effect_blueprint": [],
@@ -411,8 +551,13 @@
       "summary": "每洗牌 3 次获得 2 点能量",
       "description": "每当你的抽牌堆洗牌 3 次时，获得 2 点能量。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
       "owner_character_ids": [],
       "implementation_status": "placeholder",
       "effect_blueprint": [],
@@ -426,12 +571,19 @@
       "summary": "在每场战斗开始时，获得 4 层多层护甲",
       "description": "在每场战斗开始时，获得 4 层多层护甲。",
       "rarity": "rare",
-      "pools": ["rare", "neow"],
-      "source_tags": ["standard_pool"],
+      "pools": [
+        "rare",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
       "owner_character_ids": [],
       "implementation_status": "implemented",
       "effect_blueprint": [],
-      "trigger_hooks": ["on_combat_start"],
+      "trigger_hooks": [
+        "on_combat_start"
+      ],
       "passive_effects": [],
       "can_appear_in_shop": false
     },
@@ -441,8 +593,13 @@
       "summary": "之后获得的技能牌都会被升级",
       "description": "之后获得的技能牌都会自动升级。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
       "owner_character_ids": [],
       "implementation_status": "placeholder",
       "effect_blueprint": [],
@@ -456,8 +613,13 @@
       "summary": "战斗奖励总会包含药水",
       "description": "普通战斗与精英战的奖励现在总会包含药水。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
       "owner_character_ids": [],
       "implementation_status": "implemented",
       "effect_blueprint": [],
@@ -471,9 +633,16 @@
       "summary": "每当你施加易伤时，目标额外获得 1 层虚弱",
       "description": "每当你对敌人施加易伤时，该敌人额外获得 1 层虚弱。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
-      "owner_character_ids": ["ironclad"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
+      "owner_character_ids": [
+        "ironclad"
+      ],
       "implementation_status": "placeholder",
       "effect_blueprint": [],
       "trigger_hooks": [],
@@ -486,9 +655,16 @@
       "summary": "获得 1 点集中",
       "description": "获得 1 点集中。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
-      "owner_character_ids": ["defect"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
+      "owner_character_ids": [
+        "defect"
+      ],
       "implementation_status": "placeholder",
       "effect_blueprint": [],
       "trigger_hooks": [],
@@ -501,9 +677,16 @@
       "summary": "最右侧充能球每回合额外触发 1 次",
       "description": "你最右侧的充能球每回合会额外触发 1 次。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
-      "owner_character_ids": ["defect"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
+      "owner_character_ids": [
+        "defect"
+      ],
       "implementation_status": "placeholder",
       "effect_blueprint": [],
       "trigger_hooks": [],
@@ -516,9 +699,16 @@
       "summary": "每场战斗开始时生成 1 个黑暗充能球",
       "description": "每场战斗开始时，生成 1 个黑暗充能球。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
-      "owner_character_ids": ["defect"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
+      "owner_character_ids": [
+        "defect"
+      ],
       "implementation_status": "placeholder",
       "effect_blueprint": [],
       "trigger_hooks": [],
@@ -531,9 +721,16 @@
       "summary": "在你的回合结束时，每有一张手牌获得 1 点格挡",
       "description": "在你的回合结束时，每有一张手牌获得 1 点格挡。",
       "rarity": "rare",
-      "pools": ["rare", "neow"],
-      "source_tags": ["standard_pool"],
-      "owner_character_ids": ["watcher"],
+      "pools": [
+        "rare",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
+      "owner_character_ids": [
+        "watcher"
+      ],
       "implementation_status": "placeholder",
       "effect_blueprint": [],
       "trigger_hooks": [],
@@ -546,9 +743,16 @@
       "summary": "在你的回合开始时，获得 1 层真言",
       "description": "在你的回合开始时，获得 1 层真言。",
       "rarity": "common",
-      "pools": ["common", "neow"],
-      "source_tags": ["standard_pool"],
-      "owner_character_ids": ["watcher"],
+      "pools": [
+        "common",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
+      "owner_character_ids": [
+        "watcher"
+      ],
       "implementation_status": "placeholder",
       "effect_blueprint": [],
       "trigger_hooks": [],
@@ -561,9 +765,16 @@
       "summary": "每当你打出攻击牌时，获得 1 点敏捷",
       "description": "每当你打出攻击牌时，获得 1 点敏捷。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
-      "owner_character_ids": ["watcher"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
+      "owner_character_ids": [
+        "watcher"
+      ],
       "implementation_status": "placeholder",
       "effect_blueprint": [],
       "trigger_hooks": [],
@@ -576,9 +787,16 @@
       "summary": "预见时多看 2 张牌",
       "description": "每次预见时，多看 2 张牌。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
-      "owner_character_ids": ["watcher"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
+      "owner_character_ids": [
+        "watcher"
+      ],
       "implementation_status": "placeholder",
       "effect_blueprint": [],
       "trigger_hooks": [],
@@ -591,9 +809,15 @@
       "summary": "你每次将抽牌堆洗牌时，预见 3",
       "description": "你每次将抽牌堆洗牌时，预见 3。",
       "rarity": "shop",
-      "pools": ["shop"],
-      "source_tags": ["shop"],
-      "owner_character_ids": ["watcher"],
+      "pools": [
+        "shop"
+      ],
+      "source_tags": [
+        "shop"
+      ],
+      "owner_character_ids": [
+        "watcher"
+      ],
       "implementation_status": "placeholder",
       "effect_blueprint": [],
       "trigger_hooks": [],
@@ -606,12 +830,21 @@
       "summary": "每场战斗开始时，手牌中增加 3 张小刀",
       "description": "每场战斗开始时，手牌中增加 3 张小刀。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
-      "owner_character_ids": ["silent"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
+      "owner_character_ids": [
+        "silent"
+      ],
       "implementation_status": "implemented",
       "effect_blueprint": [],
-      "trigger_hooks": ["on_combat_start"],
+      "trigger_hooks": [
+        "on_combat_start"
+      ],
       "passive_effects": [],
       "can_appear_in_shop": false
     },
@@ -621,9 +854,16 @@
       "summary": "每场战斗开始时进入平静",
       "description": "每场战斗开始时，进入平静。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
-      "owner_character_ids": ["watcher"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
+      "owner_character_ids": [
+        "watcher"
+      ],
       "implementation_status": "placeholder",
       "effect_blueprint": [],
       "trigger_hooks": [],
@@ -636,8 +876,13 @@
       "summary": "生命低于一半时获得 3 点力量",
       "description": "当你的生命低于一半时，获得 3 点力量。",
       "rarity": "uncommon",
-      "pools": ["uncommon", "neow"],
-      "source_tags": ["standard_pool"],
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
       "owner_character_ids": [],
       "implementation_status": "placeholder",
       "effect_blueprint": [],

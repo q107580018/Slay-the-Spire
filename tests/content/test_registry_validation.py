@@ -1119,3 +1119,63 @@ def test_provider_loads_remaining_ironclad_cards(
     root = Path(__file__).resolve().parents[2] / "content"
     provider = StarterContentProvider(root)
     assert provider.cards().get(card_id).name == expected_name
+
+
+@pytest.mark.parametrize("content_root", _content_roots())
+def test_implementation_status_matches_code_behavior(content_root: Path) -> None:
+    """Guard against status drift: relics marked 'implemented' must have real behavior."""
+    provider = StarterContentProvider(content_root)
+
+    # These relics have NO code behavior, NO hooks, NO effects — must NOT be 'implemented'
+    must_not_be_implemented = [
+        "akabeko",
+        "ancient_tea_set",
+        "bronze_scales",
+        "meat_on_the_bone",
+        "mercury_hourglass",
+        "oddly_smooth_stone",
+        "omamori",
+        "orichalcum",
+        "potion_belt",
+        "abacus",
+        "blue_candle",
+        "bottled_flame",
+        "bottled_lightning",
+        "bottled_tornado",
+        "darkstone_periapt",
+        "frozen_egg_2",
+        "gambling_chip",
+    ]
+    for relic_id in must_not_be_implemented:
+        relic = provider.relics().get(relic_id)
+        assert relic.implementation_status == "placeholder", (
+            f"{relic_id} has no code behavior but is marked '{relic.implementation_status}'"
+        )
+
+    # These flavor-only relics have no gameplay effect — "no effect" IS the correct behavior
+    flavor_only_implemented = [
+        "spirit_poop",
+        "cultist_headpiece",
+    ]
+    for relic_id in flavor_only_implemented:
+        relic = provider.relics().get(relic_id)
+        assert relic.implementation_status == "implemented", (
+            f"{relic_id} is flavor-only (no effect is correct) but is marked '{relic.implementation_status}'"
+        )
+
+    # These relics have real code behavior and must stay 'implemented'
+    must_be_implemented = [
+        "burning_blood",  # on_combat_end hook with heal effect
+        "blood_vial",  # on_combat_start hook with heal effect
+        "guarding_totem",  # on_combat_start hook with block effect
+        "black_blood",  # on_combat_end hook with heal effect
+        "anchor",  # hardcoded in turn_flow.py
+        "pen_nib",  # hardcoded in play_card.py
+        "circlet",  # hardcoded in apply_reward.py
+        "sozu",  # hardcoded in multiple use_cases
+    ]
+    for relic_id in must_be_implemented:
+        relic = provider.relics().get(relic_id)
+        assert relic.implementation_status == "implemented", (
+            f"{relic_id} has real behavior but is marked '{relic.implementation_status}'"
+        )
