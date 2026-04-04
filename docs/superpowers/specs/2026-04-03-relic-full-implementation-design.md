@@ -61,6 +61,28 @@
 
 ## 六、分批设计
 
+### 6.0 闭合通道：当前遗留目标
+
+在批次一的常规推进之外，存在一次专项"闭合通道"（closure pass），目标是把已知可实现、但尚未落地的少量 `on_acquire` 遗物一次性补齐，同时显式锁定哪些复杂遗物留在 `placeholder` 或 `partial`，不在本通道内碰。
+
+**必须在本通道内完成的遗物（closure targets）：**
+
+- `vajra`：获得时 +1 力量（永久）
+- `oddly_smooth_stone`：获得时 +1 敏捷（永久）
+- `war_paint`：获得时随机升级 2 张技能牌
+- `whetstone`：获得时随机升级 2 张攻击牌
+
+这四个遗物的逻辑属于最简单的 `apply_reward` 扩展，无需任何新子系统。
+
+**必须在本通道内显式保留为 `placeholder` 或 `partial` 的复杂遗物：**
+
+- `sacred_bark`：依赖药水效果系统，当前未实现 → 保留 `placeholder`
+- `bottled_flame` / `bottled_lightning` / `bottled_tornado`：需要卡牌选择 UI → 保留 `placeholder`
+- `orrery`：需要卡牌选择 UI → 保留 `placeholder`
+- `prismatic_shard`：需要多角色卡池/遗物池支持 → 保留 `placeholder`
+
+上述复杂遗物不得在无真实行为的情况下被提升为 `implemented`。
+
 ### 6.1 批次一：获得时立即生效与静态永久修饰
 
 目标：先补最容易验证、跨系统依赖最小的一批遗物。

@@ -45,10 +45,10 @@ This matrix maps every unresolved relic to its primary trigger domain and code e
 | 3 | mango | 芒果 | rare | placeholder | on_acquire | apply_reward | max HP +14 |
 | 4 | leeches_waffle | 李子华夫饼 | shop | placeholder | on_acquire | apply_reward | max HP +7, heal to full |
 | 5 | old_coin | 古钱币 | rare | placeholder | on_acquire | apply_reward | +300 gold on acquire |
-| 6 | vajra | 金刚杵 | common | placeholder | on_acquire | apply_reward | +1 strength (permanent) |
-| 7 | oddly_smooth_stone | 光滑石 | common | placeholder | on_acquire | apply_reward | +1 dexterity (permanent) |
-| 8 | war_paint | 战漆 | common | placeholder | on_acquire | apply_reward | upgrade 2 random skills on acquire |
-| 9 | whetstone | 磨刀石 | common | placeholder | on_acquire | apply_reward | upgrade 2 random attacks on acquire |
+| 6 | vajra | 金刚杵 | common | placeholder | on_acquire | apply_reward | closure target: +1 strength (permanent) |
+| 7 | oddly_smooth_stone | 光滑石 | common | placeholder | on_acquire | apply_reward | closure target: +1 dexterity (permanent) |
+| 8 | war_paint | 战漆 | common | placeholder | on_acquire | apply_reward | closure target: upgrade 2 random skills on acquire |
+| 9 | whetstone | 磨刀石 | common | placeholder | on_acquire | apply_reward | closure target: upgrade 2 random attacks on acquire |
 | 10 | omamori | 御守 | common | placeholder | on_acquire | apply_reward | negate next 2 curses; needs counter on RunState |
 | 11 | potion_belt | 药带 | common | placeholder | on_acquire | apply_reward | +2 potion slots |
 | 12 | darkstone_periapt | 黑石护符 | uncommon | placeholder | on_acquire | apply_reward | +6 max HP when gaining curse |
@@ -200,13 +200,13 @@ This matrix maps every unresolved relic to its primary trigger domain and code e
 | 158 | holy_water | 圣水 | boss | placeholder | complex/deferred | hooks/runtime | add 3 upgraded Miracles at combat start (Watcher); needs Miracle card |
 | 159 | pure_water | 净水 | starter | placeholder | complex/deferred | hooks/runtime | add 3 Miracles at combat start (Watcher); needs Miracle card |
 | 160 | chemical_x | X 化学物 | shop | placeholder | complex/deferred | play_card | X-cost cards treat X as +2; needs X-cost support |
-| 161 | sacred_bark | 圣树皮 | boss | placeholder | complex/deferred | hooks/runtime | double potion effects; needs potion effect system |
-| 162 | bottled_flame | 瓶装火焰 | uncommon | placeholder | complex/deferred | apply_reward | choose 1 attack → innate; needs card picker UI |
-| 163 | bottled_lightning | 瓶装闪电 | uncommon | placeholder | complex/deferred | apply_reward | choose 1 skill → innate; needs card picker UI |
-| 164 | bottled_tornado | 瓶装旋风 | uncommon | placeholder | complex/deferred | apply_reward | choose 1 power → innate; needs card picker UI |
-| 165 | orrery | 星象仪 | shop | placeholder | complex/deferred | apply_reward | choose 2 of 5 cards on acquire; needs card picker UI |
+| 161 | sacred_bark | 圣树皮 | boss | placeholder | complex/deferred | hooks/runtime | deferred: needs potion-effect system |
+| 162 | bottled_flame | 瓶装火焰 | uncommon | placeholder | complex/deferred | apply_reward | deferred: needs card picker UI |
+| 163 | bottled_lightning | 瓶装闪电 | uncommon | placeholder | complex/deferred | apply_reward | deferred: needs card picker UI |
+| 164 | bottled_tornado | 瓶装旋风 | uncommon | placeholder | complex/deferred | apply_reward | deferred: needs card picker UI |
+| 165 | orrery | 星象仪 | shop | placeholder | complex/deferred | apply_reward | deferred: needs card picker UI |
 | 166 | gambling_chip | 赌博筹码 | rare | placeholder | complex/deferred | hooks/runtime | discard any, redraw equal at combat start; needs discard picker UI |
-| 167 | prismatic_shard | 虹彩碎片 | shop | placeholder | complex/deferred | reward_generator | all-class card/relic pools; needs multi-class pool support |
+| 167 | prismatic_shard | 虹彩碎片 | shop | placeholder | complex/deferred | reward_generator | deferred: needs multi-class card/relic pool support |
 | 168 | cultist_headpiece | 邪教徒头罩 | event | placeholder | flavor_only | — | no effect (flavor) |
 | 169 | spirit_poop | 灵魂便便 | event | placeholder | flavor_only | — | no effect (flavor) |
 | 170 | nloths_hungry_face | 恩洛斯的饥饿脸 | event | placeholder | flavor_only | — | no effect (flavor) |
@@ -252,3 +252,27 @@ Mechanically unresolved:                    166
 This matrix covers all 170 non-implemented relics (169 placeholder + 1 partial `busted_crown`).
 
 > `busted_crown` is `partial` — its energy gain works but reward reduction is not yet implemented. It maps to **reward_generation** domain, batch 5.
+
+---
+
+## Closure Scope
+
+The current closure pass targets four `on_acquire` relics that are mechanically straightforward and require no new subsystems:
+
+| relic_id | status | notes |
+|---|---|---|
+| vajra | placeholder | closure target: +1 strength on acquire |
+| oddly_smooth_stone | placeholder | closure target: +1 dexterity on acquire |
+| war_paint | placeholder | closure target: upgrade 2 random skills on acquire |
+| whetstone | placeholder | closure target: upgrade 2 random attacks on acquire |
+
+The following complex relics are **intentionally left as `placeholder` or `partial`** until their required subsystems are built:
+
+| relic_id | status | reason |
+|---|---|---|
+| sacred_bark | placeholder | deferred: needs potion-effect system |
+| bottled_flame | placeholder | deferred: needs card picker UI |
+| bottled_lightning | placeholder | deferred: needs card picker UI |
+| bottled_tornado | placeholder | deferred: needs card picker UI |
+| orrery | placeholder | deferred: needs card picker UI |
+| prismatic_shard | placeholder | deferred: needs multi-class card/relic pool support |
