@@ -133,9 +133,15 @@ def _format_node_choice(act_state: ActState, node_id: object) -> str:
     return format_next_room_labels(act_state, [node_id])[0]
 
 
-def _format_next_nodes(act_state: ActState, room_state: RoomState) -> str:
-    next_node_ids = room_state.payload.get("next_node_ids", [])
-    if not isinstance(next_node_ids, list) or not next_node_ids:
+def _format_next_nodes(
+    act_state: ActState, room_state: RoomState, run_state: RunState
+) -> str:
+    next_node_ids = next_room_options(
+        act_state=act_state,
+        room_state=room_state,
+        run_state=run_state,
+    )
+    if not next_node_ids:
         return "-"
     return ", ".join(format_next_room_labels(act_state, next_node_ids))
 
@@ -816,7 +822,8 @@ def render_summary_panel(
         ),
         Text.assemble(("当前金币 ", "summary.label"), str(run_state.gold)),
         Text.assemble(
-            ("下一房间 ", "summary.label"), _format_next_nodes(act_state, room_state)
+            ("下一房间 ", "summary.label"),
+            _format_next_nodes(act_state, room_state, run_state),
         ),
     ]
     return Panel(Group(*lines), title="房间摘要", box=PANEL_BOX, expand=False)

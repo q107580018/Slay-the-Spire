@@ -866,20 +866,7 @@ def _current_action_menu(session: SessionState) -> MenuDefinition | None:
     if menu_mode == "shop_remove_card":
         return build_shop_remove_menu(room_state=room_state, registry=registry)
     if menu_mode == "rest_remove_card":
-        candidates = room_state.payload.get("remove_candidates", [])
-        if not isinstance(candidates, list):
-            candidates = []
-        return build_event_remove_menu(
-            options=[
-                (
-                    f"remove_card:{card_instance_id}",
-                    render_card_name(
-                        registry.cards().get(card_id_from_instance_id(card_instance_id))
-                    ),
-                )
-                for card_instance_id in candidates
-            ]
-        )
+        return build_shop_remove_menu(room_state=room_state, registry=registry)
     if menu_mode == "rest_root":
         return build_rest_root_menu(room_state=room_state, run_state=session.run_state)
     if menu_mode == "rest_upgrade_card":

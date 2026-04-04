@@ -1773,6 +1773,61 @@ def test_next_room_menu_shows_human_readable_room_labels() -> None:
     assert "r1c1" not in output
 
 
+def test_non_combat_summary_shows_wing_boots_detour_in_next_rooms() -> None:
+    session = start_session(seed=5)
+    current_room = replace(
+        session.act_state.nodes[1],
+        node_id="r1c0",
+        row=1,
+        col=0,
+        next_node_ids=["linked"],
+    )
+    linked_room = replace(
+        session.act_state.nodes[1],
+        node_id="linked",
+        row=2,
+        col=0,
+        room_type="combat",
+        next_node_ids=[],
+    )
+    detour_room = replace(
+        session.act_state.nodes[1],
+        node_id="detour",
+        row=2,
+        col=2,
+        room_type="shop",
+        next_node_ids=[],
+    )
+    act_state = replace(
+        session.act_state,
+        current_node_id="r1c0",
+        nodes=[session.act_state.nodes[0], current_room, linked_room, detour_room],
+    )
+    room_state = RoomState(
+        room_id="act1:r1c0",
+        room_type="combat",
+        stage="completed",
+        payload={"node_id": "r1c0", "room_kind": "combat", "next_node_ids": ["linked"]},
+        is_resolved=True,
+        rewards=[],
+    )
+
+    output = render_room(
+        run_state=replace(
+            session.run_state,
+            relics=["burning_blood", "wing_boots"],
+            relic_sequence_positions={"wing_boots_charges": 0},
+        ),
+        act_state=act_state,
+        room_state=room_state,
+        registry=_provider(session),
+        menu_state=MenuState(),
+        run_phase="active",
+    )
+
+    assert "下一房间 战斗, 商店" in output
+
+
 def test_map_renderer_applies_light_rich_styles_to_priority_tokens() -> None:
     act_state = ActState(
         act_id="act1",
