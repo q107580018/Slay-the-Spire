@@ -702,6 +702,69 @@ def test_apply_reward_duplicate_old_coin_reward_is_no_op() -> None:
     assert updated == run_state
 
 
+def test_apply_reward_grants_vajra_permanent_strength_bonus() -> None:
+    run_state = _run_state()
+
+    updated = apply_reward(
+        run_state=run_state,
+        reward_id="relic:vajra",
+        registry=_content_provider(),
+    )
+
+    assert "vajra" in updated.relics
+    assert updated.relic_sequence_positions["relic:vajra:strength_bonus"] == 1
+
+
+def test_apply_reward_grants_oddly_smooth_stone_permanent_dexterity_bonus() -> None:
+    run_state = _run_state()
+
+    updated = apply_reward(
+        run_state=run_state,
+        reward_id="relic:oddly_smooth_stone",
+        registry=_content_provider(),
+    )
+
+    assert "oddly_smooth_stone" in updated.relics
+    assert (
+        updated.relic_sequence_positions["relic:oddly_smooth_stone:dexterity_bonus"]
+        == 1
+    )
+
+
+def test_apply_reward_war_paint_upgrades_two_random_skill_cards() -> None:
+    run_state = replace(
+        _run_state(),
+        deck=["defend#1", "shrug_it_off#1", "bash#1", "armaments#1"],
+    )
+
+    updated = apply_reward(
+        run_state=run_state,
+        reward_id="relic:war_paint",
+        registry=_content_provider(),
+    )
+
+    assert "war_paint" in updated.relics
+    upgraded = {card for card in updated.deck if card.endswith("_plus#1")}
+    assert upgraded == {"shrug_it_off_plus#1", "armaments_plus#1"}
+
+
+def test_apply_reward_whetstone_upgrades_two_random_attack_cards() -> None:
+    run_state = replace(
+        _run_state(),
+        deck=["strike#1", "bash#1", "defend#1", "anger#1"],
+    )
+
+    updated = apply_reward(
+        run_state=run_state,
+        reward_id="relic:whetstone",
+        registry=_content_provider(),
+    )
+
+    assert "whetstone" in updated.relics
+    upgraded = {card for card in updated.deck if card.endswith("_plus#1")}
+    assert upgraded == {"strike_plus#1", "bash_plus#1"}
+
+
 def test_apply_reward_adds_generic_relic_and_repeated_claim_is_no_op() -> None:
     updated = apply_reward(
         run_state=_run_state(),

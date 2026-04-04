@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 
+from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.run_state import RunState
 from slay_the_spire.ports.content_provider import ContentProviderPort
 
@@ -52,11 +53,45 @@ _ON_ACQUIRE_GOLD_BONUS: dict[str, int] = {
 
 _HEAL_TO_FULL_ON_ACQUIRE: frozenset[str] = frozenset({"leeches_waffle"})
 
+_ON_ACQUIRE_RELIC_POSITION_FLAGS: dict[str, tuple[str, int]] = {
+    "vajra": ("relic:vajra:strength_bonus", 1),
+    "oddly_smooth_stone": ("relic:oddly_smooth_stone:dexterity_bonus", 1),
+}
 
-def _apply_relic_on_acquire_effects(run_state: RunState, relic_id: str) -> RunState:
-    max_hp = run_state.max_hp
-    current_hp = run_state.current_hp
-    gold = run_state.gold
+
+def _upgrade_matching_cards(
+    run_state: RunState,
+    *,
+    registry: ContentProviderPort,
+    card_type: str,
+    limit: int,
+    exclude_rarity: str | None = None,
+) -> RunState:
+    updated_deck = list(run_state.deck)
+    upgraded = 0
+    for index, instance_id in enumerate(updated_deck):
+        card_id = card_id_from_instance_id(instance_id)
+        card_def = registry.cards().get(card_id)
+        if card_def.card_type != card_type:
+            continue
+        if not card_def.upgrades_to:
+            continue
+        if exclude_rarity is not None and card_def.rarity == exclude_rarity:
+            continue
+        updated_deck[index] = instance_id.replace(card_id, card_def.upgrades_to, 1)
+        upgraded += 1
+        if upgraded == limit:
+            break
+    return replace(run_state, deck=updated_deck)
+
+
+def _apply_relic_on_acquire_effects(
+    run_state: RunState, relic_id: str, *, registry: ContentProviderPort
+) -> RunState:
+    updated = run_state
+    max_hp = updated.max_hp
+    current_hp = updated.current_hp
+    gold = updated.gold
 
     hp_bonus = _ON_ACQUIRE_MAX_HP_BONUS.get(relic_id, 0)
     if hp_bonus:
@@ -71,13 +106,31 @@ def _apply_relic_on_acquire_effects(run_state: RunState, relic_id: str) -> RunSt
         gold += _gold_amount(run_state, gold_bonus)
 
     if (
-        max_hp == run_state.max_hp
-        and current_hp == run_state.current_hp
-        and gold == run_state.gold
+        max_hp != updated.max_hp
+        or current_hp != updated.current_hp
+        or gold != updated.gold
     ):
-        return run_state
+        updated = replace(updated, max_hp=max_hp, current_hp=current_hp, gold=gold)
 
-    return replace(run_state, max_hp=max_hp, current_hp=current_hp, gold=gold)
+    if relic_id == "war_paint":
+        updated = _upgrade_matching_cards(
+            updated,
+            registry=registry,
+            card_type="skill",
+            limit=2,
+            exclude_rarity="basic",
+        )
+    if relic_id == "whetstone":
+        updated = _upgrade_matching_cards(
+            updated, registry=registry, card_type="attack", limit=2
+        )
+    if relic_id in _ON_ACQUIRE_RELIC_POSITION_FLAGS:
+        key, value = _ON_ACQUIRE_RELIC_POSITION_FLAGS[relic_id]
+        positions = dict(updated.relic_sequence_positions)
+        positions[key] = value
+        updated = replace(updated, relic_sequence_positions=positions)
+
+    return updated
 
 
 def _apply_relic_acquisition(
@@ -112,7 +165,7 @@ def apply_reward(
         )
         if not acquired:
             return updated
-        return _apply_relic_on_acquire_effects(updated, relic_id)
+        return _apply_relic_on_acquire_effects(updated, relic_id, registry=registry)
     if reward_id == "card:reward_strike":
         registry.cards().get("strike_plus")
         return _apply_card_reward(run_state, "strike_plus")
