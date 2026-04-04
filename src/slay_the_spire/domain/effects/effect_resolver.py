@@ -1123,7 +1123,21 @@ def resolve_next_effect(
             int(effect.get("amount", 0)),
             strength_bonus=0 if not _effect_uses_strength(effect) else None,
         )
-        blocked, actual_damage = _damage_target(target, applied_amount)
+        relic_ids = registered_relic_ids(hook_registrations)
+        apply_the_boot = (
+            isinstance(source, PlayerCombatState)
+            and isinstance(target, EnemyState)
+            and "the_boot" in relic_ids
+        )
+        blocked, actual_damage = _damage_target(
+            target,
+            applied_amount,
+            source=source,
+            relic_ids=relic_ids,
+            apply_the_boot=apply_the_boot,
+        )
+        if apply_the_boot:
+            applied_amount = _the_boot_adjusted_amount(applied_amount, blocked)
         vulnerable_stacks = next(
             (
                 status.stacks
@@ -1603,14 +1617,25 @@ def resolve_next_effect(
         target = _get_target(state, target_instance_id)
         if _is_dead(target):
             return noop_effect(reason="dead_target")
+        source = _get_target(state, source_instance_id)
+        applied_amount = _damage_amount(
+            source,
+            target,
+            amount,
+            strength_bonus=0 if not _effect_uses_strength(effect) else None,
+        )
+        relic_ids = registered_relic_ids(hook_registrations)
+        apply_the_boot = (
+            isinstance(source, PlayerCombatState)
+            and isinstance(target, EnemyState)
+            and "the_boot" in relic_ids
+        )
         _blocked, actual_damage = _damage_target(
             target,
-            _damage_amount(
-                _get_target(state, source_instance_id),
-                target,
-                amount,
-                strength_bonus=0 if not _effect_uses_strength(effect) else None,
-            ),
+            applied_amount,
+            source=source,
+            relic_ids=relic_ids,
+            apply_the_boot=apply_the_boot,
         )
         killed = target.hp <= 0
         if killed:
@@ -1619,8 +1644,14 @@ def resolve_next_effect(
         return {
             **effect,
             "result": {
-                "applied_amount": actual_damage,
+                "applied_amount": (
+                    _the_boot_adjusted_amount(applied_amount, _blocked)
+                    if apply_the_boot
+                    else applied_amount
+                ),
+                "blocked": _blocked,
                 "target_defeated": killed,
+                "actual_damage": actual_damage,
                 "hp_gain": hp_gain if killed else 0,
             },
         }
@@ -1661,6 +1692,7 @@ def resolve_next_effect(
         base_amount = int(effect.get("amount", 0))
         total_healed = 0
         results: list[JsonDict] = []
+        relic_ids = registered_relic_ids(hook_registrations)
         for enemy in state.enemies:
             if enemy.hp <= 0:
                 continue
@@ -1670,7 +1702,19 @@ def resolve_next_effect(
                 base_amount,
                 strength_bonus=0 if not _effect_uses_strength(effect) else None,
             )
-            blocked, actual_damage = _damage_target(enemy, applied_amount)
+            apply_the_boot = (
+                isinstance(source, PlayerCombatState)
+                and "the_boot" in relic_ids
+            )
+            blocked, actual_damage = _damage_target(
+                enemy,
+                applied_amount,
+                source=source,
+                relic_ids=relic_ids,
+                apply_the_boot=apply_the_boot,
+            )
+            if apply_the_boot:
+                applied_amount = _the_boot_adjusted_amount(applied_amount, blocked)
             total_healed += actual_damage
             results.append(
                 {
