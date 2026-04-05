@@ -85,8 +85,7 @@ def test_format_relic_detail_lines_include_relic_semantics() -> None:
 
     boss_lines = format_relic_detail_lines("black_blood", registry)
 
-    assert any("摘要" in line.plain for line in boss_lines)
-    assert any("描述" in line.plain for line in boss_lines)
+    assert any("效果" in line.plain for line in boss_lines)
     assert any("取代燃烧之血" in line.plain for line in boss_lines)
     assert any("替换" in line.plain for line in boss_lines)
     assert any(
@@ -514,8 +513,8 @@ def test_format_reward_detail_lines_include_reward_id_and_human_readable_labels(
 
     boss_relic_lines = format_reward_detail_lines("relic:black_blood", registry)
 
-    assert any("摘要" in line.plain for line in boss_relic_lines)
-    assert any("描述" in line.plain for line in boss_relic_lines)
+    assert any("效果" in line.plain for line in boss_relic_lines)
+    assert any("取代燃烧之血" in line.plain for line in boss_relic_lines)
 
 
 def test_format_reward_detail_lines_include_relic_metadata_labels() -> None:

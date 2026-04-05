@@ -402,7 +402,7 @@ def _combat_pile_preview_text(session: SessionState, pile: str) -> Group | Text 
         lines: list[Text] = [title]
         for index, relic_id in enumerate(session.run_state.relics, start=1):
             relic_def = registry.relics().get(relic_id)
-            summary = relic_def.summary or relic_def.description
+            summary = relic_def.description
             if not isinstance(summary, str) or not summary:
                 summary = summarize_relic_effects(relic_def.passive_effects)
             lines.append(Text.assemble(f"{index}. ", relic_def.name, f" - {summary}"))

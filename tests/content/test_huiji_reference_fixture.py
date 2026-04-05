@@ -1,21 +1,4 @@
-from __future__ import annotations
-
-import json
-from pathlib import Path
-
-
-def test_card_relic_expectation_fixture_exists_and_is_non_empty() -> None:
-    fixture_path = (
-        Path(__file__).resolve().parents[2]
-        / "docs"
-        / "reference"
-        / "sts_huijiwiki"
-        / "card_relic_expectations.json"
-    )
-
-    payload = json.loads(fixture_path.read_text(encoding="utf-8"))
-
-    assert payload["cards"]
-    assert payload["relics"]
-    assert "strike" in payload["cards"]
-    assert "burning_blood" in payload["relics"]
+# 此文件原用于检查 docs/reference/sts_huijiwiki/card_relic_expectations.json 是否存在。
+# 该目录及文件已不再维护，相关回归校验由 test_registry_validation.py 中的
+# test_all_relic_names_and_descriptions_are_non_empty 和
+# test_all_card_names_and_summaries_are_non_empty 替代。

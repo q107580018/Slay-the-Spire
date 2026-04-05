@@ -130,13 +130,11 @@ uv build
 
 ## 原版资料参考
 
-仓库内还保留了一份本地原版资料语料库，供开发时快速检索原版卡牌、遗物、敌人、能力和事件说明：
+仓库内还保留了一份本地参考资料，供开发时快速检索原版卡牌说明：
 
-- 目录路径：`docs/reference/sts_huijiwiki/`
-- `sts_huiji_baike_entries.json`：抓取得到的原始条目集合
-- `sts_huiji_baike_entries_clean.json`：清洗后的条目集合，适合直接检索和比对
-- `sts_huiji_baike_entries_summary.json`：抓取范围、时间和条目统计摘要
-- `card_relic_expectations.json`：卡牌和遗物的中文名称与简要说明期望值，用于回归校验；卡牌和遗物的中文名称及简明摘要现均通过 `tests/content/test_registry_validation.py` 中的审计测试与本地语料库进行回归对比。
+- 目录路径：`docs/reference/`
+- `红色牌.json`：铁甲勇士卡牌列表参考
+- `无色牌.json`：无色卡牌列表参考
 - 这些文件仅作开发参考，不参与运行时内容加载，也不是 `content/` 的替代品
 - 需要查原版资料时，默认先看这里；需要补充或校验时，再去外部 Wiki
 
@@ -145,7 +143,7 @@ uv build
 - 本项目默认使用 `uv` 管理环境、依赖和命令执行。
 - 默认内容目录优先读取仓库根目录 `content/`；只有安装包环境或显式传 `--content-root` 时才读取其他目录。
 - 修改内容 JSON 时只维护 `content/`；`src/slay_the_spire/data/content/` 会在构建 wheel 时临时生成并随构建产物打包，不应手工编辑或提交。
-- `docs/reference/sts_huijiwiki/` 下的 JSON 属于本地参考语料，不是运行输入；不要把它们误当作内容真源或打包资源。
+- `docs/reference/` 下的 JSON 属于本地参考资料，不是运行输入；不要把它们误当作内容真源或打包资源。
 - 每次改动代码、内容、命令入口、流程、测试基线或发布方式后，都应同步更新 `README.md`；只有协作约束或仓库工作规则变化时才需要更新 `AGENTS.md`。
 - 默认存档路径是 `saves/latest.json`，当前存档 schema 版本是 `3`。
 - 当前开发阶段默认不为旧存档或旧菜单状态保兼容，除非需求明确要求。

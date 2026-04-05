@@ -22,7 +22,6 @@ from slay_the_spire.adapters.presentation.widgets import (
     summarize_card_effects,
     summarize_effect,
     summarize_active_powers,
-    summarize_relic_effects,
     summarize_trigger_hooks,
 )
 from slay_the_spire.app.menu_definitions import (
@@ -236,24 +235,12 @@ def format_relic_detail_lines(
     relic_id: str, registry: ContentProviderPort
 ) -> list[Text]:
     relic_def = registry.relics().get(relic_id)
-    effect_summary = summarize_relic_effects(relic_def.passive_effects)
-    if effect_summary == "-":
-        fallback = relic_def.summary or relic_def.description
-        if isinstance(fallback, str) and fallback:
-            effect_summary = fallback
     lines = [
         Text.assemble(("名称 ", "summary.label"), relic_def.name),
         Text.assemble(("遗物 ", "summary.label"), relic_id),
-        Text.assemble(
-            ("效果 ", "summary.label"),
-            effect_summary,
-        ),
+        Text.assemble(("效果 ", "summary.label"), relic_def.description),
     ]
     lines.extend(_format_relic_metadata_lines(relic_def))
-    if relic_def.summary is not None:
-        lines.append(Text.assemble(("摘要 ", "summary.label"), relic_def.summary))
-    if relic_def.description is not None:
-        lines.append(Text.assemble(("描述 ", "summary.label"), relic_def.description))
     if relic_def.replaces_relic_id is not None:
         replacement = relic_def.replaces_relic_id
         try:
@@ -365,10 +352,7 @@ def format_reward_detail_lines(
         lines.append(Text.assemble(("奖励类型: ", "summary.label"), "遗物"))
         lines.append(Text.assemble(("名称: ", "summary.label"), relic_def.name))
         lines.append(
-            Text.assemble(
-                ("效果: ", "summary.label"),
-                summarize_relic_effects(relic_def.passive_effects),
-            )
+            Text.assemble(("效果: ", "summary.label"), relic_def.description)
         )
         lines.extend(
             [
@@ -389,12 +373,6 @@ def format_reward_detail_lines(
                 ),
             ]
         )
-        if relic_def.summary is not None:
-            lines.append(Text.assemble(("摘要: ", "summary.label"), relic_def.summary))
-        if relic_def.description is not None:
-            lines.append(
-                Text.assemble(("描述: ", "summary.label"), relic_def.description)
-            )
         if relic_def.replaces_relic_id is not None:
             replacement = relic_def.replaces_relic_id
             try:

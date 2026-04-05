@@ -17,7 +17,7 @@
 ## 代码事实入口
 
 - `pyproject.toml`：包配置、依赖、pytest 配置、脚本入口、打包声明。
-- `docs/reference/sts_huijiwiki/`：本地原版资料语料库，包含抓取的灰机 Wiki 条目原文、清洗版本和摘要；仅作开发参考，不参与运行时加载。
+- `docs/reference/`：本地参考资料，包含红色牌和无色牌的卡牌列表；仅作开发参考，不参与运行时加载。
 - `src/slay_the_spire/app/cli.py`：CLI 入口。
 - `src/slay_the_spire/app/session.py`：会话状态、菜单路由、默认路径、跨幕推进。
 - `src/slay_the_spire/app/menu_definitions.py`：编号菜单定义。
@@ -36,7 +36,7 @@
 - 默认优先相信 `src/slay_the_spire/app/session.py`、`tests/` 和 `content/`，不要优先相信旧设计文档。
 - 面向玩家的菜单、事件、奖励、效果说明等 UI 文案默认统一写中文；代码标识、命令、路径和必要专有名词可保留原文。
 - 做设计取舍时，如果 1 代、2 代资料或旧设计文档冲突，默认以“当前代码中的 1 代内容基线 + 已落地行为”优先；只有需求明确指定时才转向 2 代。
-- 若需要参考原版资料，优先查看本地语料库 `docs/reference/sts_huijiwiki/`；需要补充上下文或交叉校验时，再查询外部 Wiki。
+- 若需要参考原版资料，优先查看本地参考资料 `docs/reference/`；需要补充上下文或交叉校验时，再查询外部 Wiki。
 - 外部英文资料优先参考官方社区 Wiki：[Slay the Spire Wiki](https://slay-the-spire.fandom.com/wiki/)。
 - 中文卡牌中英对照与术语校对优先参考：[杀戮尖塔中文 Wiki](https://sts.huijiwiki.com/wiki/) 需要用tvly skill访问。
 
