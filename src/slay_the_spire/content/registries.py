@@ -148,8 +148,7 @@ class RelicDef:
     name: str
     trigger_hooks: list[str]
     passive_effects: list[JsonDict]
-    summary: str | None = None
-    description: str | None = None
+    description: str = ""
     replaces_relic_id: str | None = None
     disabled_actions: list[str] = field(default_factory=list)
     blocks_gold_gain: bool = False
@@ -383,8 +382,7 @@ class RelicRegistry(_BaseRegistry[RelicDef]):
             name=_require_str(data.get("name"), "name"),
             trigger_hooks=trigger_hooks,
             passive_effects=[dict(item) for item in passive_effects],
-            summary=_require_optional_str(data.get("summary"), "summary"),
-            description=_require_optional_str(data.get("description"), "description"),
+            description=_require_str(data.get("description"), "description"),
             replaces_relic_id=_require_optional_str(
                 data.get("replaces_relic_id"), "replaces_relic_id"
             ),
