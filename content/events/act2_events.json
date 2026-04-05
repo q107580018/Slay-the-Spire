@@ -3,6 +3,7 @@
     {
       "id": "ancient_writing",
       "pool_weight": 1,
+      "once_per_run": true,
       "text": "一本古老的手稿静静悬在空中，字迹会随着你的注视不断重组。",
       "choices": [
         {
@@ -49,6 +50,7 @@
     {
       "id": "masked_bandits",
       "pool_weight": 2,
+      "once_per_run": true,
       "text": "三名蒙面强盗从废墟后现身，笑着让你把钱袋交出来。",
       "choices": [
         {
@@ -97,6 +99,7 @@
     {
       "id": "forgotten_altar",
       "pool_weight": 1,
+      "once_per_run": true,
       "text": "一座被遗忘的祭坛矗立在废墟深处，石面上的凹槽里还残留着暗红色痕迹。",
       "choices": [
         {
@@ -139,6 +142,31 @@
           "effect": {
             "type": "nothing"
           }
+        }
+      ]
+    },
+    {
+      "id": "old_beggar",
+      "pool_weight": 1,
+      "once_per_run": true,
+      "min_gold": 75,
+      "text": "一个老乞丐坐在路边，衣衫褴褛，神情憔悴。他向你伸出手，希望你能施舍一些金币。",
+      "choices": [
+        {"id": "give",  "label": "施舍金币（失去 75 金，移除 1 张牌）"},
+        {"id": "leave", "label": "无视他，继续前行"}
+      ],
+      "outcomes": [
+        {
+          "choice_id": "give",
+          "result": "old_beggar_give",
+          "result_text": "老乞丐接过金币，感激地帮你从牌组里剔去一张你不需要的牌。",
+          "effect": {"type": "remove_card_selection", "gold_cost": 75}
+        },
+        {
+          "choice_id": "leave",
+          "result": "nothing",
+          "result_text": "你无视了他，继续前行。",
+          "effect": {"type": "nothing"}
         }
       ]
     }

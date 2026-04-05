@@ -337,3 +337,35 @@ def test_scrap_ooze_leave_does_nothing() -> None:
     assert session.room_state.is_resolved is True
     assert "cultist_headpiece" not in session.run_state.relics
     assert session.run_state.current_hp == 80
+
+
+# ── 老乞丐 ────────────────────────────────────────────────────────────────────
+
+
+def test_old_beggar_give_spends_75_gold_and_enters_remove_subflow() -> None:
+    session = _event_session("old_beggar")
+
+    _running, session, _message = route_menu_choice("1", session=session)
+    _running, session, _message = route_menu_choice("1", session=session)
+
+    # gold_cost=75 triggers remove_card_selection subflow before resolving
+    assert session.menu_state.mode == "event_remove_card"
+    assert session.room_state.stage == "select_event_remove_card"
+
+    # gold is deducted when the card is selected (not at subflow entry)
+    starting_deck_size = len(session.run_state.deck)
+    _running, session, _message = route_menu_choice("1", session=session)
+
+    assert session.room_state.is_resolved is True
+    assert session.run_state.gold == 24  # 99 - 75
+    assert len(session.run_state.deck) == starting_deck_size - 1
+
+
+def test_old_beggar_leave_does_nothing() -> None:
+    session = _event_session("old_beggar")
+
+    _running, session, _message = route_menu_choice("1", session=session)
+    _running, session, _message = route_menu_choice("2", session=session)
+
+    assert session.room_state.is_resolved is True
+    assert session.run_state.gold == 99
