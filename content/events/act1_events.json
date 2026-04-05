@@ -325,8 +325,14 @@
       "pool_weight": 1,
       "text": "一具冒险者的尸体躺在路边，看起来死去不久。也许他身上还有些值钱的东西。",
       "choices": [
-        {"id": "search", "label": "搜寻尸体（获得 30 金）"},
-        {"id": "leave",  "label": "绕道而行，离开"}
+        {
+          "id": "search",
+          "label": "搜寻尸体（获得 30 金）"
+        },
+        {
+          "id": "leave",
+          "label": "绕道而行，离开"
+        }
       ],
       "outcomes": [
         {
@@ -349,9 +355,18 @@
       "once_per_run": true,
       "text": "一个古旧的铁匠铺矗立在路边，炉火依然燃烧。一把弯曲的铁钳挂在墙上。",
       "choices": [
-        {"id": "forge",   "label": "锻造（升级 1 张牌）"},
-        {"id": "rummage", "label": "翻找（获得弯曲铁钳，并受到诅咒：痛苦）"},
-        {"id": "leave",   "label": "离开"}
+        {
+          "id": "forge",
+          "label": "锻造（升级 1 张牌）"
+        },
+        {
+          "id": "rummage",
+          "label": "翻找（获得弯曲铁钳，并受到诅咒：痛苦）"
+        },
+        {
+          "id": "leave",
+          "label": "离开"
+        }
       ],
       "outcomes": [
         {
@@ -379,8 +394,14 @@
       "pool_weight": 1,
       "text": "一坨发光的史莱姆趴在废铁堆里，似乎吞噬了某个旅人的遗物。你可以试着将其取回，但这并不安全。",
       "choices": [
-        {"id": "reach_in", "label": "伸手取遗物（失去 3 HP，获得邪教徒头罩）"},
-        {"id": "leave",    "label": "不值得冒险，离开"}
+        {
+          "id": "reach_in",
+          "label": "伸手取遗物（失去 3 HP，获得邪教徒头罩）"
+        },
+        {
+          "id": "leave",
+          "label": "不值得冒险，离开"
+        }
       ],
       "outcomes": [
         {
