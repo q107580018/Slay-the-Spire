@@ -461,6 +461,7 @@ def _build_event_payload(
         entry
         for entry in registry.event_pool_entries(event_pool_id)
         if not (entry.once_per_run and entry.member_id in run_state.seen_event_ids)
+        and run_state.gold >= entry.min_gold
     ]
     if not event_entries:
         raise ValueError(f"event pool {event_pool_id} must contain at least one event")
