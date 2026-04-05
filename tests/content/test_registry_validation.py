@@ -392,7 +392,6 @@ def test_boss_relic_catalog_exposes_act1_boss_relic_details(content_root: Path) 
     fusion_hammer = provider.relics().get("fusion_hammer")
 
     assert black_blood.name == "黑色之血"
-    assert black_blood.summary == "战斗结束后回复 12 点生命"
     assert black_blood.description == "取代燃烧之血，战斗结束后回复 12 点生命。"
     assert black_blood.replaces_relic_id == "burning_blood"
     assert black_blood.disabled_actions == []
@@ -584,7 +583,6 @@ def test_loaded_relic_catalog_exposes_required_metadata(content_root: Path) -> N
     (
         "relic_id",
         "expected_name",
-        "expected_summary",
         "expected_description",
         "expected_rarity",
         "expected_pools",
@@ -595,7 +593,6 @@ def test_loaded_relic_catalog_exposes_required_metadata(content_root: Path) -> N
         (
             "face_of_cleric",
             "牧师的脸",
-            "每场战斗后你的最大生命值增加 1",
             "每场战斗后，你的最大生命值增加 1。",
             "event",
             ["event"],
@@ -605,7 +602,6 @@ def test_loaded_relic_catalog_exposes_required_metadata(content_root: Path) -> N
         (
             "gremlin_visage",
             "地精容貌",
-            "每场战斗开始时，你拥有 1 层虚弱",
             "每场战斗开始时，你拥有 1 层虚弱。",
             "event",
             ["event"],
@@ -615,7 +611,6 @@ def test_loaded_relic_catalog_exposes_required_metadata(content_root: Path) -> N
         (
             "nloths_gift",
             "恩洛斯的礼物",
-            "使你在怪物奖励中遇见稀有牌的几率变为 3 倍",
             "使你在怪物奖励中遇见稀有牌的几率变为 3 倍。",
             "event",
             ["event"],
@@ -625,7 +620,6 @@ def test_loaded_relic_catalog_exposes_required_metadata(content_root: Path) -> N
         (
             "ssserpent_head",
             "蛇的头",
-            "每次进入？房间时获得 50 金币",
             "每次进入？房间时，获得 50 金币。",
             "event",
             ["event"],
@@ -635,7 +629,6 @@ def test_loaded_relic_catalog_exposes_required_metadata(content_root: Path) -> N
         (
             "warped_tongs",
             "弯曲铁钳",
-            "在你的每个回合开始时，随机升级一张你的手牌（只影响本场战斗）",
             "在你的每个回合开始时，随机升级一张你的手牌（只影响本场战斗）。",
             "event",
             ["event"],
@@ -645,7 +638,6 @@ def test_loaded_relic_catalog_exposes_required_metadata(content_root: Path) -> N
         (
             "cloak_clasp",
             "斗篷扣",
-            "在你的回合结束时，每有一张手牌获得 1 点格挡",
             "在你的回合结束时，每有一张手牌获得 1 点格挡。",
             "rare",
             ["rare", "neow"],
@@ -655,7 +647,6 @@ def test_loaded_relic_catalog_exposes_required_metadata(content_root: Path) -> N
         (
             "damaru",
             "手摇鼓",
-            "在你的回合开始时，获得 1 层真言",
             "在你的回合开始时，获得 1 层真言。",
             "common",
             ["common", "neow"],
@@ -665,7 +656,6 @@ def test_loaded_relic_catalog_exposes_required_metadata(content_root: Path) -> N
         (
             "melange",
             "美琅脂",
-            "你每次将抽牌堆洗牌时，预见 3",
             "你每次将抽牌堆洗牌时，预见 3。",
             "shop",
             ["shop"],
@@ -675,7 +665,6 @@ def test_loaded_relic_catalog_exposes_required_metadata(content_root: Path) -> N
         (
             "thread_and_needle",
             "针线",
-            "在每场战斗开始时，获得 4 层多层护甲",
             "在每场战斗开始时，获得 4 层多层护甲。",
             "rare",
             ["rare", "neow"],
@@ -685,7 +674,6 @@ def test_loaded_relic_catalog_exposes_required_metadata(content_root: Path) -> N
         (
             "abacus",
             "算盘",
-            "你每次将抽牌堆洗牌时，获得 6 点格挡",
             "你每次将抽牌堆洗牌时，获得 6 点格挡。",
             "shop",
             ["shop"],
@@ -695,7 +683,6 @@ def test_loaded_relic_catalog_exposes_required_metadata(content_root: Path) -> N
         (
             "gambling_chip",
             "赌博筹码",
-            "在每场战斗开始时，丢弃任意张牌，然后抽相同数量张牌",
             "在每场战斗开始时，丢弃任意张牌，然后抽相同数量张牌。",
             "rare",
             ["rare", "neow"],
@@ -705,7 +692,6 @@ def test_loaded_relic_catalog_exposes_required_metadata(content_root: Path) -> N
         (
             "shuriken",
             "手里剑",
-            "你每在同一回合内打出 3 张攻击牌，获得 1 点力量",
             "你每在同一回合内打出 3 张攻击牌，获得 1 点力量。",
             "uncommon",
             ["uncommon", "neow"],
@@ -715,7 +701,6 @@ def test_loaded_relic_catalog_exposes_required_metadata(content_root: Path) -> N
         (
             "runic_capacitor",
             "符文电容器",
-            "每场战斗开始时，获得 3 个额外充能球栏位",
             "每场战斗开始时，获得 3 个额外充能球栏位。",
             "shop",
             ["shop"],
@@ -725,7 +710,6 @@ def test_loaded_relic_catalog_exposes_required_metadata(content_root: Path) -> N
         (
             "the_courier",
             "送货员",
-            "商人的卡牌、遗物和药水不再会卖光，并且所有商品打折 20%",
             "商人的卡牌、遗物和药水不再会卖光，并且所有商品打折 20%。",
             "uncommon",
             ["uncommon", "neow"],
@@ -735,7 +719,6 @@ def test_loaded_relic_catalog_exposes_required_metadata(content_root: Path) -> N
         (
             "neows_lament",
             "涅奥的悲恸",
-            "接下来 3 场战斗中的敌人将只有 1 点生命",
             "接下来 3 场战斗中的敌人将只有 1 点生命。",
             "event",
             ["event"],
@@ -745,7 +728,6 @@ def test_loaded_relic_catalog_exposes_required_metadata(content_root: Path) -> N
         (
             "pocketwatch",
             "怀表",
-            "若你在某个回合打出的牌少于等于 3 张，则在你的下个回合开始时额外抽 3 张牌",
             "若你在某个回合打出的牌少于等于 3 张，则在你的下个回合开始时额外抽 3 张牌。",
             "rare",
             ["rare", "neow"],
@@ -755,7 +737,6 @@ def test_loaded_relic_catalog_exposes_required_metadata(content_root: Path) -> N
         (
             "twisted_funnel",
             "扭曲漏斗",
-            "在每场战斗开始时，给予所有敌人 4 层中毒",
             "在每场战斗开始时，给予所有敌人 4 层中毒。",
             "shop",
             ["shop"],
@@ -765,7 +746,6 @@ def test_loaded_relic_catalog_exposes_required_metadata(content_root: Path) -> N
         (
             "ninja_scroll",
             "忍术卷轴",
-            "每场战斗开始时，手牌中增加 3 张小刀",
             "每场战斗开始时，手牌中增加 3 张小刀。",
             "uncommon",
             ["uncommon", "neow"],
@@ -779,7 +759,6 @@ def test_audited_relic_metadata_matches_local_reference(
     content_root: Path,
     relic_id: str,
     expected_name: str,
-    expected_summary: str,
     expected_description: str,
     expected_rarity: str,
     expected_pools: list[str],
@@ -791,7 +770,6 @@ def test_audited_relic_metadata_matches_local_reference(
     relic = provider.relics().get(relic_id)
 
     assert relic.name == expected_name
-    assert relic.summary == expected_summary
     assert relic.description == expected_description
     assert relic.rarity == expected_rarity
     assert relic.pools == expected_pools
@@ -846,12 +824,11 @@ def test_relic_catalog_contains_full_base_game_relic_inventory(
 
 
 @pytest.mark.parametrize("content_root", _content_roots())
-def test_all_relics_have_localized_summary_and_description(content_root: Path) -> None:
+def test_all_relics_have_description(content_root: Path) -> None:
     provider = StarterContentProvider(content_root)
 
     for relic in provider.relics().all():
         assert relic.name
-        assert relic.summary
         assert relic.description
         assert relic.pools
         assert relic.effect_blueprint is not None
@@ -1123,7 +1100,7 @@ def test_provider_loads_remaining_ironclad_cards(
 
 
 @pytest.mark.parametrize("content_root", _content_roots())
-def test_all_relic_names_and_summaries_match_huiji_reference(
+def test_all_relic_names_and_descriptions_match_huiji_reference(
     content_root: Path,
 ) -> None:
     fixture_path = (
@@ -1146,9 +1123,9 @@ def test_all_relic_names_and_summaries_match_huiji_reference(
             mismatches.append(
                 f"{relic.id}: name mismatch (content={relic.name!r}, fixture={expected['name']!r})"
             )
-        if relic.summary != expected["summary"]:
+        if relic.description != expected["description"]:
             mismatches.append(
-                f"{relic.id}: summary mismatch (content={relic.summary!r}, fixture={expected['summary']!r})"
+                f"{relic.id}: description mismatch (content={relic.description!r}, fixture={expected['description']!r})"
             )
 
     assert not mismatches, "\n".join(mismatches[:20])
