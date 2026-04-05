@@ -370,7 +370,7 @@ def test_enter_event_room_uses_weighted_event_pool_entries() -> None:
         _content_provider(),
     )
 
-    assert room_state.payload["event_id"] == "shining_light"
+    assert room_state.payload["event_id"] == "the_cleric"
 
 
 def test_enter_event_room_skips_once_per_run_events_already_seen() -> None:
@@ -381,7 +381,7 @@ def test_enter_event_room_skips_once_per_run_events_already_seen() -> None:
         _content_provider(),
     )
 
-    assert room_state.payload["event_id"] == "the_cleric"
+    assert room_state.payload["event_id"] == "world_of_goop"
 
 
 def test_enter_treasure_room_generates_deterministic_relic_payload_and_keeps_next_nodes() -> (

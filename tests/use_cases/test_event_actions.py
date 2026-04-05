@@ -252,3 +252,88 @@ def test_event_reward_relic_routes_through_apply_reward_replacement_rules() -> N
     )
 
     assert "golden_idol" in result.run_state.relics
+
+
+# ── 冒险者尸体 ───────────────────────────────────────────────────────────────
+
+
+def test_dead_adventurer_search_grants_gold() -> None:
+    session = _event_session("dead_adventurer")
+
+    _running, session, _message = route_menu_choice("1", session=session)
+    _running, session, _message = route_menu_choice("1", session=session)
+
+    assert session.room_state.is_resolved is True
+    assert session.run_state.gold == 129  # 99 + 30
+    assert session.run_state.current_hp == 80
+
+
+def test_dead_adventurer_leave_does_nothing() -> None:
+    session = _event_session("dead_adventurer")
+
+    _running, session, _message = route_menu_choice("1", session=session)
+    _running, session, _message = route_menu_choice("2", session=session)
+
+    assert session.room_state.is_resolved is True
+    assert session.run_state.gold == 99
+    assert session.run_state.current_hp == 80
+
+
+# ── 奇怪的铁匠 ───────────────────────────────────────────────────────────────
+
+
+def test_ominous_forge_forge_enters_upgrade_subflow() -> None:
+    session = _event_session("ominous_forge")
+
+    _running, session, _message = route_menu_choice("1", session=session)
+    _running, session, _message = route_menu_choice("1", session=session)
+
+    assert session.menu_state.mode == "event_upgrade_card"
+    assert session.room_state.stage == "select_event_upgrade_card"
+
+
+def test_ominous_forge_rummage_grants_warped_tongs_and_pain_curse() -> None:
+    session = _event_session("ominous_forge")
+
+    _running, session, _message = route_menu_choice("1", session=session)
+    _running, session, _message = route_menu_choice("2", session=session)
+
+    assert session.room_state.is_resolved is True
+    assert "warped_tongs" in session.run_state.relics
+    assert any(c.startswith("pain#") for c in session.run_state.deck)
+
+
+def test_ominous_forge_leave_does_nothing() -> None:
+    session = _event_session("ominous_forge")
+
+    _running, session, _message = route_menu_choice("1", session=session)
+    _running, session, _message = route_menu_choice("3", session=session)
+
+    assert session.room_state.is_resolved is True
+    assert "warped_tongs" not in session.run_state.relics
+    assert not any(c.startswith("pain#") for c in session.run_state.deck)
+
+
+# ── 碎夹薄泥 ─────────────────────────────────────────────────────────────────
+
+
+def test_scrap_ooze_reach_in_grants_relic_and_loses_hp() -> None:
+    session = _event_session("scrap_ooze")
+
+    _running, session, _message = route_menu_choice("1", session=session)
+    _running, session, _message = route_menu_choice("1", session=session)
+
+    assert session.room_state.is_resolved is True
+    assert "cultist_headpiece" in session.run_state.relics
+    assert session.run_state.current_hp == 77  # 80 - 3
+
+
+def test_scrap_ooze_leave_does_nothing() -> None:
+    session = _event_session("scrap_ooze")
+
+    _running, session, _message = route_menu_choice("1", session=session)
+    _running, session, _message = route_menu_choice("2", session=session)
+
+    assert session.room_state.is_resolved is True
+    assert "cultist_headpiece" not in session.run_state.relics
+    assert session.run_state.current_hp == 80

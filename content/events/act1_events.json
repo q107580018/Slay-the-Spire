@@ -319,6 +319,83 @@
           }
         }
       ]
+    },
+    {
+      "id": "dead_adventurer",
+      "pool_weight": 1,
+      "text": "一具冒险者的尸体躺在路边，看起来死去不久。也许他身上还有些值钱的东西。",
+      "choices": [
+        {"id": "search", "label": "搜寻尸体（获得 30 金）"},
+        {"id": "leave",  "label": "绕道而行，离开"}
+      ],
+      "outcomes": [
+        {
+          "choice_id": "search",
+          "result": "dead_adventurer_search",
+          "result_text": "你翻遍了尸体，找到了一些金币。",
+          "effect": {"type": "gain_gold", "gain_gold": 30}
+        },
+        {
+          "choice_id": "leave",
+          "result": "nothing",
+          "result_text": "你不想打扰逝者，默默离开。",
+          "effect": {"type": "nothing"}
+        }
+      ]
+    },
+    {
+      "id": "ominous_forge",
+      "pool_weight": 1,
+      "once_per_run": true,
+      "text": "一个古旧的铁匠铺矗立在路边，炉火依然燃烧。一把弯曲的铁钳挂在墙上。",
+      "choices": [
+        {"id": "forge",   "label": "锻造（升级 1 张牌）"},
+        {"id": "rummage", "label": "翻找（获得弯曲铁钳，并受到诅咒：痛苦）"},
+        {"id": "leave",   "label": "离开"}
+      ],
+      "outcomes": [
+        {
+          "choice_id": "forge",
+          "result": "ominous_forge_forge",
+          "result_text": "熊熊炉火让你的武器更加锋利。",
+          "effect": {"type": "upgrade_card_selection"}
+        },
+        {
+          "choice_id": "rummage",
+          "result": "ominous_forge_rummage",
+          "result_text": "你抓起那把弯曲铁钳，却感到一阵莫名的痛苦袭来。",
+          "effect": {"type": "gain_relic_and_add_curse", "relic_id": "warped_tongs", "curse_id": "pain"}
+        },
+        {
+          "choice_id": "leave",
+          "result": "nothing",
+          "result_text": "你感觉这里有些不对劲，决定离开。",
+          "effect": {"type": "nothing"}
+        }
+      ]
+    },
+    {
+      "id": "scrap_ooze",
+      "pool_weight": 1,
+      "text": "一坨发光的史莱姆趴在废铁堆里，似乎吞噬了某个旅人的遗物。你可以试着将其取回，但这并不安全。",
+      "choices": [
+        {"id": "reach_in", "label": "伸手取遗物（失去 3 HP，获得邪教徒头罩）"},
+        {"id": "leave",    "label": "不值得冒险，离开"}
+      ],
+      "outcomes": [
+        {
+          "choice_id": "reach_in",
+          "result": "scrap_ooze_reach",
+          "result_text": "黏液灼烧了你的手臂，但你成功取出了一件遗物。",
+          "effect": {"type": "gain_relic_and_lose_hp", "relic_id": "cultist_headpiece", "lose_hp": 3}
+        },
+        {
+          "choice_id": "leave",
+          "result": "nothing",
+          "result_text": "你决定不冒这个险，绕道而行。",
+          "effect": {"type": "nothing"}
+        }
+      ]
     }
   ]
 }
