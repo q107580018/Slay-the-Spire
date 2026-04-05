@@ -1,22 +1,337 @@
 {
   "relics": [
-    {"id": "frozen_eye", "name": "冰冻之眼", "summary": "查看抽牌堆时，按真实抽牌顺序显示", "description": "你可以查看抽牌堆中的卡牌，并按实际抽牌顺序显示。", "rarity": "shop", "pools": ["shop"], "source_tags": ["shop"], "owner_character_ids": [], "implementation_status": "implemented", "effect_blueprint": [], "trigger_hooks": [], "passive_effects": [], "can_appear_in_shop": true},
-    {"id": "clockwork_souvenir", "name": "发条纪念品", "summary": "每场战斗开始时获得 1 层人工制品", "description": "每场战斗开始时，获得 1 层人工制品。", "rarity": "shop", "pools": ["shop"], "source_tags": ["shop"], "owner_character_ids": [], "implementation_status": "implemented", "effect_blueprint": [], "trigger_hooks": ["on_combat_start"], "passive_effects": [], "can_appear_in_shop": true},
-    {"id": "cauldron", "name": "坩埚", "summary": "获得此遗物时获得 5 瓶随机药水", "description": "获得此遗物时，获得 5 瓶随机药水。", "rarity": "shop", "pools": ["shop"], "source_tags": ["shop"], "owner_character_ids": [], "implementation_status": "placeholder", "effect_blueprint": [], "trigger_hooks": [], "passive_effects": [], "can_appear_in_shop": true},
-    {"id": "chemical_x", "name": "X 化学物", "summary": "X 费用牌的效果额外提高 2", "description": "你的 X 费用牌会将 X 额外视为增加 2。", "rarity": "shop", "pools": ["shop"], "source_tags": ["shop"], "owner_character_ids": [], "implementation_status": "placeholder", "effect_blueprint": [], "trigger_hooks": [], "passive_effects": [], "can_appear_in_shop": true},
-    {"id": "dollys_mirror", "name": "多莉的镜子", "summary": "获得此遗物时复制牌组中的 1 张牌", "description": "获得此遗物时，复制牌组中的 1 张牌。", "rarity": "shop", "pools": ["shop"], "source_tags": ["shop"], "owner_character_ids": [], "implementation_status": "placeholder", "effect_blueprint": [], "trigger_hooks": [], "passive_effects": [], "can_appear_in_shop": true},
-    {"id": "hand_drill", "name": "手摇钻", "summary": "打破敌人格挡后使其获得 2 层易伤", "description": "每当你打破敌人的格挡时，使其获得 2 层易伤。", "rarity": "shop", "pools": ["shop"], "source_tags": ["shop"], "owner_character_ids": [], "implementation_status": "placeholder", "effect_blueprint": [], "trigger_hooks": [], "passive_effects": [], "can_appear_in_shop": true},
-    {"id": "leeches_waffle", "name": "李子华夫饼", "summary": "最大生命值提高 7，并回复全部生命", "description": "你的最大生命值提高 7，并回复全部生命。", "rarity": "shop", "pools": ["shop"], "source_tags": ["shop"], "owner_character_ids": [], "implementation_status": "implemented", "effect_blueprint": [], "trigger_hooks": [], "passive_effects": [], "can_appear_in_shop": true},
-    {"id": "medical_kit", "name": "医疗包", "summary": "状态牌可被打出，打出时消耗", "description": "状态牌现在可以被打出，打出时将其消耗。", "rarity": "shop", "pools": ["shop"], "source_tags": ["shop"], "owner_character_ids": [], "implementation_status": "placeholder", "effect_blueprint": [], "trigger_hooks": [], "passive_effects": [], "can_appear_in_shop": true},
-    {"id": "membership_card", "name": "会员卡", "summary": "商店所有商品半价", "description": "商店中的所有商品价格减半。", "rarity": "shop", "pools": ["shop"], "source_tags": ["shop"], "owner_character_ids": [], "implementation_status": "implemented", "effect_blueprint": [], "trigger_hooks": [], "passive_effects": [], "can_appear_in_shop": true},
-    {"id": "orange_pellets", "name": "橙色药丸", "summary": "同一回合中同时打出攻击、技能、能力后移除自身所有减益", "description": "每回合中若你同时打出攻击、技能与能力牌，则移除自身所有减益。", "rarity": "shop", "pools": ["shop"], "source_tags": ["shop"], "owner_character_ids": [], "implementation_status": "implemented", "effect_blueprint": [], "trigger_hooks": [], "passive_effects": [], "can_appear_in_shop": true},
-    {"id": "orrery", "name": "星象仪", "summary": "获得此遗物时可从 5 张卡牌中选择 2 张加入牌组", "description": "获得此遗物时，可以从 5 张卡牌中选择 2 张加入牌组。", "rarity": "shop", "pools": ["shop"], "source_tags": ["shop"], "owner_character_ids": [], "implementation_status": "placeholder", "effect_blueprint": [], "trigger_hooks": [], "passive_effects": [], "can_appear_in_shop": true},
-    {"id": "prismatic_shard", "name": "虹彩碎片", "summary": "之后可见到其他角色的卡牌与遗物", "description": "之后你可以找到其他角色的卡牌与遗物。", "rarity": "shop", "pools": ["shop"], "source_tags": ["shop"], "owner_character_ids": [], "implementation_status": "placeholder", "effect_blueprint": [], "trigger_hooks": [], "passive_effects": [], "can_appear_in_shop": true},
-    {"id": "sling_of_courage", "name": "勇气弹弓", "summary": "精英战开始时获得 2 点力量", "description": "每场精英战开始时，获得 2 点力量。", "rarity": "shop", "pools": ["shop"], "source_tags": ["shop"], "owner_character_ids": [], "implementation_status": "placeholder", "effect_blueprint": [], "trigger_hooks": [], "passive_effects": [], "can_appear_in_shop": true},
-    {"id": "strange_spoon", "name": "奇怪的汤勺", "summary": "本应被消耗的牌有 50% 概率不会被消耗", "description": "当一张牌将要被消耗时，有 50% 的概率不会被消耗。", "rarity": "shop", "pools": ["shop"], "source_tags": ["shop"], "owner_character_ids": [], "implementation_status": "placeholder", "effect_blueprint": [], "trigger_hooks": [], "passive_effects": [], "can_appear_in_shop": true},
-    {"id": "toolbox", "name": "工具箱", "summary": "每场战斗开始时将 1 张无色牌加入手牌", "description": "每场战斗开始时，随机将 1 张无色牌加入手牌。", "rarity": "shop", "pools": ["shop"], "source_tags": ["shop"], "owner_character_ids": [], "implementation_status": "placeholder", "effect_blueprint": [], "trigger_hooks": [], "passive_effects": [], "can_appear_in_shop": true},
-    {"id": "brimstone", "name": "硫磺", "summary": "每回合开始时你与所有敌人都获得 2 点力量", "description": "每回合开始时，你与所有敌人都获得 2 点力量。", "rarity": "shop", "pools": ["shop"], "source_tags": ["shop"], "owner_character_ids": ["ironclad"], "implementation_status": "placeholder", "effect_blueprint": [], "trigger_hooks": [], "passive_effects": [], "can_appear_in_shop": true},
-    {"id": "the_courier", "name": "送货员", "summary": "商人的卡牌、遗物和药水不再会卖光，并且所有商品打折 20%", "description": "商人的卡牌、遗物和药水不再会卖光，并且所有商品打折 20%。", "rarity": "uncommon", "pools": ["uncommon", "neow"], "source_tags": ["standard_pool"], "owner_character_ids": [], "implementation_status": "implemented", "effect_blueprint": [], "trigger_hooks": [], "passive_effects": [], "can_appear_in_shop": false},
-    {"id": "twisted_funnel", "name": "扭曲漏斗", "summary": "在每场战斗开始时，给予所有敌人 4 层中毒", "description": "在每场战斗开始时，给予所有敌人 4 层中毒。", "rarity": "shop", "pools": ["shop"], "source_tags": ["shop"], "owner_character_ids": ["silent"], "implementation_status": "implemented", "effect_blueprint": [], "trigger_hooks": ["on_combat_start"], "passive_effects": [], "can_appear_in_shop": true}
+    {
+      "id": "frozen_eye",
+      "name": "冰冻之眼",
+      "description": "你可以查看抽牌堆中的卡牌，并按实际抽牌顺序显示。",
+      "rarity": "shop",
+      "pools": [
+        "shop"
+      ],
+      "source_tags": [
+        "shop"
+      ],
+      "owner_character_ids": [],
+      "implementation_status": "implemented",
+      "effect_blueprint": [],
+      "trigger_hooks": [],
+      "passive_effects": [],
+      "can_appear_in_shop": true
+    },
+    {
+      "id": "clockwork_souvenir",
+      "name": "发条纪念品",
+      "description": "每场战斗开始时，获得 1 层人工制品。",
+      "rarity": "shop",
+      "pools": [
+        "shop"
+      ],
+      "source_tags": [
+        "shop"
+      ],
+      "owner_character_ids": [],
+      "implementation_status": "implemented",
+      "effect_blueprint": [],
+      "trigger_hooks": [
+        "on_combat_start"
+      ],
+      "passive_effects": [],
+      "can_appear_in_shop": true
+    },
+    {
+      "id": "cauldron",
+      "name": "坩埚",
+      "description": "获得此遗物时，获得 5 瓶随机药水。",
+      "rarity": "shop",
+      "pools": [
+        "shop"
+      ],
+      "source_tags": [
+        "shop"
+      ],
+      "owner_character_ids": [],
+      "implementation_status": "placeholder",
+      "effect_blueprint": [],
+      "trigger_hooks": [],
+      "passive_effects": [],
+      "can_appear_in_shop": true
+    },
+    {
+      "id": "chemical_x",
+      "name": "X 化学物",
+      "description": "你的 X 费用牌会将 X 额外视为增加 2。",
+      "rarity": "shop",
+      "pools": [
+        "shop"
+      ],
+      "source_tags": [
+        "shop"
+      ],
+      "owner_character_ids": [],
+      "implementation_status": "placeholder",
+      "effect_blueprint": [],
+      "trigger_hooks": [],
+      "passive_effects": [],
+      "can_appear_in_shop": true
+    },
+    {
+      "id": "dollys_mirror",
+      "name": "多莉的镜子",
+      "description": "获得此遗物时，复制牌组中的 1 张牌。",
+      "rarity": "shop",
+      "pools": [
+        "shop"
+      ],
+      "source_tags": [
+        "shop"
+      ],
+      "owner_character_ids": [],
+      "implementation_status": "placeholder",
+      "effect_blueprint": [],
+      "trigger_hooks": [],
+      "passive_effects": [],
+      "can_appear_in_shop": true
+    },
+    {
+      "id": "hand_drill",
+      "name": "手摇钻",
+      "description": "每当你打破敌人的格挡时，使其获得 2 层易伤。",
+      "rarity": "shop",
+      "pools": [
+        "shop"
+      ],
+      "source_tags": [
+        "shop"
+      ],
+      "owner_character_ids": [],
+      "implementation_status": "placeholder",
+      "effect_blueprint": [],
+      "trigger_hooks": [],
+      "passive_effects": [],
+      "can_appear_in_shop": true
+    },
+    {
+      "id": "leeches_waffle",
+      "name": "李子华夫饼",
+      "description": "你的最大生命值提高 7，并回复全部生命。",
+      "rarity": "shop",
+      "pools": [
+        "shop"
+      ],
+      "source_tags": [
+        "shop"
+      ],
+      "owner_character_ids": [],
+      "implementation_status": "implemented",
+      "effect_blueprint": [],
+      "trigger_hooks": [],
+      "passive_effects": [],
+      "can_appear_in_shop": true
+    },
+    {
+      "id": "medical_kit",
+      "name": "医疗包",
+      "description": "状态牌现在可以被打出，打出时将其消耗。",
+      "rarity": "shop",
+      "pools": [
+        "shop"
+      ],
+      "source_tags": [
+        "shop"
+      ],
+      "owner_character_ids": [],
+      "implementation_status": "placeholder",
+      "effect_blueprint": [],
+      "trigger_hooks": [],
+      "passive_effects": [],
+      "can_appear_in_shop": true
+    },
+    {
+      "id": "membership_card",
+      "name": "会员卡",
+      "description": "商店中的所有商品价格减半。",
+      "rarity": "shop",
+      "pools": [
+        "shop"
+      ],
+      "source_tags": [
+        "shop"
+      ],
+      "owner_character_ids": [],
+      "implementation_status": "implemented",
+      "effect_blueprint": [],
+      "trigger_hooks": [],
+      "passive_effects": [],
+      "can_appear_in_shop": true
+    },
+    {
+      "id": "orange_pellets",
+      "name": "橙色药丸",
+      "description": "每回合中若你同时打出攻击、技能与能力牌，则移除自身所有减益。",
+      "rarity": "shop",
+      "pools": [
+        "shop"
+      ],
+      "source_tags": [
+        "shop"
+      ],
+      "owner_character_ids": [],
+      "implementation_status": "implemented",
+      "effect_blueprint": [],
+      "trigger_hooks": [],
+      "passive_effects": [],
+      "can_appear_in_shop": true
+    },
+    {
+      "id": "orrery",
+      "name": "星象仪",
+      "description": "获得此遗物时，可以从 5 张卡牌中选择 2 张加入牌组。",
+      "rarity": "shop",
+      "pools": [
+        "shop"
+      ],
+      "source_tags": [
+        "shop"
+      ],
+      "owner_character_ids": [],
+      "implementation_status": "placeholder",
+      "effect_blueprint": [],
+      "trigger_hooks": [],
+      "passive_effects": [],
+      "can_appear_in_shop": true
+    },
+    {
+      "id": "prismatic_shard",
+      "name": "虹彩碎片",
+      "description": "之后你可以找到其他角色的卡牌与遗物。",
+      "rarity": "shop",
+      "pools": [
+        "shop"
+      ],
+      "source_tags": [
+        "shop"
+      ],
+      "owner_character_ids": [],
+      "implementation_status": "placeholder",
+      "effect_blueprint": [],
+      "trigger_hooks": [],
+      "passive_effects": [],
+      "can_appear_in_shop": true
+    },
+    {
+      "id": "sling_of_courage",
+      "name": "勇气弹弓",
+      "description": "每场精英战开始时，获得 2 点力量。",
+      "rarity": "shop",
+      "pools": [
+        "shop"
+      ],
+      "source_tags": [
+        "shop"
+      ],
+      "owner_character_ids": [],
+      "implementation_status": "placeholder",
+      "effect_blueprint": [],
+      "trigger_hooks": [],
+      "passive_effects": [],
+      "can_appear_in_shop": true
+    },
+    {
+      "id": "strange_spoon",
+      "name": "奇怪的汤勺",
+      "description": "当一张牌将要被消耗时，有 50% 的概率不会被消耗。",
+      "rarity": "shop",
+      "pools": [
+        "shop"
+      ],
+      "source_tags": [
+        "shop"
+      ],
+      "owner_character_ids": [],
+      "implementation_status": "placeholder",
+      "effect_blueprint": [],
+      "trigger_hooks": [],
+      "passive_effects": [],
+      "can_appear_in_shop": true
+    },
+    {
+      "id": "toolbox",
+      "name": "工具箱",
+      "description": "每场战斗开始时，随机将 1 张无色牌加入手牌。",
+      "rarity": "shop",
+      "pools": [
+        "shop"
+      ],
+      "source_tags": [
+        "shop"
+      ],
+      "owner_character_ids": [],
+      "implementation_status": "placeholder",
+      "effect_blueprint": [],
+      "trigger_hooks": [],
+      "passive_effects": [],
+      "can_appear_in_shop": true
+    },
+    {
+      "id": "brimstone",
+      "name": "硫磺",
+      "description": "每回合开始时，你与所有敌人都获得 2 点力量。",
+      "rarity": "shop",
+      "pools": [
+        "shop"
+      ],
+      "source_tags": [
+        "shop"
+      ],
+      "owner_character_ids": [
+        "ironclad"
+      ],
+      "implementation_status": "placeholder",
+      "effect_blueprint": [],
+      "trigger_hooks": [],
+      "passive_effects": [],
+      "can_appear_in_shop": true
+    },
+    {
+      "id": "the_courier",
+      "name": "送货员",
+      "description": "商人的卡牌、遗物和药水不再会卖光，并且所有商品打折 20%。",
+      "rarity": "uncommon",
+      "pools": [
+        "uncommon",
+        "neow"
+      ],
+      "source_tags": [
+        "standard_pool"
+      ],
+      "owner_character_ids": [],
+      "implementation_status": "implemented",
+      "effect_blueprint": [],
+      "trigger_hooks": [],
+      "passive_effects": [],
+      "can_appear_in_shop": false
+    },
+    {
+      "id": "twisted_funnel",
+      "name": "扭曲漏斗",
+      "description": "在每场战斗开始时，给予所有敌人 4 层中毒。",
+      "rarity": "shop",
+      "pools": [
+        "shop"
+      ],
+      "source_tags": [
+        "shop"
+      ],
+      "owner_character_ids": [
+        "silent"
+      ],
+      "implementation_status": "implemented",
+      "effect_blueprint": [],
+      "trigger_hooks": [
+        "on_combat_start"
+      ],
+      "passive_effects": [],
+      "can_appear_in_shop": true
+    }
   ]
 }

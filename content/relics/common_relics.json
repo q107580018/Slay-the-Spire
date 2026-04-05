@@ -3,7 +3,6 @@
     {
       "id": "akabeko",
       "name": "赤牛",
-      "summary": "每场战斗中你的第一次攻击额外造成 8 点伤害",
       "description": "每场战斗中，你打出的第一次攻击额外造成 8 点伤害。",
       "rarity": "common",
       "pools": [
@@ -23,7 +22,6 @@
     {
       "id": "anchor",
       "name": "船锚",
-      "summary": "每场战斗开始时获得 10 点格挡",
       "description": "每场战斗开始时，获得 10 点格挡。",
       "rarity": "common",
       "pools": [
@@ -43,7 +41,6 @@
     {
       "id": "ancient_tea_set",
       "name": "古茶具",
-      "summary": "进入休息点后下一场战斗开始时获得 2 点能量",
       "description": "每次进入休息点后，下一场战斗开始时获得 2 点能量。",
       "rarity": "common",
       "pools": [
@@ -63,7 +60,6 @@
     {
       "id": "art_of_war",
       "name": "兵法",
-      "summary": "本回合未打出攻击牌时，下回合开始获得 1 点能量",
       "description": "如果你在本回合没有打出攻击牌，则下回合开始时获得 1 点能量。",
       "rarity": "common",
       "pools": [
@@ -85,7 +81,6 @@
     {
       "id": "bag_of_marbles",
       "name": "弹珠袋",
-      "summary": "每场战斗开始时使所有敌人获得 1 层易伤",
       "description": "每场战斗开始时，使所有敌人获得 1 层易伤。",
       "rarity": "common",
       "pools": [
@@ -107,7 +102,6 @@
     {
       "id": "bag_of_preparation",
       "name": "准备背包",
-      "summary": "每场战斗开始时额外抽 2 张牌",
       "description": "每场战斗开始时，额外抽 2 张牌。",
       "rarity": "common",
       "pools": [
@@ -129,7 +123,6 @@
     {
       "id": "blood_vial",
       "name": "鲜血药瓶",
-      "summary": "每场战斗开始时回复 2 点生命",
       "description": "每场战斗开始时回复 2 点生命。",
       "rarity": "common",
       "pools": [
@@ -156,7 +149,6 @@
     {
       "id": "bronze_scales",
       "name": "青铜鳞片",
-      "summary": "每次受到攻击时对攻击者造成 3 点伤害",
       "description": "每次受到攻击伤害时，对攻击者造成 3 点伤害。",
       "rarity": "common",
       "pools": [
@@ -176,7 +168,6 @@
     {
       "id": "centennial_puzzle",
       "name": "百年谜题",
-      "summary": "每场战斗中第一次失去生命时抽 3 张牌",
       "description": "每场战斗中，第一次失去生命时抽 3 张牌。",
       "rarity": "common",
       "pools": [
@@ -196,7 +187,6 @@
     {
       "id": "ceramic_fish",
       "name": "陶瓷鱼",
-      "summary": "每当你将一张牌加入牌组时获得 9 金币",
       "description": "每当你将一张牌加入牌组时，获得 9 金币。",
       "rarity": "common",
       "pools": [
@@ -216,7 +206,6 @@
     {
       "id": "dream_catcher",
       "name": "捕梦网",
-      "summary": "在休息点休息后可以选择 1 张卡牌加入牌组",
       "description": "每当你在休息点选择休息后，可以从 3 张卡牌中选择 1 张加入牌组。",
       "rarity": "common",
       "pools": [
@@ -236,7 +225,6 @@
     {
       "id": "happy_flower",
       "name": "快乐花",
-      "summary": "每经过 3 个回合获得 1 点能量",
       "description": "每经过 3 个回合，获得 1 点能量。",
       "rarity": "common",
       "pools": [
@@ -258,7 +246,6 @@
     {
       "id": "juzu_bracelet",
       "name": "念珠",
-      "summary": "普通宝箱房不再出现怪物事件",
       "description": "普通宝箱房不再出现怪物事件。",
       "rarity": "common",
       "pools": [
@@ -278,7 +265,6 @@
     {
       "id": "lantern",
       "name": "灯笼",
-      "summary": "每场战斗的第一回合开始时获得 1 点能量",
       "description": "每场战斗的第一回合开始时，获得 1 点能量。",
       "rarity": "common",
       "pools": [
@@ -300,7 +286,6 @@
     {
       "id": "maw_bank",
       "name": "大嘴储蓄罐",
-      "summary": "每经过一个房间获得 12 金币，直到你进入商店",
       "description": "每经过一个房间获得 12 金币，直到你进入商店为止。",
       "rarity": "common",
       "pools": [
@@ -320,7 +305,6 @@
     {
       "id": "meal_ticket",
       "name": "餐券",
-      "summary": "进入商店时回复 15 点生命",
       "description": "每当你进入商店时，回复 15 点生命。",
       "rarity": "common",
       "pools": [
@@ -340,7 +324,6 @@
     {
       "id": "meat_on_the_bone",
       "name": "带骨肉",
-      "summary": "战斗结束时若生命低于一半，回复 12 点生命",
       "description": "战斗结束时，若你的生命低于一半，则回复 12 点生命。",
       "rarity": "common",
       "pools": [
@@ -360,7 +343,6 @@
     {
       "id": "mercury_hourglass",
       "name": "水银沙漏",
-      "summary": "每回合开始时对所有敌人造成 3 点伤害",
       "description": "每回合开始时，对所有敌人造成 3 点伤害。",
       "rarity": "common",
       "pools": [
@@ -380,7 +362,6 @@
     {
       "id": "nunchaku",
       "name": "双节棍",
-      "summary": "每打出 10 张攻击牌获得 1 点能量",
       "description": "每当你打出 10 张攻击牌时，获得 1 点能量。",
       "rarity": "common",
       "pools": [
@@ -400,7 +381,6 @@
     {
       "id": "oddly_smooth_stone",
       "name": "光滑石",
-      "summary": "获得 1 点敏捷",
       "description": "获得 1 点敏捷。",
       "rarity": "common",
       "pools": [
@@ -420,7 +400,6 @@
     {
       "id": "omamori",
       "name": "御守",
-      "summary": "接下来获得的 2 张诅咒牌无效",
       "description": "接下来你将获得的 2 张诅咒牌会被无效化。",
       "rarity": "common",
       "pools": [
@@ -440,7 +419,6 @@
     {
       "id": "orichalcum",
       "name": "山铜",
-      "summary": "若回合结束时没有格挡，则获得 6 点格挡",
       "description": "若你在回合结束时没有格挡，则获得 6 点格挡。",
       "rarity": "common",
       "pools": [
@@ -460,7 +438,6 @@
     {
       "id": "pen_nib",
       "name": "钢笔尖",
-      "summary": "每打出 10 张攻击牌，你的下一张攻击造成双倍伤害",
       "description": "每当你打出 10 张攻击牌时，你的下一张攻击造成双倍伤害。",
       "rarity": "common",
       "pools": [
@@ -480,7 +457,6 @@
     {
       "id": "potion_belt",
       "name": "药带",
-      "summary": "药水栏位上限增加 2",
       "description": "你的药水栏位上限增加 2。",
       "rarity": "common",
       "pools": [
@@ -500,7 +476,6 @@
     {
       "id": "preserved_insect",
       "name": "标本昆虫",
-      "summary": "精英敌人生命降低 25%",
       "description": "精英敌人的生命值降低 25%。",
       "rarity": "common",
       "pools": [
@@ -520,7 +495,6 @@
     {
       "id": "regal_pillow",
       "name": "豪华枕头",
-      "summary": "在休息点休息时额外回复 15 点生命",
       "description": "在休息点休息时，额外回复 15 点生命。",
       "rarity": "common",
       "pools": [
@@ -540,7 +514,6 @@
     {
       "id": "smiling_mask",
       "name": "微笑面具",
-      "summary": "移除卡牌的价格固定为 50 金币",
       "description": "商店中移除卡牌的价格固定为 50 金币。",
       "rarity": "common",
       "pools": [
@@ -560,7 +533,6 @@
     {
       "id": "strawberry",
       "name": "草莓",
-      "summary": "最大生命值提高 7",
       "description": "你的最大生命值提高 7。",
       "rarity": "common",
       "pools": [
@@ -580,7 +552,6 @@
     {
       "id": "the_boot",
       "name": "靴子",
-      "summary": "若攻击本应造成 5 点以下伤害，则改为造成 5 点",
       "description": "若你的攻击本应造成 5 点以下伤害，则改为造成 5 点伤害。",
       "rarity": "common",
       "pools": [
@@ -600,7 +571,6 @@
     {
       "id": "tiny_chest",
       "name": "小宝箱",
-      "summary": "每经过 4 个问号房获得 1 个宝箱房",
       "description": "每经过 4 个问号房，你会额外获得 1 个宝箱房。",
       "rarity": "common",
       "pools": [
@@ -620,7 +590,6 @@
     {
       "id": "toy_ornithopter",
       "name": "玩具扑翼机",
-      "summary": "每当你使用药水时回复 5 点生命",
       "description": "每当你使用药水时，回复 5 点生命。",
       "rarity": "common",
       "pools": [
@@ -640,7 +609,6 @@
     {
       "id": "vajra",
       "name": "金刚杵",
-      "summary": "获得 1 点力量",
       "description": "获得 1 点力量。",
       "rarity": "common",
       "pools": [
@@ -660,7 +628,6 @@
     {
       "id": "war_paint",
       "name": "战漆",
-      "summary": "随机升级牌组中的 2 张技能牌",
       "description": "随机升级牌组中的 2 张技能牌。",
       "rarity": "common",
       "pools": [
@@ -680,7 +647,6 @@
     {
       "id": "whetstone",
       "name": "磨刀石",
-      "summary": "随机升级牌组中的 2 张攻击牌",
       "description": "随机升级牌组中的 2 张攻击牌。",
       "rarity": "common",
       "pools": [
