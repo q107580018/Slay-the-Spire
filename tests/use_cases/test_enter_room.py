@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -898,8 +899,6 @@ def test_enter_room_places_innate_cards_into_opening_hand_first() -> None:
 
 def test_enter_event_room_skips_events_when_gold_below_min_gold() -> None:
     # old_beggar requires min_gold=75; run_state has gold=50 → should be skipped
-    from dataclasses import replace
-
     run_state = replace(_run_state(seed=37), gold=50)
     room_state = enter_room(
         run_state,
@@ -914,10 +913,6 @@ def test_enter_event_room_skips_events_when_gold_below_min_gold() -> None:
 def test_enter_event_room_includes_event_when_gold_meets_min_gold() -> None:
     # Force a state where only old_beggar would be selected by marking all others seen.
     # We use a run_state with enough gold and all other act2 events already seen.
-    from dataclasses import replace
-
-    from slay_the_spire.domain.models.act_state import ActNodeState, ActState
-
     base = _run_state(
         seed=37, seen_event_ids=["ancient_writing", "masked_bandits", "forgotten_altar"]
     )
