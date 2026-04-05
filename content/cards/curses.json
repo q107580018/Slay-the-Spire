@@ -27,6 +27,19 @@
       ]
     },
     {
+      "id": "pain",
+      "name": "痛苦",
+      "cost": -1,
+      "rarity": "curse",
+      "playable": false,
+      "effects": [],
+      "card_type": "curse",
+      "acquisition_tags": [
+        "event",
+        "curse"
+      ]
+    },
+    {
       "id": "burn",
       "name": "灼伤",
       "cost": -1,
