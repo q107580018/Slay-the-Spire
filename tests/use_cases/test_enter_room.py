@@ -898,14 +898,35 @@ def test_enter_room_places_innate_cards_into_opening_hand_first() -> None:
 
 
 def test_enter_event_room_skips_events_when_gold_below_min_gold() -> None:
-    # old_beggar requires min_gold=75; run_state has gold=50 → should be skipped
-    run_state = replace(_run_state(seed=37), gold=50)
-    room_state = enter_room(
-        run_state,
-        _act_state(node_id="r1c0", room_type="event"),
-        "r1c0",
-        _content_provider(),
+    # old_beggar requires min_gold=75; run_state has gold=50 → should not appear
+    base = _run_state(seed=37)
+    run_state = replace(base, gold=50, current_act_id="act2")
+    act_state = ActState(
+        act_id="act2",
+        current_node_id="start",
+        nodes=[
+            ActNodeState(
+                node_id="start",
+                row=0,
+                col=0,
+                room_type="combat",
+                next_node_ids=["r1c0"],
+            ),
+            ActNodeState(
+                node_id="r1c0",
+                row=1,
+                col=0,
+                room_type="event",
+                next_node_ids=[],
+            ),
+        ],
+        visited_node_ids=[],
+        enemy_pool_id="act2_basic",
+        elite_pool_id="act2_elites",
+        boss_pool_id="act2_bosses",
+        event_pool_id="act2_events",
     )
+    room_state = enter_room(run_state, act_state, "r1c0", _content_provider())
 
     assert room_state.payload["event_id"] != "old_beggar"
 

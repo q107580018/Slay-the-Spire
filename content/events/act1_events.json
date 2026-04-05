@@ -323,6 +323,7 @@
     {
       "id": "dead_adventurer",
       "pool_weight": 1,
+      "once_per_run": true,
       "text": "一具冒险者的尸体躺在路边，看起来死去不久。也许他身上还有些值钱的东西。",
       "choices": [
         {
@@ -392,6 +393,7 @@
     {
       "id": "scrap_ooze",
       "pool_weight": 1,
+      "once_per_run": true,
       "text": "一坨发光的史莱姆趴在废铁堆里，似乎吞噬了某个旅人的遗物。你可以试着将其取回，但这并不安全。",
       "choices": [
         {
