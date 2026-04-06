@@ -298,7 +298,6 @@ def format_potion_detail_lines(
     potion_def = registry.potions().get(potion_id)
     return [
         Text.assemble(("名称 ", "summary.label"), potion_def.name),
-        Text.assemble(("药水 ", "summary.label"), potion_id),
         Text.assemble(
             ("目标 ", "summary.label"), potion_target_label(potion_def.target)
         ),
@@ -351,9 +350,7 @@ def format_reward_detail_lines(
         relic_def = registry.relics().get(relic_id)
         lines.append(Text.assemble(("奖励类型: ", "summary.label"), "遗物"))
         lines.append(Text.assemble(("名称: ", "summary.label"), relic_def.name))
-        lines.append(
-            Text.assemble(("效果: ", "summary.label"), relic_def.description)
-        )
+        lines.append(Text.assemble(("效果: ", "summary.label"), relic_def.description))
         lines.extend(
             [
                 Text.assemble(
