@@ -59,11 +59,13 @@ Plans:
   2. 随机奖励池默认不投放未实现或 placeholder 遗物；若明确标记未实现，也不会破坏流程。
   3. 金币、卡牌奖励、遗物、药水、移除、升级、转换、复制、跳过等奖励类型都有可验证结果与玩家反馈。
   4. 奖励经济相关遗物效果在对应入口按规则触发并可通过测试验证。
-**Plans**: 3 plans
+**Plans**: 5 plans
 Plans:
-- [ ] 03-01-PLAN.md — 建立统一 reward action 协议并扩展 apply_reward 核心
-- [ ] 03-02-PLAN.md — 打通 Neow/商店/事件/休息点到统一奖励链路并统一菜单反馈
-- [ ] 03-03-PLAN.md — 收敛 placeholder 安全与奖励经济遗物跨入口验证，并更新 README
+- [x] 03-01-PLAN.md — 建立统一 reward action 协议并扩展 apply_reward 核心
+- [ ] 03-02-PLAN.md — 先收敛 use case 入口（Neow/商店/事件/休息点）到统一奖励协议
+- [ ] 03-03-PLAN.md — 再对齐 session/menu 奖励路由与中文反馈文案
+- [ ] 03-04-PLAN.md — 独立完成 placeholder 安全过滤与固定奖励降级反馈
+- [ ] 03-05-PLAN.md — 建立奖励经济遗物跨入口回归矩阵并同步 README
 **UI hint**: yes
 
 ### Phase 4: 非战斗系统扩容
@@ -116,7 +118,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. 护栏与交付契约 | 0/3 | Not started | - |
 | 2. 三幕主线闭环 | 3/3 | Complete    | 2026-04-11 |
-| 3. 奖励与经济统一 | 0/3 | Not started | - |
+| 3. 奖励与经济统一 | 1/5 | In Progress|  |
 | 4. 非战斗系统扩容 | 0/3 | Not started | - |
 | 5. 多角色基础与 Silent | 0/2 | Not started | - |
 | 6. 高复杂角色与战斗规则收敛 | 0/4 | Not started | - |

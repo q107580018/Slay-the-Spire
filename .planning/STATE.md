@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Phase 2 context gathered
-last_updated: "2026-04-11T09:59:03.764Z"
+status: executing
+stopped_at: Completed 03-01-PLAN.md
+last_updated: "2026-04-11T11:55:11.447Z"
 last_activity: 2026-04-11
 progress:
   total_phases: 7
   completed_phases: 2
-  total_plans: 6
-  completed_plans: 6
-  percent: 100
+  total_plans: 11
+  completed_plans: 7
+  percent: 64
 ---
 
 # Project State
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-11)
 
 **Core value:** 玩家可以在终端中完成一局尽可能贴近原版 1 代规则与内容的《杀戮尖塔》流程，并且运行结果可存档、可回放、可测试。  
-**Current focus:** Phase 01 — 护栏与交付契约
+**Current focus:** Phase 03 — 奖励与经济统一
 
 ## Current Position
 
-Phase: 3
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: 03 (奖励与经济统一) — EXECUTING
+Plan: 2 of 5
+Status: Ready to execute
 Last activity: 2026-04-11
 
 Progress: [░░░░░░░░░░] 0%
@@ -55,6 +55,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P01 | 5min | 2 tasks | 6 files |
 | Phase 01 P02 | 8min | 2 tasks | 4 files |
 | Phase 01 P03 | 3min | 2 tasks | 2 files |
+| Phase 03 P01 | 6 min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -72,6 +73,8 @@ Recent decisions affecting current work:
 - [Phase 01]: Updated relic coverage sentence to remove stale placeholder counts; assert runtime pool filtering instead
 - [Phase 01]: Fixed existing README test to match updated implementation_status wording after plan 01-02 filtering
 - [Phase 01]: Used fragment-loop pattern for README drift test to avoid brittle individual assertions
+- [Phase 03]: 奖励字符串统一先解析为 RewardAction，再由 apply_reward_action 执行，未知输入安全降级为 noop。 — 这样可以为 shop、event、rest、neow 等入口提供统一合同层，避免重复维护前缀分支，并满足非法输入不破坏流程的安全要求。
+- [Phase 03]: 目标型奖励使用 card_instance_id 与可选 target_card_id 编码，保持 apply 结果可重复且可测试。 — 实例级目标能精确定位牌组中的卡牌，同时允许 transform 在提供显式目标时保持确定性，便于后续入口统一接入与回归测试。
 
 ### Pending Todos
 
@@ -85,6 +88,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-11T09:36:42.691Z
-Stopped at: Phase 2 context gathered
-Resume file: .planning/phases/02-三幕主线闭环/02-CONTEXT.md
+Last session: 2026-04-11T11:54:53.599Z
+Stopped at: Completed 03-01-PLAN.md
+Resume file: None
