@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import shutil
+from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
@@ -16,6 +17,7 @@ from slay_the_spire.content.registries import (
     EnemyRegistry,
     RelicRegistry,
 )
+from slay_the_spire.use_cases.start_run import start_new_run
 
 
 def _content_roots() -> tuple[Path, ...]:
@@ -406,7 +408,10 @@ def test_boss_relic_catalog_exposes_act1_boss_relic_details(content_root: Path) 
     assert coffee_dripper.disabled_actions == ["rest_heal"]
     assert coffee_dripper.blocks_gold_gain is False
     assert fusion_hammer.name == "融合之锤"
-    assert fusion_hammer.description == "每回合开始时获得 1 点能量，但休息点锻造卡牌的动作会被禁用。"
+    assert (
+        fusion_hammer.description
+        == "每回合开始时获得 1 点能量，但休息点锻造卡牌的动作会被禁用。"
+    )
     assert fusion_hammer.disabled_actions == ["smith"]
     assert fusion_hammer.blocks_gold_gain is False
 
@@ -1196,3 +1201,275 @@ def test_closure_targets_are_no_longer_placeholder(content_root: Path) -> None:
         if r.id in closure_targets and r.implementation_status == "placeholder"
     ]
     assert not still_placeholder, f"Still placeholder: {still_placeholder}"
+
+
+# ---------------------------------------------------------------------------
+# Reachability report helpers
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class ReachabilityRow:
+    content_type: str
+    content_id: str
+    loaded: bool
+    reachable_via: tuple[str, ...]
+    status: str
+    suggested_file: str
+
+
+def _format_reachability_failures(rows: list[ReachabilityRow]) -> str:
+    return "\n".join(
+        f"{row.content_type}:{row.content_id} status={row.status} "
+        f"reachable_via={','.join(row.reachable_via) or '-'} "
+        f"check={row.suggested_file}"
+        for row in rows
+    )
+
+
+def _content_reachability_rows(
+    provider: StarterContentProvider,
+) -> list[ReachabilityRow]:
+    rows: list[ReachabilityRow] = []
+
+    # --- Build runtime relic sequences for reference ---
+    run_state = start_new_run("ironclad", seed=7, registry=provider)
+    runtime_relic_ids: dict[str, set[str]] = {}
+    for pool_id, relic_ids in run_state.relic_sequences.items():
+        for relic_id in relic_ids:
+            runtime_relic_ids.setdefault(relic_id, set()).add(pool_id)
+
+    # --- Cards ---
+    character = provider.characters().get("ironclad")
+    starter_deck_set = set(character.starter_deck)
+    # Build upgrade-path index: upgraded_card_id -> set of base_card_ids
+    upgrade_targets: dict[str, set[str]] = {}
+    for base_card in provider.cards().all():
+        if base_card.upgrades_to:
+            upgrade_targets.setdefault(base_card.upgrades_to, set()).add(base_card.id)
+    for card in provider.cards().all():
+        markers: list[str] = []
+        if card.id in starter_deck_set:
+            markers.append(f"starter_deck:{character.id}")
+        for tag in card.acquisition_tags:
+            markers.append(f"card_acquisition_tag:{tag}")
+        if card.id in upgrade_targets:
+            for base_id in sorted(upgrade_targets[card.id]):
+                markers.append(f"upgrade_of:{base_id}")
+        status = "reachable" if markers else "loaded_not_reachable"
+        rows.append(
+            ReachabilityRow(
+                content_type="card",
+                content_id=card.id,
+                loaded=True,
+                reachable_via=tuple(markers),
+                status=status,
+                suggested_file=f"tests/content/test_registry_validation.py",
+            )
+        )
+
+    # --- Relics ---
+    for relic in provider.relics().all():
+        markers: list[str] = []  # type: ignore[no-redef]
+        # starter relic
+        for char in provider.characters().all():
+            if relic.id in char.starter_relic_ids:
+                markers.append(f"starter_relic:{char.id}")
+        # declared pools
+        for pool in relic.pools:
+            markers.append(f"declared_relic_pool:{pool}")
+        # runtime relic sequences
+        if relic.id in runtime_relic_ids:
+            for pool_id in sorted(runtime_relic_ids[relic.id]):
+                markers.append(f"runtime_relic_sequence:{pool_id}")
+        # neow random pool
+        if (
+            "neow" in relic.pools
+            and relic.implementation_status != "placeholder"
+            and (
+                not relic.owner_character_ids or "ironclad" in relic.owner_character_ids
+            )
+        ):
+            markers.append("neow_random_pool")
+        # determine status
+        has_runtime = any(m.startswith("runtime_relic_sequence:") for m in markers)
+        has_neow = "neow_random_pool" in markers
+        if (
+            relic.implementation_status == "placeholder"
+            and not has_runtime
+            and not has_neow
+        ):
+            status = "placeholder_report_only"
+        elif markers:
+            status = "reachable"
+        else:
+            status = "loaded_not_reachable"
+        rows.append(
+            ReachabilityRow(
+                content_type="relic",
+                content_id=relic.id,
+                loaded=True,
+                reachable_via=tuple(markers),
+                status=status,
+                suggested_file=f"tests/content/test_registry_validation.py",
+            )
+        )
+
+    # --- Potions ---
+    for potion in provider.potions().all():
+        markers: list[str] = []  # type: ignore[no-redef]
+        for pool_id in provider._catalog.potion_pool_ids:
+            if potion.id in provider.potion_ids_for_pool(pool_id):
+                markers.append(f"potion_pool:{pool_id}")
+        status = "reachable" if markers else "loaded_not_reachable"
+        rows.append(
+            ReachabilityRow(
+                content_type="potion",
+                content_id=potion.id,
+                loaded=True,
+                reachable_via=tuple(markers),
+                status=status,
+                suggested_file=f"tests/content/test_registry_validation.py",
+            )
+        )
+
+    # --- Enemies ---
+    # Collect all enemy pools from acts
+    act_enemy_pools: dict[str, set[str]] = {}
+    for act in provider.acts().all():
+        for pool_id in (act.enemy_pool_id, act.elite_pool_id, act.boss_pool_id):
+            try:
+                for entry in provider.enemy_pool_entries(pool_id):
+                    act_enemy_pools.setdefault(entry.member_id, set()).add(
+                        f"act_enemy_pool:{pool_id}"
+                    )
+            except KeyError:
+                pass
+    for enemy in provider.enemies().all():
+        markers_set: set[str] = act_enemy_pools.get(enemy.id, set())
+        status = "reachable" if markers_set else "loaded_not_reachable"
+        rows.append(
+            ReachabilityRow(
+                content_type="enemy",
+                content_id=enemy.id,
+                loaded=True,
+                reachable_via=tuple(sorted(markers_set)),
+                status=status,
+                suggested_file=f"tests/content/test_registry_validation.py",
+            )
+        )
+
+    # --- Encounters ---
+    act_encounter_pools: dict[str, set[str]] = {}
+    for act in provider.acts().all():
+        for pool_id in (act.enemy_pool_id, act.elite_pool_id, act.boss_pool_id):
+            try:
+                for entry in provider.encounter_pool_entries(pool_id):
+                    act_encounter_pools.setdefault(entry.member_id, set()).add(
+                        f"act_encounter_pool:{pool_id}"
+                    )
+            except KeyError:
+                pass
+    for encounter in provider.encounters().all():
+        markers_set = act_encounter_pools.get(encounter.id, set())  # type: ignore[assignment]
+        status = "reachable" if markers_set else "loaded_not_reachable"
+        rows.append(
+            ReachabilityRow(
+                content_type="encounter",
+                content_id=encounter.id,
+                loaded=True,
+                reachable_via=tuple(sorted(markers_set)),
+                status=status,
+                suggested_file=f"tests/content/test_registry_validation.py",
+            )
+        )
+
+    # --- Events ---
+    act_event_pools: dict[str, set[str]] = {}
+    for act in provider.acts().all():
+        try:
+            for entry in provider.event_pool_entries(act.event_pool_id):
+                act_event_pools.setdefault(entry.member_id, set()).add(
+                    f"act_event_pool:{act.event_pool_id}"
+                )
+        except KeyError:
+            pass
+    for event in provider.events().all():
+        markers_set = act_event_pools.get(event.id, set())  # type: ignore[assignment]
+        status = "reachable" if markers_set else "loaded_not_reachable"
+        rows.append(
+            ReachabilityRow(
+                content_type="event",
+                content_id=event.id,
+                loaded=True,
+                reachable_via=tuple(sorted(markers_set)),
+                status=status,
+                suggested_file=f"tests/content/test_registry_validation.py",
+            )
+        )
+
+    return rows
+
+
+@pytest.mark.guardrail
+def test_content_reachability_report_distinguishes_loaded_and_reachable_content() -> (
+    None
+):
+    root = Path(__file__).resolve().parents[2] / "content"
+    provider = StarterContentProvider(root)
+    rows = _content_reachability_rows(provider)
+
+    index: dict[tuple[str, str], ReachabilityRow] = {
+        (row.content_type, row.content_id): row for row in rows
+    }
+
+    # bash is loaded and reachable via starter_deck:ironclad
+    bash_row = index[("card", "bash")]
+    assert bash_row.loaded is True
+    assert "starter_deck:ironclad" in bash_row.reachable_via
+    assert bash_row.status == "reachable"
+
+    # anger is loaded and reachable via card_acquisition_tag:combat_reward
+    anger_row = index[("card", "anger")]
+    assert anger_row.loaded is True
+    assert "card_acquisition_tag:combat_reward" in anger_row.reachable_via
+    assert anger_row.status == "reachable"
+
+    # fire_potion is loaded and reachable via potion_pool:starter_potions
+    fire_potion_row = index[("potion", "fire_potion")]
+    assert fire_potion_row.loaded is True
+    assert "potion_pool:starter_potions" in fire_potion_row.reachable_via
+    assert fire_potion_row.status == "reachable"
+
+    # jaw_worm is loaded and reachable via act_enemy_pool:act1_basic
+    jaw_worm_row = index[("enemy", "jaw_worm")]
+    assert jaw_worm_row.loaded is True
+    assert "act_enemy_pool:act1_basic" in jaw_worm_row.reachable_via
+    assert jaw_worm_row.status == "reachable"
+
+    # At least one placeholder relic is reported with status=placeholder_report_only
+    # and no runtime_relic_sequence:* or neow_random_pool marker
+    placeholder_rows = [
+        row
+        for row in rows
+        if row.content_type == "relic" and row.status == "placeholder_report_only"
+    ]
+    assert len(placeholder_rows) >= 1, (
+        "Expected at least one placeholder_report_only relic"
+    )
+    for row in placeholder_rows:
+        assert not any(
+            m.startswith("runtime_relic_sequence:") for m in row.reachable_via
+        ), (
+            f"{row.content_id} has runtime_relic_sequence markers but is placeholder_report_only"
+        )
+        assert "neow_random_pool" not in row.reachable_via, (
+            f"{row.content_id} has neow_random_pool marker but is placeholder_report_only"
+        )
+
+    # No non-placeholder loaded_not_reachable rows
+    missing = [row for row in rows if row.status == "loaded_not_reachable"]
+    assert not missing, (
+        "loaded but not reachable content:\n"
+        + _format_reachability_failures(missing[:50])
+    )
