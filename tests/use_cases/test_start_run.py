@@ -146,13 +146,16 @@ def test_start_new_run_builds_relic_sequences_from_pool_membership() -> None:
 
     run_state = start_new_run("ironclad", seed=7, registry=provider)
 
-    assert "akabeko" in run_state.relic_sequences["common"]
+    # Implemented relics should be in their respective pool sequences
     assert "anchor" in run_state.relic_sequences["common"]
     assert "blood_vial" in run_state.relic_sequences["common"]
     assert "clockwork_souvenir" in run_state.relic_sequences["shop"]
-    assert "cauldron" in run_state.relic_sequences["shop"]
     assert "ectoplasm" in run_state.relic_sequences["boss"]
-    assert "astrolabe" in run_state.relic_sequences["boss"]
+
+    # Placeholder relics should be filtered out
+    assert "akabeko" not in run_state.relic_sequences["common"]
+    assert "cauldron" not in run_state.relic_sequences["shop"]
+    assert "astrolabe" not in run_state.relic_sequences["boss"]
 
 
 def test_start_new_run_auto_includes_new_relic_entries_by_pool(tmp_path: Path) -> None:

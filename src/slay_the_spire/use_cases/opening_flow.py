@@ -270,7 +270,8 @@ def _choose_relic_id(*, registry, rng: Random, run_state: RunState) -> str:
     relic_ids = sorted(
         relic.id
         for relic in registry.relics().all()
-        if "neow" in relic.pools
+        if relic.implementation_status != "placeholder"
+        and "neow" in relic.pools
         and (
             not relic.owner_character_ids
             or run_state.character_id in relic.owner_character_ids

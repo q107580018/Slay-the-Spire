@@ -18,6 +18,8 @@ def _ensure_act_loaded(character, registry: ContentProviderPort, seed: int) -> N
 
 
 def _is_rewardable_relic(*, relic, character_id: str, pool_id: str) -> bool:
+    if relic.implementation_status == "placeholder":
+        return False
     if pool_id not in relic.pools:
         return False
     return not relic.owner_character_ids or character_id in relic.owner_character_ids
