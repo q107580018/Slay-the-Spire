@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 03-04-PLAN.md
-last_updated: "2026-04-11T12:24:21.172Z"
+status: verifying
+stopped_at: Completed 03-05-PLAN.md
+last_updated: "2026-04-11T12:35:04.028Z"
 last_activity: 2026-04-11
 progress:
   total_phases: 7
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 11
-  completed_plans: 10
-  percent: 91
+  completed_plans: 11
+  percent: 100
 ---
 
 # Project State
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-04-11)
 
 Phase: 03 (奖励与经济统一) — EXECUTING
 Plan: 5 of 5
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-11
 
 Progress: [░░░░░░░░░░] 0%
@@ -59,6 +59,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 03 P02 | 9 min | 2 tasks | 8 files |
 | Phase 03 P03 | 1 min | 2 tasks | 5 files |
 | Phase 03 P04 | 5 min | 2 tasks | 9 files |
+| Phase 03 P05 | 3 min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,8 @@ Recent decisions affecting current work:
 - [Phase 03]: 随机遗物来源统一通过 reward_generator 中的共享 helper 过滤 placeholder，避免 start_run 与 Neow 再各自维护条件。
 - [Phase 03]: 固定奖励中的未知卡牌、药水与非替换型 placeholder 遗物统一降级为 no-op，但仍保留替换型 placeholder Boss 遗物的合法替换链路。
 - [Phase 03]: 奖励与 Boss 遗物菜单对未实现或缺失内容直接展示‘未实现/不可用’，不再静默回退成普通奖励文案。
+- [Phase 03]: 事件金币奖励不再预先叠加 golden_idol，而是统一交给 apply_reward 计算，避免跨入口双重加成。 — 把金币规则收口到 apply_reward，确保 event/combat/neow/treasure 入口共用同一套 economic relic 结算。
+- [Phase 03]: 跨入口经济遗物回归同时覆盖触发与阻断/降级路径，避免只断言 message 而漏掉 run_state 演进。 — REWARD-04 关注的是可验证行为一致性，因此测试必须直接断言金币、遗物、药水与奖励列表等状态字段。
 
 ### Pending Todos
 
@@ -99,6 +102,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-11T12:24:21.169Z
-Stopped at: Completed 03-04-PLAN.md
+Last session: 2026-04-11T12:34:57.128Z
+Stopped at: Completed 03-05-PLAN.md
 Resume file: None

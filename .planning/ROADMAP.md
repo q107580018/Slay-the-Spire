@@ -65,7 +65,7 @@ Plans:
 - [x] 03-02-PLAN.md — 先收敛 use case 入口（Neow/商店/事件/休息点）到统一奖励协议
 - [x] 03-03-PLAN.md — 再对齐 session/menu 奖励路由与中文反馈文案
 - [x] 03-04-PLAN.md — 独立完成 placeholder 安全过滤与固定奖励降级反馈
-- [ ] 03-05-PLAN.md — 建立奖励经济遗物跨入口回归矩阵并同步 README
+- [x] 03-05-PLAN.md — 建立奖励经济遗物跨入口回归矩阵并同步 README
 **UI hint**: yes
 
 ### Phase 4: 非战斗系统扩容
