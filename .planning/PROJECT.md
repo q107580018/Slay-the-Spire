@@ -34,8 +34,8 @@
 - [ ] 按原版 1 代补齐奖励系统，包括战斗奖励、Boss 遗物、金币、卡牌奖励、药水、跳过、移除、升级、转换、复制等来源。
 - [ ] 按原版 1 代补齐药水目录与药水使用效果、目标选择、战斗内外限制、药水槽与相关遗物联动。
 - [ ] 按原版 1 代补齐商店、休息点、宝箱、Boss 宝箱、Neow、地图生成、幕推进与胜利/失败流程的细节行为。
-- [ ] 建立内容补齐批次的可验证节奏：每批新增内容都要同步内容 JSON、注册表校验、领域规则、会话路由、Textual 展示和测试。
-- [ ] 持续维护本地参考资料与 README，使实现覆盖率、运行命令和内容真源说明与代码保持一致。
+- [ ] 建立内容补齐批次的可验证节奏：每批新增内容都要同步内容 JSON、注册表校验、领域规则、会话路由、Textual 展示和测试。 *(Phase 1 GUARD-02 content reachability contract provides automated enforcement)*
+- [ ] 持续维护本地参考资料与 README，使实现覆盖率、运行命令和内容真源说明与代码保持一致。 *(Phase 1 GUARD-03 README drift test provides automated enforcement)*
 
 ### Out of Scope
 
@@ -91,4 +91,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-11 after initialization*
+*Last updated: 2026-04-11 after Phase 01 (护栏与交付契约) completion — guardrail marker, content reachability contract, README delivery checklist established*
