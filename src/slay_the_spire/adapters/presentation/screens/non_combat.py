@@ -94,6 +94,17 @@ _REST_ACTION_LABELS = {
 }
 
 
+def _format_relic_label(relic_id: str, registry: ContentProviderPort) -> str:
+    try:
+        relic = registry.relics().get(relic_id)
+    except (KeyError, TypeError, ValueError):
+        return f"{relic_id} [未实现/不可用]"
+    label = relic.name
+    if getattr(relic, "implementation_status", None) == "placeholder":
+        label = f"{label} [未实现/不可用]"
+    return label
+
+
 def _menu_mode(menu_state: Any) -> str:
     mode = str(getattr(menu_state, "mode", "root"))
     if mode in {"inspect_reward_root", "inspect_reward_list", "inspect_reward_detail"}:
@@ -907,7 +918,7 @@ def render_boss_reward_panel(
         relic_ids = []
     selected_relic_name = "-"
     if isinstance(claimed_relic_id, str) and claimed_relic_id:
-        selected_relic_name = registry.relics().get(claimed_relic_id).name
+        selected_relic_name = _format_relic_label(claimed_relic_id, registry)
     lines = [
         Text.assemble(("已选遗物：", "summary.label"), selected_relic_name),
         Text.assemble(("可选遗物数：", "summary.label"), str(len(relic_ids))),
@@ -935,7 +946,7 @@ def render_boss_chest_panel(
             lines.append(Text("可选遗物：", style="summary.label"))
             for relic_id in relic_ids:
                 if isinstance(relic_id, str):
-                    lines.append(Text(f"- {registry.relics().get(relic_id).name}"))
+                    lines.append(Text(f"- {_format_relic_label(relic_id, registry)}"))
         return Panel(Group(*lines), title="Boss宝箱", box=PANEL_BOX, expand=False)
     next_act_id = room_state.payload.get("next_act_id")
     if isinstance(next_act_id, str) and next_act_id:
@@ -1075,7 +1086,7 @@ def render_treasure_panel(
     relic_name = "-"
     if treasure_opened and preview_relic_ids:
         relic_name = "、".join(
-            registry.relics().get(relic_id).name for relic_id in preview_relic_ids
+            _format_relic_label(relic_id, registry) for relic_id in preview_relic_ids
         )
     if not treasure_opened:
         status = "未打开"
@@ -1094,9 +1105,7 @@ def render_treasure_panel(
     return Panel(Group(*lines), title="宝箱", box=PANEL_BOX, expand=False)
 
 
-def _safe_character_name(
-    run_state: RunState, registry: ContentProviderPort
-) -> str:
+def _safe_character_name(run_state: RunState, registry: ContentProviderPort) -> str:
     try:
         return registry.characters().get(run_state.character_id).name
     except KeyError:
@@ -1151,16 +1160,23 @@ def render_terminal_phase_panel(
         Text(message),
         Text(""),
         Text.assemble(
-            ("角色 ", "summary.label"), (_safe_character_name(run_state, registry), "player.name")
+            ("角色 ", "summary.label"),
+            (_safe_character_name(run_state, registry), "player.name"),
         ),
-        Text.assemble(("到达章节 ", "summary.label"), _safe_act_name(run_state, registry)),
+        Text.assemble(
+            ("到达章节 ", "summary.label"), _safe_act_name(run_state, registry)
+        ),
         Text.assemble(
             ("生命值 ", "summary.label"), f"{run_state.current_hp}/{run_state.max_hp}"
         ),
         Text.assemble(("金币 ", "summary.label"), str(run_state.gold)),
         Text.assemble(("牌组 ", "summary.label"), f"{len(run_state.deck)} 张"),
-        Text.assemble(("遗物 ", "summary.label"), _safe_relic_names(run_state, registry)),
-        Text.assemble(("药水 ", "summary.label"), _safe_potion_names(run_state, registry)),
+        Text.assemble(
+            ("遗物 ", "summary.label"), _safe_relic_names(run_state, registry)
+        ),
+        Text.assemble(
+            ("药水 ", "summary.label"), _safe_potion_names(run_state, registry)
+        ),
         Text.assemble(("种子 ", "summary.label"), str(run_state.seed)),
     ]
     return Panel(

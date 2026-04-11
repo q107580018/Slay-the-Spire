@@ -452,6 +452,43 @@ def test_open_treasure_reveals_relic_without_resolving_room() -> None:
     assert "将获得遗物" not in opened_message
 
 
+def test_unavailable_treasure_relic_shows_feedback_and_cannot_be_claimed() -> None:
+    session = replace(
+        start_session(seed=41),
+        room_state=RoomState(
+            room_id="act1:treasure",
+            room_type="treasure",
+            stage="waiting_input",
+            payload={
+                "act_id": "act1",
+                "node_id": "r9c0",
+                "next_node_ids": ["r10c0"],
+                "treasure_relic_id": "astrolabe",
+            },
+            is_resolved=False,
+            rewards=[],
+        ),
+        menu_state=MenuState(),
+    )
+
+    _running, opened_session, opened_message = route_menu_choice("1", session=session)
+
+    assert opened_session.room_state.stage == "opened"
+    assert opened_session.room_state.is_resolved is False
+    assert opened_session.run_state.relics == ["burning_blood"]
+    assert "星盘 [未实现/不可用]" in opened_message
+    assert "拿取遗物" in opened_message
+
+    _running, blocked_session, blocked_message = route_menu_choice(
+        "1", session=opened_session
+    )
+
+    assert blocked_session.run_state.to_dict() == opened_session.run_state.to_dict()
+    assert blocked_session.room_state.to_dict() == opened_session.room_state.to_dict()
+    assert "宝箱遗物 星盘 [未实现/不可用]，当前无法领取。" in blocked_message
+    assert "发现遗物：星盘 [未实现/不可用]" in blocked_message
+
+
 def test_matryoshka_treasure_via_menu_grants_all_relics_and_renders_them() -> None:
     session = replace(
         start_session(seed=41),
@@ -1019,6 +1056,42 @@ def test_claiming_boss_relic_from_boss_chest_returns_to_root_with_selection() ->
     assert "Boss宝箱" in message
 
 
+def test_unavailable_boss_relic_shows_feedback_and_cannot_be_claimed() -> None:
+    session = replace(
+        start_session(seed=7),
+        room_state=RoomState(
+            room_id="act1:boss_chest",
+            room_type="boss_chest",
+            stage="completed",
+            payload={
+                "act_id": "act1",
+                "node_id": "boss_chest",
+                "next_node_ids": [],
+                "boss_rewards": {
+                    "generated_by": "boss_reward_generator",
+                    "boss_relic_offers": ["astrolabe", "ectoplasm", "coffee_dripper"],
+                    "claimed_relic_id": None,
+                },
+                "next_act_id": "act2",
+            },
+            is_resolved=True,
+            rewards=[],
+        ),
+        menu_state=MenuState(mode="select_boss_relic"),
+    )
+
+    _running, blocked_session, blocked_message = route_menu_choice("1", session=session)
+
+    assert blocked_session.run_state.to_dict() == session.run_state.to_dict()
+    assert blocked_session.room_state.to_dict() == session.room_state.to_dict()
+    assert blocked_session.menu_state.mode == "select_boss_relic"
+    assert (
+        blocked_session.room_state.payload["boss_rewards"]["claimed_relic_id"] is None
+    )
+    assert "Boss遗物 星盘 [未实现/不可用]，当前无法领取。" in blocked_message
+    assert "- 星盘 [未实现/不可用]" in blocked_message
+
+
 def test_combat_reward_root_inspect_uses_visible_back_choice_before_claim_flow() -> (
     None
 ):
@@ -1199,7 +1272,9 @@ def test_claim_all_rewards_clears_non_boss_room_rewards() -> None:
     assert next_session.run_state.deck[-1] == "anger#11"
 
 
-def test_claiming_boss_relic_after_gold_enters_final_boss_chest_before_victory() -> None:
+def test_claiming_boss_relic_after_gold_enters_final_boss_chest_before_victory() -> (
+    None
+):
     session = _boss_reward_ready_session(act_id="act3", next_act_id=None)
 
     _running, session, _message = route_menu_choice("1", session=session)

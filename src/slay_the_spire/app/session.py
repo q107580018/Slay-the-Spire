@@ -598,6 +598,45 @@ def _treasure_relic_ids(room_state: RoomState) -> list[str]:
     return []
 
 
+def _is_unavailable_relic_reward(
+    relic_id: str, *, registry: StarterContentProvider
+) -> bool:
+    try:
+        relic = registry.relics().get(relic_id)
+    except (KeyError, TypeError, ValueError):
+        return True
+    return (
+        getattr(relic, "implementation_status", None) == "placeholder"
+        and relic.replaces_relic_id is None
+    )
+
+
+def _unavailable_relic_ids(
+    relic_ids: list[str], *, registry: StarterContentProvider
+) -> list[str]:
+    return [
+        relic_id
+        for relic_id in relic_ids
+        if _is_unavailable_relic_reward(relic_id, registry=registry)
+    ]
+
+
+def _format_relic_name(relic_id: str, *, registry: StarterContentProvider) -> str:
+    try:
+        return registry.relics().get(relic_id).name
+    except (KeyError, TypeError, ValueError):
+        return relic_id
+
+
+def _format_unavailable_relic_message(
+    *, prefix: str, relic_ids: list[str], registry: StarterContentProvider
+) -> str:
+    relic_names = "、".join(
+        _format_relic_name(relic_id, registry=registry) for relic_id in relic_ids
+    )
+    return f"{prefix}{relic_names} [未实现/不可用]，当前无法领取。"
+
+
 def _claim_treasure(session: SessionState) -> SessionState:
     if session.room_state.is_resolved:
         return session
@@ -639,6 +678,8 @@ def _claim_treasure(session: SessionState) -> SessionState:
         )
     relic_ids = _treasure_relic_ids(session.room_state)
     provider = _content_provider(session)
+    if _unavailable_relic_ids(relic_ids, registry=provider):
+        return session
     if not relic_ids:
         updated_room_state = replace(
             session.room_state,
@@ -726,6 +767,8 @@ def _claim_boss_relic(session: SessionState, relic_id: str) -> SessionState:
     if isinstance(claimed_relic_id, str) and claimed_relic_id:
         return replace(session, menu_state=MenuState())
     provider = _content_provider(session)
+    if _is_unavailable_relic_reward(relic_id, registry=provider):
+        return session
     updated_run_state = apply_reward(
         run_state=session.run_state,
         reward_id=f"relic:{relic_id}",
@@ -2122,6 +2165,22 @@ def _route_root_menu(
         next_session = _open_treasure(session)
         return True, next_session, render_session(next_session)
     if action_id == "claim_treasure":
+        unavailable_relic_ids = _unavailable_relic_ids(
+            _treasure_relic_ids(session.room_state), registry=_content_provider(session)
+        )
+        if unavailable_relic_ids:
+            return (
+                True,
+                session,
+                _message_with_render(
+                    session,
+                    _format_unavailable_relic_message(
+                        prefix="宝箱遗物 ",
+                        relic_ids=unavailable_relic_ids,
+                        registry=_content_provider(session),
+                    ),
+                ),
+            )
         next_session = _claim_treasure(session)
         return True, next_session, render_session(next_session)
     if action_id == "skip_treasure":
@@ -2715,6 +2774,20 @@ def _route_boss_relic_menu(
     if not action_id.startswith("claim_boss_relic:"):
         return _invalid_menu_choice(session)
     relic_id = action_id.split(":", 1)[1]
+    provider = _content_provider(session)
+    if _is_unavailable_relic_reward(relic_id, registry=provider):
+        return (
+            True,
+            session,
+            _message_with_render(
+                session,
+                _format_unavailable_relic_message(
+                    prefix="Boss遗物 ",
+                    relic_ids=[relic_id],
+                    registry=provider,
+                ),
+            ),
+        )
     next_session = _claim_boss_relic(session, relic_id)
     return True, next_session, render_session(next_session)
 
