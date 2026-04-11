@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-02-PLAN.md
-last_updated: "2026-04-11T12:07:25.209Z"
+stopped_at: Completed 03-03-PLAN.md
+last_updated: "2026-04-11T12:15:54.457Z"
 last_activity: 2026-04-11
 progress:
   total_phases: 7
   completed_phases: 2
   total_plans: 11
-  completed_plans: 8
-  percent: 73
+  completed_plans: 9
+  percent: 82
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-11)
 ## Current Position
 
 Phase: 03 (奖励与经济统一) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
 Last activity: 2026-04-11
 
@@ -57,6 +57,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P03 | 3min | 2 tasks | 2 files |
 | Phase 03 P01 | 6 min | 3 tasks | 4 files |
 | Phase 03 P02 | 9 min | 2 tasks | 8 files |
+| Phase 03 P03 | 1 min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,8 @@ Recent decisions affecting current work:
 - [Phase 03]: Neow、商店、休息点与事件的金币/遗物/药水/升级/移除统一先编码为 reward id，再复用 apply_reward。
 - [Phase 03]: 事件非法 effect payload 不再中断流程，而是完成房间并保持 run_state 不变。
 - [Phase 03]: 未进入注册表的事件诅咒牌仍保留直接入牌组逻辑，避免破坏既有内容行为。
+- [Phase 03]: session 层在领取前先校验 reward_id 仍存在于 room_state.rewards，重复或非法选择直接返回中文提示而不抛异常。
+- [Phase 03]: 奖励菜单对未知或缺失内容的 reward id 回退显示原始 ID，避免把未识别奖励误标成已获得文案。
 
 ### Pending Todos
 
@@ -92,6 +95,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-11T12:07:25.196Z
-Stopped at: Completed 03-02-PLAN.md
+Last session: 2026-04-11T12:15:42.510Z
+Stopped at: Completed 03-03-PLAN.md
 Resume file: None
