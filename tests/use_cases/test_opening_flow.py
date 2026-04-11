@@ -81,6 +81,64 @@ def test_apply_neow_offer_adds_gold_and_keeps_run_replayable() -> None:
     assert updated.pending_neow_offer_id is None
 
 
+def test_apply_neow_offer_routes_potion_reward_through_apply_reward_chain() -> None:
+    provider = _provider()
+    opening = build_opening_state(
+        seed=11, preferred_character_id="ironclad", registry=provider
+    )
+    offer = opening_flow._build_offer(
+        "potion", "free", "potion", provider, Random(0), opening.run_blueprint
+    )
+    opening = replace(opening, neow_offers=[offer])
+
+    updated = apply_neow_offer(opening, offer.offer_id, registry=provider)
+
+    assert updated.run_blueprint is not None
+    assert updated.run_blueprint.potions == [str(offer.reward_payload["potion_id"])]
+
+
+def test_apply_neow_offer_routes_upgrade_reward_through_unified_reward_id() -> None:
+    provider = _provider()
+    opening = build_opening_state(
+        seed=11, preferred_character_id="ironclad", registry=provider
+    )
+    offer = opening_flow._build_offer(
+        "upgrade", "tradeoff", "upgrade_card", provider, Random(0)
+    )
+    opening = replace(opening, neow_offers=[offer])
+
+    updated = apply_neow_offer(
+        opening,
+        offer.offer_id,
+        registry=provider,
+        target_card_instance_id="bash#10",
+    )
+
+    assert updated.run_blueprint is not None
+    assert "bash_plus#10" in updated.run_blueprint.deck
+    assert "bash#10" not in updated.run_blueprint.deck
+
+
+def test_apply_neow_offer_missing_target_degrades_to_noop_after_cost() -> None:
+    provider = _provider()
+    opening = build_opening_state(
+        seed=11, preferred_character_id="ironclad", registry=provider
+    )
+    offer = opening_flow._build_offer(
+        "remove", "tradeoff", "remove_card", provider, Random(0)
+    )
+    opening = replace(opening, neow_offers=[offer], pending_neow_offer_id=None)
+    opening = replace(opening, neow_offers=[replace(offer, requires_target=None)])
+
+    updated = apply_neow_offer(opening, offer.offer_id, registry=provider)
+
+    assert updated.run_blueprint is not None
+    assert updated.run_blueprint.deck == opening.run_blueprint.deck
+    assert updated.run_blueprint.gold == max(
+        0, opening.run_blueprint.gold - int(offer.cost_payload["amount"])
+    )
+
+
 def test_build_offer_marks_targeted_rewards_with_specific_requires_target_semantics() -> (
     None
 ):

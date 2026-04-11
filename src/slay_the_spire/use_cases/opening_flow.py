@@ -170,14 +170,14 @@ def _build_reward_payload(
         return {"reward_id": f"relic:{relic_id}", "relic_id": relic_id}
     if reward_kind == "potion":
         potion_id = _choose_potion_id(registry=registry, rng=rng)
-        return {"potion_id": potion_id}
+        return {"reward_id": f"potion:{potion_id}", "potion_id": potion_id}
     if reward_kind == "rare_card":
         card_id = _choose_rare_card_id(registry=registry, rng=rng)
         return {"reward_id": f"card:{card_id}", "card_id": card_id}
     if reward_kind == "upgrade_card":
-        return {"action": "upgrade_card"}
+        return {"reward_prefix": "upgrade"}
     if reward_kind == "remove_card":
-        return {"action": "remove_card"}
+        return {"reward_prefix": "remove"}
     if reward_kind == "curse_bonus":
         premium_kind = rng.choice(["gold", "relic", "rare_card"])
         if premium_kind == "gold":
@@ -343,9 +343,11 @@ def _apply_reward(
             registry=registry,
         )
     if reward_kind == "potion":
-        potion_id = str(reward_payload["potion_id"])
-        registry.potions().get(potion_id)
-        return replace(run_blueprint, potions=[*run_blueprint.potions, potion_id])
+        return apply_reward(
+            run_state=run_blueprint,
+            reward_id=str(reward_payload["reward_id"]),
+            registry=registry,
+        )
     if reward_kind == "rare_card":
         return apply_reward(
             run_state=run_blueprint,
@@ -359,51 +361,32 @@ def _apply_reward(
             registry=registry,
         )
     if reward_kind == "upgrade_card":
-        return _apply_upgrade_card(
-            run_blueprint,
+        reward_prefix = str(reward_payload.get("reward_prefix", "upgrade"))
+        reward_id = _target_reward_id(
+            reward_prefix, target_card_instance_id=target_card_instance_id
+        )
+        return apply_reward(
+            run_state=run_blueprint,
+            reward_id=reward_id,
             registry=registry,
-            target_card_instance_id=target_card_instance_id,
         )
     if reward_kind == "remove_card":
-        return _apply_remove_card(
-            run_blueprint, target_card_instance_id=target_card_instance_id
+        reward_prefix = str(reward_payload.get("reward_prefix", "remove"))
+        reward_id = _target_reward_id(
+            reward_prefix, target_card_instance_id=target_card_instance_id
+        )
+        return apply_reward(
+            run_state=run_blueprint,
+            reward_id=reward_id,
+            registry=registry,
         )
     raise ValueError(f"unsupported reward_kind: {reward_kind}")
 
 
-def _apply_upgrade_card(
-    run_blueprint: RunState, *, registry, target_card_instance_id: str | None
-) -> RunState:
+def _target_reward_id(prefix: str, *, target_card_instance_id: str | None) -> str:
     if target_card_instance_id is None:
-        return run_blueprint
-    card_id = target_card_instance_id.split("#", 1)[0]
-    upgraded_card_id = registry.cards().get(card_id).upgrades_to or card_id
-    _old_card_id, suffix = target_card_instance_id.split("#", 1)
-    upgraded_instance_id = f"{upgraded_card_id}#{suffix}"
-    deck = [
-        upgraded_instance_id
-        if card_instance_id == target_card_instance_id
-        else card_instance_id
-        for card_instance_id in run_blueprint.deck
-    ]
-    return replace(run_blueprint, deck=deck)
-
-
-def _apply_remove_card(
-    run_blueprint: RunState, *, target_card_instance_id: str | None
-) -> RunState:
-    if target_card_instance_id is None:
-        return run_blueprint
-    deck = [
-        card_instance_id
-        for card_instance_id in run_blueprint.deck
-        if card_instance_id != target_card_instance_id
-    ]
-    return replace(
-        run_blueprint,
-        deck=deck,
-        card_removal_count=run_blueprint.card_removal_count + 1,
-    )
+        return "skip:missing_target"
+    return f"{prefix}:{target_card_instance_id}"
 
 
 def _validate_target_for_offer(
