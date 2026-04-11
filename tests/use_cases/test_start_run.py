@@ -172,7 +172,7 @@ def test_start_new_run_auto_includes_new_relic_entries_by_pool(tmp_path: Path) -
             "pools": ["common"],
             "source_tags": ["test"],
             "owner_character_ids": [],
-            "implementation_status": "placeholder",
+            "implementation_status": "implemented",
             "effect_blueprint": [],
             "trigger_hooks": [],
             "passive_effects": [],
@@ -196,7 +196,7 @@ def test_start_new_run_auto_includes_new_relic_entries_by_pool(tmp_path: Path) -
             "pools": ["boss"],
             "source_tags": ["boss_relic"],
             "owner_character_ids": [],
-            "implementation_status": "placeholder",
+            "implementation_status": "implemented",
             "effect_blueprint": [],
             "trigger_hooks": [],
             "passive_effects": [],
@@ -233,7 +233,7 @@ def test_neow_random_relic_selection_uses_neow_pool_membership(tmp_path: Path) -
             "pools": ["common", "neow"],
             "source_tags": ["test"],
             "owner_character_ids": [],
-            "implementation_status": "placeholder",
+            "implementation_status": "implemented",
             "effect_blueprint": [],
             "trigger_hooks": [],
             "passive_effects": [],
@@ -584,3 +584,79 @@ def test_enter_room_does_not_mutate_act_state_when_combat_setup_fails() -> None:
     assert act_state.current_node_id == original_current_node_id
     assert act_state.visited_node_ids == original_visited_node_ids
     assert target_node_id not in act_state.visited_node_ids
+
+
+@pytest.mark.guardrail
+def test_start_new_run_excludes_placeholder_relics_from_random_sequences() -> None:
+    provider = _content_provider()
+    run_state = start_new_run("ironclad", seed=7, registry=provider)
+    offenders = [
+        f"{pool_id}:{relic_id}"
+        for pool_id, relic_ids in run_state.relic_sequences.items()
+        for relic_id in relic_ids
+        if provider.relics().get(relic_id).implementation_status == "placeholder"
+    ]
+    assert not offenders, "placeholder relics in random pools:\n" + "\n".join(
+        offenders[:50]
+    )
+
+
+@pytest.mark.guardrail
+def test_neow_excludes_placeholder_relics_from_random_pool(tmp_path: Path) -> None:
+    content_root = Path(__file__).resolve().parents[2] / "content"
+    copied_root = tmp_path / "content"
+    shutil.copytree(content_root, copied_root)
+
+    common_relics_path = copied_root / "relics" / "common_relics.json"
+    common_payload = json.loads(common_relics_path.read_text(encoding="utf-8"))
+    common_payload["relics"].extend(
+        [
+            {
+                "id": "zz_test_neow_placeholder_relic",
+                "name": "测试 Neow 占位遗物",
+                "summary": "占位遗物不应进入 Neow 随机池",
+                "description": "placeholder 遗物应被排除。",
+                "rarity": "common",
+                "pools": ["common", "neow"],
+                "source_tags": ["test"],
+                "owner_character_ids": [],
+                "implementation_status": "placeholder",
+                "effect_blueprint": [],
+                "trigger_hooks": [],
+                "passive_effects": [],
+                "can_appear_in_shop": False,
+            },
+            {
+                "id": "zy_test_neow_implemented_relic",
+                "name": "测试 Neow 已实现遗物",
+                "summary": "已实现遗物应进入 Neow 随机池",
+                "description": "implemented 遗物应进入池。",
+                "rarity": "common",
+                "pools": ["common", "neow"],
+                "source_tags": ["test"],
+                "owner_character_ids": [],
+                "implementation_status": "implemented",
+                "effect_blueprint": [],
+                "trigger_hooks": [],
+                "passive_effects": [],
+                "can_appear_in_shop": False,
+            },
+        ]
+    )
+    common_relics_path.write_text(
+        json.dumps(common_payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    provider = StarterContentProvider(copied_root)
+    run_state = start_new_run("ironclad", seed=7, registry=provider)
+
+    class _PickLastRng:
+        def choice(self, values):
+            return values[-1]
+
+    relic_id = opening_flow._choose_relic_id(
+        registry=provider, rng=_PickLastRng(), run_state=run_state
+    )
+
+    assert relic_id == "zy_test_neow_implemented_relic"
