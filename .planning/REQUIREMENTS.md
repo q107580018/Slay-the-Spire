@@ -10,7 +10,7 @@ Requirements for the current roadmap. Each requirement maps to exactly one roadm
 ### Guardrails
 
 - [x] **GUARD-01**: 开发者可以运行覆盖 session 菜单模式、跨幕推进、reward generate/apply、effect 时序和 save/load round-trip 的回归测试。
-- [ ] **GUARD-02**: 内容覆盖校验能区分“已录入内容”和“运行时可触达内容”，并能暴露 placeholder 遗物或未接入奖励池的内容。
+- [x] **GUARD-02**: 内容覆盖校验能区分“已录入内容”和“运行时可触达内容”，并能暴露 placeholder 遗物或未接入奖励池的内容。
 - [ ] **GUARD-03**: 新增内容批次有一致的验收清单，覆盖 `content/`、registry、domain/use case、session、presentation/Textual 和 README 更新。
 
 ### Mainline Run
@@ -85,7 +85,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | GUARD-01 | Phase 1 | Complete |
-| GUARD-02 | Phase 1 | Pending |
+| GUARD-02 | Phase 1 | Complete |
 | GUARD-03 | Phase 1 | Pending |
 | RUN-01 | Phase 2 | Pending |
 | RUN-02 | Phase 2 | Pending |

@@ -31,7 +31,7 @@
 **Plans:** 3 plans
 Plans:
 - [x] 01-01-PLAN.md — 注册 pytest guardrail marker 并标记关键回归测试
-- [ ] 01-02-PLAN.md — 建立内容可触达报告并过滤 placeholder 随机遗物池
+- [x] 01-02-PLAN.md — 建立内容可触达报告并过滤 placeholder 随机遗物池
 - [ ] 01-03-PLAN.md — 在 README 固化 guardrail 命令与新增内容批次验收清单
 
 ### Phase 2: 三幕主线闭环

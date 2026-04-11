@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-01-PLAN.md
-last_updated: "2026-04-11T08:59:46.925Z"
+stopped_at: Completed 01-02-PLAN.md
+last_updated: "2026-04-11T09:09:26.476Z"
 last_activity: 2026-04-11
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
-  percent: 33
+  completed_plans: 2
+  percent: 67
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-11)
 ## Current Position
 
 Phase: 01 (护栏与交付契约) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-04-11
 
@@ -52,6 +52,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: Stable
 
 | Phase 01 P01 | 5min | 2 tasks | 6 files |
+| Phase 01 P02 | 8min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -64,6 +65,8 @@ Recent decisions affecting current work:
 - [Phase 2-6]: 坚持 Python/Textual/Rich TUI 单机边界，不引入 Web/GUI/server/multiplayer。  
 - [Phase 3+]: 奖励入口统一到一致标识与 apply 流程，默认剔除 placeholder 投放。
 - [Phase 01]: Function-level @pytest.mark.guardrail decorators only (no module-level pytestmark) — 20 tests across 5 files
+- [Phase 01]: Upgraded card variants tracked via upgrade_of:{base_id} reachability markers in content audit
+- [Phase 01]: Existing test fixtures changed from placeholder to implemented to maintain inclusion test validity after filtering
 
 ### Pending Todos
 
@@ -77,6 +80,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-11T08:59:46.923Z
-Stopped at: Completed 01-01-PLAN.md
+Last session: 2026-04-11T09:09:26.474Z
+Stopped at: Completed 01-02-PLAN.md
 Resume file: None
