@@ -59,7 +59,11 @@ Plans:
   2. 随机奖励池默认不投放未实现或 placeholder 遗物；若明确标记未实现，也不会破坏流程。
   3. 金币、卡牌奖励、遗物、药水、移除、升级、转换、复制、跳过等奖励类型都有可验证结果与玩家反馈。
   4. 奖励经济相关遗物效果在对应入口按规则触发并可通过测试验证。
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 03-01-PLAN.md — 建立统一 reward action 协议并扩展 apply_reward 核心
+- [ ] 03-02-PLAN.md — 打通 Neow/商店/事件/休息点到统一奖励链路并统一菜单反馈
+- [ ] 03-03-PLAN.md — 收敛 placeholder 安全与奖励经济遗物跨入口验证，并更新 README
 **UI hint**: yes
 
 ### Phase 4: 非战斗系统扩容
