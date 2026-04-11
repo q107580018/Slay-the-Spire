@@ -52,7 +52,7 @@
       "id": "transient",
       "pool_weight": 1,
       "name": "过客",
-      "hp": 999,
+      "hp": 99,
       "move_table": [
         {"move": "fading_blow", "effects": [{"type": "damage", "amount": 30}]},
         {"move": "fading_blow", "effects": [{"type": "damage", "amount": 40}]},

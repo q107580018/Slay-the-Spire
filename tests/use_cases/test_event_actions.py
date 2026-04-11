@@ -206,6 +206,18 @@ def test_ssssserpent_agree_grants_gold_and_adds_doubt_curse() -> None:
     assert "doubt#11" in session.run_state.deck
 
 
+def test_mind_bloom_rich_grants_gold_and_adds_two_normality() -> None:
+    session = _event_session("mind_bloom")
+
+    _running, session, _message = route_menu_choice("1", session=session)
+    _running, session, _message = route_menu_choice("2", session=session)
+
+    assert session.room_state.is_resolved is True
+    assert session.run_state.gold == 1098
+    assert "normality#11" in session.run_state.deck
+    assert "normality#12" in session.run_state.deck
+
+
 def test_golden_idol_take_hide_grants_relic_and_reduces_max_hp() -> None:
     session = _event_session("golden_idol")
 

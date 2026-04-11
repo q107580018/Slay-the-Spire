@@ -392,8 +392,10 @@ def event_action(
         gold_amount = _event_gold_bonus(run_state, _effect_int(effect, "gain_gold"))
         curse_id = str(effect.get("curse_id", ""))
         updated_run_state = replace(run_state, gold=run_state.gold + gold_amount)
+        curse_count = max(_effect_int(effect, "count", default=1), 0)
         if curse_id:
-            updated_run_state = _with_added_card(updated_run_state, curse_id)
+            for _ in range(curse_count):
+                updated_run_state = _with_added_card(updated_run_state, curse_id)
         return _result(
             updated_run_state,
             _complete_event_room(

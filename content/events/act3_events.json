@@ -21,7 +21,7 @@
           "choice_id": "i_am_rich",
           "result": "mind_bloom_rich",
           "result_text": "花瓣碎裂成金币雨，你同时感到心智被某种秩序束缚。",
-          "effect": {"type": "gain_gold_and_add_curse", "gain_gold": 999, "curse_id": "normality"}
+          "effect": {"type": "gain_gold_and_add_curse", "gain_gold": 999, "curse_id": "normality", "count": 2}
         },
         {
           "choice_id": "leave",
