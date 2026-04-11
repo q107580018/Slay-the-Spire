@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-01-PLAN.md
-last_updated: "2026-04-11T11:55:11.447Z"
+stopped_at: Completed 03-02-PLAN.md
+last_updated: "2026-04-11T12:07:25.209Z"
 last_activity: 2026-04-11
 progress:
   total_phases: 7
   completed_phases: 2
   total_plans: 11
-  completed_plans: 7
-  percent: 64
+  completed_plans: 8
+  percent: 73
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-11)
 ## Current Position
 
 Phase: 03 (奖励与经济统一) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-04-11
 
@@ -56,6 +56,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P02 | 8min | 2 tasks | 4 files |
 | Phase 01 P03 | 3min | 2 tasks | 2 files |
 | Phase 03 P01 | 6 min | 3 tasks | 4 files |
+| Phase 03 P02 | 9 min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -75,6 +76,9 @@ Recent decisions affecting current work:
 - [Phase 01]: Used fragment-loop pattern for README drift test to avoid brittle individual assertions
 - [Phase 03]: 奖励字符串统一先解析为 RewardAction，再由 apply_reward_action 执行，未知输入安全降级为 noop。 — 这样可以为 shop、event、rest、neow 等入口提供统一合同层，避免重复维护前缀分支，并满足非法输入不破坏流程的安全要求。
 - [Phase 03]: 目标型奖励使用 card_instance_id 与可选 target_card_id 编码，保持 apply 结果可重复且可测试。 — 实例级目标能精确定位牌组中的卡牌，同时允许 transform 在提供显式目标时保持确定性，便于后续入口统一接入与回归测试。
+- [Phase 03]: Neow、商店、休息点与事件的金币/遗物/药水/升级/移除统一先编码为 reward id，再复用 apply_reward。
+- [Phase 03]: 事件非法 effect payload 不再中断流程，而是完成房间并保持 run_state 不变。
+- [Phase 03]: 未进入注册表的事件诅咒牌仍保留直接入牌组逻辑，避免破坏既有内容行为。
 
 ### Pending Todos
 
@@ -88,6 +92,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-11T11:54:53.599Z
-Stopped at: Completed 03-01-PLAN.md
+Last session: 2026-04-11T12:07:25.196Z
+Stopped at: Completed 03-02-PLAN.md
 Resume file: None
