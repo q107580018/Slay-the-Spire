@@ -11,7 +11,7 @@
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 - [ ] **Phase 1: 护栏与交付契约** - 先建立稳定回归与内容可触达校验，锁定后续批量开发节奏。
-- [ ] **Phase 2: 三幕主线闭环** - 打通 Act 1 -> Act 3 -> Boss Chest -> Victory 的可游玩主线。
+- [x] **Phase 2: 三幕主线闭环** - 打通 Act 1 -> Act 3 -> Boss Chest -> Victory 的可游玩主线。 (completed 2026-04-11)
 - [ ] **Phase 3: 奖励与经济统一** - 统一奖励入口与应用链路，清理 placeholder 投放风险。
 - [ ] **Phase 4: 非战斗系统扩容** - 补齐事件与非战斗房间规则，并统一 Textual/Rich 表现。
 - [ ] **Phase 5: 多角色基础与 Silent** - 建立多角色隔离并完成 Silent 端到端可玩。
@@ -43,11 +43,11 @@ Plans:
   2. Act 3 地图与房间（普通战斗、精英、Boss、Boss 宝箱）可在 Textual 菜单中正常进入、展示和结算。
   3. 任意三幕流程中保存、读取和继续游戏后，状态一致且 `schema_version=3` round-trip 不破坏流程。
   4. 原版普通敌人/精英/Boss 与遭遇组至少具备按幕触达入口（地图或测试入口可验证）。
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 Plans:
-- [ ] 02-01-PLAN.md — 录入 Act 3 全量敌人/遭遇组/事件与地图配置，更新 Act 2 跨幕链接
-- [ ] 02-02-PLAN.md — 扩展胜利/失败面板为包含运行统计的结算画面
-- [ ] 02-03-PLAN.md — 新增三幕 E2E smoke 测试、更新跨幕边界测试、验证存档 round-trip
+- [x] 02-01-PLAN.md — 录入 Act 3 全量敌人/遭遇组/事件与地图配置，更新 Act 2 跨幕链接
+- [x] 02-02-PLAN.md — 扩展胜利/失败面板为包含运行统计的结算画面
+- [x] 02-03-PLAN.md — 新增三幕 E2E smoke 测试、更新跨幕边界测试、验证存档 round-trip
 **UI hint**: yes
 
 ### Phase 3: 奖励与经济统一
@@ -111,7 +111,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. 护栏与交付契约 | 0/3 | Not started | - |
-| 2. 三幕主线闭环 | 0/3 | Planned | - |
+| 2. 三幕主线闭环 | 3/3 | Complete    | 2026-04-11 |
 | 3. 奖励与经济统一 | 0/3 | Not started | - |
 | 4. 非战斗系统扩容 | 0/3 | Not started | - |
 | 5. 多角色基础与 Silent | 0/2 | Not started | - |
