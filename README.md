@@ -13,6 +13,7 @@
 - 当前房间类型：普通战斗、事件、精英、商店、休息点、宝箱、Boss、Boss 宝箱
 - 当前支持：分支地图、战斗奖励、Boss 奖励、遗物/药水/商店、休息点升级与跳过、JSON 存读档
 - 当前奖励 apply 链路已统一支持 `gold`、`relic`、`potion`、`card`、`card_offer`、`remove`、`upgrade`、`transform`、`duplicate`、`skip` 等 reward action；非法或未知 reward id 会安全降级为 no-op
+- 当前 `Neow`、商店、事件与休息点的主要奖励入口已统一先产出 reward id，再经 `apply_reward` 结算金币、遗物、药水、升级与移除等结果；事件非法 payload 也会安全完成并保持流程不中断
 - 当前普通宝箱流程为：未打开时不显示具体遗物，打开后可选择拿取遗物或放弃并离开
 - 当前部分敌人已具备原版核心 debuff 行为，例如 `lagavulin` 的 `Siphon Soul` 会使玩家失去力量与敏捷
 - 当前战斗结算已支持正负力量与敏捷修正；负力量会降低伤害，负敏捷会降低获得的格挡，最低按 `0` 结算
