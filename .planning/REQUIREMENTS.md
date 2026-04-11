@@ -84,36 +84,36 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| GUARD-01 | TBD | Pending |
-| GUARD-02 | TBD | Pending |
-| GUARD-03 | TBD | Pending |
-| RUN-01 | TBD | Pending |
-| RUN-02 | TBD | Pending |
-| RUN-03 | TBD | Pending |
-| REWARD-01 | TBD | Pending |
-| REWARD-02 | TBD | Pending |
-| REWARD-03 | TBD | Pending |
-| REWARD-04 | TBD | Pending |
-| COMBAT-01 | TBD | Pending |
-| COMBAT-02 | TBD | Pending |
-| COMBAT-03 | TBD | Pending |
-| CHAR-01 | TBD | Pending |
-| CHAR-02 | TBD | Pending |
-| CHAR-03 | TBD | Pending |
-| CHAR-04 | TBD | Pending |
-| CARD-01 | TBD | Pending |
-| EVENT-01 | TBD | Pending |
-| EVENT-02 | TBD | Pending |
-| EVENT-03 | TBD | Pending |
-| VALID-01 | TBD | Pending |
-| VALID-02 | TBD | Pending |
-| VALID-03 | TBD | Pending |
+| GUARD-01 | Phase 1 | Pending |
+| GUARD-02 | Phase 1 | Pending |
+| GUARD-03 | Phase 1 | Pending |
+| RUN-01 | Phase 2 | Pending |
+| RUN-02 | Phase 2 | Pending |
+| RUN-03 | Phase 2 | Pending |
+| REWARD-01 | Phase 3 | Pending |
+| REWARD-02 | Phase 3 | Pending |
+| REWARD-03 | Phase 3 | Pending |
+| REWARD-04 | Phase 3 | Pending |
+| COMBAT-01 | Phase 2 | Pending |
+| COMBAT-02 | Phase 6 | Pending |
+| COMBAT-03 | Phase 6 | Pending |
+| CHAR-01 | Phase 5 | Pending |
+| CHAR-02 | Phase 5 | Pending |
+| CHAR-03 | Phase 6 | Pending |
+| CHAR-04 | Phase 6 | Pending |
+| CARD-01 | Phase 6 | Pending |
+| EVENT-01 | Phase 4 | Pending |
+| EVENT-02 | Phase 4 | Pending |
+| EVENT-03 | Phase 4 | Pending |
+| VALID-01 | Phase 7 | Pending |
+| VALID-02 | Phase 7 | Pending |
+| VALID-03 | Phase 7 | Pending |
 
 **Coverage:**
 - v1 requirements: 24 total
-- Mapped to phases: 0
-- Unmapped: 24
+- Mapped to phases: 24
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-11*
-*Last updated: 2026-04-11 after initial definition*
+*Last updated: 2026-04-11 after roadmap mapping*
