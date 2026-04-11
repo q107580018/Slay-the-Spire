@@ -5,6 +5,7 @@ from dataclasses import replace
 from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.run_state import RunState
 from slay_the_spire.ports.content_provider import ContentProviderPort
+from slay_the_spire.use_cases.reward_actions import RewardAction, parse_reward_action
 
 
 def _next_instance_id(deck: list[str], card_id: str) -> str:
@@ -132,6 +133,112 @@ def _apply_relic_on_acquire_effects(
     return updated
 
 
+def _resolve_card_reward_card_id(
+    card_id: str, registry: ContentProviderPort
+) -> str | None:
+    if card_id == "reward_strike":
+        registry.cards().get("strike_plus")
+        return "strike_plus"
+    if card_id == "reward_defend":
+        registry.cards().get("defend_plus")
+        return "defend_plus"
+    registry.cards().get(card_id)
+    return card_id
+
+
+def _upgrade_card_in_deck(
+    run_state: RunState, card_instance_id: str, *, registry: ContentProviderPort
+) -> RunState:
+    if card_instance_id not in run_state.deck:
+        return run_state
+    card_id = card_id_from_instance_id(card_instance_id)
+    upgraded_card_id = registry.cards().get(card_id).upgrades_to
+    if upgraded_card_id is None:
+        return run_state
+    _old_card_id, suffix = card_instance_id.split("#", 1)
+    upgraded_instance_id = f"{upgraded_card_id}#{suffix}"
+    return replace(
+        run_state,
+        deck=[
+            upgraded_instance_id if card == card_instance_id else card
+            for card in run_state.deck
+        ],
+    )
+
+
+def _remove_card_from_deck(run_state: RunState, card_instance_id: str) -> RunState:
+    if card_instance_id not in run_state.deck:
+        return run_state
+    return replace(
+        run_state,
+        deck=[card for card in run_state.deck if card != card_instance_id],
+        card_removal_count=run_state.card_removal_count + 1,
+    )
+
+
+def _select_transform_target_card_id(
+    run_state: RunState,
+    card_instance_id: str,
+    *,
+    registry: ContentProviderPort,
+    target_card_id: str | None,
+) -> str | None:
+    source_card_id = card_id_from_instance_id(card_instance_id)
+    if target_card_id is not None:
+        registry.cards().get(target_card_id)
+        return target_card_id
+
+    candidate_ids = sorted(
+        card.id
+        for card in registry.cards().all()
+        if card.id != source_card_id and card.card_type not in {"curse", "status"}
+    )
+    if not candidate_ids:
+        return None
+    return candidate_ids[0]
+
+
+def _transform_card_in_deck(
+    run_state: RunState,
+    card_instance_id: str,
+    *,
+    registry: ContentProviderPort,
+    target_card_id: str | None,
+) -> RunState:
+    if card_instance_id not in run_state.deck:
+        return run_state
+    next_card_id = _select_transform_target_card_id(
+        run_state,
+        card_instance_id,
+        registry=registry,
+        target_card_id=target_card_id,
+    )
+    if next_card_id is None:
+        return run_state
+    _old_card_id, suffix = card_instance_id.split("#", 1)
+    transformed_instance_id = f"{next_card_id}#{suffix}"
+    return replace(
+        run_state,
+        deck=[
+            transformed_instance_id if card == card_instance_id else card
+            for card in run_state.deck
+        ],
+    )
+
+
+def _duplicate_card_in_deck(run_state: RunState, card_instance_id: str) -> RunState:
+    if card_instance_id not in run_state.deck:
+        return run_state
+    card_id = card_id_from_instance_id(card_instance_id)
+    next_card_id = _next_instance_id(run_state.deck, card_id)
+    bonus_gold = _card_acquisition_gold_bonus(run_state)
+    return replace(
+        run_state,
+        deck=[*run_state.deck, next_card_id],
+        gold=run_state.gold + bonus_gold,
+    )
+
+
 def _apply_relic_acquisition(
     *, run_state: RunState, relic_id: str, registry: ContentProviderPort
 ) -> tuple[RunState, bool]:
@@ -149,40 +256,95 @@ def _apply_relic_acquisition(
     return replace(run_state, relics=[*relics, relic_id]), True
 
 
+def apply_reward_action(
+    *, run_state: RunState, action: RewardAction, registry: ContentProviderPort
+) -> RunState:
+    try:
+        if action.kind == "gold":
+            amount = action.payload.get("amount")
+            if not isinstance(amount, int):
+                return run_state
+            return replace(
+                run_state,
+                gold=run_state.gold + _gold_amount(run_state, amount),
+            )
+        if action.kind == "relic":
+            relic_id = action.payload.get("relic_id")
+            if not isinstance(relic_id, str) or not relic_id:
+                return run_state
+            updated, acquired = _apply_relic_acquisition(
+                run_state=run_state,
+                relic_id=relic_id,
+                registry=registry,
+            )
+            if not acquired:
+                return updated
+            return _apply_relic_on_acquire_effects(updated, relic_id, registry=registry)
+        if action.kind == "card":
+            card_id = action.payload.get("card_id")
+            if not isinstance(card_id, str) or not card_id:
+                return run_state
+            resolved_card_id = _resolve_card_reward_card_id(card_id, registry)
+            if resolved_card_id is None:
+                return run_state
+            return _apply_card_reward(run_state, resolved_card_id)
+        if action.kind == "card_offer":
+            card_id = action.payload.get("card_id")
+            if not isinstance(card_id, str) or not card_id:
+                return run_state
+            registry.cards().get(card_id)
+            return _apply_card_reward(run_state, card_id)
+        if action.kind == "potion":
+            potion_id = action.payload.get("potion_id")
+            if not isinstance(potion_id, str) or not potion_id:
+                return run_state
+            registry.potions().get(potion_id)
+            if "sozu" in run_state.relics:
+                return run_state
+            return replace(run_state, potions=[*run_state.potions, potion_id])
+        if action.kind == "event":
+            return run_state
+        if action.kind == "remove":
+            card_instance_id = action.payload.get("card_instance_id")
+            if not isinstance(card_instance_id, str) or not card_instance_id:
+                return run_state
+            return _remove_card_from_deck(run_state, card_instance_id)
+        if action.kind == "upgrade":
+            card_instance_id = action.payload.get("card_instance_id")
+            if not isinstance(card_instance_id, str) or not card_instance_id:
+                return run_state
+            return _upgrade_card_in_deck(
+                run_state,
+                card_instance_id,
+                registry=registry,
+            )
+        if action.kind == "transform":
+            card_instance_id = action.payload.get("card_instance_id")
+            target_card_id = action.payload.get("target_card_id")
+            if not isinstance(card_instance_id, str) or not card_instance_id:
+                return run_state
+            if target_card_id is not None and not isinstance(target_card_id, str):
+                return run_state
+            return _transform_card_in_deck(
+                run_state,
+                card_instance_id,
+                registry=registry,
+                target_card_id=target_card_id,
+            )
+        if action.kind == "duplicate":
+            card_instance_id = action.payload.get("card_instance_id")
+            if not isinstance(card_instance_id, str) or not card_instance_id:
+                return run_state
+            return _duplicate_card_in_deck(run_state, card_instance_id)
+        if action.kind in {"skip", "noop"}:
+            return run_state
+        return run_state
+    except (KeyError, TypeError, ValueError):
+        return run_state
+
+
 def apply_reward(
     *, run_state: RunState, reward_id: str, registry: ContentProviderPort
 ) -> RunState:
-    if reward_id.startswith("gold:"):
-        amount = int(reward_id.split(":", 1)[1])
-        return replace(run_state, gold=run_state.gold + _gold_amount(run_state, amount))
-    if reward_id.startswith("relic:"):
-        relic_id = reward_id.split(":", 1)[1]
-        updated, acquired = _apply_relic_acquisition(
-            run_state=run_state,
-            relic_id=relic_id,
-            registry=registry,
-        )
-        if not acquired:
-            return updated
-        return _apply_relic_on_acquire_effects(updated, relic_id, registry=registry)
-    if reward_id == "card:reward_strike":
-        registry.cards().get("strike_plus")
-        return _apply_card_reward(run_state, "strike_plus")
-    if reward_id == "card:reward_defend":
-        registry.cards().get("defend_plus")
-        return _apply_card_reward(run_state, "defend_plus")
-    if reward_id.startswith("card_offer:"):
-        card_id = reward_id.split(":", 1)[1]
-        registry.cards().get(card_id)
-        return _apply_card_reward(run_state, card_id)
-    if reward_id.startswith("potion:"):
-        potion_id = reward_id.split(":", 1)[1]
-        registry.potions().get(potion_id)
-        if "sozu" in run_state.relics:
-            return run_state
-        return replace(run_state, potions=[*run_state.potions, potion_id])
-    if reward_id.startswith("card:"):
-        card_id = reward_id.split(":", 1)[1]
-        registry.cards().get(card_id)
-        return _apply_card_reward(run_state, card_id)
-    return run_state
+    action = parse_reward_action(reward_id)
+    return apply_reward_action(run_state=run_state, action=action, registry=registry)
