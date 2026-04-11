@@ -158,6 +158,40 @@ def test_start_new_run_builds_relic_sequences_from_pool_membership() -> None:
     assert "astrolabe" not in run_state.relic_sequences["boss"]
 
 
+def test_start_new_run_uses_shared_rewardable_relic_pool_helper(monkeypatch) -> None:
+    provider = _content_provider()
+    calls: list[tuple[str, str]] = []
+
+    def _fake_rewardable_relic_ids_for_pool(
+        *, registry, character_id: str, pool_id: str
+    ):
+        assert registry is provider
+        calls.append((character_id, pool_id))
+        return [f"{pool_id}_relic"]
+
+    monkeypatch.setattr(
+        "slay_the_spire.use_cases.start_run.rewardable_relic_ids_for_pool",
+        _fake_rewardable_relic_ids_for_pool,
+    )
+
+    run_state = start_new_run("ironclad", seed=7, registry=provider)
+
+    assert calls == [
+        ("ironclad", "common"),
+        ("ironclad", "uncommon"),
+        ("ironclad", "rare"),
+        ("ironclad", "shop"),
+        ("ironclad", "boss"),
+    ]
+    assert run_state.relic_sequences == {
+        "common": ["common_relic"],
+        "uncommon": ["uncommon_relic"],
+        "rare": ["rare_relic"],
+        "shop": ["shop_relic"],
+        "boss": ["boss_relic"],
+    }
+
+
 def test_start_new_run_auto_includes_new_relic_entries_by_pool(tmp_path: Path) -> None:
     content_root = Path(__file__).resolve().parents[2] / "content"
     copied_root = tmp_path / "content"
@@ -260,6 +294,37 @@ def test_neow_random_relic_selection_uses_neow_pool_membership(tmp_path: Path) -
     )
 
     assert relic_id == "zz_test_auto_neow_relic"
+
+
+def test_neow_relic_selection_uses_shared_rewardable_relic_pool_helper(
+    monkeypatch,
+) -> None:
+    provider = _content_provider()
+    run_state = start_new_run("ironclad", seed=7, registry=provider)
+    calls: list[tuple[str, str]] = []
+
+    def _fake_rewardable_relic_ids_for_pool(
+        *, registry, character_id: str, pool_id: str
+    ):
+        assert registry is provider
+        calls.append((character_id, pool_id))
+        return ["anchor", "vajra"]
+
+    class _PickLastRng:
+        def choice(self, values):
+            return values[-1]
+
+    monkeypatch.setattr(
+        "slay_the_spire.use_cases.opening_flow.rewardable_relic_ids_for_pool",
+        _fake_rewardable_relic_ids_for_pool,
+    )
+
+    relic_id = opening_flow._choose_relic_id(
+        registry=provider, rng=_PickLastRng(), run_state=run_state
+    )
+
+    assert calls == [("ironclad", "neow")]
+    assert relic_id == "vajra"
 
 
 def test_start_new_run_rejects_unknown_character() -> None:

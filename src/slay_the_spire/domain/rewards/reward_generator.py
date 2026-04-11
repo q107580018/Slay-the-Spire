@@ -16,6 +16,28 @@ _SUPPORTED_ROOM_TYPES = frozenset(
 _FALLBACK_RELIC_ID = "circlet"
 
 
+def is_rewardable_random_relic(*, relic, character_id: str, pool_id: str) -> bool:
+    if relic.implementation_status == "placeholder":
+        return False
+    if pool_id not in relic.pools:
+        return False
+    return not relic.owner_character_ids or character_id in relic.owner_character_ids
+
+
+def rewardable_relic_ids_for_pool(
+    *, registry: ContentProviderPort, character_id: str, pool_id: str
+) -> list[str]:
+    return sorted(
+        relic.id
+        for relic in registry.relics().all()
+        if is_rewardable_random_relic(
+            relic=relic,
+            character_id=character_id,
+            pool_id=pool_id,
+        )
+    )
+
+
 def _room_hash(room_id: str) -> int:
     if not isinstance(room_id, str):
         raise TypeError("room_id must be a string")

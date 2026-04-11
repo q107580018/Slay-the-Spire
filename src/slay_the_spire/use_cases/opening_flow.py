@@ -5,6 +5,7 @@ from random import Random
 
 from slay_the_spire.app.opening_state import NeowOffer, OpeningState
 from slay_the_spire.domain.models.run_state import RunState
+from slay_the_spire.domain.rewards.reward_generator import rewardable_relic_ids_for_pool
 from slay_the_spire.shared.rng import rng_for_room
 from slay_the_spire.use_cases.apply_reward import apply_reward
 from slay_the_spire.use_cases.start_run import start_new_run
@@ -267,15 +268,10 @@ def _describe_cost(cost_kind: str, cost_payload: dict[str, object]) -> str:
 
 
 def _choose_relic_id(*, registry, rng: Random, run_state: RunState) -> str:
-    relic_ids = sorted(
-        relic.id
-        for relic in registry.relics().all()
-        if relic.implementation_status != "placeholder"
-        and "neow" in relic.pools
-        and (
-            not relic.owner_character_ids
-            or run_state.character_id in relic.owner_character_ids
-        )
+    relic_ids = rewardable_relic_ids_for_pool(
+        registry=registry,
+        character_id=run_state.character_id,
+        pool_id="neow",
     )
     if not relic_ids:
         raise ValueError(

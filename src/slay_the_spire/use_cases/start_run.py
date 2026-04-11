@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from random import Random
 
+from slay_the_spire.domain.rewards.reward_generator import rewardable_relic_ids_for_pool
 from slay_the_spire.domain.map.map_generator import generate_act_state
 from slay_the_spire.domain.models.run_state import RunState
 from slay_the_spire.ports.content_provider import ContentProviderPort
@@ -17,27 +18,15 @@ def _ensure_act_loaded(character, registry: ContentProviderPort, seed: int) -> N
     generate_act_state(character.starting_act_id, seed=seed, registry=registry)
 
 
-def _is_rewardable_relic(*, relic, character_id: str, pool_id: str) -> bool:
-    if relic.implementation_status == "placeholder":
-        return False
-    if pool_id not in relic.pools:
-        return False
-    return not relic.owner_character_ids or character_id in relic.owner_character_ids
-
-
 def _build_relic_sequences(
     *, character_id: str, seed: int, registry: ContentProviderPort
 ) -> tuple[dict[str, list[str]], dict[str, int]]:
     sequences: dict[str, list[str]] = {}
     for pool_id in _RELIC_SEQUENCE_POOL_IDS:
-        relic_ids = sorted(
-            relic.id
-            for relic in registry.relics().all()
-            if _is_rewardable_relic(
-                relic=relic,
-                character_id=character_id,
-                pool_id=pool_id,
-            )
+        relic_ids = rewardable_relic_ids_for_pool(
+            registry=registry,
+            character_id=character_id,
+            pool_id=pool_id,
         )
         Random(f"{seed}:{character_id}:{pool_id}").shuffle(relic_ids)
         sequences[pool_id] = relic_ids
