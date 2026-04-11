@@ -28,7 +28,11 @@
   1. 开发者可以运行一组回归测试，覆盖 session 菜单模式、跨幕推进、reward generate/apply、effect 时序和 save/load round-trip。
   2. 覆盖校验报告能区分“已录入”与“可触达”，并明确列出 placeholder 遗物和未接入奖励池内容。
   3. 每次新增内容批次都能按统一验收清单落地，且提交中可观察到 `content/`、registry、domain/use case、session、presentation/Textual、README 的对应更新。
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 01-01-PLAN.md — 注册 pytest guardrail marker 并标记关键回归测试
+- [ ] 01-02-PLAN.md — 建立内容可触达报告并过滤 placeholder 随机遗物池
+- [ ] 01-03-PLAN.md — 在 README 固化 guardrail 命令与新增内容批次验收清单
 
 ### Phase 2: 三幕主线闭环
 **Goal**: 玩家可从新开局走完三幕并完成终局结算，主线状态在存读档后保持一致。
