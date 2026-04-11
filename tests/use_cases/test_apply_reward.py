@@ -788,3 +788,53 @@ def test_apply_reward_adds_generic_relic_and_repeated_claim_is_no_op() -> None:
     )
 
     assert repeated == updated
+
+
+def test_apply_reward_transform_replaces_target_card_and_preserves_suffix() -> None:
+    updated = apply_reward(
+        run_state=_run_state(),
+        reward_id="transform:strike#1:anger",
+        registry=_content_provider(),
+    )
+
+    assert "strike#1" not in updated.deck
+    assert "anger#1" in updated.deck
+    assert len(updated.deck) == len(_run_state().deck)
+
+
+def test_apply_reward_duplicate_adds_new_instance_without_replacing_original() -> None:
+    updated = apply_reward(
+        run_state=_run_state(),
+        reward_id="duplicate:bash#9",
+        registry=_content_provider(),
+    )
+
+    assert "bash#9" in updated.deck
+    assert updated.deck.count("bash#9") == 1
+    assert updated.deck[-1] == "bash#10"
+
+
+def test_apply_reward_upgrade_remove_and_skip_actions_are_supported() -> None:
+    run_state = _run_state()
+
+    upgraded = apply_reward(
+        run_state=run_state,
+        reward_id="upgrade:strike#1",
+        registry=_content_provider(),
+    )
+    removed = apply_reward(
+        run_state=run_state,
+        reward_id="remove:defend#5",
+        registry=_content_provider(),
+    )
+    skipped = apply_reward(
+        run_state=run_state,
+        reward_id="skip:reward_screen",
+        registry=_content_provider(),
+    )
+
+    assert "strike_plus#1" in upgraded.deck
+    assert "strike#1" not in upgraded.deck
+    assert "defend#5" not in removed.deck
+    assert len(removed.deck) == len(run_state.deck) - 1
+    assert skipped == run_state
