@@ -75,6 +75,7 @@ from slay_the_spire.domain.rewards.reward_generator import (
 from slay_the_spire.ports.input_port import InputPort
 from slay_the_spire.use_cases.load_game import load_game
 from slay_the_spire.use_cases.apply_reward import apply_reward
+from slay_the_spire.use_cases.reward_actions import parse_reward_action
 from slay_the_spire.use_cases.event_action import event_action
 from slay_the_spire.use_cases.resolve_event_choice import resolve_event_choice
 from slay_the_spire.use_cases.end_turn import end_turn
@@ -472,6 +473,49 @@ def _room_with_all_rewards_claimed(room_state: RoomState) -> RoomState:
     return claimed_room
 
 
+def _is_unavailable_room_reward(
+    reward_id: str, *, registry: StarterContentProvider
+) -> bool:
+    action = parse_reward_action(reward_id)
+    if action.kind == "relic":
+        relic_id = action.payload.get("relic_id")
+        return isinstance(relic_id, str) and _is_unavailable_relic_reward(
+            relic_id, registry=registry
+        )
+    if action.kind == "card":
+        card_id = action.payload.get("card_id")
+        if not isinstance(card_id, str) or not card_id:
+            return True
+        if card_id == "reward_strike":
+            return _is_unavailable_room_reward("card:strike_plus", registry=registry)
+        if card_id == "reward_defend":
+            return _is_unavailable_room_reward("card:defend_plus", registry=registry)
+        try:
+            card = registry.cards().get(card_id)
+        except (KeyError, TypeError, ValueError):
+            return True
+        return getattr(card, "implementation_status", None) == "placeholder"
+    if action.kind == "card_offer":
+        card_id = action.payload.get("card_id")
+        if not isinstance(card_id, str) or not card_id:
+            return True
+        try:
+            card = registry.cards().get(card_id)
+        except (KeyError, TypeError, ValueError):
+            return True
+        return getattr(card, "implementation_status", None) == "placeholder"
+    if action.kind == "potion":
+        potion_id = action.payload.get("potion_id")
+        if not isinstance(potion_id, str) or not potion_id:
+            return True
+        try:
+            potion = registry.potions().get(potion_id)
+        except (KeyError, TypeError, ValueError):
+            return True
+        return getattr(potion, "implementation_status", None) == "placeholder"
+    return False
+
+
 def _boss_rewards(room_state: RoomState) -> dict[str, object] | None:
     boss_rewards = room_state.payload.get("boss_rewards")
     if not isinstance(boss_rewards, dict):
@@ -500,6 +544,8 @@ def _claim_session_reward(session: SessionState, reward_id: str) -> SessionState
     if reward_id not in session.room_state.rewards:
         return session
     provider = _content_provider(session)
+    if _is_unavailable_room_reward(reward_id, registry=provider):
+        return session
     updated_run_state = apply_reward(
         run_state=session.run_state,
         reward_id=reward_id,

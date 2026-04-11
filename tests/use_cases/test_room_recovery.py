@@ -1272,6 +1272,54 @@ def test_claim_all_rewards_clears_non_boss_room_rewards() -> None:
     assert next_session.run_state.deck[-1] == "anger#11"
 
 
+def test_select_reward_keeps_unavailable_reward_unclaimed() -> None:
+    session = replace(
+        start_session(seed=7),
+        room_state=RoomState(
+            room_id="act1:hallway",
+            room_type="combat",
+            stage="completed",
+            payload={"node_id": "r1c0", "next_node_ids": ["r2c0"]},
+            is_resolved=True,
+            rewards=["relic:astrolabe", "gold:11"],
+        ),
+        menu_state=MenuState(mode="select_reward"),
+    )
+
+    _running, next_session, render_message = route_menu_choice("1", session=session)
+
+    assert next_session.run_state.to_dict() == session.run_state.to_dict()
+    assert next_session.room_state.rewards == ["relic:astrolabe", "gold:11"]
+    assert next_session.room_state.payload.get("claimed_reward_ids") is None
+    assert next_session.menu_state.mode == "select_reward"
+    assert "星盘 [未实现/不可用]" in render_message
+    assert "金币 +11" in render_message
+
+
+def test_claim_all_keeps_unavailable_rewards_unclaimed() -> None:
+    session = replace(
+        start_session(seed=7),
+        room_state=RoomState(
+            room_id="act1:hallway",
+            room_type="combat",
+            stage="completed",
+            payload={"node_id": "r1c0", "next_node_ids": ["r2c0"]},
+            is_resolved=True,
+            rewards=["relic:astrolabe", "gold:11"],
+        ),
+        menu_state=MenuState(mode="select_reward"),
+    )
+
+    _running, next_session, render_message = route_menu_choice("3", session=session)
+
+    assert next_session.run_state.gold == 110
+    assert next_session.room_state.rewards == ["relic:astrolabe"]
+    assert next_session.room_state.payload.get("claimed_reward_ids") == ["gold:11"]
+    assert next_session.menu_state.mode == "select_reward"
+    assert "星盘 [未实现/不可用]" in render_message
+    assert "全部领取" in render_message
+
+
 def test_claiming_boss_relic_after_gold_enters_final_boss_chest_before_victory() -> (
     None
 ):
