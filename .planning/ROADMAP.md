@@ -43,7 +43,11 @@ Plans:
   2. Act 3 地图与房间（普通战斗、精英、Boss、Boss 宝箱）可在 Textual 菜单中正常进入、展示和结算。
   3. 任意三幕流程中保存、读取和继续游戏后，状态一致且 `schema_version=3` round-trip 不破坏流程。
   4. 原版普通敌人/精英/Boss 与遭遇组至少具备按幕触达入口（地图或测试入口可验证）。
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 02-01-PLAN.md — 录入 Act 3 全量敌人/遭遇组/事件与地图配置，更新 Act 2 跨幕链接
+- [ ] 02-02-PLAN.md — 扩展胜利/失败面板为包含运行统计的结算画面
+- [ ] 02-03-PLAN.md — 新增三幕 E2E smoke 测试、更新跨幕边界测试、验证存档 round-trip
 **UI hint**: yes
 
 ### Phase 3: 奖励与经济统一
@@ -107,7 +111,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. 护栏与交付契约 | 0/3 | Not started | - |
-| 2. 三幕主线闭环 | 0/3 | Not started | - |
+| 2. 三幕主线闭环 | 0/3 | Planned | - |
 | 3. 奖励与经济统一 | 0/3 | Not started | - |
 | 4. 非战斗系统扩容 | 0/3 | Not started | - |
 | 5. 多角色基础与 Silent | 0/2 | Not started | - |
