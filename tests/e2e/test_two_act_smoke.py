@@ -72,7 +72,7 @@ def test_act1_boss_reward_transitions_into_act2_start_room() -> None:
 
 
 @pytest.mark.guardrail
-def test_act2_boss_reward_finishes_run_with_victory() -> None:
+def test_act2_boss_reward_transitions_to_act3() -> None:
     base_session = start_session(seed=5)
     provider = _content_provider()
     session = replace(
@@ -106,13 +106,16 @@ def test_act2_boss_reward_finishes_run_with_victory() -> None:
 
     assert session.run_phase == "active"
     assert session.room_state.room_type == "boss_chest"
-    assert "Boss宝箱" in boss_chest_message
-    assert "完成攀登" in boss_chest_message
-
-    _running, session, _message = route_menu_choice("1", session=session)
-
-    assert session.run_phase == "victory"
-    assert session.run_state.current_act_id == "act2"
+    assert session.room_state.payload["next_act_id"] == "act3"
     assert (
         session.room_state.payload["boss_rewards"]["claimed_relic_id"] == "black_blood"
     )
+    assert "Boss宝箱" in boss_chest_message
+    assert "前往下一幕" in boss_chest_message
+
+    _running, session, _message = route_menu_choice("1", session=session)
+
+    assert session.run_phase == "active"
+    assert session.run_state.current_act_id == "act3"
+    assert session.act_state.act_id == "act3"
+    assert session.room_state.room_type == "combat"

@@ -1199,10 +1199,8 @@ def test_claim_all_rewards_clears_non_boss_room_rewards() -> None:
     assert next_session.run_state.deck[-1] == "anger#11"
 
 
-def test_claiming_boss_relic_after_gold_enters_final_boss_chest_before_victory() -> (
-    None
-):
-    session = _boss_reward_ready_session(act_id="act2", next_act_id=None)
+def test_claiming_boss_relic_after_gold_enters_final_boss_chest_before_victory() -> None:
+    session = _boss_reward_ready_session(act_id="act3", next_act_id=None)
 
     _running, session, _message = route_menu_choice("1", session=session)
     _running, session, _message = route_menu_choice("1", session=session)
@@ -1210,7 +1208,7 @@ def test_claiming_boss_relic_after_gold_enters_final_boss_chest_before_victory()
     _running, next_session, render_message = route_menu_choice("1", session=session)
 
     assert next_session.run_phase == "active"
-    assert next_session.run_state.current_act_id == "act2"
+    assert next_session.run_state.current_act_id == "act3"
     assert next_session.room_state.room_type == "boss_chest"
     assert next_session.menu_state.mode == "root"
     assert (
@@ -1224,7 +1222,7 @@ def test_claiming_boss_relic_after_gold_enters_final_boss_chest_before_victory()
     _running, victory_session, _message = route_menu_choice("1", session=next_session)
 
     assert victory_session.run_phase == "victory"
-    assert victory_session.run_state.current_act_id == "act2"
+    assert victory_session.run_state.current_act_id == "act3"
 
 
 def test_claiming_final_boss_reward_in_act1_enters_boss_chest_before_act2() -> None:
