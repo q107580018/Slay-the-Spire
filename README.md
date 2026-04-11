@@ -21,7 +21,7 @@
 - 当前默认交互：Textual TUI，底层复用共享的 `rich` 渲染和 inspect 组件
 - 当前铁甲战士红卡已按原版 1 代完整补齐，包含普通 / 非普通 / 稀有 / 多档升级 `Searing Blow`、动态费用 `Blood for Blood`、条件出牌 `Clash`、消耗联动 `Dark Embrace` / `Feel No Pain`、状态牌联动 `Evolve` / `Fire Breathing`、双目标牌 `Headbutt` 等完整机制
 - 当前原版 1 代遗物目录以 `content/relics/` 为内容真源维护，并持续按本地原版资料校对；运行时效果仍按批次逐步补齐。当前除拿取时效果、战斗开局效果外，批次五已补到一批非战斗遗物：奖励相关 `black_star`、`question_card`、`prayer_wheel`、`busted_crown`、`white_beast_statue`、`sozu`，商店相关 `membership_card`、`the_courier`、`smiling_mask`、`meal_ticket`、`maw_bank`，休息点相关 `dream_catcher`、`regal_pillow`、`eternal_feather`、`girya`、`peace_pipe`、`shovel`，地图 / 房间相关 `juzu_bracelet`、`tiny_chest`、`matryoshka`、`preserved_insect`、`ssserpent_head`、`wing_boots`
-- 遗物覆盖：180 种遗物已录入，其中 78 种已实现完整行为，102 种为占位定义；未实现的遗物通过元数据中的 `implementation_status` 标记，当前仍未对普通掉落、商店、Boss 奖励或 `Neow` 随机遗物池做基于 `implementation_status` 的过滤，仍有一批高复杂度遗物需要依赖额外系统或交互流程后再继续补齐，并非全部完成
+- 遗物覆盖：180 种遗物已录入，其中一部分已实现完整行为，其余为占位定义；未实现的遗物通过元数据中的 `implementation_status` 标记，占位遗物不进入随机投放池（普通掉落、商店、Boss 奖励或 Neow 随机遗物选择），仍有一批高复杂度遗物需要依赖额外系统或交互流程后再继续补齐，并非全部完成
 - 当前 `Corruption` 已按原版规则生效：所有技能牌耗能变为 `0`，且在被打出时进入消耗堆；相关逻辑已收口到通用“卡牌运行时规则”层，便于继续扩展其他运行时覆写效果
 - 当前 `Rampage` / `Rampage+` 已支持按同一张卡实例进行战斗内累计伤害；`Rampage+` 的每次增伤为 `+8`
 - 当前 `Fiend Fire` / `Fiend Fire+` 已按原版规则生效：消耗所有其他手牌，并按被消耗的牌数对目标结算每张 `7` / `10` 点伤害
@@ -154,6 +154,33 @@ uv build
 - 修改 Textual UI 时，优先检查 `tests/adapters/textual/test_slay_app.py`。
 - 修改内容注册表或 JSON 结构时，优先检查 `tests/content/test_registry_validation.py`。
 - 修改存档结构时，优先检查 `tests/use_cases/test_save_load.py`，并同步关注 `schema_version`。
+
+### Guardrail 回归护栏
+
+项目维护了一组关键链路回归测试，通过 pytest marker 子集运行：
+
+```bash
+uv run pytest -m guardrail
+```
+
+guardrail 子集覆盖：session 菜单模式、跨幕推进、reward generate/apply、effect queue/hook 时序、save/load round-trip、内容已录入 vs 可触达校验。
+
+Phase 1 不使用 coverage 百分比阈值，也不要求完整三幕 E2E 通关；guardrail 重点是关键链路行为契约。
+
+如果 guardrail 测试失败，说明关键链路行为出现了回归，或者内容可触达校验发现了未接入运行入口/随机投放池的内容缺口。失败输出会列出缺口 ID、内容类型、池/入口和建议检查文件。
+
+### 新增内容批次验收清单
+
+每批新增内容（角色、卡牌、敌人、事件、遗物、药水等）都应按以下清单逐项确认，关键入口缺失即视为未交付：
+
+- [ ] `content/`：内容 JSON 已新增或更新，且仅编辑根目录 `content/`
+- [ ] registry/content validation：注册表加载与内容校验通过（`tests/content/test_registry_validation.py`）
+- [ ] domain/use case：领域规则与用例逻辑已覆盖新增内容行为
+- [ ] session route：会话路由已适配新增内容的菜单、奖励或交互流程
+- [ ] presentation/Textual：共享展示层与 Textual UI 已适配新增内容的玩家可见渲染
+- [ ] README：已更新 README 中的实现覆盖说明和相关命令入口
+- [ ] `implementation_status`：新增 placeholder 内容必须标记 `implementation_status`，不进入随机投放池，并在覆盖报告中可见
+- [ ] `uv run pytest -m guardrail`：guardrail 回归护栏全部通过
 
 ## License
 
