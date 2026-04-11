@@ -32,7 +32,7 @@
 Plans:
 - [x] 01-01-PLAN.md — 注册 pytest guardrail marker 并标记关键回归测试
 - [x] 01-02-PLAN.md — 建立内容可触达报告并过滤 placeholder 随机遗物池
-- [ ] 01-03-PLAN.md — 在 README 固化 guardrail 命令与新增内容批次验收清单
+- [x] 01-03-PLAN.md — 在 README 固化 guardrail 命令与新增内容批次验收清单
 
 ### Phase 2: 三幕主线闭环
 **Goal**: 玩家可从新开局走完三幕并完成终局结算，主线状态在存读档后保持一致。
