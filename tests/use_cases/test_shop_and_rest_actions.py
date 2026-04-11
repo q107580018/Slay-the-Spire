@@ -357,6 +357,37 @@ def test_the_courier_restocks_potion_offer_with_different_potion() -> None:
     assert restocked_offer["potion_id"] not in {"fire_potion", "block_potion"}
 
 
+def test_shop_without_the_courier_keeps_purchased_slot_sold() -> None:
+    room_state = RoomState(
+        room_id="act1:shop",
+        room_type="shop",
+        stage="waiting_input",
+        payload={
+            "cards": [
+                {"offer_id": "card-1", "card_id": "strike", "price": 40},
+                {"offer_id": "card-2", "card_id": "defend", "price": 40},
+            ],
+            "relics": [],
+            "potions": [],
+            "remove_price": 60,
+        },
+        is_resolved=False,
+        rewards=[],
+    )
+
+    result = shop_action(
+        run_state=_run_state(),
+        room_state=room_state,
+        action_id="buy_card:card-1",
+        registry=_content_provider(),
+    )
+
+    purchased_offer = result.room_state.payload["cards"][0]
+
+    assert purchased_offer["card_id"] == "strike"
+    assert purchased_offer["sold"] is True
+
+
 def test_maw_bank_adds_twelve_gold_when_entering_non_shop_room() -> None:
     run_state = replace(_run_state(gold=100), relics=["burning_blood", "maw_bank"])
 
@@ -405,6 +436,17 @@ def test_dream_catcher_rest_adds_three_card_reward_choices() -> None:
 
     assert len(card_rewards) == 3
     assert len(set(card_rewards)) == 3
+
+
+def test_rest_without_dream_catcher_does_not_add_card_reward_choices() -> None:
+    result = rest_action(
+        run_state=_run_state(),
+        room_state=_rest_room(),
+        action_id="rest",
+        registry=_content_provider(),
+    )
+
+    assert result.room_state.rewards == []
 
 
 def test_peace_pipe_enters_select_remove_card_stage() -> None:

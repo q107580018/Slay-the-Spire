@@ -217,6 +217,40 @@ def test_generate_boss_rewards_can_offer_fusion_hammer_across_seeds() -> None:
     assert rewards["boss_relic_offers"] == ["fusion_hammer", "astrolabe", "black_star"]
 
 
+def test_generate_boss_rewards_can_offer_ectoplasm_from_boss_pool() -> None:
+    run_state = replace(
+        _run_state(),
+        relic_sequences={"boss": ["ectoplasm", "astrolabe", "black_star"]},
+        relic_sequence_positions={"boss": 0},
+    )
+
+    rewards = generate_boss_rewards(
+        room_id="act1:boss",
+        seed=1,
+        run_state=run_state,
+        registry=_content_provider(),
+    )
+
+    assert rewards["boss_relic_offers"] == ["ectoplasm", "astrolabe", "black_star"]
+
+
+def test_apply_reward_boss_relic_ectoplasm_blocks_followup_gold_gain() -> None:
+    run_state = apply_reward(
+        run_state=_run_state(),
+        reward_id="relic:ectoplasm",
+        registry=_content_provider(),
+    )
+
+    updated = apply_reward(
+        run_state=run_state,
+        reward_id="gold:30",
+        registry=_content_provider(),
+    )
+
+    assert "ectoplasm" in run_state.relics
+    assert updated.gold == run_state.gold
+
+
 def test_generate_boss_rewards_is_deterministic_for_same_inputs() -> None:
     first_run_state = replace(
         _run_state(),

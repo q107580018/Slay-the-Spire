@@ -197,6 +197,22 @@ def test_masked_bandits_pay_spends_gold_without_other_side_effects() -> None:
     assert session.run_state.current_hp == 80
 
 
+def test_event_gain_gold_with_golden_idol_uses_single_bonus() -> None:
+    room_state = _event_session("golden_shrine").room_state
+    run_state = _run_state(relics=["golden_idol"])
+
+    result = event_action(
+        run_state=run_state,
+        room_state=room_state,
+        action_id="choice:pray",
+        registry=_content_provider(),
+    )
+
+    assert result.run_state.gold == 224
+    assert result.run_state.current_hp == run_state.current_hp
+    assert result.room_state.is_resolved is True
+
+
 def test_ssssserpent_agree_grants_gold_and_adds_doubt_curse() -> None:
     session = _event_session("the_ssssserpent")
 
@@ -375,14 +391,14 @@ def test_ominous_forge_forge_enters_upgrade_subflow() -> None:
     assert session.room_state.stage == "select_event_upgrade_card"
 
 
-def test_ominous_forge_rummage_grants_warped_tongs_and_pain_curse() -> None:
+def test_ominous_forge_rummage_placeholder_relic_degrades_to_curse_only() -> None:
     session = _event_session("ominous_forge")
 
     _running, session, _message = route_menu_choice("1", session=session)
     _running, session, _message = route_menu_choice("2", session=session)
 
     assert session.room_state.is_resolved is True
-    assert "warped_tongs" in session.run_state.relics
+    assert "warped_tongs" not in session.run_state.relics
     assert any(c.startswith("pain#") for c in session.run_state.deck)
 
 

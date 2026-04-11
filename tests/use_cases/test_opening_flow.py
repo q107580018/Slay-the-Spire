@@ -97,6 +97,34 @@ def test_apply_neow_offer_routes_potion_reward_through_apply_reward_chain() -> N
     assert updated.run_blueprint.potions == [str(offer.reward_payload["potion_id"])]
 
 
+def test_apply_neow_offer_potion_reward_is_blocked_by_sozu() -> None:
+    provider = _provider()
+    opening = build_opening_state(
+        seed=11, preferred_character_id="ironclad", registry=provider
+    )
+    offer = opening_flow._build_offer(
+        "potion", "free", "potion", provider, Random(0), opening.run_blueprint
+    )
+    opening = replace(
+        opening,
+        neow_offers=[offer],
+        run_blueprint=replace(
+            opening.run_blueprint,
+            relics=[
+                *(opening.run_blueprint.relics if opening.run_blueprint else []),
+                "sozu",
+            ],
+        )
+        if opening.run_blueprint is not None
+        else opening.run_blueprint,
+    )
+
+    updated = apply_neow_offer(opening, offer.offer_id, registry=provider)
+
+    assert updated.run_blueprint is not None
+    assert updated.run_blueprint.potions == []
+
+
 def test_apply_neow_offer_routes_upgrade_reward_through_unified_reward_id() -> None:
     provider = _provider()
     opening = build_opening_state(
@@ -117,6 +145,33 @@ def test_apply_neow_offer_routes_upgrade_reward_through_unified_reward_id() -> N
     assert updated.run_blueprint is not None
     assert "bash_plus#10" in updated.run_blueprint.deck
     assert "bash#10" not in updated.run_blueprint.deck
+
+
+@pytest.mark.parametrize(
+    ("extra_relics", "expected_gold"),
+    [(["golden_idol"], 224), (["ectoplasm"], 99)],
+)
+def test_apply_neow_offer_gold_reward_respects_economy_relics(
+    extra_relics: list[str], expected_gold: int
+) -> None:
+    provider = _provider()
+    opening = build_opening_state(
+        seed=11, preferred_character_id="ironclad", registry=provider
+    )
+    offer = next(item for item in opening.neow_offers if item.reward_kind == "gold")
+    assert opening.run_blueprint is not None
+    opening = replace(
+        opening,
+        run_blueprint=replace(
+            opening.run_blueprint,
+            relics=[*opening.run_blueprint.relics, *extra_relics],
+        ),
+    )
+
+    updated = apply_neow_offer(opening, offer.offer_id, registry=provider)
+
+    assert updated.run_blueprint is not None
+    assert updated.run_blueprint.gold == expected_gold
 
 
 def test_apply_neow_offer_missing_target_degrades_to_noop_after_cost() -> None:
