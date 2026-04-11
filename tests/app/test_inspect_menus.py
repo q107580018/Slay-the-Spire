@@ -57,7 +57,9 @@ def _rest_room() -> RoomState:
     )
 
 
-def _combat_room(*, hand: list[str], enemy_count: int = 1, enemy_hp: int = 12) -> RoomState:
+def _combat_room(
+    *, hand: list[str], enemy_count: int = 1, enemy_hp: int = 12
+) -> RoomState:
     enemies = [
         EnemyState(
             instance_id=f"enemy-{index}",
@@ -115,7 +117,9 @@ def test_combat_root_menu_can_enter_inspect_root() -> None:
     assert "资料总览" in message
 
 
-def test_route_menu_choice_separates_status_and_render_messages_for_inspect_transition() -> None:
+def test_route_menu_choice_separates_status_and_render_messages_for_inspect_transition() -> (
+    None
+):
     result = route_menu_choice("3", session=start_session(seed=5))
 
     assert result.running is True
@@ -124,8 +128,15 @@ def test_route_menu_choice_separates_status_and_render_messages_for_inspect_tran
     assert "战斗摘要" in result.render_message
 
 
-def test_route_menu_choice_leaves_status_empty_for_render_only_menu_transition() -> None:
-    result = route_menu_choice("1", session=replace(start_session(seed=5), room_state=_combat_room(hand=["strike#1"])))
+def test_route_menu_choice_leaves_status_empty_for_render_only_menu_transition() -> (
+    None
+):
+    result = route_menu_choice(
+        "1",
+        session=replace(
+            start_session(seed=5), room_state=_combat_room(hand=["strike#1"])
+        ),
+    )
 
     assert result.running is True
     assert result.status_message is None
@@ -149,10 +160,14 @@ def test_route_menu_choice_keeps_status_empty_after_nested_play_command() -> Non
 
 
 def test_single_enemy_attack_card_plays_without_entering_target_menu() -> None:
-    session = replace(start_session(seed=5), room_state=_combat_room(hand=["strike#1"], enemy_count=1))
+    session = replace(
+        start_session(seed=5), room_state=_combat_room(hand=["strike#1"], enemy_count=1)
+    )
 
     _running, select_card_session, _message = route_menu_choice("1", session=session)
-    _running, played_session, message = route_menu_choice("1", session=select_card_session)
+    _running, played_session, message = route_menu_choice(
+        "1", session=select_card_session
+    )
 
     assert select_card_session.menu_state.mode == "select_card"
     assert played_session.menu_state.mode == "root"
@@ -167,7 +182,9 @@ def test_single_enemy_perfected_strike_plays_without_entering_target_menu() -> N
     )
 
     _running, select_card_session, _message = route_menu_choice("1", session=session)
-    _running, played_session, message = route_menu_choice("1", session=select_card_session)
+    _running, played_session, message = route_menu_choice(
+        "1", session=select_card_session
+    )
 
     assert select_card_session.menu_state.mode == "select_card"
     assert played_session.menu_state.mode == "root"
@@ -176,10 +193,15 @@ def test_single_enemy_perfected_strike_plays_without_entering_target_menu() -> N
 
 
 def test_nonlethal_card_play_keeps_select_card_menu_open_when_hand_remains() -> None:
-    session = replace(start_session(seed=5), room_state=_combat_room(hand=["anger#1", "strike#2"], enemy_count=1))
+    session = replace(
+        start_session(seed=5),
+        room_state=_combat_room(hand=["anger#1", "strike#2"], enemy_count=1),
+    )
 
     _running, select_card_session, _message = route_menu_choice("1", session=session)
-    _running, played_session, message = route_menu_choice("1", session=select_card_session)
+    _running, played_session, message = route_menu_choice(
+        "1", session=select_card_session
+    )
 
     assert select_card_session.menu_state.mode == "select_card"
     assert played_session.menu_state.mode == "select_card"
@@ -190,11 +212,15 @@ def test_nonlethal_card_play_keeps_select_card_menu_open_when_hand_remains() -> 
 def test_lethal_card_play_exits_select_card_even_when_other_hand_cards_remain() -> None:
     session = replace(
         start_session(seed=5),
-        room_state=_combat_room(hand=["strike#1", "defend#2"], enemy_count=1, enemy_hp=6),
+        room_state=_combat_room(
+            hand=["strike#1", "defend#2"], enemy_count=1, enemy_hp=6
+        ),
     )
 
     _running, select_card_session, _message = route_menu_choice("1", session=session)
-    _running, played_session, message = route_menu_choice("1", session=select_card_session)
+    _running, played_session, message = route_menu_choice(
+        "1", session=select_card_session
+    )
 
     assert select_card_session.menu_state.mode == "select_card"
     assert played_session.menu_state.mode == "root"
@@ -212,7 +238,9 @@ def test_hand_target_card_still_enters_hand_target_menu() -> None:
     )
 
     _running, select_card_session, _message = route_menu_choice("1", session=session)
-    _running, target_session, message = route_menu_choice("1", session=select_card_session)
+    _running, target_session, message = route_menu_choice(
+        "1", session=select_card_session
+    )
 
     assert select_card_session.menu_state.mode == "select_card"
     assert target_session.menu_state.mode == "select_target"
@@ -227,7 +255,9 @@ def test_warcry_enters_hand_target_menu_instead_of_enemy_menu() -> None:
     )
 
     _running, select_card_session, _message = route_menu_choice("1", session=session)
-    _running, target_session, _message = route_menu_choice("1", session=select_card_session)
+    _running, target_session, _message = route_menu_choice(
+        "1", session=select_card_session
+    )
 
     assert select_card_session.menu_state.mode == "select_card"
     assert target_session.menu_state.mode == "select_target"
@@ -241,7 +271,9 @@ def test_targeted_card_play_keeps_select_card_menu_open_after_target_choice() ->
     )
 
     _running, select_card_session, _message = route_menu_choice("1", session=session)
-    _running, target_session, _message = route_menu_choice("1", session=select_card_session)
+    _running, target_session, _message = route_menu_choice(
+        "1", session=select_card_session
+    )
     _running, played_session, message = route_menu_choice("1", session=target_session)
 
     assert target_session.menu_state.mode == "select_target"
@@ -258,16 +290,25 @@ def test_end_turn_can_be_triggered_inside_select_card_menu() -> None:
     )
 
     _running, next_session, _message = route_menu_choice("2", session=session)
-    combat_state = CombatState.from_dict(next_session.room_state.payload["combat_state"])
+    combat_state = CombatState.from_dict(
+        next_session.room_state.payload["combat_state"]
+    )
 
     assert combat_state.round_number == 2
     assert next_session.menu_state.mode == "select_card"
 
 
-def test_resolved_combat_without_rewards_can_enter_inspect_root_from_choice_two() -> None:
+def test_resolved_combat_without_rewards_can_enter_inspect_root_from_choice_two() -> (
+    None
+):
     session = replace(
         start_session(seed=5),
-        room_state=replace(start_session(seed=5).room_state, stage="completed", is_resolved=True, rewards=[]),
+        room_state=replace(
+            start_session(seed=5).room_state,
+            stage="completed",
+            is_resolved=True,
+            rewards=[],
+        ),
     )
 
     running, next_session, message = route_menu_choice("2", session=session)
@@ -310,7 +351,9 @@ def test_inspect_root_can_open_deck_and_return() -> None:
     session = replace(start_session(seed=5), menu_state=MenuState(mode="inspect_root"))
 
     _running, deck_session, deck_message = route_menu_choice("2", session=session)
-    _running, back_session, back_message = route_menu_choice(str(len(deck_session.run_state.deck) + 1), session=deck_session)
+    _running, back_session, back_message = route_menu_choice(
+        str(len(deck_session.run_state.deck) + 1), session=deck_session
+    )
 
     assert deck_session.menu_state.mode == "inspect_deck"
     assert deck_session.menu_state.inspect_parent_mode == "root"
@@ -327,7 +370,9 @@ def test_inspect_deck_can_return_to_parent_root_menu() -> None:
 
     _running, inspect_session, _message = route_menu_choice("3", session=session)
     _running, deck_session, _message = route_menu_choice("2", session=inspect_session)
-    _running, back_session, _message = route_menu_choice(str(len(deck_session.run_state.deck) + 1), session=deck_session)
+    _running, back_session, _message = route_menu_choice(
+        str(len(deck_session.run_state.deck) + 1), session=deck_session
+    )
     _running, root_session, root_message = route_menu_choice("10", session=back_session)
 
     assert inspect_session.menu_state.mode == "inspect_root"
@@ -342,12 +387,22 @@ def test_inspect_deck_can_return_to_parent_root_menu() -> None:
 
 
 def test_non_combat_inspect_deck_can_open_card_detail_and_return() -> None:
-    session = replace(start_session(seed=5), room_state=_event_room(), menu_state=MenuState(mode="inspect_root", inspect_parent_mode="root"))
+    session = replace(
+        start_session(seed=5),
+        room_state=_event_room(),
+        menu_state=MenuState(mode="inspect_root", inspect_parent_mode="root"),
+    )
 
     _running, deck_session, deck_message = route_menu_choice("2", session=session)
-    _running, detail_session, detail_message = route_menu_choice("1", session=deck_session)
-    _running, back_to_list_session, back_to_list_message = route_menu_choice("1", session=detail_session)
-    _running, back_to_root_session, back_to_root_message = route_menu_choice("2", session=detail_session)
+    _running, detail_session, detail_message = route_menu_choice(
+        "1", session=deck_session
+    )
+    _running, back_to_list_session, back_to_list_message = route_menu_choice(
+        "1", session=detail_session
+    )
+    _running, back_to_root_session, back_to_root_message = route_menu_choice(
+        "2", session=detail_session
+    )
 
     assert deck_session.menu_state.mode == "inspect_deck"
     assert deck_session.menu_state.inspect_parent_mode == "root"
@@ -378,7 +433,9 @@ def test_resolved_reward_root_enters_select_reward_directly() -> None:
         ),
     )
 
-    _running, claim_menu_session, claim_menu_message = route_menu_choice("1", session=session)
+    _running, claim_menu_session, claim_menu_message = route_menu_choice(
+        "1", session=session
+    )
 
     assert claim_menu_session.menu_state.mode == "select_reward"
     assert claim_menu_session.room_state.rewards == ["gold:11", "card_offer:anger"]
@@ -395,7 +452,11 @@ def test_legacy_reward_inspect_mode_redirects_to_current_claim_flow() -> None:
             is_resolved=True,
             rewards=["gold:11", "card_offer:anger"],
         ),
-        menu_state=MenuState(mode="inspect_reward_detail", inspect_parent_mode="inspect_reward_list", inspect_item_id="gold:11"),
+        menu_state=MenuState(
+            mode="inspect_reward_detail",
+            inspect_parent_mode="inspect_reward_list",
+            inspect_item_id="gold:11",
+        ),
     )
 
     _running, next_session, message = route_menu_choice("1", session=session)
@@ -417,8 +478,12 @@ def test_claiming_partial_rewards_keeps_reward_menu_open_until_empty() -> None:
         menu_state=MenuState(mode="select_reward"),
     )
 
-    _running, after_gold_session, after_gold_message = route_menu_choice("1", session=session)
-    _running, after_card_session, after_card_message = route_menu_choice("1", session=after_gold_session)
+    _running, after_gold_session, after_gold_message = route_menu_choice(
+        "1", session=session
+    )
+    _running, after_card_session, after_card_message = route_menu_choice(
+        "1", session=after_gold_session
+    )
 
     assert after_gold_session.menu_state.mode == "select_reward"
     assert after_gold_session.room_state.rewards == ["card_offer:anger"]
@@ -426,6 +491,51 @@ def test_claiming_partial_rewards_keeps_reward_menu_open_until_empty() -> None:
     assert after_card_session.menu_state.mode == "root"
     assert after_card_session.room_state.rewards == []
     assert "奖励:" not in after_card_message
+
+
+def test_claiming_unified_reward_actions_updates_state_and_claimed_ids() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=replace(
+            start_session(seed=5).room_state,
+            stage="completed",
+            is_resolved=True,
+            rewards=["upgrade:bash#10", "duplicate:strike#1", "skip"],
+            payload={"claimed_reward_ids": []},
+        ),
+        menu_state=MenuState(mode="select_reward"),
+    )
+
+    _running, after_upgrade_session, after_upgrade_message = route_menu_choice(
+        "1", session=session
+    )
+    _running, after_duplicate_session, after_duplicate_message = route_menu_choice(
+        "1", session=after_upgrade_session
+    )
+    _running, after_skip_session, after_skip_message = route_menu_choice(
+        "1", session=after_duplicate_session
+    )
+
+    assert "bash_plus#10" in after_upgrade_session.run_state.deck
+    assert after_upgrade_session.room_state.payload["claimed_reward_ids"] == [
+        "upgrade:bash#10"
+    ]
+    assert after_upgrade_session.menu_state.mode == "select_reward"
+    assert "奖励:" in after_upgrade_message
+    assert after_duplicate_session.run_state.deck.count("strike#11") == 1
+    assert after_duplicate_session.room_state.payload["claimed_reward_ids"] == [
+        "upgrade:bash#10",
+        "duplicate:strike#1",
+    ]
+    assert "奖励:" in after_duplicate_message
+    assert after_skip_session.room_state.payload["claimed_reward_ids"] == [
+        "upgrade:bash#10",
+        "duplicate:strike#1",
+        "skip",
+    ]
+    assert after_skip_session.room_state.rewards == []
+    assert after_skip_session.menu_state.mode == "root"
+    assert "奖励:" not in after_skip_message
 
 
 def test_claiming_boss_reward_enters_boss_chest_root_until_relic_is_picked() -> None:
@@ -487,7 +597,10 @@ def test_claiming_boss_relic_returns_to_boss_chest_root() -> None:
     _running, next_session, message = route_menu_choice("1", session=session)
 
     assert next_session.menu_state.mode == "root"
-    assert next_session.room_state.payload["boss_rewards"]["claimed_relic_id"] == "black_blood"
+    assert (
+        next_session.room_state.payload["boss_rewards"]["claimed_relic_id"]
+        == "black_blood"
+    )
     assert "Boss宝箱" in message
 
 
@@ -495,9 +608,15 @@ def test_inspect_leaf_pages_keep_transition_messages_consistent() -> None:
     session = start_session(seed=5)
 
     _running, inspect_session, _message = route_menu_choice("3", session=session)
-    _running, stats_session, stats_message = route_menu_choice("1", session=inspect_session)
-    _running, stats_back_session, stats_back_message = route_menu_choice("1", session=stats_session)
-    _running, relic_session, relic_message = route_menu_choice("3", session=stats_back_session)
+    _running, stats_session, stats_message = route_menu_choice(
+        "1", session=inspect_session
+    )
+    _running, stats_back_session, stats_back_message = route_menu_choice(
+        "1", session=stats_session
+    )
+    _running, relic_session, relic_message = route_menu_choice(
+        "3", session=stats_back_session
+    )
     _running, relic_back_session, relic_back_message = route_menu_choice(
         str(len(relic_session.run_state.relics) + 1),
         session=relic_session,
@@ -518,11 +637,21 @@ def test_inspect_leaf_pages_keep_transition_messages_consistent() -> None:
 def test_inspect_relic_branch_round_trip_keeps_mode_and_parent_state() -> None:
     session = start_session(seed=5)
 
-    _running, inspect_session, _inspect_message = route_menu_choice("3", session=session)
-    _running, relic_list_session, relic_list_message = route_menu_choice("3", session=inspect_session)
-    _running, detail_session, detail_message = route_menu_choice("1", session=relic_list_session)
-    _running, back_to_list_session, back_to_list_message = route_menu_choice("1", session=detail_session)
-    _running, back_to_root_session, back_to_root_message = route_menu_choice("2", session=detail_session)
+    _running, inspect_session, _inspect_message = route_menu_choice(
+        "3", session=session
+    )
+    _running, relic_list_session, relic_list_message = route_menu_choice(
+        "3", session=inspect_session
+    )
+    _running, detail_session, detail_message = route_menu_choice(
+        "1", session=relic_list_session
+    )
+    _running, back_to_list_session, back_to_list_message = route_menu_choice(
+        "1", session=detail_session
+    )
+    _running, back_to_root_session, back_to_root_message = route_menu_choice(
+        "2", session=detail_session
+    )
 
     assert relic_list_session.menu_state.mode == "inspect_relics"
     assert relic_list_session.menu_state.inspect_parent_mode == "root"
@@ -571,10 +700,18 @@ def test_combat_inspect_card_branch_round_trip_keeps_mode_and_parent_state() -> 
     expected_first_hand_card = session.room_state.payload["combat_state"]["hand"][0]
 
     _running, inspect_session, inspect_message = route_menu_choice("3", session=session)
-    _running, hand_session, hand_message = route_menu_choice("5", session=inspect_session)
-    _running, detail_session, detail_message = route_menu_choice("1", session=hand_session)
-    _running, back_to_list_session, back_to_list_message = route_menu_choice("1", session=detail_session)
-    _running, back_to_root_session, back_to_root_message = route_menu_choice("2", session=detail_session)
+    _running, hand_session, hand_message = route_menu_choice(
+        "5", session=inspect_session
+    )
+    _running, detail_session, detail_message = route_menu_choice(
+        "1", session=hand_session
+    )
+    _running, back_to_list_session, back_to_list_message = route_menu_choice(
+        "1", session=detail_session
+    )
+    _running, back_to_root_session, back_to_root_message = route_menu_choice(
+        "2", session=detail_session
+    )
 
     assert inspect_session.menu_state.mode == "inspect_root"
     assert inspect_message.splitlines()[0] == "资料总览"
@@ -599,11 +736,21 @@ def test_combat_inspect_card_branch_round_trip_keeps_mode_and_parent_state() -> 
 def test_combat_inspect_enemy_branch_round_trip_keeps_mode_and_parent_state() -> None:
     session = start_session(seed=5)
 
-    _running, inspect_session, _inspect_message = route_menu_choice("3", session=session)
-    _running, enemy_list_session, enemy_list_message = route_menu_choice("9", session=inspect_session)
-    _running, detail_session, detail_message = route_menu_choice("1", session=enemy_list_session)
-    _running, back_to_list_session, back_to_list_message = route_menu_choice("1", session=detail_session)
-    _running, back_to_root_session, back_to_root_message = route_menu_choice("2", session=detail_session)
+    _running, inspect_session, _inspect_message = route_menu_choice(
+        "3", session=session
+    )
+    _running, enemy_list_session, enemy_list_message = route_menu_choice(
+        "9", session=inspect_session
+    )
+    _running, detail_session, detail_message = route_menu_choice(
+        "1", session=enemy_list_session
+    )
+    _running, back_to_list_session, back_to_list_message = route_menu_choice(
+        "1", session=detail_session
+    )
+    _running, back_to_root_session, back_to_root_message = route_menu_choice(
+        "2", session=detail_session
+    )
 
     assert enemy_list_session.menu_state.mode == "inspect_enemy_list"
     assert enemy_list_session.menu_state.inspect_parent_mode == "inspect_root"
@@ -644,7 +791,9 @@ def test_non_combat_inspect_root_can_open_potions_and_return() -> None:
     )
 
     _running, potion_session, potion_message = route_menu_choice("4", session=session)
-    _running, back_session, back_message = route_menu_choice("1", session=potion_session)
+    _running, back_session, back_message = route_menu_choice(
+        "1", session=potion_session
+    )
     _running, root_session, root_message = route_menu_choice("5", session=back_session)
 
     assert potion_session.menu_state.mode == "inspect_potions"
@@ -658,12 +807,22 @@ def test_non_combat_inspect_root_can_open_potions_and_return() -> None:
 
 
 def test_shop_root_menu_can_enter_inspect_and_return_to_shop() -> None:
-    session = replace(start_session(seed=5), room_state=_shop_room(), menu_state=MenuState(mode="shop_root"))
+    session = replace(
+        start_session(seed=5),
+        room_state=_shop_room(),
+        menu_state=MenuState(mode="shop_root"),
+    )
 
     _running, inspect_session, inspect_message = route_menu_choice("4", session=session)
-    _running, stats_session, stats_message = route_menu_choice("1", session=inspect_session)
-    _running, inspect_back_session, inspect_back_message = route_menu_choice("1", session=stats_session)
-    _running, shop_session, shop_message = route_menu_choice("5", session=inspect_back_session)
+    _running, stats_session, stats_message = route_menu_choice(
+        "1", session=inspect_session
+    )
+    _running, inspect_back_session, inspect_back_message = route_menu_choice(
+        "1", session=stats_session
+    )
+    _running, shop_session, shop_message = route_menu_choice(
+        "5", session=inspect_back_session
+    )
 
     assert inspect_session.menu_state.mode == "inspect_root"
     assert inspect_session.menu_state.inspect_parent_mode == "shop_root"
@@ -678,15 +837,23 @@ def test_shop_root_menu_can_enter_inspect_and_return_to_shop() -> None:
 
 
 def test_rest_root_menu_can_enter_inspect_and_return_to_rest() -> None:
-    session = replace(start_session(seed=5), room_state=_rest_room(), menu_state=MenuState(mode="rest_root"))
+    session = replace(
+        start_session(seed=5),
+        room_state=_rest_room(),
+        menu_state=MenuState(mode="rest_root"),
+    )
 
     _running, inspect_session, inspect_message = route_menu_choice("4", session=session)
-    _running, relics_session, relics_message = route_menu_choice("3", session=inspect_session)
+    _running, relics_session, relics_message = route_menu_choice(
+        "3", session=inspect_session
+    )
     _running, inspect_back_session, inspect_back_message = route_menu_choice(
         str(len(relics_session.run_state.relics) + 1),
         session=relics_session,
     )
-    _running, rest_session, rest_message = route_menu_choice("5", session=inspect_back_session)
+    _running, rest_session, rest_message = route_menu_choice(
+        "5", session=inspect_back_session
+    )
 
     assert inspect_session.menu_state.mode == "inspect_root"
     assert inspect_session.menu_state.inspect_parent_mode == "rest_root"

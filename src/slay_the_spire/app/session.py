@@ -438,10 +438,11 @@ def _start_active_session_from_blueprint(session: SessionState) -> SessionState:
 
 def _room_with_rewards_claimed(room_state: RoomState, reward_id: str) -> RoomState:
     if reward_id not in room_state.rewards:
-        raise ValueError("reward_id not found in room rewards")
+        return room_state
     payload = dict(room_state.payload)
     claimed_reward_ids = list(payload.get("claimed_reward_ids", []))
-    claimed_reward_ids.append(reward_id)
+    if reward_id not in claimed_reward_ids:
+        claimed_reward_ids.append(reward_id)
     payload["claimed_reward_ids"] = claimed_reward_ids
     if reward_id.startswith("card_offer:"):
         remaining_rewards = [
@@ -496,6 +497,8 @@ def _has_pending_boss_rewards(room_state: RoomState) -> bool:
 
 
 def _claim_session_reward(session: SessionState, reward_id: str) -> SessionState:
+    if reward_id not in session.room_state.rewards:
+        return session
     provider = _content_provider(session)
     updated_run_state = apply_reward(
         run_state=session.run_state,
@@ -2666,7 +2669,14 @@ def _route_reward_menu(
         next_session = _skip_card_offer_rewards(session)
         return True, next_session, render_session(next_session)
     if action_id.startswith("claim_reward:"):
-        next_session = _claim_session_reward(session, action_id.split(":", 1)[1])
+        reward_id = action_id.split(":", 1)[1]
+        if reward_id not in session.room_state.rewards:
+            return (
+                True,
+                session,
+                _message_with_render(session, "该奖励已领取或不可用。"),
+            )
+        next_session = _claim_session_reward(session, reward_id)
         return True, next_session, render_session(next_session)
     return _invalid_menu_choice(session)
 
