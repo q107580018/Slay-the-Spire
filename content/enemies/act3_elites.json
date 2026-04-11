@@ -1,0 +1,56 @@
+{
+  "enemies": [
+    {
+      "id": "giant_head",
+      "pool_weight": 1,
+      "name": "巨首",
+      "hp": 500,
+      "move_table": [
+        {"move": "glare", "effects": [{"type": "weak", "stacks": 1}]},
+        {"move": "count", "effects": [{"type": "block", "amount": 20}]},
+        {"move": "it_is_time", "effects": [{"type": "damage", "amount": 30}]}
+      ],
+      "intent_policy": "cycle"
+    },
+    {
+      "id": "nemesis",
+      "pool_weight": 1,
+      "name": "宿敌",
+      "hp": 185,
+      "move_table": [
+        {
+          "move": "burning_slash",
+          "effects": [
+            {"type": "damage", "amount": 7},
+            {"type": "add_card_to_discard", "card_id": "burn", "count": 2}
+          ]
+        },
+        {"move": "scythe", "effects": [{"type": "damage", "amount": 45}]},
+        {"move": "vanish", "effects": [{"type": "block", "amount": 20}]}
+      ],
+      "intent_policy": "cycle"
+    },
+    {
+      "id": "reptomancer",
+      "pool_weight": 1,
+      "name": "蜥蜴术士",
+      "hp": 200,
+      "move_table": [
+        {"move": "summon", "effects": [{"type": "block", "amount": 15}]},
+        {"move": "snake_strike", "effects": [{"type": "damage", "amount": 16}]},
+        {"move": "big_bite", "effects": [{"type": "damage", "amount": 32}]}
+      ],
+      "intent_policy": "cycle"
+    },
+    {
+      "id": "dagger",
+      "pool_weight": 1,
+      "name": "匕首",
+      "hp": 25,
+      "move_table": [
+        {"move": "stab", "effects": [{"type": "damage", "amount": 9}]}
+      ],
+      "intent_policy": "cycle"
+    }
+  ]
+}

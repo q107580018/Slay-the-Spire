@@ -1,0 +1,67 @@
+{
+  "enemies": [
+    {
+      "id": "awakened_one",
+      "pool_weight": 1,
+      "name": "觉醒者",
+      "hp": 320,
+      "move_table": [
+        {"move": "slash", "effects": [{"type": "damage", "amount": 20}]},
+        {"move": "soul_strike", "effects": [{"type": "damage", "amount": 26}]},
+        {"move": "dark_echo", "effects": [{"type": "weak", "stacks": 2}]}
+      ],
+      "intent_policy": "cycle"
+    },
+    {
+      "id": "awakened_cultist",
+      "pool_weight": 1,
+      "name": "觉醒教徒",
+      "hp": 48,
+      "move_table": [
+        {"move": "ritual", "effects": [{"type": "strength", "amount": 3}]},
+        {"move": "chop", "effects": [{"type": "damage", "amount": 8}]}
+      ],
+      "intent_policy": "cycle"
+    },
+    {
+      "id": "time_eater",
+      "pool_weight": 1,
+      "name": "时空吞噬者",
+      "hp": 460,
+      "move_table": [
+        {"move": "reverberate", "effects": [{"type": "damage", "amount": 8}]},
+        {"move": "head_slam", "effects": [{"type": "damage", "amount": 32}]},
+        {"move": "rewind", "effects": [{"type": "block", "amount": 20}]}
+      ],
+      "intent_policy": "cycle"
+    },
+    {
+      "id": "donu",
+      "pool_weight": 1,
+      "name": "甜甜圈",
+      "hp": 265,
+      "move_table": [
+        {"move": "beam", "effects": [{"type": "damage", "amount": 12}]},
+        {"move": "circle_of_power", "effects": [{"type": "strength", "amount": 2}]}
+      ],
+      "intent_policy": "cycle"
+    },
+    {
+      "id": "deca",
+      "pool_weight": 1,
+      "name": "十面体",
+      "hp": 265,
+      "move_table": [
+        {"move": "beam", "effects": [{"type": "damage", "amount": 12}]},
+        {
+          "move": "square_of_guard",
+          "effects": [
+            {"type": "block", "amount": 16},
+            {"type": "add_card_to_discard", "card_id": "dazed", "count": 1}
+          ]
+        }
+      ],
+      "intent_policy": "cycle"
+    }
+  ]
+}

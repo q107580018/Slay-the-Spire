@@ -1,0 +1,40 @@
+{
+  "encounters": [
+    {
+      "id": "darklings",
+      "name": "暗灵三重唱",
+      "enemy_ids": ["darkling", "darkling", "darkling"],
+      "pool_weight": 2
+    },
+    {
+      "id": "spire_growth_plus_orb_walker",
+      "name": "尖塔之生与球行者",
+      "enemy_ids": ["spire_growth", "orb_walker"],
+      "pool_weight": 2
+    },
+    {
+      "id": "repulsor_plus_spiker",
+      "name": "斥力体与尖刺体",
+      "enemy_ids": ["repulsor", "spiker"],
+      "pool_weight": 2
+    },
+    {
+      "id": "writhing_mass",
+      "name": "蠕动之块",
+      "enemy_ids": ["writhing_mass"],
+      "pool_weight": 2
+    },
+    {
+      "id": "maw",
+      "name": "巨口",
+      "enemy_ids": ["maw"],
+      "pool_weight": 1
+    },
+    {
+      "id": "transient",
+      "name": "过客",
+      "enemy_ids": ["transient"],
+      "pool_weight": 1
+    }
+  ]
+}

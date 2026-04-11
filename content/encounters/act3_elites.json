@@ -1,0 +1,22 @@
+{
+  "encounters": [
+    {
+      "id": "giant_head",
+      "name": "巨首",
+      "enemy_ids": ["giant_head"],
+      "pool_weight": 1
+    },
+    {
+      "id": "nemesis",
+      "name": "宿敌",
+      "enemy_ids": ["nemesis"],
+      "pool_weight": 1
+    },
+    {
+      "id": "reptomancer",
+      "name": "蜥蜴术士",
+      "enemy_ids": ["reptomancer", "dagger", "dagger"],
+      "pool_weight": 1
+    }
+  ]
+}

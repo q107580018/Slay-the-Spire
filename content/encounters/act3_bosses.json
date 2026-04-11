@@ -1,0 +1,22 @@
+{
+  "encounters": [
+    {
+      "id": "awakened_one",
+      "name": "觉醒者",
+      "enemy_ids": ["awakened_one", "awakened_cultist", "awakened_cultist"],
+      "pool_weight": 1
+    },
+    {
+      "id": "time_eater",
+      "name": "时空吞噬者",
+      "enemy_ids": ["time_eater"],
+      "pool_weight": 1
+    },
+    {
+      "id": "donu_and_deca",
+      "name": "甜甜圈与十面体",
+      "enemy_ids": ["donu", "deca"],
+      "pool_weight": 1
+    }
+  ]
+}

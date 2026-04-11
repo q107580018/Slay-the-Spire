@@ -1,0 +1,109 @@
+{
+  "enemies": [
+    {
+      "id": "darkling",
+      "pool_weight": 2,
+      "name": "暗灵",
+      "hp": 52,
+      "move_table": [
+        {"move": "nip", "effects": [{"type": "damage", "amount": 8}]},
+        {"move": "harden", "effects": [{"type": "block", "amount": 12}]},
+        {"move": "chomp", "effects": [{"type": "damage", "amount": 12}]}
+      ],
+      "intent_policy": "cycle"
+    },
+    {
+      "id": "writhing_mass",
+      "pool_weight": 2,
+      "name": "蠕动之块",
+      "hp": 165,
+      "move_table": [
+        {"move": "slam", "effects": [{"type": "damage", "amount": 16}]},
+        {"move": "wither", "effects": [{"type": "weak", "stacks": 2}]},
+        {"move": "constrict", "effects": [{"type": "vulnerable", "stacks": 2}]}
+      ],
+      "intent_policy": "weighted_random"
+    },
+    {
+      "id": "maw",
+      "pool_weight": 1,
+      "name": "巨口",
+      "hp": 300,
+      "move_table": [
+        {"move": "nom", "effects": [{"type": "damage", "amount": 5}]},
+        {"move": "roar", "effects": [{"type": "weak", "stacks": 1}]},
+        {"move": "slam", "effects": [{"type": "damage", "amount": 30}]}
+      ],
+      "intent_policy": "cycle"
+    },
+    {
+      "id": "spire_growth",
+      "pool_weight": 1,
+      "name": "尖塔之生",
+      "hp": 170,
+      "move_table": [
+        {"move": "smash", "effects": [{"type": "damage", "amount": 18}]},
+        {"move": "entangle", "effects": [{"type": "weak", "stacks": 2}]},
+        {"move": "barrage", "effects": [{"type": "damage", "amount": 22}]}
+      ],
+      "intent_policy": "cycle"
+    },
+    {
+      "id": "transient",
+      "pool_weight": 1,
+      "name": "过客",
+      "hp": 999,
+      "move_table": [
+        {"move": "fading_blow", "effects": [{"type": "damage", "amount": 30}]},
+        {"move": "fading_blow", "effects": [{"type": "damage", "amount": 40}]},
+        {"move": "fading_blow", "effects": [{"type": "damage", "amount": 50}]}
+      ],
+      "intent_policy": "cycle"
+    },
+    {
+      "id": "repulsor",
+      "pool_weight": 1,
+      "name": "斥力体",
+      "hp": 38,
+      "move_table": [
+        {"move": "bolt", "effects": [{"type": "damage", "amount": 11}]},
+        {
+          "move": "repulse",
+          "effects": [
+            {"type": "damage", "amount": 7},
+            {"type": "add_card_to_discard", "card_id": "dazed", "count": 2}
+          ]
+        }
+      ],
+      "intent_policy": "cycle"
+    },
+    {
+      "id": "orb_walker",
+      "pool_weight": 1,
+      "name": "球行者",
+      "hp": 95,
+      "move_table": [
+        {"move": "beam", "effects": [{"type": "damage", "amount": 12}]},
+        {
+          "move": "burning_orb",
+          "effects": [
+            {"type": "damage", "amount": 8},
+            {"type": "add_card_to_discard", "card_id": "burn", "count": 1}
+          ]
+        }
+      ],
+      "intent_policy": "cycle"
+    },
+    {
+      "id": "spiker",
+      "pool_weight": 1,
+      "name": "尖刺体",
+      "hp": 46,
+      "move_table": [
+        {"move": "spike_up", "effects": [{"type": "block", "amount": 12}]},
+        {"move": "jab", "effects": [{"type": "damage", "amount": 9}]}
+      ],
+      "intent_policy": "cycle"
+    }
+  ]
+}
