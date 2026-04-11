@@ -8,6 +8,21 @@ from slay_the_spire.ports.content_provider import ContentProviderPort
 from slay_the_spire.use_cases.reward_actions import RewardAction, parse_reward_action
 
 
+def _is_placeholder_card(*, registry: ContentProviderPort, card_id: str) -> bool:
+    card_def = registry.cards().get(card_id)
+    return getattr(card_def, "implementation_status", None) == "placeholder"
+
+
+def _is_placeholder_relic(*, registry: ContentProviderPort, relic_id: str) -> bool:
+    relic_def = registry.relics().get(relic_id)
+    return getattr(relic_def, "implementation_status", None) == "placeholder"
+
+
+def _is_placeholder_potion(*, registry: ContentProviderPort, potion_id: str) -> bool:
+    potion_def = registry.potions().get(potion_id)
+    return getattr(potion_def, "implementation_status", None) == "placeholder"
+
+
 def _next_instance_id(deck: list[str], card_id: str) -> str:
     highest_suffix = 0
     for card_instance_id in deck:
@@ -137,11 +152,17 @@ def _resolve_card_reward_card_id(
     card_id: str, registry: ContentProviderPort
 ) -> str | None:
     if card_id == "reward_strike":
+        if _is_placeholder_card(registry=registry, card_id="strike_plus"):
+            return None
         registry.cards().get("strike_plus")
         return "strike_plus"
     if card_id == "reward_defend":
+        if _is_placeholder_card(registry=registry, card_id="defend_plus"):
+            return None
         registry.cards().get("defend_plus")
         return "defend_plus"
+    if _is_placeholder_card(registry=registry, card_id=card_id):
+        return None
     registry.cards().get(card_id)
     return card_id
 
@@ -243,6 +264,11 @@ def _apply_relic_acquisition(
     *, run_state: RunState, relic_id: str, registry: ContentProviderPort
 ) -> tuple[RunState, bool]:
     relic = registry.relics().get(relic_id)
+    if (
+        getattr(relic, "implementation_status", None) == "placeholder"
+        and relic.replaces_relic_id is None
+    ):
+        return run_state, False
     relics = list(run_state.relics)
 
     if relic_id == "circlet":
@@ -292,11 +318,15 @@ def apply_reward_action(
             card_id = action.payload.get("card_id")
             if not isinstance(card_id, str) or not card_id:
                 return run_state
+            if _is_placeholder_card(registry=registry, card_id=card_id):
+                return run_state
             registry.cards().get(card_id)
             return _apply_card_reward(run_state, card_id)
         if action.kind == "potion":
             potion_id = action.payload.get("potion_id")
             if not isinstance(potion_id, str) or not potion_id:
+                return run_state
+            if _is_placeholder_potion(registry=registry, potion_id=potion_id):
                 return run_state
             registry.potions().get(potion_id)
             if "sozu" in run_state.relics:

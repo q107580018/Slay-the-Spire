@@ -388,15 +388,22 @@ def _reward_label(reward_id: str, registry: ContentProviderPort) -> str:
             return f"金币 +{reward_id.split(':', 1)[1]}"
         if reward_id.startswith("relic:"):
             relic_id = reward_id.split(":", 1)[1]
-            return f"遗物 {registry.relics().get(relic_id).name}"
+            relic = registry.relics().get(relic_id)
+            if getattr(relic, "implementation_status", None) == "placeholder":
+                return f"遗物 {relic.name} [未实现/不可用]"
+            return f"遗物 {relic.name}"
         if reward_id.startswith("potion:"):
             potion_id = reward_id.split(":", 1)[1]
-            return f"药水 {registry.potions().get(potion_id).name}"
+            potion = registry.potions().get(potion_id)
+            if getattr(potion, "implementation_status", None) == "placeholder":
+                return f"药水 {potion.name} [未实现/不可用]"
+            return f"药水 {potion.name}"
         if reward_id.startswith("card_offer:"):
             card_id = reward_id.split(":", 1)[1]
-            return Text.assemble(
-                "卡牌 ", render_card_name(registry.cards().get(card_id))
-            )
+            card = registry.cards().get(card_id)
+            if getattr(card, "implementation_status", None) == "placeholder":
+                return f"卡牌 {card.name} [未实现/不可用]"
+            return Text.assemble("卡牌 ", render_card_name(card))
         if reward_id.startswith("card:"):
             reward_name = reward_id.split(":", 1)[1]
             card_id = (
@@ -406,9 +413,10 @@ def _reward_label(reward_id: str, registry: ContentProviderPort) -> str:
                 if reward_name == "reward_defend"
                 else reward_name
             )
-            return Text.assemble(
-                "卡牌 ", render_card_name(registry.cards().get(card_id))
-            )
+            card = registry.cards().get(card_id)
+            if getattr(card, "implementation_status", None) == "placeholder":
+                return f"卡牌 {card.name} [未实现/不可用]"
+            return Text.assemble("卡牌 ", render_card_name(card))
         if reward_id.startswith("event:"):
             result = reward_id.split(":", 1)[1]
             if result == "gain_upgrade":
@@ -505,15 +513,21 @@ def build_boss_reward_menu(boss_rewards: Mapping[str, object]) -> MenuDefinition
 def build_boss_relic_menu(
     relic_ids: list[str], *, registry: ContentProviderPort
 ) -> MenuDefinition:
+    options: list[tuple[str, str | Text]] = []
+    for relic_id in relic_ids:
+        try:
+            relic = registry.relics().get(relic_id)
+            label = (
+                f"{relic.name} [未实现/不可用]"
+                if getattr(relic, "implementation_status", None) == "placeholder"
+                else relic.name
+            )
+        except (KeyError, TypeError, ValueError):
+            label = f"{relic_id} [未实现/不可用]"
+        options.append((f"claim_boss_relic:{relic_id}", label))
     return build_menu(
         title="选择Boss遗物",
-        options=[
-            *[
-                (f"claim_boss_relic:{relic_id}", registry.relics().get(relic_id).name)
-                for relic_id in relic_ids
-            ],
-            ("back", "返回上一步"),
-        ],
+        options=[*options, ("back", "返回上一步")],
     )
 
 

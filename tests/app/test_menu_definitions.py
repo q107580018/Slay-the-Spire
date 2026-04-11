@@ -550,6 +550,47 @@ def test_build_reward_menu_falls_back_to_raw_unknown_reward_id() -> None:
     ]
 
 
+def test_build_reward_menu_marks_placeholder_rewards_as_unavailable() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=replace(
+            start_session(seed=5).room_state,
+            is_resolved=True,
+            rewards=["relic:astrolabe", "mystery:payload"],
+        ),
+    )
+    registry = StarterContentProvider(session.content_root)
+
+    menu = build_reward_menu(room_state=session.room_state, registry=registry)
+
+    assert format_menu_lines(menu) == [
+        "奖励:",
+        "1. 遗物 星盘 [未实现/不可用]",
+        "2. mystery:payload",
+        "3. 全部领取",
+        "4. 返回上一步",
+    ]
+
+
+def test_build_boss_relic_menu_marks_placeholder_and_unknown_relics_as_unavailable() -> (
+    None
+):
+    session = start_session(seed=5)
+    registry = StarterContentProvider(session.content_root)
+
+    menu = build_boss_relic_menu(
+        ["astrolabe", "missing_relic"],
+        registry=registry,
+    )
+
+    assert format_menu_lines(menu) == [
+        "选择Boss遗物:",
+        "1. 星盘 [未实现/不可用]",
+        "2. missing_relic [未实现/不可用]",
+        "3. 返回上一步",
+    ]
+
+
 def test_build_root_menu_binds_combat_choices_without_view_current() -> None:
     session = start_session(seed=5)
     menu = build_root_menu(room_state=session.room_state, run_state=session.run_state)

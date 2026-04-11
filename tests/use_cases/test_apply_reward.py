@@ -895,3 +895,39 @@ def test_apply_reward_noop_unknown_reward_id_is_deterministic() -> None:
     assert first == run_state
     assert second == run_state
     assert first == second
+
+
+def test_apply_reward_placeholder_relic_is_safe_noop() -> None:
+    run_state = _run_state()
+
+    updated = apply_reward(
+        run_state=run_state,
+        reward_id="relic:astrolabe",
+        registry=_content_provider(),
+    )
+
+    assert updated == run_state
+
+
+def test_apply_reward_unknown_card_reward_is_safe_noop() -> None:
+    run_state = _run_state()
+
+    updated = apply_reward(
+        run_state=run_state,
+        reward_id="card:missing_reward_card",
+        registry=_content_provider(),
+    )
+
+    assert updated == run_state
+
+
+def test_apply_reward_unknown_potion_is_safe_noop() -> None:
+    run_state = _run_state()
+
+    updated = apply_reward(
+        run_state=run_state,
+        reward_id="potion:missing_reward_potion",
+        registry=_content_provider(),
+    )
+
+    assert updated == run_state
