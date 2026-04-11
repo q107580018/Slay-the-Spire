@@ -490,6 +490,66 @@ def test_build_reward_menu_lists_skip_card_rewards_when_card_offers_exist() -> N
     assert resolve_menu_action("5", menu) == "skip_card_rewards"
 
 
+def test_build_reward_menu_labels_unified_reward_actions_and_keeps_footer_order() -> (
+    None
+):
+    session = replace(
+        start_session(seed=5),
+        room_state=replace(
+            start_session(seed=5).room_state,
+            is_resolved=True,
+            rewards=[
+                "remove:strike#1",
+                "upgrade:bash#10",
+                "transform:strike#2:anger",
+                "duplicate:defend#6",
+                "skip",
+                "card_offer:anger",
+            ],
+        ),
+    )
+    registry = StarterContentProvider(session.content_root)
+
+    menu = build_reward_menu(room_state=session.room_state, registry=registry)
+
+    assert format_menu_lines(menu) == [
+        "奖励:",
+        "1. 移除卡牌 打击（红） (strike#1)",
+        "2. 升级卡牌 痛击 (bash#10)",
+        "3. 转换卡牌 打击（红） (strike#2) → 愤怒",
+        "4. 复制卡牌 防御（红） (defend#6)",
+        "5. 跳过奖励",
+        "6. 卡牌 愤怒",
+        "7. 跳过卡牌奖励",
+        "8. 全部领取",
+        "9. 返回上一步",
+    ]
+    assert resolve_menu_action("7", menu) == "skip_card_rewards"
+    assert resolve_menu_action("8", menu) == "claim_all"
+    assert resolve_menu_action("9", menu) == "back"
+
+
+def test_build_reward_menu_falls_back_to_raw_unknown_reward_id() -> None:
+    session = replace(
+        start_session(seed=5),
+        room_state=replace(
+            start_session(seed=5).room_state,
+            is_resolved=True,
+            rewards=["mystery:payload"],
+        ),
+    )
+    registry = StarterContentProvider(session.content_root)
+
+    menu = build_reward_menu(room_state=session.room_state, registry=registry)
+
+    assert format_menu_lines(menu) == [
+        "奖励:",
+        "1. mystery:payload",
+        "2. 全部领取",
+        "3. 返回上一步",
+    ]
+
+
 def test_build_root_menu_binds_combat_choices_without_view_current() -> None:
     session = start_session(seed=5)
     menu = build_root_menu(room_state=session.room_state, run_state=session.run_state)

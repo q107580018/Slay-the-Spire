@@ -383,34 +383,81 @@ def build_relic_detail_menu() -> MenuDefinition:
 
 
 def _reward_label(reward_id: str, registry: ContentProviderPort) -> str:
-    if reward_id.startswith("gold:"):
-        return f"金币 +{reward_id.split(':', 1)[1]}"
-    if reward_id.startswith("relic:"):
-        relic_id = reward_id.split(":", 1)[1]
-        return f"遗物 {registry.relics().get(relic_id).name}"
-    if reward_id.startswith("potion:"):
-        potion_id = reward_id.split(":", 1)[1]
-        return f"药水 {registry.potions().get(potion_id).name}"
-    if reward_id.startswith("card_offer:"):
-        card_id = reward_id.split(":", 1)[1]
-        return Text.assemble("卡牌 ", render_card_name(registry.cards().get(card_id)))
-    if reward_id.startswith("card:"):
-        reward_name = reward_id.split(":", 1)[1]
-        card_id = (
-            "strike_plus"
-            if reward_name == "reward_strike"
-            else "defend_plus"
-            if reward_name == "reward_defend"
-            else reward_name
-        )
-        return Text.assemble("卡牌 ", render_card_name(registry.cards().get(card_id)))
-    if reward_id.startswith("event:"):
-        result = reward_id.split(":", 1)[1]
-        if result == "gain_upgrade":
-            return "事件结果 获得升级"
-        if result == "nothing":
-            return "事件结果 什么也没有发生"
-        return f"事件结果 {result}"
+    try:
+        if reward_id.startswith("gold:"):
+            return f"金币 +{reward_id.split(':', 1)[1]}"
+        if reward_id.startswith("relic:"):
+            relic_id = reward_id.split(":", 1)[1]
+            return f"遗物 {registry.relics().get(relic_id).name}"
+        if reward_id.startswith("potion:"):
+            potion_id = reward_id.split(":", 1)[1]
+            return f"药水 {registry.potions().get(potion_id).name}"
+        if reward_id.startswith("card_offer:"):
+            card_id = reward_id.split(":", 1)[1]
+            return Text.assemble(
+                "卡牌 ", render_card_name(registry.cards().get(card_id))
+            )
+        if reward_id.startswith("card:"):
+            reward_name = reward_id.split(":", 1)[1]
+            card_id = (
+                "strike_plus"
+                if reward_name == "reward_strike"
+                else "defend_plus"
+                if reward_name == "reward_defend"
+                else reward_name
+            )
+            return Text.assemble(
+                "卡牌 ", render_card_name(registry.cards().get(card_id))
+            )
+        if reward_id.startswith("event:"):
+            result = reward_id.split(":", 1)[1]
+            if result == "gain_upgrade":
+                return "事件结果 获得升级"
+            if result == "nothing":
+                return "事件结果 什么也没有发生"
+            return f"事件结果 {result}"
+        if reward_id.startswith("remove:"):
+            card_instance_id = reward_id.split(":", 1)[1]
+            card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
+            return Text.assemble(
+                "移除卡牌 ", render_card_name(card_def), f" ({card_instance_id})"
+            )
+        if reward_id.startswith("upgrade:"):
+            card_instance_id = reward_id.split(":", 1)[1]
+            card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
+            return Text.assemble(
+                "升级卡牌 ", render_card_name(card_def), f" ({card_instance_id})"
+            )
+        if reward_id.startswith("transform:"):
+            parts = reward_id.split(":")
+            if len(parts) >= 2:
+                card_instance_id = parts[1]
+                source_card = registry.cards().get(
+                    card_id_from_instance_id(card_instance_id)
+                )
+                if len(parts) == 3 and parts[2]:
+                    target_card = registry.cards().get(parts[2])
+                    return Text.assemble(
+                        "转换卡牌 ",
+                        render_card_name(source_card),
+                        f" ({card_instance_id}) → ",
+                        render_card_name(target_card),
+                    )
+                return Text.assemble(
+                    "转换卡牌 ",
+                    render_card_name(source_card),
+                    f" ({card_instance_id})",
+                )
+        if reward_id.startswith("duplicate:"):
+            card_instance_id = reward_id.split(":", 1)[1]
+            card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
+            return Text.assemble(
+                "复制卡牌 ", render_card_name(card_def), f" ({card_instance_id})"
+            )
+        if reward_id == "skip" or reward_id.startswith("skip:"):
+            return "跳过奖励"
+    except (KeyError, TypeError, ValueError):
+        return reward_id
     return reward_id
 
 
