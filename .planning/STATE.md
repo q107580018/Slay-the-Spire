@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-03-PLAN.md
-last_updated: "2026-04-11T12:15:54.457Z"
+stopped_at: Completed 03-04-PLAN.md
+last_updated: "2026-04-11T12:24:21.172Z"
 last_activity: 2026-04-11
 progress:
   total_phases: 7
   completed_phases: 2
   total_plans: 11
-  completed_plans: 9
-  percent: 82
+  completed_plans: 10
+  percent: 91
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-11)
 ## Current Position
 
 Phase: 03 (奖励与经济统一) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-04-11
 
@@ -58,6 +58,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 03 P01 | 6 min | 3 tasks | 4 files |
 | Phase 03 P02 | 9 min | 2 tasks | 8 files |
 | Phase 03 P03 | 1 min | 2 tasks | 5 files |
+| Phase 03 P04 | 5 min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -82,6 +83,9 @@ Recent decisions affecting current work:
 - [Phase 03]: 未进入注册表的事件诅咒牌仍保留直接入牌组逻辑，避免破坏既有内容行为。
 - [Phase 03]: session 层在领取前先校验 reward_id 仍存在于 room_state.rewards，重复或非法选择直接返回中文提示而不抛异常。
 - [Phase 03]: 奖励菜单对未知或缺失内容的 reward id 回退显示原始 ID，避免把未识别奖励误标成已获得文案。
+- [Phase 03]: 随机遗物来源统一通过 reward_generator 中的共享 helper 过滤 placeholder，避免 start_run 与 Neow 再各自维护条件。
+- [Phase 03]: 固定奖励中的未知卡牌、药水与非替换型 placeholder 遗物统一降级为 no-op，但仍保留替换型 placeholder Boss 遗物的合法替换链路。
+- [Phase 03]: 奖励与 Boss 遗物菜单对未实现或缺失内容直接展示‘未实现/不可用’，不再静默回退成普通奖励文案。
 
 ### Pending Todos
 
@@ -95,6 +99,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-11T12:15:42.510Z
-Stopped at: Completed 03-03-PLAN.md
+Last session: 2026-04-11T12:24:21.169Z
+Stopped at: Completed 03-04-PLAN.md
 Resume file: None

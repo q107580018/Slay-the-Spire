@@ -22,7 +22,7 @@ Requirements for the current roadmap. Each requirement maps to exactly one roadm
 ### Rewards & Economy
 
 - [x] **REWARD-01**: 战斗奖励、Boss 奖励、商店、事件、宝箱、Neow 与休息点相关奖励入口使用一致的奖励标识和 apply 流程。
-- [ ] **REWARD-02**: 随机奖励池默认不投放未实现或 placeholder 遗物，除非 UI 明确标记其未实现状态且不会破坏流程。
+- [x] **REWARD-02**: 随机奖励池默认不投放未实现或 placeholder 遗物，除非 UI 明确标记其未实现状态且不会破坏流程。
 - [x] **REWARD-03**: 金币、卡牌奖励、遗物、药水、移除、升级、转换、复制、跳过等奖励类型都有可验证的行为与玩家反馈。
 - [x] **REWARD-04**: 与奖励经济相关的遗物效果在对应入口生效，包括战斗后、Boss、商店、事件、宝箱、Neow 与休息点场景。
 
@@ -91,7 +91,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | RUN-02 | Phase 2 | Pending |
 | RUN-03 | Phase 2 | Pending |
 | REWARD-01 | Phase 3 | Complete |
-| REWARD-02 | Phase 3 | Pending |
+| REWARD-02 | Phase 3 | Complete |
 | REWARD-03 | Phase 3 | Complete |
 | REWARD-04 | Phase 3 | Complete |
 | COMBAT-01 | Phase 2 | Pending |
