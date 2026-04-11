@@ -1,0 +1,897 @@
+[
+  {
+    "name": "不休陀螺",
+    "effect_zh": "在你的回合，当你没有手牌时，抽一张牌。",
+    "url": "https://sts.huijiwiki.com/wiki/%E4%B8%8D%E4%BC%91%E9%99%80%E8%9E%BA"
+  },
+  {
+    "name": "两仪",
+    "effect_zh": "每回合中，你每次打出一张攻击牌，获得 1 点临时敏捷。",
+    "url": "https://sts.huijiwiki.com/wiki/%E4%B8%A4%E4%BB%AA"
+  },
+  {
+    "name": "会员卡",
+    "effect_zh": "所有商品打折 50%！",
+    "url": "https://sts.huijiwiki.com/wiki/%E4%BC%9A%E5%91%98%E5%8D%A1"
+  },
+  {
+    "name": "佛珠手链",
+    "effect_zh": "你在 ? 房间中不会再遭遇常规战斗。",
+    "url": "https://sts.huijiwiki.com/wiki/%E4%BD%9B%E7%8F%A0%E6%89%8B%E9%93%BE"
+  },
+  {
+    "name": "共生病毒",
+    "effect_zh": "在每场战斗开始时， 生成 1 个黑暗充能球。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%85%B1%E7%94%9F%E7%97%85%E6%AF%92"
+  },
+  {
+    "name": "冠军腰带",
+    "effect_zh": "每当你给予易伤时，同时给予 1 层虚弱。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%86%A0%E5%86%9B%E8%85%B0%E5%B8%A6"
+  },
+  {
+    "name": "冰淇淋",
+    "effect_zh": "多余的能量可以留到下一回合。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%86%B0%E6%B7%87%E6%B7%8B"
+  },
+  {
+    "name": "冻结之眼",
+    "effect_zh": "现在观看抽牌堆时，卡牌将按顺序排列。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%86%BB%E7%BB%93%E4%B9%8B%E7%9C%BC"
+  },
+  {
+    "name": "冻结之蛋",
+    "effect_zh": "每当你获得能力牌时，将其升级。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%86%BB%E7%BB%93%E4%B9%8B%E8%9B%8B"
+  },
+  {
+    "name": "冻结核心",
+    "effect_zh": "替换破损核心。 如果你在你的回合结束时还有空余的充能球栏位， 生成 1 个冰霜充能球。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%86%BB%E7%BB%93%E6%A0%B8%E5%BF%83"
+  },
+  {
+    "name": "准备背包",
+    "effect_zh": "在每场战斗开始时，额外抽 2 张牌。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%87%86%E5%A4%87%E8%83%8C%E5%8C%85"
+  },
+  {
+    "name": "勇气投石索",
+    "effect_zh": "在与精英敌人战斗时，获得 2 点力量。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%8B%87%E6%B0%94%E6%8A%95%E7%9F%B3%E7%B4%A2"
+  },
+  {
+    "name": "化学物X",
+    "effect_zh": "耗能为 X 的牌的效果数值增加 2 点。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%8C%96%E5%AD%A6%E7%89%A9X"
+  },
+  {
+    "name": "医药箱",
+    "effect_zh": "可以打出原本不能被打出的 状态牌。 打出状态牌会将其消耗。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%8C%BB%E8%8D%AF%E7%AE%B1"
+  },
+  {
+    "name": "卡戎之灰",
+    "effect_zh": "每当你消耗一张牌，对所有敌人造成 3 点伤害。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%8D%A1%E6%88%8E%E4%B9%8B%E7%81%B0"
+  },
+  {
+    "name": "历石",
+    "effect_zh": "在第 7 回合结束时，对所有敌人造成 52 点伤害。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%8E%86%E7%9F%B3"
+  },
+  {
+    "name": "双节棍",
+    "effect_zh": "你每打出 10张攻击牌，获得一点能量。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%8F%8C%E8%8A%82%E6%A3%8D"
+  },
+  {
+    "name": "发条靴",
+    "effect_zh": "每当你造成小于等于 5点未被格挡的攻击伤害时，将伤害提升为 5。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%8F%91%E6%9D%A1%E9%9D%B4"
+  },
+  {
+    "name": "古茶具套装",
+    "effect_zh": "到达休息处后的下一场战斗开始时获得2点能量。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%8F%A4%E8%8C%B6%E5%85%B7%E5%A5%97%E8%A3%85"
+  },
+  {
+    "name": "古钱币",
+    "effect_zh": "拾起时，获得 300 金币",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%8F%A4%E9%92%B1%E5%B8%81"
+  },
+  {
+    "name": "召唤铃铛",
+    "effect_zh": "获得一个独特的诅咒和 3 件遗物。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%8F%AC%E5%94%A4%E9%93%83%E9%93%9B"
+  },
+  {
+    "name": "咖啡滤杯",
+    "effect_zh": "你无法再在休息处休息。在每回合开始时获得1点能量。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%92%96%E5%95%A1%E6%BB%A4%E6%9D%AF"
+  },
+  {
+    "name": "圣水",
+    "effect_zh": "在每场战斗开始时，将 3 张奇迹放入你的手牌。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%9C%A3%E6%B0%B4"
+  },
+  {
+    "name": "地精之角",
+    "effect_zh": "每当有一名敌人死亡，获得1点能量并抽 1 张牌。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%9C%B0%E7%B2%BE%E4%B9%8B%E8%A7%92"
+  },
+  {
+    "name": "地精容貌",
+    "effect_zh": "在每场战斗开始时，你拥有 1 层虚弱。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%9C%B0%E7%B2%BE%E5%AE%B9%E8%B2%8C"
+  },
+  {
+    "name": "墨水瓶",
+    "effect_zh": "你每打出 10 张牌，抽 1 张牌。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%A2%A8%E6%B0%B4%E7%93%B6"
+  },
+  {
+    "name": "壶铃",
+    "effect_zh": "你现在能在休息处获得力量。（最多3次）",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%A3%B6%E9%93%83"
+  },
+  {
+    "name": "外卡钳",
+    "effect_zh": "在你的回合开始时，不再失去所有格挡，而是失去 15 点格挡。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%A4%96%E5%8D%A1%E9%92%B3"
+  },
+  {
+    "name": "多利之镜",
+    "effect_zh": "拾起时，从你的牌组中选择一张牌进行复制。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%A4%9A%E5%88%A9%E4%B9%8B%E9%95%9C"
+  },
+  {
+    "name": "大锅",
+    "effect_zh": "拾起时，制作 5 瓶随机药水。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%A4%A7%E9%94%85"
+  },
+  {
+    "name": "天鹅绒颈圈",
+    "effect_zh": "你每回合不能打出超过 6 张牌。在每回合开始时获得1点能量。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%A4%A9%E9%B9%85%E7%BB%92%E9%A2%88%E5%9C%88"
+  },
+  {
+    "name": "头环",
+    "effect_zh": "多多益善。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%A4%B4%E7%8E%AF"
+  },
+  {
+    "name": "奇怪的勺子",
+    "effect_zh": "应该消耗的牌在被打出时会有 50% 几率只被丢弃。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%A5%87%E6%80%AA%E7%9A%84%E5%8B%BA%E5%AD%90"
+  },
+  {
+    "name": "奇怪蘑菇",
+    "effect_zh": "当你有易伤状态时，受到的额外伤害从 50% 下降为 25%。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%A5%87%E6%80%AA%E8%98%91%E8%8F%87"
+  },
+  {
+    "name": "套娃",
+    "effect_zh": "你接下来打开的 2 个宝箱内会有 2 件遗物。 （Boss宝箱除外）",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%A5%97%E5%A8%83"
+  },
+  {
+    "name": "奥利哈钢",
+    "effect_zh": "如果你在回合结束时没有任何格挡，获得 6点格挡。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%A5%A5%E5%88%A9%E5%93%88%E9%92%A2"
+  },
+  {
+    "name": "奴隶贩子颈环",
+    "effect_zh": "在Boss战与精英战中，你在每回合开始时获得1点能量。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%A5%B4%E9%9A%B6%E8%B4%A9%E5%AD%90%E9%A2%88%E7%8E%AF"
+  },
+  {
+    "name": "孙子兵法",
+    "effect_zh": "如果你在回合中不打出任何攻击牌，在下一回合得到一点额外能量。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%AD%99%E5%AD%90%E5%85%B5%E6%B3%95"
+  },
+  {
+    "name": "宁静烟斗",
+    "effect_zh": "现在你可以在休息处移除你牌组中的牌。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%AE%81%E9%9D%99%E7%83%9F%E6%96%97"
+  },
+  {
+    "name": "小宝箱",
+    "effect_zh": "每 4个？ 房间的最后一个必是宝箱房。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%B0%8F%E5%AE%9D%E7%AE%B1"
+  },
+  {
+    "name": "小屋子",
+    "effect_zh": "拾起时，获得 1 瓶药水。 获得 50 金币。 将你的最大生命值提升 5。 获得 1 张牌。 随机升级 1 张牌。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%B0%8F%E5%B1%8B%E5%AD%90"
+  },
+  {
+    "name": "小血瓶",
+    "effect_zh": "在每场战斗开始时，回复 2 点生命。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%B0%8F%E8%A1%80%E7%93%B6"
+  },
+  {
+    "name": "尼利的宝典",
+    "effect_zh": "在每回合结束时，你可以从 3 张随机牌中选择 1 张，随机洗入你的抽牌堆。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%B0%BC%E5%88%A9%E7%9A%84%E5%AE%9D%E5%85%B8"
+  },
+  {
+    "name": "工具箱",
+    "effect_zh": "在每场战斗开始时，你可以从 3 张随机无色牌中选择 1 张增加到你的手牌。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%B7%A5%E5%85%B7%E7%AE%B1"
+  },
+  {
+    "name": "巨口储蓄罐",
+    "effect_zh": "每攀爬一层楼层获得 12 金币。一旦在商店中花费金币就会失效。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%B7%A8%E5%8F%A3%E5%82%A8%E8%93%84%E7%BD%90"
+  },
+  {
+    "name": "带骨肉",
+    "effect_zh": "如果你在战斗结束时生命值等于或低于 50%，回复 12 点生命。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%B8%A6%E9%AA%A8%E8%82%89"
+  },
+  {
+    "name": "干瘪之手",
+    "effect_zh": "你每打出一张能力牌，手牌中就有一张随机牌在这个回合耗能变为 0。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%B9%B2%E7%98%AA%E4%B9%8B%E6%89%8B"
+  },
+  {
+    "name": "开信刀",
+    "effect_zh": "你每在同一回合内打出 3 张技能牌，对所有敌人造成 5 点伤害。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%BC%80%E4%BF%A1%E5%88%80"
+  },
+  {
+    "name": "开心小花",
+    "effect_zh": "每 3 个回合，获得一点能量。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%BC%80%E5%BF%83%E5%B0%8F%E8%8A%B1"
+  },
+  {
+    "name": "异蛇之眼",
+    "effect_zh": "每回合多抽 2 张牌。每场战斗开始时获得混乱效果。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%BC%82%E8%9B%87%E4%B9%8B%E7%9C%BC"
+  },
+  {
+    "name": "异蛇头骨",
+    "effect_zh": "每当你给予敌人中毒状态时，额外给予 1层中毒",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%BC%82%E8%9B%87%E5%A4%B4%E9%AA%A8"
+  },
+  {
+    "name": "弯曲铁钳",
+    "effect_zh": "在你的每个回合开始时，随机升级一张你的手牌（只影响本场战斗）。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%BC%AF%E6%9B%B2%E9%93%81%E9%92%B3"
+  },
+  {
+    "name": "弹珠袋",
+    "effect_zh": "在每场战斗开始时，给予所有敌人 1层易伤",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%BC%B9%E7%8F%A0%E8%A2%8B"
+  },
+  {
+    "name": "御守",
+    "effect_zh": "抵消你下 2 次获得的诅咒。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%BE%A1%E5%AE%88"
+  },
+  {
+    "name": "微笑面具",
+    "effect_zh": "商人的卡牌移除服务现在价格永远是 50 金币。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%BE%AE%E7%AC%91%E9%9D%A2%E5%85%B7"
+  },
+  {
+    "name": "忍术卷轴",
+    "effect_zh": "每场战斗开始时，手牌中增加 3 张小刀。",
+    "url": "https://sts.huijiwiki.com/wiki/%E5%BF%8D%E6%9C%AF%E5%8D%B7%E8%BD%B4"
+  },
+  {
+    "name": "怀表",
+    "effect_zh": "若你在某个回合打出的牌少于等于 3 张，则在你的下个回合开始时额外抽 3 张牌。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%80%80%E8%A1%A8"
+  },
+  {
+    "name": "恩洛斯的礼物",
+    "effect_zh": "使你在怪物奖励中遇见稀有牌的几率变为 3 倍。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%81%A9%E6%B4%9B%E6%96%AF%E7%9A%84%E7%A4%BC%E7%89%A9"
+  },
+  {
+    "name": "恩洛斯的饥饿的脸",
+    "effect_zh": "你打开的下一个非Boss宝箱将是空的。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%81%A9%E6%B4%9B%E6%96%AF%E7%9A%84%E9%A5%A5%E9%A5%BF%E7%9A%84%E8%84%B8"
+  },
+  {
+    "name": "悬浮风筝",
+    "effect_zh": "你在每回合第一次弃牌时，获得1点能量。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%82%AC%E6%B5%AE%E9%A3%8E%E7%AD%9D"
+  },
+  {
+    "name": "情感芯片",
+    "effect_zh": "在每回合开始时，如果你在之前回合受到过伤害，则触发所有充能球的被动效果。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%83%85%E6%84%9F%E8%8A%AF%E7%89%87"
+  },
+  {
+    "name": "意外光滑的石头",
+    "effect_zh": "在每场战斗开始时，获得 1 点敏捷。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%84%8F%E5%A4%96%E5%85%89%E6%BB%91%E7%9A%84%E7%9F%B3%E5%A4%B4"
+  },
+  {
+    "name": "战纹涂料",
+    "effect_zh": "拾起时，随机升级 2 张技能牌。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%88%98%E7%BA%B9%E6%B6%82%E6%96%99"
+  },
+  {
+    "name": "手摇鼓",
+    "effect_zh": "在你的回合开始时，获得 1 层真言。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%89%8B%E6%91%87%E9%BC%93"
+  },
+  {
+    "name": "手里剑",
+    "effect_zh": "你每在同一回合内打出 3 张攻击牌，获得 1点力量。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%89%8B%E9%87%8C%E5%89%91"
+  },
+  {
+    "name": "手钻",
+    "effect_zh": "每当你突破敌人的格挡时，给予其 2 层易伤。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%89%8B%E9%92%BB"
+  },
+  {
+    "name": "打击木偶",
+    "effect_zh": "名字中有“打击”的卡牌造成 3 点额外伤害。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%89%93%E5%87%BB%E6%9C%A8%E5%81%B6"
+  },
+  {
+    "name": "扭曲漏斗",
+    "effect_zh": "在每场战斗开始时，给予所有敌人 4 层中毒。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%89%AD%E6%9B%B2%E6%BC%8F%E6%96%97"
+  },
+  {
+    "name": "捕梦网",
+    "effect_zh": "每当你休息时，可以增加一张牌到你的牌组。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%8D%95%E6%A2%A6%E7%BD%91"
+  },
+  {
+    "name": "数据磁盘",
+    "effect_zh": "在每场战斗开始时，获得 1 点集中",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%95%B0%E6%8D%AE%E7%A3%81%E7%9B%98"
+  },
+  {
+    "name": "斗篷扣",
+    "effect_zh": "在你的回合结束时，每有一张手牌获得 1 点格挡。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%96%97%E7%AF%B7%E6%89%A3"
+  },
+  {
+    "name": "日晷",
+    "effect_zh": "你每洗牌 3次，获得2点能量。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%97%A5%E6%99%B7"
+  },
+  {
+    "name": "昆虫标本",
+    "effect_zh": "精英战中的敌人生命减少 25%。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%98%86%E8%99%AB%E6%A0%87%E6%9C%AC"
+  },
+  {
+    "name": "星盘",
+    "effect_zh": "拾起时，选择 3 张牌进行变化，然后将这些牌升级。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%98%9F%E7%9B%98"
+  },
+  {
+    "name": "星系仪",
+    "effect_zh": "从五组三选一的卡牌中选择 5 张牌加入你的牌组。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%98%9F%E7%B3%BB%E4%BB%AA"
+  },
+  {
+    "name": "机械臂",
+    "effect_zh": "每 2 回合，获得 1 个充能球栏位。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%9C%BA%E6%A2%B0%E8%87%82"
+  },
+  {
+    "name": "李家华夫饼",
+    "effect_zh": "拾起时，将你的最大生命值提升 7 点，并回复所有生命。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%9D%8E%E5%AE%B6%E5%8D%8E%E5%A4%AB%E9%A5%BC"
+  },
+  {
+    "name": "枯木树枝",
+    "effect_zh": "每当你消耗一张牌，增加一张随机卡牌到你的手牌。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%9E%AF%E6%9C%A8%E6%A0%91%E6%9E%9D"
+  },
+  {
+    "name": "核能电池",
+    "effect_zh": "在每场战斗开始时， 生成 1 个等离子充能球。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%A0%B8%E8%83%BD%E7%94%B5%E6%B1%A0"
+  },
+  {
+    "name": "梨子",
+    "effect_zh": "拾起时，将你的最大生命值提升 10.",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%A2%A8%E5%AD%90"
+  },
+  {
+    "name": "棱镜碎片",
+    "effect_zh": "战斗奖励掉落的卡牌现在会包括无色牌和其他颜色的牌。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%A3%B1%E9%95%9C%E7%A2%8E%E7%89%87"
+  },
+  {
+    "name": "橙色药丸",
+    "effect_zh": "你每在同一回合内打出能力牌、 攻击牌和 技能牌各一张，移除你身上的所有负面效果。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%A9%99%E8%89%B2%E8%8D%AF%E4%B8%B8"
+  },
+  {
+    "name": "死灵之书",
+    "effect_zh": "你每回合打出的第一张耗能大于等于 2 的攻击牌将被打出两次。当你拾起这件遗物时，被诅咒。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%AD%BB%E7%81%B5%E4%B9%8B%E4%B9%A6"
+  },
+  {
+    "name": "毒巫娃娃",
+    "effect_zh": "你的牌组中每有一张诅咒牌，你在战斗开始时就额外获得 1点力量。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%AF%92%E5%B7%AB%E5%A8%83%E5%A8%83"
+  },
+  {
+    "name": "毒素之蛋",
+    "effect_zh": "每当你获得技能牌时，将其升级。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%AF%92%E7%B4%A0%E4%B9%8B%E8%9B%8B"
+  },
+  {
+    "name": "水银沙漏",
+    "effect_zh": "在你的回合开始时，对所有敌人造成 3 点伤害。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%B0%B4%E9%93%B6%E6%B2%99%E6%BC%8F"
+  },
+  {
+    "name": "永恒羽毛",
+    "effect_zh": "你牌组中每有 5 张牌，当你进入休息处时就会回复 3 点生命。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%B0%B8%E6%81%92%E7%BE%BD%E6%AF%9B"
+  },
+  {
+    "name": "泪滴吊坠盒",
+    "effect_zh": "每场战斗开始时处于平静。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%B3%AA%E6%BB%B4%E5%90%8A%E5%9D%A0%E7%9B%92"
+  },
+  {
+    "name": "涅奥的悲恸",
+    "effect_zh": "接下来 3 场战斗中的敌人将只有 1 点生命。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%B6%85%E5%A5%A5%E7%9A%84%E6%82%B2%E6%81%B8"
+  },
+  {
+    "name": "添水",
+    "effect_zh": "你无法再获得药水。在每回合开始时获得1点能量。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%B7%BB%E6%B0%B4"
+  },
+  {
+    "name": "潘多拉魔盒",
+    "effect_zh": "变化所有“打击”和“防御”牌。",
+    "url": "https://sts.huijiwiki.com/wiki/%E6%BD%98%E5%A4%9A%E6%8B%89%E9%AD%94%E7%9B%92"
+  },
+  {
+    "name": "灯笼",
+    "effect_zh": "在每场战斗的第一回合获得一点能量。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%81%AF%E7%AC%BC"
+  },
+  {
+    "name": "灵体外质",
+    "effect_zh": "你不能再获得任何金币。在回合开始时获得1点能量。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%81%B5%E4%BD%93%E5%A4%96%E8%B4%A8"
+  },
+  {
+    "name": "熔火之蛋",
+    "effect_zh": "每当你获得攻击牌时，将其升级。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%86%94%E7%81%AB%E4%B9%8B%E8%9B%8B"
+  },
+  {
+    "name": "燃烧之血",
+    "effect_zh": "在战斗结束时，回复6点生命。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%87%83%E7%83%A7%E4%B9%8B%E8%A1%80"
+  },
+  {
+    "name": "牧师的脸",
+    "effect_zh": "每场战斗后你的最大生命值增加 1。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%89%A7%E5%B8%88%E7%9A%84%E8%84%B8"
+  },
+  {
+    "name": "玩具扑翼飞机",
+    "effect_zh": "你每使用一瓶药水，回复 5 点生命。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%8E%A9%E5%85%B7%E6%89%91%E7%BF%BC%E9%A3%9E%E6%9C%BA"
+  },
+  {
+    "name": "瓶装旋风",
+    "effect_zh": "拾起时，选择一张能力牌。在每场战斗开始时，这张牌会出现在手牌中。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%93%B6%E8%A3%85%E6%97%8B%E9%A3%8E"
+  },
+  {
+    "name": "瓶装火焰",
+    "effect_zh": "拾起时，选择一张攻击牌。在每场战斗开始时，这张牌会出现在手牌中。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%93%B6%E8%A3%85%E7%81%AB%E7%84%B0"
+  },
+  {
+    "name": "瓶装闪电",
+    "effect_zh": "拾起时，选择一张技能牌。在每场战斗开始时，这张牌会出现在手牌中。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%93%B6%E8%A3%85%E9%97%AA%E7%94%B5"
+  },
+  {
+    "name": "生姜",
+    "effect_zh": "你不会再被虚弱。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%94%9F%E5%A7%9C"
+  },
+  {
+    "name": "生物样本",
+    "effect_zh": "每当有敌人死去时，将其身上的中毒层数移到一名随机敌人身上。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%94%9F%E7%89%A9%E6%A0%B7%E6%9C%AC"
+  },
+  {
+    "name": "痛楚印记",
+    "effect_zh": "每回合开始获得 [R]。在战斗开始时，将 2 张伤口放入你的抽牌堆。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%97%9B%E6%A5%9A%E5%8D%B0%E8%AE%B0"
+  },
+  {
+    "name": "白兽雕像",
+    "effect_zh": "战斗结束后必定掉落药水",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%99%BD%E5%85%BD%E9%9B%95%E5%83%8F"
+  },
+  {
+    "name": "百年积木",
+    "effect_zh": "你在每场战斗中第一次损伤生命时，抽 3 张牌。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%99%BE%E5%B9%B4%E7%A7%AF%E6%9C%A8"
+  },
+  {
+    "name": "皇家枕头",
+    "effect_zh": "在休息时额外回复 15 点生命。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%9A%87%E5%AE%B6%E6%9E%95%E5%A4%B4"
+  },
+  {
+    "name": "破损核心",
+    "effect_zh": "在每场战斗开始时， 生成 1 个闪电充能球。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%A0%B4%E6%8D%9F%E6%A0%B8%E5%BF%83"
+  },
+  {
+    "name": "破碎金冠",
+    "effect_zh": "在卡牌奖励画面，可供选择的牌数减少 2 张。在每回合开始时获得1点能量。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%A0%B4%E7%A2%8E%E9%87%91%E5%86%A0"
+  },
+  {
+    "name": "硫磺",
+    "effect_zh": "在你的每个回合开始时，你获得 2 点力量，所有敌人也获得 1 力量。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%A1%AB%E7%A3%BA"
+  },
+  {
+    "name": "磨刀石",
+    "effect_zh": "拾起时，随机升级 2 张攻击牌。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%A3%A8%E5%88%80%E7%9F%B3"
+  },
+  {
+    "name": "神圣树皮",
+    "effect_zh": "药水的效果翻倍。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%A5%9E%E5%9C%A3%E6%A0%91%E7%9A%AE"
+  },
+  {
+    "name": "空鸟笼",
+    "effect_zh": "拾起时，选择移除牌组中的 2 张牌。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%A9%BA%E9%B8%9F%E7%AC%BC"
+  },
+  {
+    "name": "突变之力",
+    "effect_zh": "在每场战斗开始时获得 3 点力量，在你的第一个回合结束时失去 3 点力量。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%AA%81%E5%8F%98%E4%B9%8B%E5%8A%9B"
+  },
+  {
+    "name": "符文圆顶",
+    "effect_zh": "你无法再看见敌人的意图。在每回合开始时获得一点能量。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%AC%A6%E6%96%87%E5%9C%86%E9%A1%B6"
+  },
+  {
+    "name": "符文电容器",
+    "effect_zh": "每场战斗开始时，获得 3 个额外充能球栏位。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%AC%A6%E6%96%87%E7%94%B5%E5%AE%B9%E5%99%A8"
+  },
+  {
+    "name": "符文立方体",
+    "effect_zh": "每当你失去生命时，抽 1 张牌。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%AC%A6%E6%96%87%E7%AB%8B%E6%96%B9%E4%BD%93"
+  },
+  {
+    "name": "符文金字塔",
+    "effect_zh": "你在回合结束时不再自动丢弃所有手牌。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%AC%A6%E6%96%87%E9%87%91%E5%AD%97%E5%A1%94"
+  },
+  {
+    "name": "算盘",
+    "effect_zh": "你每次将抽牌堆洗牌时，获得 6 点格挡。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%AE%97%E7%9B%98"
+  },
+  {
+    "name": "精灵便便",
+    "effect_zh": "不管怎么看都很不舒服",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%B2%BE%E7%81%B5%E4%BE%BF%E4%BE%BF"
+  },
+  {
+    "name": "精致折扇",
+    "effect_zh": "你每在同一回合内打出 3 张攻击牌，就获得 4 点格挡。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%B2%BE%E8%87%B4%E6%8A%98%E6%89%87"
+  },
+  {
+    "name": "紫色莲花",
+    "effect_zh": "每次你离开平静时，获得1点额外能量。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%B4%AB%E8%89%B2%E8%8E%B2%E8%8A%B1"
+  },
+  {
+    "name": "红头骨",
+    "effect_zh": "当你的生命值等于或低于 50% 时， 你获得额外 3点力量。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%BA%A2%E5%A4%B4%E9%AA%A8"
+  },
+  {
+    "name": "红面具",
+    "effect_zh": "在每场战斗开始时，给予所有敌人 1 层虚弱。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%BA%A2%E9%9D%A2%E5%85%B7"
+  },
+  {
+    "name": "纸蛙",
+    "effect_zh": "有易伤状态的敌人受到的伤害增加 75% 而非 50%。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%BA%B8%E8%9B%99"
+  },
+  {
+    "name": "纸鹤",
+    "effect_zh": "有虚弱状态的敌人造成的伤害降低 40% 而非 25%。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%BA%B8%E9%B9%A4"
+  },
+  {
+    "name": "结实绷带",
+    "effect_zh": "你每在你的回合丢弃一张牌，就获得 3点格挡。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%BB%93%E5%AE%9E%E7%BB%B7%E5%B8%A6"
+  },
+  {
+    "name": "绽放印记",
+    "effect_zh": "你无法再回复生命。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%BB%BD%E6%94%BE%E5%8D%B0%E8%AE%B0"
+  },
+  {
+    "name": "缩放仪",
+    "effect_zh": "在Boss战开始时，回复 25点 #生命值。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%BC%A9%E6%94%BE%E4%BB%AA"
+  },
+  {
+    "name": "美琅脂",
+    "effect_zh": "你每次将抽牌堆洗牌时， 预见 3.",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%BE%8E%E7%90%85%E8%84%82"
+  },
+  {
+    "name": "羽翼之靴",
+    "effect_zh": "你在选择下一层的房间时有3次机会可以无视当前的路线。",
+    "url": "https://sts.huijiwiki.com/wiki/%E7%BE%BD%E7%BF%BC%E4%B9%8B%E9%9D%B4"
+  },
+  {
+    "name": "自成型黏土",
+    "effect_zh": "每当你在战斗中失去生命，就在下回合获得 3 点格挡。",
+    "url": "https://sts.huijiwiki.com/wiki/%E8%87%AA%E6%88%90%E5%9E%8B%E9%BB%8F%E5%9C%9F"
+  },
+  {
+    "name": "至纯之水",
+    "effect_zh": "在每场战斗开始时，将一张奇迹放入你的手牌。",
+    "url": "https://sts.huijiwiki.com/wiki/%E8%87%B3%E7%BA%AF%E4%B9%8B%E6%B0%B4"
+  },
+  {
+    "name": "舵盘",
+    "effect_zh": "在你的第三回合开始时，获得 18 点格挡。",
+    "url": "https://sts.huijiwiki.com/wiki/%E8%88%B5%E7%9B%98"
+  },
+  {
+    "name": "船夹板",
+    "effect_zh": "在你的第二回合开始时，获得 14 点格挡。",
+    "url": "https://sts.huijiwiki.com/wiki/%E8%88%B9%E5%A4%B9%E6%9D%BF"
+  },
+  {
+    "name": "芒果",
+    "effect_zh": "拾起时，将你的最大生命值提升 14。",
+    "url": "https://sts.huijiwiki.com/wiki/%E8%8A%92%E6%9E%9C"
+  },
+  {
+    "name": "苦无",
+    "effect_zh": "你每在同一回合内打出 3 张攻击牌，获得 1点敏捷。",
+    "url": "https://sts.huijiwiki.com/wiki/%E8%8B%A6%E6%97%A0"
+  },
+  {
+    "name": "英雄宝典",
+    "effect_zh": "每场战斗开始时增加一张随机能力牌到你的手牌，这张牌在第一回合的耗能变为 0。",
+    "url": "https://sts.huijiwiki.com/wiki/%E8%8B%B1%E9%9B%84%E5%AE%9D%E5%85%B8"
+  },
+  {
+    "name": "草莓",
+    "effect_zh": "拾起时，将你的最大生命值提升 7.",
+    "url": "https://sts.huijiwiki.com/wiki/%E8%8D%89%E8%8E%93"
+  },
+  {
+    "name": "药水腰带",
+    "effect_zh": "拾起时，获得 2 个药水栏位。",
+    "url": "https://sts.huijiwiki.com/wiki/%E8%8D%AF%E6%B0%B4%E8%85%B0%E5%B8%A6"
+  },
+  {
+    "name": "萝卜",
+    "effect_zh": "你不会再被脆弱。",
+    "url": "https://sts.huijiwiki.com/wiki/%E8%90%9D%E5%8D%9C"
+  },
+  {
+    "name": "蓝蜡烛",
+    "effect_zh": "可以打出原本不能被打出的 诅咒牌， 打出诅咒牌会让你失去 1 点生命并将其消耗。",
+    "url": "https://sts.huijiwiki.com/wiki/%E8%93%9D%E8%9C%A1%E7%83%9B"
+  },
+  {
+    "name": "蛇之戒指",
+    "effect_zh": "在每场战斗开始时，额外抽 2 张牌。",
+    "url": "https://sts.huijiwiki.com/wiki/%E8%9B%87%E4%B9%8B%E6%88%92%E6%8C%87"
+  },
+  {
+    "name": "蛇的头",
+    "effect_zh": "每次进入？房间时获得 50 金币。",
+    "url": "https://sts.huijiwiki.com/wiki/%E8%9B%87%E7%9A%84%E5%A4%B4"
+  },
+  {
+    "name": "蜥蜴尾巴",
+    "effect_zh": "当你要被杀死时，免死并回复到最大生命值的 50% （仅能起效一次）。",
+    "url": "https://sts.huijiwiki.com/wiki/%E8%9C%A5%E8%9C%B4%E5%B0%BE%E5%B7%B4"
+  },
+  {
+    "name": "融合之锤",
+    "effect_zh": "你无法再在休息处锻造升级卡牌。每回合开始时获得1点能量。",
+    "url": "https://sts.huijiwiki.com/wiki/%E8%9E%8D%E5%90%88%E4%B9%8B%E9%94%A4"
+  },
+  {
+    "name": "螺类化石",
+    "effect_zh": "阻止你在每场战斗中第一次受到的生命值损伤。",
+    "url": "https://sts.huijiwiki.com/wiki/%E8%9E%BA%E7%B1%BB%E5%8C%96%E7%9F%B3"
+  },
+  {
+    "name": "袖剑",
+    "effect_zh": "费用为0的攻击牌额外造成 4 点伤害。",
+    "url": "https://sts.huijiwiki.com/wiki/%E8%A2%96%E5%89%91"
+  },
+  {
+    "name": "诅咒钥匙",
+    "effect_zh": "你每次打开一个非Boss宝箱，都会获得一张诅咒。在每回合开始时获得一点能量。",
+    "url": "https://sts.huijiwiki.com/wiki/%E8%AF%85%E5%92%92%E9%92%A5%E5%8C%99"
+  },
+  {
+    "name": "贤者之石",
+    "effect_zh": "在每回合开始时获得1点能量。所有敌人初始获得 1点力量。",
+    "url": "https://sts.huijiwiki.com/wiki/%E8%B4%A4%E8%80%85%E4%B9%8B%E7%9F%B3"
+  },
+  {
+    "name": "赌博筹码",
+    "effect_zh": "在每场战斗开始时，丢弃任意张牌，然后抽相同数量张牌。",
+    "url": "https://sts.huijiwiki.com/wiki/%E8%B5%8C%E5%8D%9A%E7%AD%B9%E7%A0%81"
+  },
+  {
+    "name": "赤牛",
+    "effect_zh": "你在每场战斗中的第一次攻击造成 8 点额外伤害",
+    "url": "https://sts.huijiwiki.com/wiki/%E8%B5%A4%E7%89%9B"
+  },
+  {
+    "name": "转经轮",
+    "effect_zh": "普通敌人多掉落一次卡牌奖励。",
+    "url": "https://sts.huijiwiki.com/wiki/%E8%BD%AC%E7%BB%8F%E8%BD%AE"
+  },
+  {
+    "name": "送货员",
+    "effect_zh": "商人的卡牌、遗物和药水不再会卖光，并且所有商品打折 20%。",
+    "url": "https://sts.huijiwiki.com/wiki/%E9%80%81%E8%B4%A7%E5%91%98"
+  },
+  {
+    "name": "邪教徒头套",
+    "effect_zh": "你觉得自己有开腔的欲望",
+    "url": "https://sts.huijiwiki.com/wiki/%E9%82%AA%E6%95%99%E5%BE%92%E5%A4%B4%E5%A5%97"
+  },
+  {
+    "name": "金刚杵",
+    "effect_zh": "在每场战斗开始时，获得 1 点力量。",
+    "url": "https://sts.huijiwiki.com/wiki/%E9%87%91%E5%88%9A%E6%9D%B5"
+  },
+  {
+    "name": "金神像",
+    "effect_zh": "敌人掉落的金币增加 25%。",
+    "url": "https://sts.huijiwiki.com/wiki/%E9%87%91%E7%A5%9E%E5%83%8F"
+  },
+  {
+    "name": "针线",
+    "effect_zh": "在每场战斗开始时，获得 4层多层护甲。",
+    "url": "https://sts.huijiwiki.com/wiki/%E9%92%88%E7%BA%BF"
+  },
+  {
+    "name": "钢笔尖",
+    "effect_zh": "你每打出的第 10 张攻击牌将会造成双倍伤害。",
+    "url": "https://sts.huijiwiki.com/wiki/%E9%92%A2%E7%AC%94%E5%B0%96"
+  },
+  {
+    "name": "钨合金棍",
+    "effect_zh": "你每次失去生命时，减少失去的生命值 1 点。",
+    "url": "https://sts.huijiwiki.com/wiki/%E9%92%A8%E5%90%88%E9%87%91%E6%A3%8D"
+  },
+  {
+    "name": "铜制鳞片",
+    "effect_zh": "在每场战斗开始时，获得 3点荆棘",
+    "url": "https://sts.huijiwiki.com/wiki/%E9%93%9C%E5%88%B6%E9%B3%9E%E7%89%87"
+  },
+  {
+    "name": "铜钹",
+    "effect_zh": "你每在你的回合丢弃一张牌，就对一名随机敌人造成 3 点伤害。",
+    "url": "https://sts.huijiwiki.com/wiki/%E9%93%9C%E9%92%B9"
+  },
+  {
+    "name": "铲子",
+    "effect_zh": "现在你可以在休息处挖掘遗物。",
+    "url": "https://sts.huijiwiki.com/wiki/%E9%93%B2%E5%AD%90"
+  },
+  {
+    "name": "锚",
+    "effect_zh": "每场战斗开始时获得 10点格挡",
+    "url": "https://sts.huijiwiki.com/wiki/%E9%94%9A"
+  },
+  {
+    "name": "镀金缆线",
+    "effect_zh": "你最右侧的充能球会额外触发一次被动效果。",
+    "url": "https://sts.huijiwiki.com/wiki/%E9%95%80%E9%87%91%E7%BC%86%E7%BA%BF"
+  },
+  {
+    "name": "长蛇戒指",
+    "effect_zh": "替换 #g蛇之戒指。在你的每个回合开始时，额外抽 1 张牌。",
+    "url": "https://sts.huijiwiki.com/wiki/%E9%95%BF%E8%9B%87%E6%88%92%E6%8C%87"
+  },
+  {
+    "name": "问号牌",
+    "effect_zh": "在选奖励牌时，可供选择的牌数增加 1 张。（拾起时同一窗口中的奖励牌不受影响）",
+    "url": "https://sts.huijiwiki.com/wiki/%E9%97%AE%E5%8F%B7%E7%89%8C"
+  },
+  {
+    "name": "陶瓷小鱼",
+    "effect_zh": "每次你往自己的牌组中加入一张卡牌时，获得 9 金币。",
+    "url": "https://sts.huijiwiki.com/wiki/%E9%99%B6%E7%93%B7%E5%B0%8F%E9%B1%BC"
+  },
+  {
+    "name": "颂钵",
+    "effect_zh": "可以将卡牌奖励转变为 +2 最大生命值。",
+    "url": "https://sts.huijiwiki.com/wiki/%E9%A2%82%E9%92%B5"
+  },
+  {
+    "name": "餐券",
+    "effect_zh": "每当你进入商店房间时，回复 15 点生命。",
+    "url": "https://sts.huijiwiki.com/wiki/%E9%A4%90%E5%88%B8"
+  },
+  {
+    "name": "香炉",
+    "effect_zh": "每 6 回合，获得 1 层无实体。",
+    "url": "https://sts.huijiwiki.com/wiki/%E9%A6%99%E7%82%89"
+  },
+  {
+    "name": "魔法花",
+    "effect_zh": "战斗中的回复效果提升 50%。",
+    "url": "https://sts.huijiwiki.com/wiki/%E9%AD%94%E6%B3%95%E8%8A%B1"
+  },
+  {
+    "name": "鲜血神像",
+    "effect_zh": "每当你获得金币时，回复 5 点生命。",
+    "url": "https://sts.huijiwiki.com/wiki/%E9%B2%9C%E8%A1%80%E7%A5%9E%E5%83%8F"
+  },
+  {
+    "name": "鸟居",
+    "effect_zh": "每当你受到小于等于 5点的未被格挡攻击伤害时，将伤害降低为 1。",
+    "url": "https://sts.huijiwiki.com/wiki/%E9%B8%9F%E5%B1%85"
+  },
+  {
+    "name": "鸟面瓮",
+    "effect_zh": "每当你打出一张能力牌，回复 2 点生命。",
+    "url": "https://sts.huijiwiki.com/wiki/%E9%B8%9F%E9%9D%A2%E7%93%AE"
+  },
+  {
+    "name": "黄金眼",
+    "effect_zh": "你每次预见时，额外预见 2 张牌。",
+    "url": "https://sts.huijiwiki.com/wiki/%E9%BB%84%E9%87%91%E7%9C%BC"
+  },
+  {
+    "name": "黑星",
+    "effect_zh": "精英敌人在被打败时多掉落一件遗物。",
+    "url": "https://sts.huijiwiki.com/wiki/%E9%BB%91%E6%98%9F"
+  },
+  {
+    "name": "黑暗之血",
+    "effect_zh": "替换燃烧之血。在战斗结束时，回复 12点生命。",
+    "url": "https://sts.huijiwiki.com/wiki/%E9%BB%91%E6%9A%97%E4%B9%8B%E8%A1%80"
+  },
+  {
+    "name": "黑石护符",
+    "effect_zh": "每当你获得一张诅咒，将你的最大生命值提高 6",
+    "url": "https://sts.huijiwiki.com/wiki/%E9%BB%91%E7%9F%B3%E6%8A%A4%E7%AC%A6"
+  },
+  {
+    "name": "齿轮工艺品",
+    "effect_zh": "每场战斗开始时，获得 1 层人工制品。",
+    "url": "https://sts.huijiwiki.com/wiki/%E9%BD%BF%E8%BD%AE%E5%B7%A5%E8%89%BA%E5%93%81"
+  }
+]
