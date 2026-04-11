@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 
-from slay_the_spire.domain.models.cards import card_id_from_instance_id
 from slay_the_spire.domain.models.room_state import RoomState
 from slay_the_spire.domain.models.run_state import RunState
 from slay_the_spire.ports.content_provider import ContentProviderPort
@@ -27,7 +26,7 @@ def _result(
 def _upgrade_options(run_state: RunState, registry: ContentProviderPort) -> list[str]:
     options: list[str] = []
     for card_instance_id in run_state.deck:
-        card_def = registry.cards().get(card_id_from_instance_id(card_instance_id))
+        card_def = registry.cards().get(card_instance_id.split("#", 1)[0])
         if card_def.upgrades_to is not None:
             options.append(card_instance_id)
     return options
@@ -178,23 +177,23 @@ def _resolve_upgrade_selection(
     options = payload.get("upgrade_options")
     if not isinstance(options, list) or selected_card not in options:
         return _result(run_state, room_state)
-    base_card_id = card_id_from_instance_id(selected_card)
-    upgraded_card_id = registry.cards().get(base_card_id).upgrades_to
-    if upgraded_card_id is None:
+    base_card_id = selected_card.split("#", 1)[0]
+    if registry.cards().get(base_card_id).upgrades_to is None:
         return _result(run_state, room_state)
-    _old_card_id, suffix = selected_card.split("#", 1)
-    upgraded_instance_id = f"{upgraded_card_id}#{suffix}"
-    updated_deck = [
-        upgraded_instance_id if card == selected_card else card
-        for card in run_state.deck
-    ]
     room = _complete_event_room(
         room_state,
         payload,
         result=str(payload.get("pending_result", "gain_upgrade")),
         result_text=str(payload.get("pending_result_text", "你强化了一张牌。")),
     )
-    return _result(replace(run_state, deck=updated_deck), room)
+    return _result(
+        apply_reward(
+            run_state=run_state,
+            reward_id=f"upgrade:{selected_card}",
+            registry=registry,
+        ),
+        room,
+    )
 
 
 def _resolve_remove_selection(
@@ -203,6 +202,7 @@ def _resolve_remove_selection(
     room_state: RoomState,
     action_id: str,
     payload: dict[str, object],
+    registry: ContentProviderPort,
 ) -> EventActionResult:
     if action_id == "cancel":
         return _result(run_state, _waiting_event_room(room_state, payload))
@@ -216,10 +216,10 @@ def _resolve_remove_selection(
     gold_cost = _effect_int(pending_effect, "gold_cost")
     if run_state.gold < gold_cost:
         return _result(run_state, room_state, "金币不足，无法执行该事件选项。")
-    updated_run_state = replace(
-        run_state,
-        gold=run_state.gold - gold_cost,
-        deck=[card for card in run_state.deck if card != selected_card],
+    updated_run_state = apply_reward(
+        run_state=replace(run_state, gold=run_state.gold - gold_cost),
+        reward_id=f"remove:{selected_card}",
+        registry=registry,
     )
     room = _complete_event_room(
         room_state,
@@ -228,6 +228,17 @@ def _resolve_remove_selection(
         result_text=str(payload.get("pending_result_text", "你移除了一张牌。")),
     )
     return _result(updated_run_state, room)
+
+
+def _apply_event_gold_reward(
+    run_state: RunState, *, effect: dict[str, object], registry: ContentProviderPort
+) -> RunState:
+    gold_amount = _event_gold_bonus(run_state, _effect_int(effect, "gain_gold"))
+    return apply_reward(
+        run_state=run_state,
+        reward_id=f"gold:{gold_amount}",
+        registry=registry,
+    )
 
 
 def event_action(
@@ -255,6 +266,7 @@ def event_action(
             room_state=room_state,
             action_id=action_id,
             payload=payload,
+            registry=registry,
         )
 
     if not action_id.startswith("choice:"):
@@ -270,191 +282,211 @@ def event_action(
     result_text = str(outcome.get("result_text", result))
     payload["choice_id"] = choice_id
     effect_type = effect.get("type")
-
-    if effect_type == "upgrade_card_selection":
-        options = _upgrade_options(run_state, registry)
-        if not options:
+    try:
+        if effect_type == "upgrade_card_selection":
+            options = _upgrade_options(run_state, registry)
+            if not options:
+                return _result(
+                    run_state,
+                    _complete_event_room(
+                        room_state,
+                        payload,
+                        result="nothing",
+                        result_text="当前没有可升级的卡牌。",
+                    ),
+                )
             return _result(
                 run_state,
-                _complete_event_room(
+                _start_event_subflow(
                     room_state,
                     payload,
-                    result="nothing",
-                    result_text="当前没有可升级的卡牌。",
+                    stage="select_event_upgrade_card",
+                    option_key="upgrade_options",
+                    options=options,
+                    effect=effect,
+                    result=result,
+                    result_text=result_text,
                 ),
             )
-        return _result(
-            run_state,
-            _start_event_subflow(
-                room_state,
-                payload,
-                stage="select_event_upgrade_card",
-                option_key="upgrade_options",
-                options=options,
-                effect=effect,
-                result=result,
-                result_text=result_text,
-            ),
-        )
-    if effect_type == "remove_card_selection":
-        candidates = list(run_state.deck)
-        if not candidates:
+        if effect_type == "remove_card_selection":
+            candidates = list(run_state.deck)
+            if not candidates:
+                return _result(
+                    run_state,
+                    _complete_event_room(
+                        room_state,
+                        payload,
+                        result="nothing",
+                        result_text="当前没有可移除的卡牌。",
+                    ),
+                )
             return _result(
                 run_state,
-                _complete_event_room(
+                _start_event_subflow(
                     room_state,
                     payload,
-                    result="nothing",
-                    result_text="当前没有可移除的卡牌。",
+                    stage="select_event_remove_card",
+                    option_key="remove_candidates",
+                    options=candidates,
+                    effect=effect,
+                    result=result,
+                    result_text=result_text,
                 ),
             )
-        return _result(
-            run_state,
-            _start_event_subflow(
-                room_state,
-                payload,
-                stage="select_event_remove_card",
-                option_key="remove_candidates",
-                options=candidates,
+        if effect_type == "heal":
+            gold_cost = _effect_int(effect, "gold_cost")
+            heal_amount = _effect_int(effect, "heal_amount")
+            if run_state.gold < gold_cost:
+                return _result(run_state, room_state, "金币不足，无法执行该事件选项。")
+            updated_run_state = replace(
+                run_state,
+                gold=run_state.gold - gold_cost,
+                current_hp=min(run_state.max_hp, run_state.current_hp + heal_amount),
+            )
+            return _result(
+                updated_run_state,
+                _complete_event_room(
+                    room_state, payload, result=result, result_text=result_text
+                ),
+            )
+        if effect_type == "heal_percent":
+            heal_percent = _effect_int(effect, "heal_percent")
+            heal_amount = max(0, (run_state.max_hp * heal_percent) // 100)
+            updated_run_state = replace(
+                run_state,
+                current_hp=min(run_state.max_hp, run_state.current_hp + heal_amount),
+            )
+            return _result(
+                updated_run_state,
+                _complete_event_room(
+                    room_state, payload, result=result, result_text=result_text
+                ),
+            )
+        if effect_type == "increase_max_hp":
+            amount = _effect_int(effect, "amount")
+            updated_run_state = replace(
+                run_state,
+                max_hp=run_state.max_hp + amount,
+                current_hp=min(
+                    run_state.max_hp + amount, run_state.current_hp + amount
+                ),
+            )
+            return _result(
+                updated_run_state,
+                _complete_event_room(
+                    room_state, payload, result=result, result_text=result_text
+                ),
+            )
+        if effect_type == "gain_gold_and_lose_hp":
+            updated_run_state = _apply_event_gold_reward(
+                run_state=replace(
+                    run_state,
+                    current_hp=max(
+                        0, run_state.current_hp - _effect_int(effect, "lose_hp")
+                    ),
+                ),
                 effect=effect,
-                result=result,
-                result_text=result_text,
-            ),
-        )
-    if effect_type == "heal":
-        gold_cost = _effect_int(effect, "gold_cost")
-        heal_amount = _effect_int(effect, "heal_amount")
-        if run_state.gold < gold_cost:
-            return _result(run_state, room_state, "金币不足，无法执行该事件选项。")
-        updated_run_state = replace(
-            run_state,
-            gold=run_state.gold - gold_cost,
-            current_hp=min(run_state.max_hp, run_state.current_hp + heal_amount),
-        )
-        return _result(
-            updated_run_state,
-            _complete_event_room(
-                room_state, payload, result=result, result_text=result_text
-            ),
-        )
-    if effect_type == "heal_percent":
-        heal_percent = _effect_int(effect, "heal_percent")
-        heal_amount = max(0, (run_state.max_hp * heal_percent) // 100)
-        updated_run_state = replace(
-            run_state,
-            current_hp=min(run_state.max_hp, run_state.current_hp + heal_amount),
-        )
-        return _result(
-            updated_run_state,
-            _complete_event_room(
-                room_state, payload, result=result, result_text=result_text
-            ),
-        )
-    if effect_type == "increase_max_hp":
-        amount = _effect_int(effect, "amount")
-        updated_run_state = replace(
-            run_state,
-            max_hp=run_state.max_hp + amount,
-            current_hp=min(run_state.max_hp + amount, run_state.current_hp + amount),
-        )
-        return _result(
-            updated_run_state,
-            _complete_event_room(
-                room_state, payload, result=result, result_text=result_text
-            ),
-        )
-    if effect_type == "gain_gold_and_lose_hp":
-        gold_amount = _event_gold_bonus(run_state, _effect_int(effect, "gain_gold"))
-        updated_run_state = replace(
-            run_state,
-            gold=run_state.gold + gold_amount,
-            current_hp=max(0, run_state.current_hp - _effect_int(effect, "lose_hp")),
-        )
-        return _result(
-            updated_run_state,
-            _complete_event_room(
-                room_state, payload, result=result, result_text=result_text
-            ),
-        )
-    if effect_type == "gain_gold":
-        gold_amount = _event_gold_bonus(run_state, _effect_int(effect, "gain_gold"))
-        updated_run_state = replace(
-            run_state,
-            gold=run_state.gold + gold_amount,
-        )
-        return _result(
-            updated_run_state,
-            _complete_event_room(
-                room_state, payload, result=result, result_text=result_text
-            ),
-        )
-    if effect_type == "gain_gold_and_add_curse":
-        gold_amount = _event_gold_bonus(run_state, _effect_int(effect, "gain_gold"))
-        curse_id = str(effect.get("curse_id", ""))
-        updated_run_state = replace(run_state, gold=run_state.gold + gold_amount)
-        curse_count = max(_effect_int(effect, "count", default=1), 0)
-        if curse_id:
-            for _ in range(curse_count):
+                registry=registry,
+            )
+            return _result(
+                updated_run_state,
+                _complete_event_room(
+                    room_state, payload, result=result, result_text=result_text
+                ),
+            )
+        if effect_type == "gain_gold":
+            updated_run_state = _apply_event_gold_reward(
+                run_state, effect=effect, registry=registry
+            )
+            return _result(
+                updated_run_state,
+                _complete_event_room(
+                    room_state, payload, result=result, result_text=result_text
+                ),
+            )
+        if effect_type == "gain_gold_and_add_curse":
+            curse_id = str(effect.get("curse_id", ""))
+            updated_run_state = _apply_event_gold_reward(
+                run_state, effect=effect, registry=registry
+            )
+            curse_count = max(_effect_int(effect, "count", default=1), 0)
+            if curse_id:
+                for _ in range(curse_count):
+                    updated_run_state = _with_added_card(updated_run_state, curse_id)
+            return _result(
+                updated_run_state,
+                _complete_event_room(
+                    room_state, payload, result=result, result_text=result_text
+                ),
+            )
+        if effect_type == "gain_relic_and_reduce_max_hp":
+            relic_id = str(effect.get("relic_id", ""))
+            max_hp_loss = _effect_int(effect, "lose_max_hp")
+            updated_run_state = (
+                _with_added_relic(run_state, relic_id, registry)
+                if relic_id
+                else run_state
+            )
+            next_max_hp = max(1, updated_run_state.max_hp - max_hp_loss)
+            updated_run_state = replace(
+                updated_run_state,
+                max_hp=next_max_hp,
+                current_hp=min(updated_run_state.current_hp, next_max_hp),
+            )
+            return _result(
+                updated_run_state,
+                _complete_event_room(
+                    room_state, payload, result=result, result_text=result_text
+                ),
+            )
+        if effect_type == "gain_relic_and_lose_hp":
+            relic_id = str(effect.get("relic_id", ""))
+            hp_loss = _effect_int(effect, "lose_hp")
+            updated_run_state = (
+                _with_added_relic(run_state, relic_id, registry)
+                if relic_id
+                else run_state
+            )
+            updated_run_state = replace(
+                updated_run_state,
+                current_hp=max(0, updated_run_state.current_hp - hp_loss),
+            )
+            return _result(
+                updated_run_state,
+                _complete_event_room(
+                    room_state, payload, result=result, result_text=result_text
+                ),
+            )
+        if effect_type == "gain_relic_and_add_curse":
+            relic_id = str(effect.get("relic_id", ""))
+            curse_id = str(effect.get("curse_id", ""))
+            updated_run_state = (
+                _with_added_relic(run_state, relic_id, registry)
+                if relic_id
+                else run_state
+            )
+            if curse_id:
                 updated_run_state = _with_added_card(updated_run_state, curse_id)
+            return _result(
+                updated_run_state,
+                _complete_event_room(
+                    room_state, payload, result=result, result_text=result_text
+                ),
+            )
+        if effect_type == "lose_gold":
+            gold_loss = _effect_int(effect, "lose_gold")
+            updated_run_state = replace(
+                run_state, gold=max(0, run_state.gold - gold_loss)
+            )
+            return _result(
+                updated_run_state,
+                _complete_event_room(
+                    room_state, payload, result=result, result_text=result_text
+                ),
+            )
+    except (KeyError, TypeError, ValueError):
         return _result(
-            updated_run_state,
-            _complete_event_room(
-                room_state, payload, result=result, result_text=result_text
-            ),
-        )
-    if effect_type == "gain_relic_and_reduce_max_hp":
-        relic_id = str(effect.get("relic_id", ""))
-        max_hp_loss = _effect_int(effect, "lose_max_hp")
-        updated_run_state = (
-            _with_added_relic(run_state, relic_id, registry) if relic_id else run_state
-        )
-        next_max_hp = max(1, updated_run_state.max_hp - max_hp_loss)
-        updated_run_state = replace(
-            updated_run_state,
-            max_hp=next_max_hp,
-            current_hp=min(updated_run_state.current_hp, next_max_hp),
-        )
-        return _result(
-            updated_run_state,
-            _complete_event_room(
-                room_state, payload, result=result, result_text=result_text
-            ),
-        )
-    if effect_type == "gain_relic_and_lose_hp":
-        relic_id = str(effect.get("relic_id", ""))
-        hp_loss = _effect_int(effect, "lose_hp")
-        updated_run_state = (
-            _with_added_relic(run_state, relic_id, registry) if relic_id else run_state
-        )
-        updated_run_state = replace(
-            updated_run_state,
-            current_hp=max(0, updated_run_state.current_hp - hp_loss),
-        )
-        return _result(
-            updated_run_state,
-            _complete_event_room(
-                room_state, payload, result=result, result_text=result_text
-            ),
-        )
-    if effect_type == "gain_relic_and_add_curse":
-        relic_id = str(effect.get("relic_id", ""))
-        curse_id = str(effect.get("curse_id", ""))
-        updated_run_state = (
-            _with_added_relic(run_state, relic_id, registry) if relic_id else run_state
-        )
-        if curse_id:
-            updated_run_state = _with_added_card(updated_run_state, curse_id)
-        return _result(
-            updated_run_state,
-            _complete_event_room(
-                room_state, payload, result=result, result_text=result_text
-            ),
-        )
-    if effect_type == "lose_gold":
-        gold_loss = _effect_int(effect, "lose_gold")
-        updated_run_state = replace(run_state, gold=max(0, run_state.gold - gold_loss))
-        return _result(
-            updated_run_state,
+            run_state,
             _complete_event_room(
                 room_state, payload, result=result, result_text=result_text
             ),

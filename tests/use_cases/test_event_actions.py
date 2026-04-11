@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from unittest.mock import patch
 from pathlib import Path
 
 from slay_the_spire.content.provider import StarterContentProvider
@@ -102,6 +103,7 @@ def test_living_wall_forget_enters_remove_subflow_and_removes_selected_card() ->
     assert session.room_state.is_resolved is True
     assert len(session.run_state.deck) == starting_deck_size - 1
     assert "strike#1" not in session.run_state.deck
+    assert session.run_state.card_removal_count == 1
 
 
 def test_the_cleric_heal_spends_gold_and_restores_hp() -> None:
@@ -264,6 +266,75 @@ def test_event_reward_relic_routes_through_apply_reward_replacement_rules() -> N
     )
 
     assert "golden_idol" in result.run_state.relics
+
+
+def test_event_upgrade_selection_routes_through_apply_reward() -> None:
+    room_state = RoomState(
+        room_id="act1:test-event",
+        room_type="event",
+        stage="select_event_upgrade_card",
+        payload={
+            "event_id": "shining_light",
+            "upgrade_options": ["bash#10"],
+            "pending_result": "gain_upgrade",
+            "pending_result_text": "你强化了一张牌。",
+        },
+        is_resolved=False,
+        rewards=[],
+    )
+
+    result = event_action(
+        run_state=_run_state(),
+        room_state=room_state,
+        action_id="upgrade_card:bash#10",
+        registry=_content_provider(),
+    )
+
+    assert "bash_plus#10" in result.run_state.deck
+    assert "bash#10" not in result.run_state.deck
+
+
+def test_event_invalid_payload_degrades_to_completed_noop() -> None:
+    room_state = RoomState(
+        room_id="act1:test-event",
+        room_type="event",
+        stage="waiting_input",
+        payload={
+            "event_id": "golden_shrine",
+            "node_id": "r1c1",
+            "next_node_ids": ["r2c0"],
+            "choice_id": "pray",
+        },
+        is_resolved=False,
+        rewards=[],
+    )
+
+    provider = _content_provider()
+    event_def = provider.events().get("golden_shrine")
+    broken_event = replace(
+        event_def,
+        outcomes=[
+            {
+                **outcome,
+                "effect": {"type": "gain_gold", "gain_gold": "bad"},
+            }
+            if outcome.get("choice_id") == "pray"
+            else outcome
+            for outcome in event_def.outcomes
+        ],
+    )
+
+    with patch.object(provider.events(), "get", return_value=broken_event):
+        result = event_action(
+            run_state=_run_state(),
+            room_state=room_state,
+            action_id="choice:pray",
+            registry=provider,
+        )
+
+    assert result.run_state.to_dict() == _run_state().to_dict()
+    assert result.room_state.is_resolved is True
+    assert result.room_state.payload["result"] == "golden_shrine_pray"
 
 
 # ── 冒险者尸体 ───────────────────────────────────────────────────────────────

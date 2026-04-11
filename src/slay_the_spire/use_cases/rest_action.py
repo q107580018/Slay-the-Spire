@@ -8,6 +8,7 @@ from slay_the_spire.domain.models.room_state import RoomState
 from slay_the_spire.domain.models.run_state import RunState
 from slay_the_spire.domain.rewards.reward_generator import generate_combat_rewards
 from slay_the_spire.ports.content_provider import ContentProviderPort
+from slay_the_spire.use_cases.apply_reward import apply_reward
 
 
 @dataclass(slots=True, frozen=True)
@@ -30,19 +31,6 @@ def _upgrade_options(run_state: RunState, registry: ContentProviderPort) -> list
         if card_def.upgrades_to is not None:
             options.append(card_instance_id)
     return options
-
-
-def _remove_one_card(run_state: RunState) -> RunState:
-    if not run_state.deck:
-        return run_state
-    return replace(run_state, deck=list(run_state.deck[1:]))
-
-
-def _remove_selected_card(run_state: RunState, selected_card: str) -> RunState:
-    return replace(
-        run_state,
-        deck=[card for card in run_state.deck if card != selected_card],
-    )
 
 
 def _next_rest_relic_reward(run_state: RunState) -> str:
@@ -118,7 +106,11 @@ def rest_action(
             return _result(run_state, room_state)
         payload.pop("remove_candidates", None)
         return _result(
-            _remove_selected_card(run_state, selected_card),
+            apply_reward(
+                run_state=run_state,
+                reward_id=f"remove:{selected_card}",
+                registry=registry,
+            ),
             RoomState(
                 schema_version=room_state.schema_version,
                 room_id=room_state.room_id,
@@ -151,18 +143,15 @@ def rest_action(
         if not isinstance(options, list) or selected_card not in options:
             return _result(run_state, room_state)
         base_card_id = card_id_from_instance_id(selected_card)
-        upgraded_card_id = registry.cards().get(base_card_id).upgrades_to
-        if upgraded_card_id is None:
+        if registry.cards().get(base_card_id).upgrades_to is None:
             return _result(run_state, room_state)
-        _old_card_id, suffix = selected_card.split("#", 1)
-        upgraded_instance_id = f"{upgraded_card_id}#{suffix}"
-        updated_deck = [
-            upgraded_instance_id if card == selected_card else card
-            for card in run_state.deck
-        ]
         payload.pop("upgrade_options", None)
         return _result(
-            replace(run_state, deck=updated_deck),
+            apply_reward(
+                run_state=run_state,
+                reward_id=f"upgrade:{selected_card}",
+                registry=registry,
+            ),
             RoomState(
                 schema_version=room_state.schema_version,
                 room_id=room_state.room_id,

@@ -511,6 +511,7 @@ def test_peace_pipe_remove_card_removes_selected_card() -> None:
     )
 
     assert result.run_state.deck == ["strike#1", "bash#3"]
+    assert result.run_state.card_removal_count == 1
     assert result.room_state.stage == "completed"
     assert result.room_state.is_resolved is True
 
@@ -1031,3 +1032,23 @@ def test_rest_select_upgrade_card_rewrites_card_instance_to_upgraded_card() -> N
     assert result.run_state.deck == ["strike#1", "defend#2", "bash_plus#3"]
     assert result.room_state.stage == "completed"
     assert result.room_state.is_resolved is True
+
+
+def test_rest_upgrade_selection_uses_apply_reward_path_for_non_upgradable_cards() -> (
+    None
+):
+    entered_smith = rest_action(
+        run_state=replace(_run_state(), deck=["doubt#1", "bash#3"]),
+        room_state=_rest_room(),
+        action_id="smith",
+        registry=_content_provider(),
+    )
+
+    result = rest_action(
+        run_state=entered_smith.run_state,
+        room_state=entered_smith.room_state,
+        action_id="upgrade_card:bash#3",
+        registry=_content_provider(),
+    )
+
+    assert result.run_state.deck == ["doubt#1", "bash_plus#3"]
