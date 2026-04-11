@@ -838,3 +838,60 @@ def test_apply_reward_upgrade_remove_and_skip_actions_are_supported() -> None:
     assert "defend#5" not in removed.deck
     assert len(removed.deck) == len(run_state.deck) - 1
     assert skipped == run_state
+
+
+def test_apply_reward_remove_missing_card_is_no_op() -> None:
+    run_state = _run_state()
+
+    updated = apply_reward(
+        run_state=run_state,
+        reward_id="remove:anger#99",
+        registry=_content_provider(),
+    )
+
+    assert updated == run_state
+
+
+def test_apply_reward_upgrade_missing_target_is_no_op() -> None:
+    run_state = _run_state()
+
+    updated = apply_reward(
+        run_state=run_state,
+        reward_id="upgrade:anger#99",
+        registry=_content_provider(),
+    )
+
+    assert updated == run_state
+
+
+def test_apply_reward_skip_is_explicit_no_op_for_deck_gold_and_relics() -> None:
+    run_state = replace(_run_state(), relics=["burning_blood", "golden_idol"])
+
+    updated = apply_reward(
+        run_state=run_state,
+        reward_id="skip:boss_reward",
+        registry=_content_provider(),
+    )
+
+    assert updated.deck == run_state.deck
+    assert updated.gold == run_state.gold
+    assert updated.relics == run_state.relics
+
+
+def test_apply_reward_noop_unknown_reward_id_is_deterministic() -> None:
+    run_state = _run_state()
+
+    first = apply_reward(
+        run_state=run_state,
+        reward_id="mystery:payload",
+        registry=_content_provider(),
+    )
+    second = apply_reward(
+        run_state=run_state,
+        reward_id="mystery:payload",
+        registry=_content_provider(),
+    )
+
+    assert first == run_state
+    assert second == run_state
+    assert first == second
