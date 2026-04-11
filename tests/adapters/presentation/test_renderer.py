@@ -20,6 +20,7 @@ from slay_the_spire.adapters.presentation.screens.non_combat import (
     _format_rest_upgrade_menu,
     _format_shop_remove_menu,
     _format_shop_root_menu,
+    render_terminal_phase_panel,
     render_rest_panel,
     render_shop_panel,
     render_full_map_panel,
@@ -2066,3 +2067,58 @@ def test_game_over_renderer_blocks_normal_room_menu() -> None:
     assert "游戏结束" in output
     assert "前往下一个房间" not in output
     assert "出牌" not in output
+
+
+def test_terminal_phase_panel_victory_shows_statistics() -> None:
+    session = start_session(seed=5)
+    run_state = replace(
+        session.run_state,
+        current_act_id="act3",
+        current_hp=52,
+        max_hp=80,
+        gold=321,
+        relics=["black_blood"],
+        potions=["fire_potion"],
+        deck=[*session.run_state.deck, "bash#9"],
+    )
+    panel = render_terminal_phase_panel(
+        "victory",
+        run_state=run_state,
+        registry=_provider(session),
+    )
+    output = _export(panel)
+
+    assert "胜利" in output
+    assert "第三幕" in output
+    assert "321" in output
+    assert "52/80" in output
+    assert "牌组" in output
+    assert "黑色之血" in output
+    assert "种子" in output
+
+
+def test_terminal_phase_panel_game_over_shows_statistics() -> None:
+    session = start_session(seed=5)
+    panel = render_terminal_phase_panel(
+        "game_over",
+        run_state=replace(session.run_state, current_hp=0, gold=77),
+        registry=_provider(session),
+    )
+    output = _export(panel)
+
+    assert "游戏结束" in output
+    assert "77" in output
+    assert "0/80" in output
+    assert "角色" in output
+
+
+def test_terminal_phase_panel_handles_unknown_relic_gracefully() -> None:
+    session = start_session(seed=5)
+    panel = render_terminal_phase_panel(
+        "victory",
+        run_state=replace(session.run_state, relics=["nonexistent_relic"]),
+        registry=_provider(session),
+    )
+    output = _export(panel)
+
+    assert "nonexistent_relic" in output
