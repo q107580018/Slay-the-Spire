@@ -7,9 +7,9 @@
 ## 当前实现
 
 - 当前角色：`ironclad`
-- 当前章节：`act1`、`act2`
+- 当前章节：`act1`、`act2`、`act3`
 - 当前开局流程：`new` 先进入 opening；不传 `--character` 时先选角色，传 `--character` 时直接进入 `Neow`
-- 当前主路径：`act1` Boss 宝箱后进入 `act2`，`act2` Boss 宝箱后进入最终 `victory`
+- 当前主路径：`act1` Boss 宝箱后进入 `act2`，`act2` Boss 宝箱后进入 `act3`，`act3` Boss 宝箱后进入最终 `victory`
 - 当前房间类型：普通战斗、事件、精英、商店、休息点、宝箱、Boss、Boss 宝箱
 - 当前支持：分支地图、战斗奖励、Boss 奖励、遗物/药水/商店、休息点升级与跳过、JSON 存读档
 - 当前普通宝箱流程为：未打开时不显示具体遗物，打开后可选择拿取遗物或放弃并离开
