@@ -159,6 +159,38 @@ uv build
 - 修改内容注册表或 JSON 结构时，优先检查 `tests/content/test_registry_validation.py`。
 - 修改存档结构时，优先检查 `tests/use_cases/test_save_load.py`，并同步关注 `schema_version`。
 
+### Phase 03：奖励与经济统一
+
+Phase 03 的核心目标是把战后、Boss、商店、事件、宝箱、Neow、休息点这些入口统一到同一套 reward id / `apply_reward` 协议，并让经济相关遗物在不同入口下都有可验证行为。
+
+- **统一奖励协议**：`gold`、`relic`、`potion`、`card`、`card_offer`、`remove`、`upgrade`、`transform`、`duplicate`、`skip` 都先编码成 reward id，再由 `apply_reward` 结算。
+- **placeholder 安全策略**：placeholder 遗物不会进入随机奖励池；固定奖励若命中未实现或未知的遗物 / 药水 / 卡牌，会安全降级为 no-op，并在菜单中明确显示“未实现/不可用”。
+- **经济联动覆盖入口**：
+  - `combat` / `boss`：`golden_idol`、`ectoplasm`、`sozu`、Boss 遗物后续金币阻断等回归在 `tests/use_cases/test_apply_reward.py`
+  - `shop`：`sozu`、`the_courier` 在 `tests/use_cases/test_shop_and_rest_actions.py`
+  - `event`：`golden_idol`、`ectoplasm` 在 `tests/use_cases/test_event_actions.py`
+  - `treasure`：宝箱遗物领取后的后续金币行为在 `tests/use_cases/test_apply_reward.py`，宝箱流程本身在 `tests/use_cases/test_room_recovery.py`
+  - `neow`：`golden_idol`、`ectoplasm`、`sozu` 在 `tests/use_cases/test_opening_flow.py`
+  - `rest`：`dream_catcher` 触发与无遗物降级在 `tests/use_cases/test_shop_and_rest_actions.py`
+
+推荐按下面命令回归：
+
+```bash
+uv run pytest tests/use_cases/test_apply_reward.py tests/use_cases/test_event_actions.py tests/use_cases/test_shop_and_rest_actions.py tests/use_cases/test_opening_flow.py -x
+```
+
+```bash
+uv run pytest tests/use_cases/test_apply_reward.py tests/use_cases/test_start_run.py -k "golden_idol or ectoplasm or sozu or placeholder" -x
+```
+
+```bash
+uv run pytest tests/use_cases/test_shop_and_rest_actions.py tests/use_cases/test_event_actions.py tests/use_cases/test_opening_flow.py -k "the_courier or dream_catcher or sozu or golden_idol or ectoplasm" -x
+```
+
+```bash
+uv run pytest tests/use_cases/test_room_recovery.py -k "treasure or matryoshka" -x
+```
+
 ### Guardrail 回归护栏
 
 项目维护了一组关键链路回归测试，通过 pytest marker 子集运行：
