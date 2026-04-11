@@ -55,14 +55,6 @@ def _with_added_relic(
     )
 
 
-def _event_gold_bonus(run_state: RunState, amount: int) -> int:
-    if "ectoplasm" in run_state.relics:
-        return 0
-    if "golden_idol" not in run_state.relics:
-        return amount
-    return amount + (amount // 4)
-
-
 def _pending_effect(payload: dict[str, object]) -> dict[str, object]:
     pending = payload.get("pending_effect")
     return dict(pending) if isinstance(pending, dict) else {}
@@ -233,7 +225,7 @@ def _resolve_remove_selection(
 def _apply_event_gold_reward(
     run_state: RunState, *, effect: dict[str, object], registry: ContentProviderPort
 ) -> RunState:
-    gold_amount = _event_gold_bonus(run_state, _effect_int(effect, "gain_gold"))
+    gold_amount = _effect_int(effect, "gain_gold")
     return apply_reward(
         run_state=run_state,
         reward_id=f"gold:{gold_amount}",

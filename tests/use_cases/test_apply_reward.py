@@ -251,6 +251,23 @@ def test_apply_reward_boss_relic_ectoplasm_blocks_followup_gold_gain() -> None:
     assert updated.gold == run_state.gold
 
 
+def test_apply_reward_treasure_relic_golden_idol_boosts_followup_gold_gain() -> None:
+    run_state = apply_reward(
+        run_state=_run_state(),
+        reward_id="relic:golden_idol",
+        registry=_content_provider(),
+    )
+
+    updated = apply_reward(
+        run_state=run_state,
+        reward_id="gold:20",
+        registry=_content_provider(),
+    )
+
+    assert "golden_idol" in run_state.relics
+    assert updated.gold == run_state.gold + 25
+
+
 def test_generate_boss_rewards_is_deterministic_for_same_inputs() -> None:
     first_run_state = replace(
         _run_state(),
