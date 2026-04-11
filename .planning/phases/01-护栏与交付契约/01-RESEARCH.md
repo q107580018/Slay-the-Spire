@@ -271,17 +271,15 @@ def _format_reachability_failures(rows: list[ReachabilityRow]) -> str:
 | A1 | A too-broad `guardrail` marker would be slow/noisy if applied wholesale. | Common Pitfalls | Low; planner can validate by timing `uv run pytest -m guardrail` after marking. |
 | A2 | Applying the marker to entire large modules without selection is a warning sign. | Common Pitfalls | Low; implementation can choose representative function-level markers. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Should placeholder filtering be implemented now or only reported?** [VERIFIED: .planning/phases/01-护栏与交付契约/01-CONTEXT.md]
+1. **RESOLVED: Placeholder filtering will be implemented now, alongside the report.** [VERIFIED: .planning/phases/01-护栏与交付契约/01-CONTEXT.md] [VERIFIED: .planning/phases/01-护栏与交付契约/01-02-PLAN.md]
    - What we know: placeholder relics in random reward pools should fail the GUARD-02 guardrail. [VERIFIED: .planning/phases/01-护栏与交付契约/01-CONTEXT.md]
-   - What's unclear: whether Phase 1 should also change runtime filtering or leave that code change to a later reward phase. [ASSUMED]
-   - Recommendation: plan report/test first, then include a scoped code task to filter `implementation_status == "placeholder"` out of random relic sequences if the failing guardrail would otherwise block Phase 1 completion. [VERIFIED: src/slay_the_spire/use_cases/start_run.py]
+   - Resolution: Phase 1 includes an explicit scoped code task to filter `implementation_status == "placeholder"` out of `common`, `uncommon`, `rare`, `shop`, `boss`, and Neow random relic selection paths; placeholder relics remain registry-loadable and report-visible. [VERIFIED: .planning/phases/01-护栏与交付契约/01-02-PLAN.md]
 
-2. **How narrow should the marker set be?** [ASSUMED]
+2. **RESOLVED: The guardrail marker set will use representative function-level tests.** [VERIFIED: .planning/phases/01-护栏与交付契约/01-01-PLAN.md]
    - What we know: the targeted related subset currently passes with 223 tests, but that subset is broader than a minimal guardrail. [VERIFIED: uv run pytest targeted subset 2026-04-11]
-   - What's unclear: the final desired runtime budget for `uv run pytest -m guardrail`. [ASSUMED]
-   - Recommendation: mark representative tests first, then run and trim if the guardrail command becomes too broad. [ASSUMED]
+   - Resolution: Phase 1 marks named representative tests with function-level `@pytest.mark.guardrail` decorators and avoids module-level markers on large files, coverage thresholds, or a full three-act E2E. [VERIFIED: .planning/phases/01-护栏与交付契约/01-01-PLAN.md]
 
 ## Environment Availability
 
