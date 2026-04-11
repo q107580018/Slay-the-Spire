@@ -1,0 +1,138 @@
+{
+  "events": [
+    {
+      "id": "mind_bloom",
+      "pool_weight": 1,
+      "once_per_run": true,
+      "text": "一朵巨大的花在你面前绽开，低语邀请你做出一个改变命运的抉择。",
+      "choices": [
+        {"id": "i_am_war", "label": "我即战争：获得 999 金币并失去 20 点生命"},
+        {"id": "i_am_rich", "label": "我即富足：获得 999 金币并得到 2 张常态"},
+        {"id": "leave", "label": "我即离去：不做任何事"}
+      ],
+      "outcomes": [
+        {
+          "choice_id": "i_am_war",
+          "result": "mind_bloom_war",
+          "result_text": "你踏入幻象又全身而退，带着沉甸甸的财富。",
+          "effect": {"type": "gain_gold_and_lose_hp", "gain_gold": 999, "lose_hp": 20}
+        },
+        {
+          "choice_id": "i_am_rich",
+          "result": "mind_bloom_rich",
+          "result_text": "花瓣碎裂成金币雨，你同时感到心智被某种秩序束缚。",
+          "effect": {"type": "gain_gold_and_add_curse", "gain_gold": 999, "curse_id": "normality"}
+        },
+        {
+          "choice_id": "leave",
+          "result": "nothing",
+          "result_text": "你拒绝了低语，花朵缓缓闭合。",
+          "effect": {"type": "nothing"}
+        }
+      ]
+    },
+    {
+      "id": "mysterious_sphere",
+      "pool_weight": 1,
+      "once_per_run": true,
+      "text": "一颗悬浮的诡异球体散发着危险光芒，周围地面满是战斗痕迹。",
+      "choices": [
+        {"id": "open", "label": "伸手触碰球体：失去 12 点生命，获得 90 金币"},
+        {"id": "leave", "label": "谨慎离开"}
+      ],
+      "outcomes": [
+        {
+          "choice_id": "open",
+          "result": "mysterious_sphere_open",
+          "result_text": "球体炸裂，你被冲击波震伤，但也发现了散落的财宝。",
+          "effect": {"type": "gain_gold_and_lose_hp", "gain_gold": 90, "lose_hp": 12}
+        },
+        {
+          "choice_id": "leave",
+          "result": "nothing",
+          "result_text": "你没有冒险，悄然离去。",
+          "effect": {"type": "nothing"}
+        }
+      ]
+    },
+    {
+      "id": "moai_head",
+      "pool_weight": 1,
+      "once_per_run": true,
+      "text": "巨大的摩艾石像俯视着你，石缝间闪烁着古老的光。",
+      "choices": [
+        {"id": "offer", "label": "献祭 12 点生命，获得遗物“金色神像”"},
+        {"id": "pray", "label": "静默祈祷，最大生命 +7"},
+        {"id": "leave", "label": "离开"}
+      ],
+      "outcomes": [
+        {
+          "choice_id": "offer",
+          "result": "moai_offer",
+          "result_text": "石像吞下鲜血，吐出一件沉重的遗物。",
+          "effect": {"type": "gain_relic_and_lose_hp", "relic_id": "golden_idol", "lose_hp": 12}
+        },
+        {
+          "choice_id": "pray",
+          "result": "moai_pray",
+          "result_text": "你感到体魄更强韧了。",
+          "effect": {"type": "increase_max_hp", "amount": 7}
+        },
+        {
+          "choice_id": "leave",
+          "result": "nothing",
+          "result_text": "你绕过石像，继续前进。",
+          "effect": {"type": "nothing"}
+        }
+      ]
+    },
+    {
+      "id": "sensory_stone",
+      "pool_weight": 1,
+      "once_per_run": true,
+      "text": "你触碰一块感应石，短暂看见了无数条战斗路径。",
+      "choices": [
+        {"id": "focus", "label": "集中精神：选择 1 张牌升级"},
+        {"id": "forget", "label": "放空思绪：什么也不做"}
+      ],
+      "outcomes": [
+        {
+          "choice_id": "focus",
+          "result": "sensory_stone_focus",
+          "result_text": "你从幻象中带回一段更高效的战斗技巧。",
+          "effect": {"type": "upgrade_card_selection"}
+        },
+        {
+          "choice_id": "forget",
+          "result": "nothing",
+          "result_text": "感应石上的光芒慢慢黯淡。",
+          "effect": {"type": "nothing"}
+        }
+      ]
+    },
+    {
+      "id": "secret_portal",
+      "pool_weight": 1,
+      "once_per_run": true,
+      "text": "一道隐秘传送门在墙面展开，另一端传来首领房间的回响。",
+      "choices": [
+        {"id": "step_in", "label": "踏入传送门（失去 15 点生命，获得 120 金币）"},
+        {"id": "ignore", "label": "无视传送门"}
+      ],
+      "outcomes": [
+        {
+          "choice_id": "step_in",
+          "result": "secret_portal_step_in",
+          "result_text": "传送门把你抛到更深处，你也为此付出了代价。",
+          "effect": {"type": "gain_gold_and_lose_hp", "gain_gold": 120, "lose_hp": 15}
+        },
+        {
+          "choice_id": "ignore",
+          "result": "nothing",
+          "result_text": "你选择稳妥路线，继续沿阶梯向前。",
+          "effect": {"type": "nothing"}
+        }
+      ]
+    }
+  ]
+}

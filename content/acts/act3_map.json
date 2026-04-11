@@ -1,13 +1,12 @@
 {
   "acts": [
     {
-      "id": "act2",
-      "name": "第二幕",
-      "enemy_pool_id": "act2_basic",
-      "elite_pool_id": "act2_elites",
-      "event_pool_id": "act2_events",
-      "boss_pool_id": "act2_bosses",
-      "next_act_id": "act3",
+      "id": "act3",
+      "name": "第三幕",
+      "enemy_pool_id": "act3_basic",
+      "elite_pool_id": "act3_elites",
+      "event_pool_id": "act3_events",
+      "boss_pool_id": "act3_bosses",
       "map_config": {
         "floor_count": 16,
         "starting_columns": 1,
@@ -23,18 +22,18 @@
         "post_boss_room_type": "boss_chest",
         "room_rules": {
           "early_floors": ["combat", "event"],
-          "mid_floors": ["combat", "event", "shop", "rest"],
+          "mid_floors": ["combat", "event", "shop", "rest", "elite"],
           "late_floors": ["combat", "event", "elite", "shop", "rest"],
           "room_weights": {
-            "early": {"combat": 8, "event": 2},
-            "mid": {"combat": 7, "event": 1, "shop": 1, "rest": 1},
-            "late": {"combat": 4, "event": 1, "elite": 4, "shop": 1, "rest": 1}
+            "early": {"combat": 7, "event": 3},
+            "mid": {"combat": 5, "event": 1, "elite": 2, "shop": 1, "rest": 1},
+            "late": {"combat": 3, "event": 1, "elite": 5, "shop": 1, "rest": 1}
           },
           "minimum_counts": {
             "event": 1,
             "shop": 1,
             "rest": 1,
-            "elite": 2
+            "elite": 3
           },
           "min_floor_for_elite": 2,
           "min_floor_for_shop": 2,
