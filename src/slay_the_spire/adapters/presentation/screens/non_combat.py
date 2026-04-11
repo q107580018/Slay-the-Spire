@@ -1094,14 +1094,81 @@ def render_treasure_panel(
     return Panel(Group(*lines), title="宝箱", box=PANEL_BOX, expand=False)
 
 
-def render_terminal_phase_panel(run_phase: str) -> Panel:
-    title = "胜利" if run_phase == "victory" else "游戏结束"
+def _safe_character_name(
+    run_state: RunState, registry: ContentProviderPort
+) -> str:
+    try:
+        return registry.characters().get(run_state.character_id).name
+    except KeyError:
+        return run_state.character_id
+
+
+def _safe_act_name(run_state: RunState, registry: ContentProviderPort) -> str:
+    try:
+        return registry.acts().get(run_state.current_act_id).name
+    except KeyError:
+        return run_state.current_act_id
+
+
+def _safe_relic_names(run_state: RunState, registry: ContentProviderPort) -> str:
+    if not run_state.relics:
+        return "无"
+    relic_names: list[str] = []
+    for relic_id in run_state.relics:
+        try:
+            relic_names.append(registry.relics().get(relic_id).name)
+        except KeyError:
+            relic_names.append(relic_id)
+    return "、".join(relic_names)
+
+
+def _safe_potion_names(run_state: RunState, registry: ContentProviderPort) -> str:
+    if not run_state.potions:
+        return "无"
+    potion_names: list[str] = []
+    for potion_id in run_state.potions:
+        try:
+            potion_names.append(registry.potions().get(potion_id).name)
+        except KeyError:
+            potion_names.append(potion_id)
+    return "、".join(potion_names)
+
+
+def render_terminal_phase_panel(
+    run_phase: str,
+    *,
+    run_state: RunState,
+    registry: ContentProviderPort,
+) -> Panel:
+    title = "🏆 胜利" if run_phase == "victory" else "💀 游戏结束"
+    title_style = "bold green" if run_phase == "victory" else "bold red"
     message = (
         "首领已被击败，本轮冒险已完成。"
         if run_phase == "victory"
         else "玩家已倒下，本轮冒险结束。"
     )
-    return Panel(Group(Text(message)), title=title, box=PANEL_BOX, expand=False)
+    lines: list[RenderableType] = [
+        Text(message),
+        Text(""),
+        Text.assemble(
+            ("角色 ", "summary.label"), (_safe_character_name(run_state, registry), "player.name")
+        ),
+        Text.assemble(("到达章节 ", "summary.label"), _safe_act_name(run_state, registry)),
+        Text.assemble(
+            ("生命值 ", "summary.label"), f"{run_state.current_hp}/{run_state.max_hp}"
+        ),
+        Text.assemble(("金币 ", "summary.label"), str(run_state.gold)),
+        Text.assemble(("牌组 ", "summary.label"), f"{len(run_state.deck)} 张"),
+        Text.assemble(("遗物 ", "summary.label"), _safe_relic_names(run_state, registry)),
+        Text.assemble(("药水 ", "summary.label"), _safe_potion_names(run_state, registry)),
+        Text.assemble(("种子 ", "summary.label"), str(run_state.seed)),
+    ]
+    return Panel(
+        Group(*lines),
+        title=Text(title, style=title_style),
+        box=PANEL_BOX,
+        expand=False,
+    )
 
 
 def _resolved_combat_log_entries(room_state: RoomState) -> list[str]:
@@ -1147,7 +1214,13 @@ def render_non_combat_screen(
     body: list[RenderableType] = [render_full_map_panel(act_state)]
 
     if run_phase != "active":
-        body.append(render_terminal_phase_panel(run_phase))
+        body.append(
+            render_terminal_phase_panel(
+                run_phase,
+                run_state=run_state,
+                registry=registry,
+            )
+        )
     elif mode.startswith("inspect_"):
         body.append(
             render_non_combat_inspect_panel(
