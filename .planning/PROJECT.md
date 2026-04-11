@@ -18,6 +18,8 @@
 - ✓ 当前房间类型覆盖普通战斗、事件、精英、商店、休息点、宝箱、Boss、Boss 宝箱 — existing
 - ✓ 当前已支持 Act 1 到 Act 2 的主流程，Act 2 Boss 宝箱后进入 victory — existing
 - ✓ 当前已有战斗状态、出牌、结束回合、战斗奖励、Boss 奖励、遗物、药水、商店、休息点升级/跳过等核心系统 — existing
+- ✓ Phase 03 已统一战斗奖励、Boss 奖励、商店、事件、宝箱、Neow 与休息点的奖励标识与 apply 流程，并为 placeholder/未实现奖励提供安全降级与可见反馈 — Validated in Phase 03: 奖励与经济统一
+- ✓ Phase 03 已为奖励经济相关遗物建立 combat、boss、shop、event、treasure、neow、rest 七类入口的自动化回归证据，并修复宝箱/Boss 宝箱不可用奖励被错误消耗的问题 — Validated in Phase 03: 奖励与经济统一
 - ✓ 当前内容以根目录 `content/` 为开发期真源，并通过注册表加载角色、卡牌、敌人、事件、遗物、药水、幕配置等 JSON 内容 — existing
 - ✓ 当前 JSON 存档 schema version 为 `3`，默认存档路径为 `saves/latest.json` — existing
 - ✓ 当前测试覆盖 app、use case、domain、content validation、Textual adapter 与 E2E smoke 等关键层级 — existing
@@ -48,6 +50,8 @@
 ## Context
 
 这是一个 brownfield 项目，已经通过 `.planning/codebase/` 建立代码库地图。当前架构是菜单驱动的分层单体：`src/slay_the_spire/app/session.py` 负责会话与菜单编排，`src/slay_the_spire/use_cases/` 承载玩家动作和房间行为，`src/slay_the_spire/domain/` 承载核心规则与状态模型，`src/slay_the_spire/adapters/` 承载 Rich/Textual 展示和 JSON 存档适配器。
+
+当前状态：Phase 03 已完成，奖励系统已统一到 reward id + apply 链路，随机 placeholder 投放风险已收口，宝箱/Boss 宝箱的不可用奖励不会再被误领取或误消耗。下一阶段转向非战斗系统扩容。
 
 内容开发的事实入口是根目录 `content/`。本地参考资料位于 `docs/reference/`，其中已有卡牌和遗物资料；需要外部交叉校验时，优先参考官方社区 Wiki 和中文 Wiki。当前 README 显示铁甲战士红卡已完整补齐，原版 1 代遗物已录入 180 种但仍有 102 种占位定义，后续主要工作会围绕内容覆盖率、运行时规则覆盖率和跨系统联动展开。
 
@@ -91,4 +95,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-11 after Phase 01 (护栏与交付契约) completion — guardrail marker, content reachability contract, README delivery checklist established*
+*Last updated: 2026-04-11 after Phase 03 (奖励与经济统一) completion — unified reward id/apply flow, placeholder reward safety, and cross-entrance economy regression coverage established*
