@@ -30,7 +30,7 @@
   3. 每次新增内容批次都能按统一验收清单落地，且提交中可观察到 `content/`、registry、domain/use case、session、presentation/Textual、README 的对应更新。
 **Plans:** 3 plans
 Plans:
-- [ ] 01-01-PLAN.md — 注册 pytest guardrail marker 并标记关键回归测试
+- [x] 01-01-PLAN.md — 注册 pytest guardrail marker 并标记关键回归测试
 - [ ] 01-02-PLAN.md — 建立内容可触达报告并过滤 placeholder 随机遗物池
 - [ ] 01-03-PLAN.md — 在 README 固化 guardrail 命令与新增内容批次验收清单
 
