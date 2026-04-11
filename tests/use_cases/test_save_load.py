@@ -68,6 +68,22 @@ def _run_state() -> RunState:
     )
 
 
+def _act3_run_state() -> RunState:
+    return RunState(
+        seed=17,
+        character_id="ironclad",
+        current_act_id="act3",
+        current_hp=41,
+        max_hp=92,
+        gold=287,
+        deck=["strike#1", "defend#1", "bash#1", "impervious#9"],
+        relics=["burning_blood", "black_blood", "anchor"],
+        potions=["fire_potion", "strength_potion"],
+        card_removal_count=3,
+        seen_event_ids=["mind_bloom", "mysterious_sphere"],
+    )
+
+
 def _act_state() -> ActState:
     return ActState(
         schema_version=1,
@@ -188,6 +204,72 @@ def test_load_game_restores_map_and_combat_state_from_json_save(tmp_path: Path) 
     assert restored["act_state"].to_dict() == act_state.to_dict()
     assert restored["combat_state"].to_dict() == combat_state.to_dict()
     assert restored["room_state"].payload["combat_state"] == combat_state.to_dict()
+
+
+@pytest.mark.guardrail
+def test_save_load_round_trip_with_act3_state(tmp_path: Path) -> None:
+    run_state = _act3_run_state()
+    act_state = generate_act_state("act3", seed=run_state.seed, registry=_content_provider())
+    repository = JsonFileSaveRepository(tmp_path / "act3_state.json")
+
+    save_game(
+        repository=repository,
+        run_state=run_state,
+        act_state=act_state,
+        room_state=None,
+        combat_state=None,
+    )
+
+    raw_document = json.loads((tmp_path / "act3_state.json").read_text(encoding="utf-8"))
+    restored = load_game(repository=repository)
+    restored_run_state = restored["run_state"]
+
+    assert raw_document["schema_version"] == SAVE_SCHEMA_VERSION
+    assert restored_run_state is not None
+    assert restored_run_state.current_act_id == "act3"
+    assert restored_run_state.seed == run_state.seed
+    assert restored_run_state.deck == run_state.deck
+    assert restored_run_state.relics == run_state.relics
+    assert restored_run_state.potions == run_state.potions
+    assert restored_run_state.gold == run_state.gold
+    assert restored_run_state.current_hp == run_state.current_hp
+    assert restored_run_state.max_hp == run_state.max_hp
+
+
+def test_save_load_round_trip_preserves_act3_progression(tmp_path: Path) -> None:
+    run_state = _act3_run_state()
+    act_state = generate_act_state("act3", seed=run_state.seed, registry=_content_provider())
+    room_state = RoomState(
+        room_id="act3:event",
+        room_type="event",
+        stage="waiting_input",
+        payload={
+            "act_id": "act3",
+            "node_id": "r8c0",
+            "event_id": "mind_bloom",
+            "next_node_ids": ["r9c0"],
+        },
+        is_resolved=False,
+        rewards=[],
+    )
+    repository = JsonFileSaveRepository(tmp_path / "act3_progress.json")
+
+    save_game(
+        repository=repository,
+        run_state=run_state,
+        act_state=act_state,
+        room_state=room_state,
+        combat_state=None,
+    )
+
+    restored = load_game(repository=repository)
+
+    assert restored["run_state"] is not None
+    assert restored["act_state"] is not None
+    assert restored["room_state"] is not None
+    assert restored["run_state"].to_dict() == run_state.to_dict()
+    assert restored["act_state"].to_dict() == act_state.to_dict()
+    assert restored["room_state"].to_dict() == room_state.to_dict()
 
 
 def test_save_load_preserves_act2_progress_and_multi_enemy_room(tmp_path: Path) -> None:
