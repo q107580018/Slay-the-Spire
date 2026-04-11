@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import replace
 from pathlib import Path
 
+import pytest
+
 from slay_the_spire.app.menu_definitions import (
     build_root_menu,
     build_target_menu,
@@ -179,6 +181,7 @@ def _choice_for_root_action(session, action_id: str) -> str:
     )
 
 
+@pytest.mark.guardrail
 def test_root_load_enters_save_list_menu(tmp_path: Path, monkeypatch) -> None:
     saves_dir = tmp_path / "saves"
     alpha_path = saves_dir / "alpha.json"
@@ -200,6 +203,7 @@ def test_root_load_enters_save_list_menu(tmp_path: Path, monkeypatch) -> None:
     assert "omega.json" in message
 
 
+@pytest.mark.guardrail
 def test_load_select_can_restore_specific_save_from_root_menu(
     tmp_path: Path, monkeypatch
 ) -> None:
@@ -269,6 +273,7 @@ def test_route_menu_choice_wing_boots_allows_unlinked_next_room() -> None:
     assert "detour" in message
 
 
+@pytest.mark.guardrail
 def test_root_next_room_with_wing_boots_enters_select_next_room_menu() -> None:
     session = start_session(seed=5)
     current_room = replace(
@@ -321,6 +326,7 @@ def test_root_next_room_with_wing_boots_enters_select_next_room_menu() -> None:
     assert "选择下一个房间" in message
 
 
+@pytest.mark.guardrail
 def test_route_menu_choice_without_wing_boots_rejects_unlinked_next_room() -> None:
     session = start_session(seed=5)
     current_room = replace(

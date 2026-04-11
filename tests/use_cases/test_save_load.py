@@ -242,6 +242,7 @@ def test_load_game_restores_run_state_seen_event_ids(tmp_path: Path) -> None:
     assert restored["run_state"].seen_event_ids == ["shining_light", "golden_idol"]
 
 
+@pytest.mark.guardrail
 def test_save_load_round_trips_extended_combat_state(tmp_path: Path) -> None:
     combat_state = CombatState(
         round_number=2,
@@ -519,6 +520,7 @@ def test_build_save_document_persists_relic_sequence_state() -> None:
     )
 
 
+@pytest.mark.guardrail
 def test_save_load_round_trips_relic_sequence_state(tmp_path: Path) -> None:
     repository = JsonFileSaveRepository(tmp_path / "save.json")
     run_state = replace(
@@ -607,6 +609,7 @@ def test_save_load_preserves_treasure_room_state(tmp_path: Path) -> None:
     assert restored["room_state"].payload["next_node_ids"] == []
 
 
+@pytest.mark.guardrail
 def test_save_load_preserves_boss_chest_room_state(tmp_path: Path) -> None:
     run_state = _run_state()
     act_state = _act_state()

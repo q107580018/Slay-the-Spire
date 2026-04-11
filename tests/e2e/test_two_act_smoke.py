@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import replace
 from pathlib import Path
 
+import pytest
+
 from slay_the_spire.app.session import (
     MenuState,
     SessionState,
@@ -44,6 +46,7 @@ def _force_act1_boss_reward_complete(session: SessionState) -> SessionState:
     )
 
 
+@pytest.mark.guardrail
 def test_act1_boss_reward_transitions_into_act2_start_room() -> None:
     session = _force_act1_boss_reward_complete(start_session(seed=5))
 
@@ -68,6 +71,7 @@ def test_act1_boss_reward_transitions_into_act2_start_room() -> None:
     assert session.room_state.room_type == "combat"
 
 
+@pytest.mark.guardrail
 def test_act2_boss_reward_finishes_run_with_victory() -> None:
     base_session = start_session(seed=5)
     provider = _content_provider()

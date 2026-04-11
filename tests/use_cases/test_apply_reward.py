@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import replace
 from pathlib import Path
 
+import pytest
+
 from slay_the_spire.content.provider import StarterContentProvider
 from slay_the_spire.domain.models.run_state import RunState
 from slay_the_spire.domain.rewards import reward_generator as reward_generator_module
@@ -43,6 +45,7 @@ def _run_state() -> RunState:
     )
 
 
+@pytest.mark.guardrail
 def test_apply_reward_adds_gold_to_run_state() -> None:
     updated = apply_reward(
         run_state=_run_state(), reward_id="gold:11", registry=_content_provider()
@@ -113,6 +116,7 @@ def test_apply_reward_preserves_card_id_with_underscores() -> None:
     assert updated.deck[-1] == "pommel_strike#10"
 
 
+@pytest.mark.guardrail
 def test_apply_reward_accepts_card_offer_reward_ids() -> None:
     updated = apply_reward(
         run_state=_run_state(),
@@ -174,6 +178,7 @@ def test_apply_reward_gold_uses_golden_idol_bonus() -> None:
     assert updated.gold == 224
 
 
+@pytest.mark.guardrail
 def test_generate_boss_rewards_returns_three_unique_relics() -> None:
     run_state = replace(
         _run_state(),
@@ -246,6 +251,7 @@ def test_generate_boss_rewards_is_deterministic_for_same_inputs() -> None:
     assert first["boss_relic_offers"] == second["boss_relic_offers"]
 
 
+@pytest.mark.guardrail
 def test_generate_combat_rewards_returns_gold_and_three_unique_card_offers() -> None:
     rewards, next_rare_offset = generate_combat_rewards(
         room_id="act1:hallway_reward",
@@ -384,6 +390,7 @@ def test_generate_combat_rewards_normal_gold_stays_in_10_to_20_range() -> None:
         assert 10 <= gold_amount <= 20
 
 
+@pytest.mark.guardrail
 def test_generate_combat_rewards_elite_gold_stays_in_25_to_35_range_and_grants_relic(
     monkeypatch,
 ) -> None:

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from slay_the_spire.content.registries import CardRegistry
 from slay_the_spire.domain.effects.effect_resolver import (
     resolve_effect_queue,
@@ -104,8 +106,7 @@ def test_full_ironclad_effect_types_are_declared() -> None:
     )
     assert effect_types.EFFECT_EXHAUST_ALL_IN_HAND == "exhaust_all_in_hand"
     assert (
-        effect_types.EFFECT_EXHAUST_ALL_IN_HAND_DAMAGE
-        == "exhaust_all_in_hand_damage"
+        effect_types.EFFECT_EXHAUST_ALL_IN_HAND_DAMAGE == "exhaust_all_in_hand_damage"
     )
     assert effect_types.EFFECT_DOUBLE_STRENGTH == "double_strength"
     assert (
@@ -134,6 +135,7 @@ def test_full_ironclad_effect_types_are_declared() -> None:
     assert effect_types.EFFECT_RAMPAGE_DAMAGE == "rampage_damage"
 
 
+@pytest.mark.guardrail
 def test_effects_append_to_queue_tail_in_order():
     state = make_combat_state(
         enemies=[make_enemy("enemy-1", 3)],
@@ -156,6 +158,7 @@ def test_effects_append_to_queue_tail_in_order():
     ]
 
 
+@pytest.mark.guardrail
 def test_resolver_never_recurses_synchronously():
     state = make_combat_state(
         enemies=[make_enemy("enemy-1", 3), make_enemy("enemy-2", 10)],
@@ -186,6 +189,7 @@ def test_resolver_never_recurses_synchronously():
     assert state.effect_queue[0]["hook_name"] == "on_enemy_defeated"
 
 
+@pytest.mark.guardrail
 def test_dead_targets_become_noop_effects():
     state = make_combat_state(
         enemies=[make_enemy("enemy-1", 1)],
@@ -207,6 +211,7 @@ def test_dead_targets_become_noop_effects():
     assert state.enemies[0].hp == 0
 
 
+@pytest.mark.guardrail
 def test_on_enemy_defeated_enqueues_before_on_combat_end():
     state = make_combat_state(
         enemies=[make_enemy("enemy-1", 4)],
@@ -224,6 +229,7 @@ def test_on_enemy_defeated_enqueues_before_on_combat_end():
     ]
 
 
+@pytest.mark.guardrail
 def test_on_combat_end_is_enqueued_only_after_defeat_hook_resolves():
     state = make_combat_state(
         enemies=[make_enemy("enemy-1", 4)],
@@ -258,6 +264,7 @@ def test_on_combat_end_is_enqueued_only_after_defeat_hook_resolves():
     assert state.effect_queue[1]["hook_name"] == "on_combat_end"
 
 
+@pytest.mark.guardrail
 def test_on_combat_end_fires_once_even_if_multiple_enemies_die():
     state = make_combat_state(
         enemies=[make_enemy("enemy-1", 2), make_enemy("enemy-2", 2)],
